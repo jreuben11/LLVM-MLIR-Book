@@ -1,5 +1,5 @@
 # Book Progress Checklist
-*Last updated: 2026-04-28 (Ch15 written). Read this first after any context compaction.*
+*Last updated: 2026-04-28 (Ch11 and Ch10 written). Read this first after any context compaction.*
 
 ## Status Legend
 - `[ ]` Not started
@@ -26,8 +26,8 @@
 - [x] Ch07 — Parsing Theory
 - [x] Ch08 — Semantic Analysis Foundations
 - [x] Ch09 — Intermediate Representations and SSA Construction
-- [ ] Ch10 — Dataflow Analysis: The Lattice Framework
-- [ ] Ch11 — Classical Optimization Theory
+- [x] Ch10 — Dataflow Analysis: The Lattice Framework
+- [x] Ch11 — Classical Optimization Theory
 
 ## Part III — Type Theory *(~80 pp, 4 ch)* [THEORETICAL]
 - [x] Ch12 — Lambda Calculus and Simple Types
@@ -259,5 +259,5 @@
 
 ## Stats
 - Total chapters: 176 + 8 appendices = 184 items
-- Completed: 11 / 184
-- Estimated pages written: ~220 / ~2195
+- Completed: 13 / 184
+- Estimated pages written: ~260 / ~2195
