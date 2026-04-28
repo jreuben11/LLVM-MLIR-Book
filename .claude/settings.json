@@ -22,7 +22,21 @@
       "Bash(ls)",
       "Bash(wc *)",
       "Bash(python3 *)",
-      "Bash(/usr/lib/llvm-22/bin/*)"
+      "Bash(/usr/lib/llvm-22/bin/*)",
+      "Bash(llvm-objdump *)",
+      "Bash(llvm-nm *)",
+      "Bash(llvm-link *)",
+      "Bash(llvm-readobj *)",
+      "Bash(llvm-mca *)",
+      "Bash(llvm-dwarfdump *)",
+      "Bash(llvm-size *)",
+      "Bash(llvm-symbolizer *)",
+      "Bash(llvm-profdata *)",
+      "Bash(clang-format *)",
+      "Bash(clang-tidy *)",
+      "Bash(lldb *)",
+      "Bash(lld *)",
+      "Bash(ld.lld *)"
     ]
   }
 }

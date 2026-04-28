@@ -1,5 +1,5 @@
 # Book Progress Checklist
-*Last updated: 2026-04-28 (Ch18 written). Read this first after any context compaction.*
+*Last updated: 2026-04-28 (Ch20–Ch23 committed). Read this first after any context compaction.*
 
 ## Status Legend
 - `[ ]` Not started
@@ -10,8 +10,8 @@
 
 ## Current Focus
 **Parts I, II, III COMPLETE** ✓ (15/184 chapters done)
-**Next up:** Part IV — LLVM IR (Ch16–Ch27, 12 practical chapters)
-**Batch:** Ch16–Ch20 in parallel (foundational IR structure chapters)
+**Part IV in progress:** Ch16–Ch23 done (8/12). Next: Ch24–Ch27 (Intrinsics, Inline Assembly, Exception Handling, Coroutines/Atomics)
+**Batch:** Ch24–Ch27 in parallel
 
 ---
 
@@ -41,10 +41,10 @@
 - [x] Ch17 — The Type System
 - [x] Ch18 — Constants, Globals, and Linkage
 - [x] Ch19 — Instructions I — Arithmetic and Memory
-- [ ] Ch20 — Instructions II — Control Flow and Aggregates
-- [ ] Ch21 — SSA, Dominance, and Loops
-- [ ] Ch22 — Metadata and Debug Info
-- [ ] Ch23 — Attributes, Calling Conventions, and the ABI
+- [x] Ch20 — Instructions II — Control Flow and Aggregates
+- [x] Ch21 — SSA, Dominance, and Loops
+- [x] Ch22 — Metadata and Debug Info
+- [x] Ch23 — Attributes, Calling Conventions, and the ABI
 - [ ] Ch24 — Intrinsics
 - [ ] Ch25 — Inline Assembly
 - [ ] Ch26 — Exception Handling
@@ -260,5 +260,5 @@
 
 ## Stats
 - Total chapters: 176 + 8 appendices = 184 items
-- Completed: 17 / 184
-- Estimated pages written: ~284 / ~2195
+- Completed: 23 / 184
+- Estimated pages written: ~376 / ~2195
