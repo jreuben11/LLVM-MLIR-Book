@@ -15,11 +15,11 @@
 ---
 
 ## Part I — Foundations *(~85 pp, 5 ch)*
-- [ ] Ch01 — The LLVM Project
-- [ ] Ch02 — Building LLVM from Source
-- [ ] Ch03 — The Compilation Pipeline
-- [ ] Ch04 — The LLVM C++ API
-- [ ] Ch05 — LLVM as a Library
+- [x] Ch01 — The LLVM Project
+- [x] Ch02 — Building LLVM from Source
+- [x] Ch03 — The Compilation Pipeline
+- [x] Ch04 — The LLVM C++ API
+- [x] Ch05 — LLVM as a Library
 
 ## Part II — Compiler Theory and Foundations *(~120 pp, 6 ch)* [THEORETICAL]
 - [ ] Ch06 — Lexical Analysis
