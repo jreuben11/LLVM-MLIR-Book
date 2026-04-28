@@ -36,7 +36,9 @@
       "Bash(clang-tidy *)",
       "Bash(lldb *)",
       "Bash(lld *)",
-      "Bash(ld.lld *)"
+      "Bash(ld.lld *)",
+      "Bash(dpkg -l *)",
+      "Bash(apt-cache *)"
     ]
   }
 }

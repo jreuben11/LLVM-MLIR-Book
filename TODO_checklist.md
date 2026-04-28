@@ -1,5 +1,5 @@
 # Book Progress Checklist
-*Last updated: 2026-04-28 (Part V complete — Ch28–Ch38 committed). Read this first after any context compaction.*
+*Last updated: 2026-04-28 (Part VI complete — Ch39–Ch44 committed). Read this first after any context compaction.*
 
 ## Status Legend
 - `[ ]` Not started
@@ -9,9 +9,9 @@
 ---
 
 ## Current Focus
-**Parts I–V COMPLETE** ✓ (43/184 chapters done)
-**Next up:** Part VI — Clang Codegen and ABI (Ch39–Ch44, 6 chapters)
-**Batch:** Ch39–Ch44 in parallel
+**Parts I–VI COMPLETE** ✓ (49/184 chapters done)
+**Next up:** Part VII — Clang as a Multi-Language Compiler (Ch45–Ch51, 7 chapters)
+**Batch:** Ch45–Ch51 in parallel
 
 ---
 
@@ -64,12 +64,12 @@
 - [x] Ch38 — Code Completion and clangd Foundations
 
 ## Part VI — Clang Internals: Codegen and ABI *(~120 pp, 6 ch)*
-- [ ] Ch39 — CodeGenModule and CodeGenFunction
-- [ ] Ch40 — Lowering Statements and Expressions
-- [ ] Ch41 — Calls, the ABI Boundary, and Builtins
-- [ ] Ch42 — C++ ABI Lowering: Itanium
-- [ ] Ch43 — C++ ABI Lowering: Microsoft
-- [ ] Ch44 — Coroutine Lowering in Clang
+- [x] Ch39 — CodeGenModule and CodeGenFunction
+- [x] Ch40 — Lowering Statements and Expressions
+- [x] Ch41 — Calls, the ABI Boundary, and Builtins
+- [x] Ch42 — C++ ABI Lowering: Itanium
+- [x] Ch43 — C++ ABI Lowering: Microsoft
+- [x] Ch44 — Coroutine Lowering in Clang
 
 ## Part VII — Clang as a Multi-Language Compiler *(~140 pp, 7 ch)*
 - [ ] Ch45 — The Static Analyzer
@@ -260,5 +260,5 @@
 
 ## Stats
 - Total chapters: 176 + 8 appendices = 184 items
-- Completed: 43 / 184
-- Estimated pages written: ~703 / ~2195
+- Completed: 49 / 184
+- Estimated pages written: ~801 / ~2195
