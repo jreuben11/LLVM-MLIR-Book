@@ -1,5 +1,5 @@
 # Book Progress Checklist
-*Last updated: 2026-04-28 (Ch20–Ch23 committed). Read this first after any context compaction.*
+*Last updated: 2026-04-28 (Part IV complete — Ch16–Ch27 all committed). Read this first after any context compaction.*
 
 ## Status Legend
 - `[ ]` Not started
@@ -9,9 +9,9 @@
 ---
 
 ## Current Focus
-**Parts I, II, III COMPLETE** ✓ (15/184 chapters done)
-**Part IV in progress:** Ch16–Ch23 done (8/12). Next: Ch24–Ch27 (Intrinsics, Inline Assembly, Exception Handling, Coroutines/Atomics)
-**Batch:** Ch24–Ch27 in parallel
+**Parts I–IV COMPLETE** ✓ (27/184 chapters done)
+**Next up:** Part V — Clang Frontend Pipeline (Ch28–Ch38, 11 chapters)
+**Batch:** Ch28–Ch32 in parallel (driver + source mgmt + diagnostics + lexer + parser)
 
 ---
 
@@ -45,10 +45,10 @@
 - [x] Ch21 — SSA, Dominance, and Loops
 - [x] Ch22 — Metadata and Debug Info
 - [x] Ch23 — Attributes, Calling Conventions, and the ABI
-- [ ] Ch24 — Intrinsics
-- [ ] Ch25 — Inline Assembly
-- [ ] Ch26 — Exception Handling
-- [ ] Ch27 — Coroutines and Atomics
+- [x] Ch24 — Intrinsics
+- [x] Ch25 — Inline Assembly
+- [x] Ch26 — Exception Handling
+- [x] Ch27 — Coroutines and Atomics
 
 ## Part V — Clang Internals: Frontend Pipeline *(~210 pp, 11 ch)*
 - [ ] Ch28 — The Clang Driver
@@ -260,5 +260,5 @@
 
 ## Stats
 - Total chapters: 176 + 8 appendices = 184 items
-- Completed: 23 / 184
-- Estimated pages written: ~376 / ~2195
+- Completed: 27 / 184
+- Estimated pages written: ~442 / ~2195
