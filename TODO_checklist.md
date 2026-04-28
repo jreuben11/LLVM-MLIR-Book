@@ -1,5 +1,5 @@
 # Book Progress Checklist
-*Last updated: 2026-04-28. Read this first after any context compaction.*
+*Last updated: 2026-04-28 (Ch13 written). Read this first after any context compaction.*
 
 ## Status Legend
 - `[ ]` Not started
@@ -23,7 +23,7 @@
 
 ## Part II — Compiler Theory and Foundations *(~120 pp, 6 ch)* [THEORETICAL]
 - [x] Ch06 — Lexical Analysis
-- [ ] Ch07 — Parsing Theory
+- [x] Ch07 — Parsing Theory
 - [ ] Ch08 — Semantic Analysis Foundations
 - [ ] Ch09 — Intermediate Representations and SSA Construction
 - [ ] Ch10 — Dataflow Analysis: The Lattice Framework
@@ -31,7 +31,7 @@
 
 ## Part III — Type Theory *(~80 pp, 4 ch)* [THEORETICAL]
 - [x] Ch12 — Lambda Calculus and Simple Types
-- [ ] Ch13 — Polymorphism and Type Inference
+- [x] Ch13 — Polymorphism and Type Inference
 - [ ] Ch14 — Advanced Type Systems
 - [ ] Ch15 — Type Theory in Practice: From Theory to LLVM and MLIR
 
@@ -259,5 +259,5 @@
 
 ## Stats
 - Total chapters: 176 + 8 appendices = 184 items
-- Completed: 7 / 184
-- Estimated pages written: ~140 / ~2195
+- Completed: 8 / 184
+- Estimated pages written: ~160 / ~2195
