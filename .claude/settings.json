@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Read",
+      "Write",
+      "Edit",
+      "Agent",
+      "Bash(git *)",
+      "Bash(clang *)",
+      "Bash(clang++ *)",
+      "Bash(opt *)",
+      "Bash(llc *)",
+      "Bash(llvm-config *)",
+      "Bash(mlir-opt *)",
+      "Bash(mlir-translate *)",
+      "Bash(llvm-as *)",
+      "Bash(llvm-dis *)",
+      "Bash(find *)",
+      "Bash(grep *)",
+      "Bash(mkdir *)",
+      "Bash(ls *)",
+      "Bash(ls)",
+      "Bash(wc *)",
+      "Bash(python3 *)",
+      "Bash(/usr/lib/llvm-22/bin/*)"
+    ]
+  }
+}
