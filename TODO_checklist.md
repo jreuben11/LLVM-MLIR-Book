@@ -1,5 +1,5 @@
 # Book Progress Checklist
-*Last updated: 2026-04-28 (Part IV complete — Ch16–Ch27 all committed). Read this first after any context compaction.*
+*Last updated: 2026-04-28 (Ch28–Ch32 committed). Read this first after any context compaction.*
 
 ## Status Legend
 - `[ ]` Not started
@@ -9,9 +9,9 @@
 ---
 
 ## Current Focus
-**Parts I–IV COMPLETE** ✓ (27/184 chapters done)
-**Next up:** Part V — Clang Frontend Pipeline (Ch28–Ch38, 11 chapters)
-**Batch:** Ch28–Ch32 in parallel (driver + source mgmt + diagnostics + lexer + parser)
+**Parts I–IV COMPLETE** ✓ (27/184)
+**Part V in progress:** Ch28–Ch32 done (5/11). Next: Ch33–Ch38.
+**Batch:** Ch33–Ch38 in parallel (Sema I, Sema II, ConstExpr, AST, Modules, clangd)
 
 ---
 
@@ -51,11 +51,11 @@
 - [x] Ch27 — Coroutines and Atomics
 
 ## Part V — Clang Internals: Frontend Pipeline *(~210 pp, 11 ch)*
-- [ ] Ch28 — The Clang Driver
-- [ ] Ch29 — SourceManager, FileEntry, SourceLocation
-- [ ] Ch30 — The Diagnostic Engine
-- [ ] Ch31 — The Lexer and Preprocessor
-- [ ] Ch32 — The Parser
+- [x] Ch28 — The Clang Driver
+- [x] Ch29 — SourceManager, FileEntry, SourceLocation
+- [x] Ch30 — The Diagnostic Engine
+- [x] Ch31 — The Lexer and Preprocessor
+- [x] Ch32 — The Parser
 - [ ] Ch33 — Sema I — Names, Lookups, and Conversions
 - [ ] Ch34 — Sema II — Templates, Concepts, and Constraints
 - [ ] Ch35 — The Constant Evaluator
@@ -260,5 +260,5 @@
 
 ## Stats
 - Total chapters: 176 + 8 appendices = 184 items
-- Completed: 27 / 184
-- Estimated pages written: ~442 / ~2195
+- Completed: 32 / 184
+- Estimated pages written: ~524 / ~2195
