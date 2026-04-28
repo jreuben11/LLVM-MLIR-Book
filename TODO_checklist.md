@@ -9,8 +9,8 @@
 ---
 
 ## Current Focus
-**Next up:** Part I — Foundations (Chapters 1–5)
-**Batch:** Write Ch01–Ch05 sequentially (each depends on prior context)
+**Next up:** Part II — Compiler Theory (Chapters 6–11)
+**Batch:** Write Ch06–Ch11 sequentially (theoretical chapters)
 
 ---
 
@@ -22,7 +22,7 @@
 - [x] Ch05 — LLVM as a Library
 
 ## Part II — Compiler Theory and Foundations *(~120 pp, 6 ch)* [THEORETICAL]
-- [ ] Ch06 — Lexical Analysis
+- [x] Ch06 — Lexical Analysis
 - [ ] Ch07 — Parsing Theory
 - [ ] Ch08 — Semantic Analysis Foundations
 - [ ] Ch09 — Intermediate Representations and SSA Construction
@@ -30,7 +30,7 @@
 - [ ] Ch11 — Classical Optimization Theory
 
 ## Part III — Type Theory *(~80 pp, 4 ch)* [THEORETICAL]
-- [ ] Ch12 — Lambda Calculus and Simple Types
+- [x] Ch12 — Lambda Calculus and Simple Types
 - [ ] Ch13 — Polymorphism and Type Inference
 - [ ] Ch14 — Advanced Type Systems
 - [ ] Ch15 — Type Theory in Practice: From Theory to LLVM and MLIR
@@ -259,5 +259,5 @@
 
 ## Stats
 - Total chapters: 176 + 8 appendices = 184 items
-- Completed: 0 / 184
-- Estimated pages written: 0 / ~2195
+- Completed: 7 / 184
+- Estimated pages written: ~140 / ~2195
