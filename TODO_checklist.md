@@ -1,5 +1,5 @@
 # Book Progress Checklist
-*Last updated: 2026-04-28 (Ch28–Ch32 committed). Read this first after any context compaction.*
+*Last updated: 2026-04-28 (Part V complete — Ch28–Ch38 committed). Read this first after any context compaction.*
 
 ## Status Legend
 - `[ ]` Not started
@@ -9,9 +9,9 @@
 ---
 
 ## Current Focus
-**Parts I–IV COMPLETE** ✓ (27/184)
-**Part V in progress:** Ch28–Ch32 done (5/11). Next: Ch33–Ch38.
-**Batch:** Ch33–Ch38 in parallel (Sema I, Sema II, ConstExpr, AST, Modules, clangd)
+**Parts I–V COMPLETE** ✓ (43/184 chapters done)
+**Next up:** Part VI — Clang Codegen and ABI (Ch39–Ch44, 6 chapters)
+**Batch:** Ch39–Ch44 in parallel
 
 ---
 
@@ -56,12 +56,12 @@
 - [x] Ch30 — The Diagnostic Engine
 - [x] Ch31 — The Lexer and Preprocessor
 - [x] Ch32 — The Parser
-- [ ] Ch33 — Sema I — Names, Lookups, and Conversions
-- [ ] Ch34 — Sema II — Templates, Concepts, and Constraints
-- [ ] Ch35 — The Constant Evaluator
-- [ ] Ch36 — The Clang AST in Depth
-- [ ] Ch37 — C++ Modules Implementation
-- [ ] Ch38 — Code Completion and clangd Foundations
+- [x] Ch33 — Sema I — Names, Lookups, and Conversions
+- [x] Ch34 — Sema II — Templates, Concepts, and Constraints
+- [x] Ch35 — The Constant Evaluator
+- [x] Ch36 — The Clang AST in Depth
+- [x] Ch37 — C++ Modules Implementation
+- [x] Ch38 — Code Completion and clangd Foundations
 
 ## Part VI — Clang Internals: Codegen and ABI *(~120 pp, 6 ch)*
 - [ ] Ch39 — CodeGenModule and CodeGenFunction
@@ -260,5 +260,5 @@
 
 ## Stats
 - Total chapters: 176 + 8 appendices = 184 items
-- Completed: 32 / 184
-- Estimated pages written: ~524 / ~2195
+- Completed: 43 / 184
+- Estimated pages written: ~703 / ~2195
