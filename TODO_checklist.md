@@ -1,5 +1,5 @@
 # Book Progress Checklist
-*Last updated: 2026-04-28 (Ch11 and Ch10 written). Read this first after any context compaction.*
+*Last updated: 2026-04-28 (Ch18 written). Read this first after any context compaction.*
 
 ## Status Legend
 - `[ ]` Not started
@@ -9,8 +9,9 @@
 ---
 
 ## Current Focus
-**Next up:** Part II — Compiler Theory (Chapters 6–11)
-**Batch:** Write Ch06–Ch11 sequentially (theoretical chapters)
+**Parts I, II, III COMPLETE** ✓ (15/184 chapters done)
+**Next up:** Part IV — LLVM IR (Ch16–Ch27, 12 practical chapters)
+**Batch:** Ch16–Ch20 in parallel (foundational IR structure chapters)
 
 ---
 
@@ -36,10 +37,10 @@
 - [x] Ch15 — Type Theory in Practice: From Theory to LLVM and MLIR
 
 ## Part IV — LLVM IR *(~225 pp, 12 ch)*
-- [ ] Ch16 — IR Structure
-- [ ] Ch17 — The Type System
-- [ ] Ch18 — Constants, Globals, and Linkage
-- [ ] Ch19 — Instructions I — Arithmetic and Memory
+- [x] Ch16 — IR Structure
+- [x] Ch17 — The Type System
+- [x] Ch18 — Constants, Globals, and Linkage
+- [x] Ch19 — Instructions I — Arithmetic and Memory
 - [ ] Ch20 — Instructions II — Control Flow and Aggregates
 - [ ] Ch21 — SSA, Dominance, and Loops
 - [ ] Ch22 — Metadata and Debug Info
@@ -259,5 +260,5 @@
 
 ## Stats
 - Total chapters: 176 + 8 appendices = 184 items
-- Completed: 13 / 184
-- Estimated pages written: ~260 / ~2195
+- Completed: 17 / 184
+- Estimated pages written: ~284 / ~2195
