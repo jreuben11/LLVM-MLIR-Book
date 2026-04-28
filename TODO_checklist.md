@@ -1,5 +1,5 @@
 # Book Progress Checklist
-*Last updated: 2026-04-28 (Ch08 and Ch14 written). Read this first after any context compaction.*
+*Last updated: 2026-04-28 (Ch15 written). Read this first after any context compaction.*
 
 ## Status Legend
 - `[ ]` Not started
@@ -25,7 +25,7 @@
 - [x] Ch06 — Lexical Analysis
 - [x] Ch07 — Parsing Theory
 - [x] Ch08 — Semantic Analysis Foundations
-- [ ] Ch09 — Intermediate Representations and SSA Construction
+- [x] Ch09 — Intermediate Representations and SSA Construction
 - [ ] Ch10 — Dataflow Analysis: The Lattice Framework
 - [ ] Ch11 — Classical Optimization Theory
 
@@ -33,7 +33,7 @@
 - [x] Ch12 — Lambda Calculus and Simple Types
 - [x] Ch13 — Polymorphism and Type Inference
 - [x] Ch14 — Advanced Type Systems
-- [ ] Ch15 — Type Theory in Practice: From Theory to LLVM and MLIR
+- [x] Ch15 — Type Theory in Practice: From Theory to LLVM and MLIR
 
 ## Part IV — LLVM IR *(~225 pp, 12 ch)*
 - [ ] Ch16 — IR Structure
@@ -259,5 +259,5 @@
 
 ## Stats
 - Total chapters: 176 + 8 appendices = 184 items
-- Completed: 10 / 184
-- Estimated pages written: ~200 / ~2195
+- Completed: 11 / 184
+- Estimated pages written: ~220 / ~2195
