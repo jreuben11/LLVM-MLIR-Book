@@ -1,5 +1,5 @@
 # Book Progress Checklist
-*Last updated: 2026-04-29 (Part X complete — Ch59–Ch69 written). Read this first after any context compaction.*
+*Last updated: 2026-04-29 (Part XIV complete — Ch81–Ch94 written). Read this first after any context compaction.*
 
 ## Status Legend
 - `[ ]` Not started
@@ -9,9 +9,9 @@
 ---
 
 ## Current Focus
-**Parts I–XIII COMPLETE** ✓ (78/184 chapters done, ~1,270 estimated pages)
-**Next up:** Part XIV — The Backend (Ch81–Ch94, 14 chapters)
-**Batch:** Ch81–Ch94 sequentially (backend pipeline is strongly sequential)
+**Parts I–XIV COMPLETE** ✓ (92/184 chapters done, ~1,438 estimated pages)
+**Next up:** Part XV — Targets (Ch95–Ch107, 13 chapters)
+**Batch:** Ch95–Ch107 sequentially (target chapters build on backend foundations)
 
 ---
 
@@ -121,21 +121,21 @@
 - [x] Ch79 — Linker Internals: GOT, PLT, TLS
 - [x] Ch80 — llvm-cas and Content-Addressable Builds
 
-## Part XIV — The Backend *(~280 pp, 14 ch)*
-- [ ] Ch81 — Backend Architecture
-- [ ] Ch82 — TableGen Deep Dive
-- [ ] Ch83 — The Target Description
-- [ ] Ch84 — SelectionDAG: Building and Legalizing
-- [ ] Ch85 — SelectionDAG: Combining and Selecting
-- [ ] Ch86 — GlobalISel
-- [ ] Ch87 — Inline Assembly Lowering
-- [ ] Ch88 — The Machine IR
-- [ ] Ch89 — Pre-RegAlloc Passes
-- [ ] Ch90 — Register Allocation
-- [ ] Ch91 — The Machine Pipeliner
-- [ ] Ch92 — The Machine Outliner
-- [ ] Ch93 — Post-RegAlloc and Pre-Emit
-- [ ] Ch94 — The MC Layer and MIR Test Infrastructure
+## Part XIV — The Backend *(~280 pp, 14 ch)* ✓ COMPLETE
+- [x] Ch81 — Backend Architecture
+- [x] Ch82 — TableGen Deep Dive
+- [x] Ch83 — The Target Description
+- [x] Ch84 — SelectionDAG: Building and Legalizing
+- [x] Ch85 — SelectionDAG: Combining and Selecting
+- [x] Ch86 — GlobalISel
+- [x] Ch87 — Inline Assembly Lowering
+- [x] Ch88 — The Machine IR
+- [x] Ch89 — Pre-RegAlloc Passes
+- [x] Ch90 — Register Allocation
+- [x] Ch91 — The Machine Pipeliner
+- [x] Ch92 — The Machine Outliner
+- [x] Ch93 — Post-RegAlloc and Pre-Emit
+- [x] Ch94 — The MC Layer and MIR Test Infrastructure
 
 ## Part XV — Targets *(~250 pp, 13 ch)*
 - [ ] Ch95 — The X86 Backend
@@ -260,5 +260,5 @@
 
 ## Stats
 - Total chapters: 176 + 8 appendices = 184 items
-- Completed: 56 / 184
-- Estimated pages written: ~919 / ~2195
+- Completed: 92 / 184
+- Estimated pages written: ~1,438 / ~2195

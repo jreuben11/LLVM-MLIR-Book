@@ -1,0 +1,570 @@
+# Chapter 84 — SelectionDAG: Building and Legalizing
+
+*Part XIV — The Backend*
+
+SelectionDAG is LLVM's classical instruction selection framework. Before a single target instruction is chosen, the backend must translate LLVM IR into a target-independent directed acyclic graph of typed operations, make that graph legal on the target's type system, and then make it legal with respect to the operations the target can actually perform. This chapter covers the first two of those three stages in depth: building the initial SelectionDAG from LLVM IR via `SelectionDAGBuilder`, and legalizing both types and operations so that subsequent pattern matching can proceed without encountering constructs the target does not support.
+
+## 84.1 The SelectionDAG Representation
+
+### 84.1.1 Nodes, Values, and Uses
+
+A `SelectionDAG` is a DAG of `SDNode` objects. Each node represents one operation; each outgoing edge from a node represents one result value of type `SDValue`. A node may produce multiple values — for example, an `ISD::LOAD` produces the loaded data value and a token chain. Consumers of a value form use lists, allowing backward traversal.
+
+```cpp
+// llvm/include/llvm/CodeGen/SelectionDAGNodes.h
+class SDNode {
+  unsigned NodeType;        // ISD:: opcode
+  DebugLoc DL;
+  SDVTList ValueList;       // types of all results
+  // operands follow in memory
+};
+
+class SDValue {
+  SDNode *Node;
+  unsigned ResNo;  // which result of Node
+};
+```
+
+Every value has an `EVT` (Extended Value Type). EVTs include the standard machine value types (`MVT::i32`, `MVT::f64`, `MVT::v4i32`) plus `EVT::Other` (token chain), `EVT::Glue` (scheduling glue), and composite types for aggregates.
+
+The DAG also maintains a root node (`ISD::EntryToken`) and a list of `CopyToReg` nodes that transfer values to physical registers at the basic-block boundary. The DAG is per-basic-block: the `SelectionDAGISel::SelectBasicBlock` function drives the translation one basic block at a time, stitching chains across blocks through virtual registers.
+
+### 84.1.2 ISD Opcode Catalog
+
+The `ISD` namespace in [`llvm/include/llvm/CodeGen/ISDOpcodes.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/llvm/include/llvm/CodeGen/ISDOpcodes.h) defines several hundred opcodes, organized by category:
+
+| Category | Representative opcodes |
+|---|---|
+| Arithmetic | `ADD`, `SUB`, `MUL`, `SDIV`, `UDIV`, `SREM`, `UREM` |
+| Shifts | `SHL`, `SRL`, `SRA`, `ROTL`, `ROTR` |
+| Bitwise | `AND`, `OR`, `XOR`, `BITREVERSE`, `CTLZ`, `CTTZ`, `CTPOP` |
+| Floating point | `FADD`, `FSUB`, `FMUL`, `FDIV`, `FSQRT`, `FABS`, `FNEG`, `FMA` |
+| Comparison | `SETCC` (with a `CondCode` operand), `SELECT_CC`, `SELECT` |
+| Memory | `LOAD`, `STORE`, `ATOMIC_LOAD`, `ATOMIC_STORE`, `ATOMIC_CMP_SWAP`, `MLOAD`, `MSTORE` |
+| Control flow | `BR`, `BRCOND`, `BR_CC`, `BRIND`, `BR_JT` |
+| Conversion | `SIGN_EXTEND`, `ZERO_EXTEND`, `TRUNCATE`, `FP_TO_SINT`, `SINT_TO_FP`, `BITCAST` |
+| Vector | `BUILD_VECTOR`, `VECTOR_SHUFFLE`, `EXTRACT_VECTOR_ELT`, `INSERT_VECTOR_ELT`, `CONCAT_VECTORS`, `EXTRACT_SUBVECTOR` |
+| Aggregates | `MERGE_VALUES`, `CopyToReg`, `CopyFromReg` |
+| Intrinsics | `INTRINSIC_WO_CHAIN`, `INTRINSIC_W_CHAIN`, `INTRINSIC_VOID` |
+
+The `INTRINSIC_WO_CHAIN` opcode carries an intrinsic ID as its first operand and models pure intrinsics with no memory side effects. `INTRINSIC_W_CHAIN` takes a token chain and models intrinsics that read or write memory or have ordering constraints. `INTRINSIC_VOID` models intrinsics that produce no value (side-effect-only). Targets can introduce additional target-specific opcodes starting at `ISD::FIRST_TARGET_OPCODE`.
+
+## 84.2 SelectionDAGBuilder: IR to DAG Translation
+
+### 84.2.1 Architecture
+
+[`SelectionDAGBuilder`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/llvm/lib/CodeGen/SelectionDAG/SelectionDAGBuilder.h) is the visitor class that walks LLVM IR instructions and emits `SDNode` objects. It lives in `llvm/lib/CodeGen/SelectionDAG/SelectionDAGBuilder.cpp`, one of the largest files in the LLVM codebase at roughly 13,000 lines.
+
+```cpp
+// llvm/lib/CodeGen/SelectionDAG/SelectionDAGBuilder.h
+class SelectionDAGBuilder {
+  SelectionDAG &DAG;
+  FunctionLoweringInfo &FuncInfo;
+  SwiftErrorValueTracking &SwiftError;
+  const TargetLowering &TLI;
+
+  // Map from LLVM Value* to its DAG SDValue
+  DenseMap<const Value*, SDValue> NodeMap;
+
+  // Token chain to the last side-effecting node
+  SDValue getRoot();
+
+  // Visitor entry point
+  void visit(const Instruction &I);
+  void visitAdd(const User &I);
+  void visitLoad(const LoadInst &I);
+  void visitStore(const StoreInst &I);
+  void visitCall(const CallInst &I);
+  void visitBr(const BranchInst &I);
+  // ... one visitor per IR opcode
+};
+```
+
+`SelectionDAGISel` calls `SelectionDAGBuilder::visit()` for each instruction in program order within the basic block. The visitor dispatches to an opcode-specific handler through an internal jump table generated by a macro expansion over the LLVM instruction kinds.
+
+### 84.2.2 Visiting Arithmetic Instructions
+
+Binary operators like `add`, `sub`, `mul` are handled by `visitBinary`. For integer add:
+
+```cpp
+// Simplified from SelectionDAGBuilder.cpp
+void SelectionDAGBuilder::visitAdd(const User &I) {
+  SDValue Op1 = getValue(I.getOperand(0));
+  SDValue Op2 = getValue(I.getOperand(1));
+  setValue(&I, DAG.getNode(ISD::ADD, getCurSDLoc(),
+                           Op1.getValueType(), Op1, Op2));
+}
+```
+
+For `fadd`, `nsw`/`nuw`/`exact` flags are consulted — if `nnan` and `ninf` are present (from `fast-math-flags`), the builder may set `SDNodeFlags::NoNaNs` on the result node, enabling later combines.
+
+### 84.2.3 Visiting Load and Store
+
+Loads must respect LLVM's type system, alignment, and memory ordering:
+
+```cpp
+void SelectionDAGBuilder::visitLoad(const LoadInst &I) {
+  SDValue Ptr = getValue(I.getPointerOperand());
+  EVT VT = TLI.getValueType(DAG.getDataLayout(), I.getType());
+  Align Alignment = I.getAlign();
+
+  SDValue L = DAG.getLoad(VT, getCurSDLoc(), getRoot(), Ptr,
+                           MachinePointerInfo(&I),
+                           Alignment,
+                           I.getMemOperand()->getFlags());
+  // L has two results: data (L) and chain (L.getValue(1))
+  setValue(&I, L);
+  DAG.setRoot(L.getValue(1));  // thread the chain
+}
+```
+
+Stores produce only a chain: `DAG.getStore(...)` returns an `SDValue` of type `MVT::Other`. That chain is set as the new root via `DAG.setRoot()`, ordering this store after all prior side-effecting nodes.
+
+### 84.2.4 Visiting Call Instructions
+
+Call lowering is the most complex visitor. `visitCall` eventually calls `TargetLowering::LowerCall`, which is target-overridden. The sequence is:
+
+1. Compute argument locations with `CCState::AnalyzeCallOperands`.
+2. Insert `CopyToReg` nodes for register arguments.
+3. Create an `ISD::CALLSEQ_START` node (marks stack pointer adjustment).
+4. Create the `ISD::CALL` or target-specific call node.
+5. Insert `ISD::CALLSEQ_END`.
+6. Extract return values with `CCState::AnalyzeCallResult`.
+
+Tail calls receive special treatment: if `CallInst::isTailCall()` and the target's `TargetLowering::isEligibleForTailCallOptimization()` returns true, the builder emits `ISD::TC_RETURN` instead.
+
+### 84.2.5 Visiting Branches and PHI Nodes
+
+Unconditional branches emit `ISD::BR`:
+
+```cpp
+void SelectionDAGBuilder::visitBr(const BranchInst &I) {
+  if (I.isUnconditional()) {
+    addSuccessorWithProb(FuncInfo.MBB, FuncInfo.MBBMap[I.getSuccessor(0)]);
+    DAG.setRoot(DAG.getNode(ISD::BR, getCurSDLoc(), MVT::Other,
+                             getControlRoot(),
+                             DAG.getBasicBlock(FuncInfo.MBBMap[I.getSuccessor(0)])));
+    return;
+  }
+  // Conditional: emit BRCOND or BR_CC
+  SDValue Cond = getValue(I.getCondition());
+  // ...
+}
+```
+
+PHI nodes are not directly translated to DAG nodes. Instead, `FunctionLoweringInfo` allocates virtual registers for each PHI's incoming values. At the end of each predecessor block, `SelectionDAGBuilder::visitPHI` is called to record the mapping; actual `CopyToReg`/`CopyFromReg` pairs are inserted by `SelectionDAGISel::HandlePHINodesInSuccessorBlocks`.
+
+### 84.2.6 Intrinsic Lowering
+
+LLVM intrinsics reach `visitIntrinsicCall`. Simple intrinsics like `llvm.ctpop` are lowered immediately to `ISD::CTPOP`. Complex intrinsics have dedicated handlers:
+
+```cpp
+case Intrinsic::memcpy: visitMemCpyCall(I); break;
+case Intrinsic::vastart: visitVAStart(I); break;
+case Intrinsic::stacksave:
+  setValue(&I, DAG.getNode(ISD::STACKSAVE, DL,
+             DAG.getVTList(TLI.getPointerTy(DL), MVT::Other),
+             getRoot()));
+  break;
+```
+
+Unknown intrinsics that the target doesn't specially handle become `ISD::INTRINSIC_WO_CHAIN` or `ISD::INTRINSIC_W_CHAIN` nodes:
+
+```llvm
+; Before lowering:
+%r = call i32 @llvm.x86.sse41.pextrd(<4 x i32> %v, i32 1)
+
+; In DAG:
+; t5: i32 = intrinsic_wo_chain (Intrinsic::x86_sse41_pextrd), t3, Constant:i32<1>
+```
+
+The target's `LowerINTRINSIC_WO_CHAIN` hook in `TargetLowering` maps these to target-specific nodes.
+
+## 84.3 Type Legalization
+
+### 84.3.1 Why Types Must Be Legalized
+
+After `SelectionDAGBuilder` runs, the DAG may contain nodes with types that the target cannot represent directly. For example:
+
+- An `i64` add on a 32-bit target has no native 64-bit add instruction.
+- A `v3f32` vector on a target that only supports `v4f32` or `v2f32`.
+- An `i1` comparison result that needs to be widened to `i8` or `i32`.
+- An `f128` floating-point value on a target with no 128-bit FP registers.
+
+[`SelectionDAGLegalizeTypes`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/llvm/lib/CodeGen/SelectionDAG/LegalizeTypes.h) runs first and handles these mismatches by transforming values. The pass queries `TargetLowering::getTypeAction(EVT)` for each value type to determine the required action.
+
+### 84.3.2 Integer Type Actions
+
+`TargetLowering::getTypeAction` returns one of:
+
+| Action | Meaning |
+|---|---|
+| `TypeLegal` | Type is directly supported; nothing to do |
+| `TypePromoteInteger` | Widen to the next larger integer (e.g., `i8` → `i16`) |
+| `TypeExpandInteger` | Split into two halves (e.g., `i64` → two `i32`s) |
+| `TypeSoftenFloat` | Replace FP type with integer of same width |
+| `TypeExpandFloat` | Split FP type (e.g., `ppcf128` → two `f64`s) |
+| `TypeScalarizeVector` | Replace 1-element vector with scalar |
+| `TypeSplitVector` | Split vector in half |
+| `TypeWidenVector` | Widen vector to next power-of-two lane count |
+
+**Integer Promotion** (`PromoteIntegerOperand`): An `i8` operand is zero- or sign-extended to the promoted type before use. An `i8` result is truncated back after the operation.
+
+```cpp
+// LegalizeIntegerTypes.cpp
+SDValue DAGTypeLegalizer::PromoteIntegerOperand(SDNode *N, unsigned OpNo) {
+  SDValue Op = N->getOperand(OpNo);
+  // Get the promoted value (extended to larger type):
+  SDValue Promoted = GetPromotedInteger(Op);
+  // If needed, truncate or mask after use
+  // ...
+}
+```
+
+**Integer Expansion** (`ExpandIntegerResult`): A 64-bit value on a 32-bit target is represented as a pair `(Lo, Hi)` of 32-bit values. For `ISD::ADD`:
+
+```cpp
+// LegalizeIntegerTypes.cpp — expand i64 ADD to two i32 ops
+void DAGTypeLegalizer::ExpandIntRes_ADD(SDNode *N,
+                                         SDValue &Lo, SDValue &Hi) {
+  SDValue LHS = N->getOperand(0), RHS = N->getOperand(1);
+  SDValue LLHS, LRHS, HLHS, HRHS;
+  GetExpandedInteger(LHS, LLHS, HLHS);
+  GetExpandedInteger(RHS, LRHS, HRHS);
+  // Emit ADDC for the low half, ADDE for the high half:
+  SDVTList VTList = DAG.getVTList(MVT::i32, MVT::Glue);
+  Lo = DAG.getNode(ISD::ADDC, DL, VTList, LLHS, LRHS);
+  Hi = DAG.getNode(ISD::ADDE, DL, VTList, HLHS, HRHS, Lo.getValue(1));
+}
+```
+
+`ISD::ADDC` produces a carry flag as a glue output; `ISD::ADDE` consumes that glue as a carry-in. This correctly implements 64-bit addition using two 32-bit instructions.
+
+### 84.3.3 Concrete Example: i64 MUL on a 32-bit Target
+
+A 64-bit multiply is more complex than addition because the carry relationship is non-trivial:
+
+```
+; Original 64-bit multiply in DAG form:
+t7: i64 = mul t3, t5
+
+; After type expansion on 32-bit target:
+; (using the identity: (a_hi * 2^32 + a_lo) * (b_hi * 2^32 + b_lo)
+;  = a_hi*b_lo*2^32 + a_lo*b_hi*2^32 + a_lo*b_lo)
+
+t10, t11 = expanded(t3)   ; Lo32=t10, Hi32=t11
+t12, t13 = expanded(t5)   ; Lo32=t12, Hi32=t13
+
+; Low 32 bits of result:
+t14: i64 = MULHU t10, t12   ; upper 32 of lo*lo
+t15: i32 = MUL t10, t12     ; lower 32 of lo*lo  (this is result Lo)
+
+; High 32 bits: carry from lo*lo + a_hi*b_lo + a_lo*b_hi
+t16: i32 = MUL t11, t12
+t17: i32 = MUL t10, t13
+t18: i32 = ADD t14.Hi, t16
+t19: i32 = ADD t18, t17     ; this is result Hi
+```
+
+This expansion lives in `LegalizeIntegerTypes.cpp::ExpandIntRes_MUL`.
+
+### 84.4 Float Type Legalization
+
+### 84.4.1 Softening
+
+When the target has no hardware floating-point for a given type (e.g., `f64` on a soft-float ARM), `TypeSoftenFloat` replaces the FP type with an integer of the same bit width:
+
+```cpp
+// LegalizeFloatTypes.cpp
+SDValue DAGTypeLegalizer::SoftenFloatOperand(SDNode *N, unsigned OpNo) {
+  // Replace f64 operand with i64 (same bits), then
+  // call runtime: __addf2, __subf2, __mulf2, etc.
+  return SoftenFloatOp_FADD(N);
+}
+```
+
+The softening transform converts each FP operation to a libcall. `RTLIB::getFPLibCall` maps (operation, type) pairs to runtime library function names. For `f64` addition on a soft-float target:
+
+```cpp
+// Result: ISD::CALLSEQ wrapping a call to "__adddf3"
+// Operands: the i64 representations of both inputs
+// Return: i64 to be interpreted as f64
+```
+
+### 84.4.2 Float Expansion
+
+`ppcf128` (IBM double-double, 128-bit) expands to two `f64` values. The `ExpandRes_FADD` handler decomposes the double-double addition into the correct sequence using the standard Dekker/Veltkamp splitting algorithm, emitting multiple `FADD` nodes.
+
+## 84.5 Vector Type Legalization
+
+### 84.5.1 Vector Splitting
+
+When a vector type is too wide for the target, `TypeSplitVector` splits it in half. For example, if the target supports `v4i32` but not `v8i32`:
+
+```
+; Original:
+t3: v8i32 = add t1, t2
+
+; After splitting:
+t4: v4i32 = extract_subvector t1, 0      ; lower half of t1
+t5: v4i32 = extract_subvector t1, 4      ; upper half of t1
+t6: v4i32 = extract_subvector t2, 0
+t7: v4i32 = extract_subvector t2, 4
+t8: v4i32 = add t4, t6                   ; lower result
+t9: v4i32 = add t5, t7                   ; upper result
+; Result is (t8, t9), recombined when needed
+```
+
+The result is stored as a split pair in `DAGTypeLegalizer`'s `SplitNodes` map.
+
+### 84.5.2 Vector Widening
+
+When the target supports a wider vector type but not a narrower one, `TypeWidenVector` pads the vector with undef or zero lanes. For a `v3f32` on a target that only supports `v4f32`:
+
+```
+; Original:
+t3: v3f32 = fadd t1, t2
+
+; After widening:
+t4: v4f32 = concat_vectors t1, undef:f32   ; widen t1
+t5: v4f32 = concat_vectors t2, undef:f32   ; widen t2
+t6: v4f32 = fadd t4, t5                    ; compute on v4f32
+t7: v3f32 = extract_subvector t6, 0        ; extract result
+```
+
+The extra lane is set to `undef`, which allows the backend to use whatever value is convenient (typically zero or the existing register content).
+
+### 84.5.3 Vector Scalarization
+
+`TypeScalarizeVector` handles 1-element vectors by extracting the scalar element:
+
+```cpp
+SDValue DAGTypeLegalizer::ScalarizeVecRes_BinOp(SDNode *N) {
+  SDValue LHS = GetScalarizedVector(N->getOperand(0));
+  SDValue RHS = GetScalarizedVector(N->getOperand(1));
+  return DAG.getNode(N->getOpcode(), SDLoc(N),
+                     N->getValueType(0).getVectorElementType(),
+                     LHS, RHS);
+}
+```
+
+### 84.5.4 Concrete Example: v8i16 MUL Scalarization
+
+Consider a target that has no vector multiply at all (only scalar `mul i16`). A `v8i16` multiply must be fully scalarized:
+
+```
+; Original:
+t5: v8i16 = mul t3, t4
+
+; After scalarization (conceptually):
+t6: i16 = extract_vector_elt t3, 0
+t7: i16 = extract_vector_elt t4, 0
+t8: i16 = mul t6, t7
+; ... repeated for elements 1–7 ...
+t22: v8i16 = build_vector t8, t10, t12, t14, t16, t18, t20, t22
+```
+
+In practice the legalizer records each scalar result and `GetVectorizedValue` reconstructs the `build_vector` only when some consumer actually needs the vector form.
+
+## 84.6 Operation Legalization
+
+### 84.6.1 SelectionDAGLegalize
+
+After type legalization, every value in the DAG has a legal type. [`SelectionDAGLegalize`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/llvm/lib/CodeGen/SelectionDAG/LegalizeDAG.cpp) then runs and ensures every *operation* is legal — meaning the target has an instruction (or sequence of instructions) for it. It queries `TargetLowering::getOperationAction(unsigned Opcode, EVT VT)` to determine:
+
+| Action | Meaning |
+|---|---|
+| `Legal` | Target has a native instruction; keep as-is |
+| `Promote` | Use a wider type for this op |
+| `Expand` | Expand to a sequence of simpler ops |
+| `Custom` | Call `TargetLowering::LowerOperation` |
+| `LibCall` | Emit a call to a runtime library function |
+
+### 84.6.2 Expanding Complex Operations
+
+The `Expand` action triggers built-in expansion recipes. Some examples:
+
+**SDIV expansion** (when no hardware divide exists): expanded to a multiplication-by-reciprocal sequence if the divisor is a constant, or to a libcall (`__divsi3`, `__divdi3`) otherwise.
+
+**FP to integer conversion** on targets with no `FPTOSI` instruction: expanded via a sequence involving floor, subtract, and integer operations, or a libcall.
+
+**ROTL/ROTR** when the target only has shift instructions:
+
+```
+; ISD::ROTL r, amt  →  (r << amt) | (r >> (width - amt))
+t8: i32 = shl t3, t5
+t9: i32 = sub Constant:i32<32>, t5
+t10: i32 = srl t3, t9
+t11: i32 = or t8, t10
+```
+
+### 84.6.3 Custom Lowering
+
+The `Custom` action routes to `TargetLowering::LowerOperation(SDValue Op, SelectionDAG &DAG)`. Each target overrides this for operations it wants to handle in a non-standard way. For example, X86's handling of `ISD::CTLZ` (count leading zeros) when `LZCNT` is not available uses `BSR` (bit scan reverse) plus a XOR to convert to the POSIX bit-numbering convention:
+
+```cpp
+// X86ISelLowering.cpp (simplified)
+SDValue X86TargetLowering::LowerCTLZ(SDValue Op, SelectionDAG &DAG) const {
+  EVT VT = Op.getValueType();
+  SDValue N0 = Op.getOperand(0);
+  // BSR gives the position of the highest set bit (0-indexed from LSB)
+  SDValue BSR = DAG.getNode(X86ISD::BSR, DL, VT, N0);
+  // CTLZ = (bitwidth - 1) - BSR
+  return DAG.getNode(ISD::XOR, DL, VT, BSR,
+                     DAG.getConstant(VT.getSizeInBits() - 1, DL, VT));
+}
+```
+
+### 84.6.4 Vector Operation Legalization
+
+After vector types are legalized, vector operations may still be illegal. The operation legalizer handles this by:
+
+1. **Splitting**: If a `v8i32` add is illegal but `v4i32` add is legal, split the operation.
+2. **Scalarizing**: If no vector add of any width is legal, extract each lane, compute scalar adds, re-insert.
+3. **Widening**: If `v4f32` add is legal but `v2f32` add is not, widen to `v4f32` and operate.
+4. **Custom**: Target provides an alternative lowering (e.g., using permute + scalar ops to emulate a shuffle).
+
+For the case of a target that has SSE2 (`v8i16` available) but no `PMULLW` (the SSE2 packed word multiply), the v8i16 mul would be split into two `v4i16` muls — but if those are also illegal, the operation would eventually be scalarized to 8 scalar `i16` multiplies.
+
+## 84.7 Memory Legalization and Address Modes
+
+### 84.7.1 Load and Store Legalization
+
+Loads and stores receive special treatment during legalization because they carry `MemSDNode` metadata (pointer, size, alignment, memory ordering). The legalizer can:
+
+- **Widen**: Load `v3i32` as `v4i32` with a masked store (if target supports masked memory).
+- **Split**: Store `i64` as two `i32` stores on a 32-bit target.
+- **Expand**: An unaligned load on a target that requires alignment can be expanded to byte loads + shifts + ors.
+
+### 84.7.2 Atomic Operations
+
+Atomic RMW operations (`ATOMIC_LOAD_ADD`, `ATOMIC_SWAP`, etc.) are frequently expanded to compare-and-swap loops when the target lacks native atomic RMW instructions:
+
+```
+; Expand ATOMIC_LOAD_ADD to CAS loop:
+loop:
+  t1 = ATOMIC_LOAD ptr
+  t2 = ADD t1, increment
+  t3, t4 = ATOMIC_CMP_SWAP ptr, t1, t2   ; t3=result, t4=success
+  BRCOND t4, loop                          ; retry if swap failed
+```
+
+The expansion is in `llvm/lib/CodeGen/AtomicExpandPass.cpp`, which runs before SelectionDAG construction.
+
+## 84.8 Debugging Type and Operation Legalization
+
+### 84.8.1 Diagnostic Flags
+
+Several debug flags assist in understanding what the legalizer is doing:
+
+```bash
+# View the DAG before legalization:
+llc -debug-only=isel -view-dag-combine-before input.ll
+
+# View the type-legalized DAG:
+# (Emits a .dot file and opens a viewer if available)
+llc -view-legalize-types-dags input.ll
+
+# View the fully legalized DAG:
+llc -view-legalize-dags input.ll
+
+# Print all legalization decisions:
+llc -debug-only=legalizedag input.ll 2>&1 | less
+```
+
+### 84.8.2 Understanding Dump Output
+
+`SelectionDAG::dump()` prints the DAG in a textual format. Each line is `tN: type = opcode operands`. Type-promoted nodes appear with the promoted type. Expanded nodes are gone; their two halves appear as separate `tN` entries with the half-width type.
+
+```
+; Example after type legalization of i64 on 32-bit:
+t3: i32,i32 = CopyFromReg ...     ; Lo32 of arg
+t5: i32 = add t3, Constant:i32<1>
+t6: i32 = addc t3, Constant:i32<1>    ; Lo
+t7: i32 = adde t4, Constant:i32<0>    ; Hi with carry
+```
+
+### 84.8.3 The MachineVerifier
+
+After instruction selection completes, the `MachineVerifier` pass checks that the resulting `MachineFunction` is well-formed. Running it explicitly:
+
+```bash
+llc -verify-machineinstrs input.ll -o /dev/null
+```
+
+If legalization produced invalid constructs, `MachineVerifier` will diagnose them with messages like "Use of undefined register" or "Live range not killed".
+
+## 84.9 Integration with SelectionDAGISel
+
+### 84.9.1 The Full Pipeline
+
+`SelectionDAGISel` orchestrates the pipeline:
+
+```
+LLVM IR basic block
+      │
+      ▼  SelectionDAGBuilder::visit*()
+ Initial DAG
+      │
+      ▼  DAGCombiner (pass 1, pre-legalize)
+ Combined DAG
+      │
+      ▼  SelectionDAGLegalizeTypes
+ Type-legal DAG
+      │
+      ▼  DAGCombiner (pass 2, post-type-legalize)
+ Combined type-legal DAG
+      │
+      ▼  SelectionDAGLegalize
+ Fully legal DAG
+      │
+      ▼  DAGCombiner (pass 3, post-legalize)
+ Optimized legal DAG
+      │
+      ▼  SelectCode (isel pattern matching)
+ MachineBasicBlock with target instructions
+```
+
+The three DAGCombiner passes are covered in the next chapter. What matters here is that legalization is not a single atomic step — it interleaves with combining to allow the combiner to simplify before and after each legalization phase.
+
+### 84.9.2 LegalizeTypes Driver
+
+The `LegalizeTypes` driver in `SelectionDAGISel.cpp` calls:
+
+```cpp
+bool SelectionDAGISel::runOnMachineFunction(MachineFunction &MF) {
+  // ...
+  bool Changed = true;
+  while (Changed) {
+    Changed = false;
+    // Run type legalizer until fixpoint:
+    Changed |= DAG.LegalizeTypes();
+    // Combine after type legalization:
+    DAG.Combine(AfterLegalizeTypes, AA, OptLevel);
+    // Run operation legalizer:
+    Changed |= DAG.Legalize();
+    // Final combine:
+    DAG.Combine(AfterLegalizeDAG, AA, OptLevel);
+  }
+}
+```
+
+The fixpoint loop is necessary because legalization can introduce new illegal nodes — for example, expanding an `i64` multiply may introduce `MULHU` which itself needs legalization on targets that lack unsigned high-multiply.
+
+## Chapter Summary
+
+- `SelectionDAGBuilder` translates LLVM IR to a target-independent DAG of `ISD::` opcodes, one basic block at a time. Key visitors include `visitAdd`, `visitLoad`, `visitStore`, `visitCall`, and `visitBr`; intrinsics lower to `INTRINSIC_WO_CHAIN` or `INTRINSIC_W_CHAIN` nodes.
+
+- The ISD opcode space covers arithmetic, memory, control flow, vector, conversion, and intrinsic categories. Targets extend it with `ISD::FIRST_TARGET_OPCODE`-based opcodes.
+
+- `SelectionDAGLegalizeTypes` enforces that every DAG value has a type the target can represent. Integer types may be promoted (widened) or expanded (split into halves); floating-point types may be softened (replaced by integers for libcall lowering) or expanded; vectors may be scalarized, split, or widened.
+
+- The canonical example of integer expansion is `i64` on a 32-bit target: `ADD` becomes `ADDC`/`ADDE`, `MUL` becomes a sequence of three 32-bit multiplies using `MUL` and `MULHU`.
+
+- Vector legalization splits wide vectors (`v8i32` → two `v4i32`), widens narrow vectors (`v3f32` → `v4f32`), or fully scalarizes when no vector form is legal (`v8i16 mul` on a scalar-only target).
+
+- `SelectionDAGLegalize` enforces that every operation is legal. The `getOperationAction` API returns `Legal`, `Promote`, `Expand`, `Custom`, or `LibCall`. The `Custom` action routes to `TargetLowering::LowerOperation`.
+
+- The full pipeline is: Build → Combine → LegalizeTypes → Combine → Legalize → Combine → Select. Legalization and combining interleave to allow simplification at each stage.
+
+- Debugging tools include `-view-legalize-types-dags`, `-view-legalize-dags`, `-debug-only=legalizedag`, and `-verify-machineinstrs` to catch invalid machine code after instruction selection.
