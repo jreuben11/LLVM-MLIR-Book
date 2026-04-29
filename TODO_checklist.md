@@ -1,5 +1,5 @@
 # Book Progress Checklist
-*Last updated: 2026-04-29 (Part XXVI in progress — Ch179 and Ch180 written, 2 chapters remain). Read this first after any context compaction.*
+*Last updated: 2026-04-29 (Part XXVI in progress — Ch181 written, 1 chapter remains: Ch182). Read this first after any context compaction.*
 
 ## Status Legend
 - `[ ]` Not started
@@ -10,7 +10,7 @@
 
 ## Current Focus
 **Part XXVI — Ecosystem and Frontiers** (6 new chapters, Ch177–Ch182)
-- 184/184 original items complete; 6 new chapters planned, 4 written (Ch177, Ch178, Ch179, Ch180)
+- 184/184 original items complete; 6 new chapters planned, 5 written (Ch177, Ch178, Ch179, Ch180, Ch181)
 - Write sequentially within pairs: (Ch177, Ch178) → (Ch179, Ch180) → (Ch181, Ch182)
 
 ---
@@ -246,7 +246,7 @@
 - [x] Ch178 — The Rust Compiler Ecosystem
 - [x] Ch179 — LLVM/MLIR for AI: The Full Stack
 - [x] Ch180 — AI-Guided Compilation
-- [ ] Ch181 — Formal Verification in Practice
+- [x] Ch181 — Formal Verification in Practice
 - [ ] Ch182 — Language Tooling: Parsers, Lexers, and Syntax Trees
 
 ### Chapter Plans
@@ -341,5 +341,5 @@
 
 ## Stats
 - Total chapters: 182 + 8 appendices = 190 items
-- Completed: 187 / 190 (Ch177-Ch180 written 2026-04-29; 2 new Part XXVI chapters pending)
+- Completed: 188 / 190 (Ch177-Ch181 written 2026-04-29; 1 new Part XXVI chapter pending: Ch182)
 - Estimated pages written: ~2,900 (original) + ~94 (Part XXVI target) = ~2,994 total target

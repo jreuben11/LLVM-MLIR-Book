@@ -64,7 +64,7 @@ Development on the monorepo follows a policy of *committing to main* (no feature
 
 The top-level directories in [llvm/llvm-project](https://github.com/llvm/llvm-project) are each a discrete subproject:
 
-```
+```bash
 llvm-project/
 ├── llvm/           # Core IR, optimizer, code generator, tools
 ├── clang/          # C/C++/ObjC/ObjC++ front end
@@ -120,7 +120,7 @@ The `llvm/` subtree is the foundation everything else rests on. It defines the I
 
 The internal directory structure of `llvm/` reflects this decomposition:
 
-```
+```bash
 llvm/
 ├── include/llvm/       # Public C++ headers (organized by subsystem)
 │   ├── IR/             # IR classes: Module, Function, Instruction, Type, ...
