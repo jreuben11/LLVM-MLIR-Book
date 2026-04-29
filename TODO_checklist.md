@@ -1,5 +1,5 @@
 # Book Progress Checklist
-*Last updated: 2026-04-29 (Part XIV complete — Ch81–Ch94 written). Read this first after any context compaction.*
+*Last updated: 2026-04-29 (Part XV Ch95–Ch101 written). Read this first after any context compaction.*
 
 ## Status Legend
 - `[ ]` Not started
@@ -9,9 +9,9 @@
 ---
 
 ## Current Focus
-**Parts I–XIV COMPLETE** ✓ (92/184 chapters done, ~1,438 estimated pages)
-**Next up:** Part XV — Targets (Ch95–Ch107, 13 chapters)
-**Batch:** Ch95–Ch107 sequentially (target chapters build on backend foundations)
+**Parts I–XV Ch95–Ch101 written** ✓ (99/184 chapters done, ~1,550 estimated pages)
+**Next up:** Part XV — Targets Ch102–Ch107 (NVPTX, AMDGPU, SPIR-V, DXIL, WASM/BPF, Embedded)
+**Batch:** Ch102–Ch107 sequentially (GPU/special targets)
 
 ---
 
@@ -138,13 +138,13 @@
 - [x] Ch94 — The MC Layer and MIR Test Infrastructure
 
 ## Part XV — Targets *(~250 pp, 13 ch)*
-- [ ] Ch95 — The X86 Backend
-- [ ] Ch96 — The AArch64 Backend
-- [ ] Ch97 — The 32-bit ARM Backend
-- [ ] Ch98 — The RISC-V Backend Architecture
-- [ ] Ch99 — The RISC-V Vector Extension (RVV)
-- [ ] Ch100 — RISC-V Bit-Manip, Crypto, and Custom Extensions
-- [ ] Ch101 — PowerPC, SystemZ, MIPS, SPARC, LoongArch
+- [x] Ch95 — The X86 Backend
+- [x] Ch96 — The AArch64 Backend
+- [x] Ch97 — The 32-bit ARM Backend
+- [x] Ch98 — The RISC-V Backend Architecture
+- [x] Ch99 — The RISC-V Vector Extension (RVV)
+- [x] Ch100 — RISC-V Bit-Manip, Crypto, and Custom Extensions
+- [x] Ch101 — PowerPC, SystemZ, MIPS, SPARC, LoongArch
 - [ ] Ch102 — NVPTX and the CUDA Path
 - [ ] Ch103 — AMDGPU and the ROCm Path
 - [ ] Ch104 — The SPIR-V Backend
