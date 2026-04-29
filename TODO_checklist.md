@@ -1,5 +1,5 @@
 # Book Progress Checklist
-*Last updated: 2026-04-29 (Parts I–XXV complete, Ch167–Ch176 written). Read this first after any context compaction.*
+*Last updated: 2026-04-29 (ALL COMPLETE — 176 chapters + 8 appendices written). Read this first after any context compaction.*
 
 ## Status Legend
 - `[ ]` Not started
@@ -9,9 +9,7 @@
 ---
 
 ## Current Focus
-**Parts I–XXV fully written** ✓ (176/184 chapters done, ~2,770 estimated pages)
-**Next up:** Appendices (A–H)
-**Batch:** All 8 appendices (LLVM IR Quick Ref, MLIR Dialect Quick Ref, CLI Cheat Sheet, Migration Notes, Glossary, Object File Format, DWARF Reference, C++ ABI)
+**ALL 184 ITEMS COMPLETE** ✓ (184/184 done, ~2,900 estimated pages)
 
 ---
 
@@ -242,14 +240,14 @@
 - [x] Ch176 — Contributing to LLVM
 
 ## Appendices
-- [ ] Appendix A — LLVM IR Quick Reference
-- [ ] Appendix B — MLIR Dialect Quick Reference
-- [ ] Appendix C — Command-Line Tools Cheat Sheet
-- [ ] Appendix D — Migration Notes: LLVM 18 → 22
-- [ ] Appendix E — Glossary
-- [ ] Appendix F — Object File Format Reference
-- [ ] Appendix G — DWARF Debug Info Reference
-- [ ] Appendix H — The C++ ABI: Itanium and Microsoft
+- [x] Appendix A — LLVM IR Quick Reference
+- [x] Appendix B — MLIR Dialect Quick Reference
+- [x] Appendix C — Command-Line Tools Cheat Sheet
+- [x] Appendix D — Migration Notes: LLVM 18 → 22
+- [x] Appendix E — Glossary
+- [x] Appendix F — Object File Format Reference
+- [x] Appendix G — DWARF Debug Info Reference
+- [x] Appendix H — The C++ ABI: Itanium and Microsoft
 
 ---
 
@@ -260,5 +258,5 @@
 
 ## Stats
 - Total chapters: 176 + 8 appendices = 184 items
-- Completed: 176 / 184 (all chapters complete; appendices remaining)
-- Estimated pages written: ~2,770 / ~2,195 (chapters only)
+- Completed: 184 / 184 (all chapters and appendices complete)
+- Estimated pages written: ~2,900 (chapters + appendices)
