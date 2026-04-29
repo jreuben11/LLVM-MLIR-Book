@@ -9,9 +9,9 @@
 ---
 
 ## Current Focus
-**Part XXVI — Ecosystem and Frontiers** (4 new chapters, Ch177–Ch180)
-- 184/184 original items complete; 4 new chapters planned, 0 written
-- Write sequentially: Ch177 → Ch178 → Ch179 → Ch180
+**Part XXVI — Ecosystem and Frontiers** (6 new chapters, Ch177–Ch182)
+- 184/184 original items complete; 6 new chapters planned, 0 written
+- Write sequentially within pairs: (Ch177, Ch178) → (Ch179, Ch180) → (Ch181, Ch182)
 
 ---
 
@@ -241,63 +241,86 @@
 - [x] Ch175 — Language Bindings
 - [x] Ch176 — Contributing to LLVM
 
-## Part XXVI — Ecosystem and Frontiers *(~54 pp, 4 ch)*
-- [ ] Ch177 — rustc and the Rust Codegen Backend
-- [ ] Ch178 — LLVM/MLIR for AI: The Full Stack
-- [ ] Ch179 — AI-Guided Compilation
-- [ ] Ch180 — ANTLR4, TreeSitter, and Language Tooling with LLVM
+## Part XXVI — Ecosystem and Frontiers *(~94 pp, 6 ch)*
+- [ ] Ch177 — rustc: Architecture, MIR, and Codegen Backends
+- [ ] Ch178 — The Rust Compiler Ecosystem
+- [ ] Ch179 — LLVM/MLIR for AI: The Full Stack
+- [ ] Ch180 — AI-Guided Compilation
+- [ ] Ch181 — Formal Verification in Practice
+- [ ] Ch182 — Language Tooling: Parsers, Lexers, and Syntax Trees
 
 ### Chapter Plans
 
-**Ch177 — rustc and the Rust Codegen Backend** (~15 pp)
-1. rustc architecture: driver → HIR → THIR → MIR → codegen
-2. MIR: Rust's mid-level SSA-like IR; `Place`/`Rvalue`/`Terminator`; borrow-check output
-3. `rustc_codegen_llvm`: `FunctionCx`, MIR→LLVM IR lowering; ADT/enum layout; trait objects (`dyn Trait` vtable emission)
-4. Rust-specific LLVM attributes: `nounwind`, `noalias`, `dereferenceable`, `noundef`, `align`
-5. Panics and unwinding: `begin_unwind` → `llvm.eh.sjlj`/Itanium EH; `-C panic=abort`
-6. The Cranelift alternative backend (`rustc_codegen_cranelift`): motivation, IR model, maturity
-7. The GCC backend (`rustc_codegen_gcc`): status and rationale
-8. LTO: `-C lto=thin`, `-C lto=fat`; ThinLTO with rustc's ThinLTO cache
-9. PGO in Rust: `-C profile-generate`/`-C profile-use`
-10. Cross-compilation: target triples, `--target`, sysroot, `build.rs` implications
-11. rustc's vendored LLVM: why, version delta, custom patches
+**Ch177 — rustc: Architecture, MIR, and Codegen Backends** (~20 pp)
+1. rustc architecture: driver phases → HIR → THIR → MIR → codegen; the Rust compiler dev guide as reference
+2. MIR deep dive: `Place`, `Rvalue`, `Terminator`; MIR as Rust's mid-level SSA-like IR; borrow-checker output on MIR; `mir_borrowck` query
+3. Miri — the MIR interpreter: UB detection model; memory model (allocation-based, tag-based Stacked Borrows); extern function stubs; `cargo miri test`; limitations vs sanitizers
+4. Polonius — new NLL-successor borrow checker: Datalog-based constraint formulation; three problem variants (location-insensitive, Naive, DataFrog engine); relation to the Chalk trait solver; Polonius v2 and a-mir-formality
+5. a-mir-formality — formal mechanised model of Rust's type system: PLT Redex notation; the formality type rules; how it drives Polonius v2 and the next-gen trait solver
+6. `rustc_codegen_llvm`: `FunctionCx`; MIR → LLVM IR lowering pass; ADT/enum layout; trait-object vtable emission; `dyn Trait` fat pointers
+7. Rust-specific LLVM attributes: `nounwind`, `noalias`, `dereferenceable`, `noundef`; why they matter for optimisation
+8. Panics and unwinding: `begin_unwind` path; Itanium EH vs `-C panic=abort`; personality function and landing pads
+9. LTO: `-C lto=thin` (ThinLTO cache), `-C lto=fat`; PGO (`-C profile-generate`/`-C profile-use`)
+10. Cross-compilation: target triples, `--target`, sysroot layout, `build.rs` target detection
+11. Cranelift (`rustc_codegen_cranelift`): CLIF IR; the pipeline (parse → legalization → regalloc2 → emission); why it matters for fast debug builds; Wasmtime integration
+12. GCC backend (`rustc_codegen_gcc`): status, motivation, libgccjit API surface
+13. rustc's vendored LLVM: version delta strategy, custom patches, upgrade process
 
-**Ch178 — LLVM/MLIR for AI: The Full Stack** (~15 pp)
-1. The AI compiler hierarchy: PyTorch/JAX eager → `torch.export`/`jax.jit` capture → StableHLO → MLIR dialects → target
-2. Key dialects in the AI stack: `tosa`, `stablehlo`, `tensor`, `linalg.generic`, `vector`, `memref`, `gpu`
-3. Quantization: `quant` dialect encoding; INT8/INT4/FP8 lowering; GPTQ and GGUF pipelines
-4. Dynamic shapes: StableHLO dynamism extensions; `tensor.dim` / `shape` dialect; IREE's dynamic shape model
-5. Target landscape: CUDA (PTX via NVPTX), ROCm (HSACO via AMDGPU), NPUs (Apple ANE via CoreML, Hexagon DSP via Qualcomm toolchain, Edge TPU)
-6. Inference deployment: IREE (multi-target, VM-based), TFLite (flatbuffer format), ONNX Runtime (EP model), TensorRT (engine caching)
-7. Training vs inference: different optimization priorities (throughput vs latency), different precision requirements
-8. Kernel fusion: FlashAttention 2/3 as a case study in tiling and softmax fusion through MLIR
-9. The full end-to-end path: PyTorch model → `torch.export` → torch-mlir → StableHLO → IREE dispatch → PTX/HSACO
+**Ch178 — The Rust Compiler Ecosystem** (~15 pp)
+1. **LLVM Rust bindings**: `llvm-sys` (raw unsafe C API bindings, version feature flags); `inkwell` (safe, idiomatic `IRBuilder` wrapper; `Module`, `Function`, `BasicBlock`, `Builder`); `iron-kaleidoscope` as worked LLVM-in-Rust tutorial
+2. **MLIR Rust bindings**: `melior` (Context, Module, OpBuilder, PassManager, Block API); mapping melior to the MLIR C API; `pliron` — MLIR-inspired extensible IR framework in Rust (trait-based Op/Type/Attribute, dialect registry, SSA builder); comparing melior vs pliron design philosophies
+3. Calyxir — hardware-accelerator compiler IR: the Calyx language; lowering to RTL via CIRCT; use in FPGA-targeting ML compilers
+4. **Object-file and debug-info crates**: `object` — unified ELF/Mach-O/PE/COFF/Wasm/XCOFF read-write; `gimli` — lazy zero-copy DWARF 5 read/write (used by rustc, `backtrace`, Linux `perf`); `addr2line` — DWARF-based address→file:line symbolication (Rust backtrace crate)
+5. **Compiler infrastructure crates**: `ena` — union-find + congruence closure + snapshot/rollback extracted from rustc; used by Chalk trait resolver and Polonius
+6. **GPU and ML from Rust**: `rust-cuda` — device-side Rust targeting PTX via `nvptx64-nvidia-cuda` target; Burn — pluggable ML framework (WGPU, CUDA, ROCm backends); CubeCL — GPU kernel DSL embedded in Rust (compile-time kernel specialisation, targets CUDA/Metal/Vulkan/WGPU); how Burn uses CubeCL for its fusion engine
 
-**Ch179 — AI-Guided Compilation** (~12 pp)
-1. MLGO: the ML-guided optimization framework in LLVM; the `MLModelRunner` abstraction
-2. The RL-trained inliner: feature vector, reward function (binary size + perf), training loop (cross-ref Ch66)
-3. ML-based register allocator eviction: the `RegAllocEvictionAdvisor`; priority model; deployment
-4. The TFLite runtime embedded in LLVM: AOT-compiled models, the LLVM build flag, offline vs development mode
-5. ML-based cost models: instruction scheduling cost functions; IREE's ML-based tile size selection
-6. Ansor/AutoTVM: search space definition, sketch-based program sampler, cost model learning
-7. Triton's autotuner: `@triton.autotune` mechanism; exhaustive vs evolutionary search
-8. Profile inference with ML: synthesizing PGO profiles from code structure without instrumented runs
-9. LLM-assisted compiler development: TableGen authoring with LLMs; pass synthesis; LLM-guided fuzzing (EvoFuzz, CovRL-Fuzz)
-10. LLVM IR as training corpus: the `llvm-ir` dataset; training code LLMs on compiler IRs
-11. Neural superoptimization: Bansal-Aiken PLDI approach; learned peephole rules
+**Ch179 — LLVM/MLIR for AI: The Full Stack** (~15 pp)
+1. The AI compilation hierarchy: PyTorch/JAX eager → `torch.export`/`jax.jit` capture → StableHLO/HLO → MLIR dialect tower → target ISA
+2. Key dialects: `tosa`, `stablehlo`, `tensor`, `linalg.generic`, `vector`, `memref`, `gpu` — roles and handoff points
+3. Quantization: `quant` dialect encoding; INT8/INT4/FP8 lowering paths; GPTQ/GGUF integration points
+4. Dynamic shapes: StableHLO dynamism extensions; `tensor.dim`/`shape` dialect; IREE's dynamic shape model
+5. Hardware target landscape: CUDA (PTX via NVPTX), ROCm (HSACO via AMDGPU), Apple ANE (CoreML), Hexagon DSP (Qualcomm), Edge TPU
+6. Inference deployment: IREE (multi-target, VM-based dispatch); TFLite (flatbuffer format, delegate API); ONNX Runtime (execution provider model); TensorRT (engine caching, layer fusion)
+7. Training vs inference: throughput vs latency priorities; precision requirements; rematerialization for activation memory
+8. Kernel fusion: FlashAttention 2/3 — tiling, softmax fusion, and causal masking as MLIR case study
+9. End-to-end: `torch.export` → torch-mlir → StableHLO → IREE dispatch regions → PTX/HSACO — a traced walkthrough
 
-**Ch180 — ANTLR4, TreeSitter, and Language Tooling with LLVM** (~12 pp)
-1. Tooling vs compilation: why editor tooling needs different properties (error tolerance, incrementality, speed) than a compiler
-2. ANTLR4 fundamentals: LL(*) parsing; `.g4` grammar syntax; lexer rules vs parser rules; semantic predicates
-3. The ANTLR4 C++ runtime: `ANTLRInputStream`, `CommonTokenStream`, visitor vs listener patterns
-4. ANTLR4 → LLVM pipeline: walking the parse tree to build an AST; emitting LLVM IR from the AST; a worked example (a simple expression language)
-5. Error recovery in ANTLR4: sync-and-return, single-token insertion/deletion, default error strategy
-6. TreeSitter fundamentals: incremental GLR parsing; `.js` grammar authoring; the C API (`ts_parser_parse`, `ts_node_*`)
-7. TreeSitter language bindings: Rust (`tree-sitter` crate), Python (`tree_sitter` package), Node.js
-8. What TreeSitter is for: syntax highlighting, structural navigation, lightweight pattern matching (`ts_query`); what it is NOT for (ambiguous grammars, full semantic analysis)
-9. The nvim-treesitter ecosystem; integrating with clangd over LSP for a two-tier toolchain
-10. Comparison matrix: hand-written (Clang/GCC), ANTLR4, TreeSitter, PEG (pest, nom, peg.js), parser combinators (`combine`, `winnow`)
-11. The two-tier frontend pattern: TreeSitter for IDE tooling + ANTLR4/hand-written recursive descent for compilation
+**Ch180 — AI-Guided Compilation** (~12 pp)
+1. MLGO architecture: the `MLModelRunner` abstraction; development mode (gRPC to Python server) vs release mode (compiled TFLite model)
+2. The RL-trained inliner: feature vector construction, reward signal (size + perf delta), training loop; cross-ref Ch66
+3. ML-based register allocator eviction: `RegAllocEvictionAdvisor`; priority model; how to retrain
+4. ML-based cost models for instruction scheduling: learned latency/throughput tables
+5. Ansor/AutoTVM: search space sketch-based definition; program sampler; learned cost model; relation to MLIR tiling
+6. IREE's ML-based tile size selection: the tuning flow; serialised tuning configurations
+7. Triton's autotuner: `@triton.autotune`; exhaustive vs evolutionary search; kernel caching
+8. Profile inference with ML: synthesising PGO data from code structure (no instrumented run)
+9. LLM-assisted compiler development: TableGen authoring, LLM-guided fuzzing (EvoFuzz, CovRL-Fuzz); LLVM IR as LLM training corpus
+10. Neural superoptimization: Bansal-Aiken PLDI approach; learned peephole rule synthesis
+
+**Ch181 — Formal Verification in Practice** (~20 pp)
+1. Landscape overview: the four quadrants (push-button vs interactive, code vs spec)
+2. **Dafny** (MIT/Microsoft): spec language (pre/post/invariant), ghost variables, `decreases` for termination; Z3 discharge; generics and traits in Dafny; limitations; LLM-assisted Dafny (96% benchmark pass rate, April 2026)
+3. **Verus** — Dafny-style for Rust: `requires`/`ensures`/`invariant` macros; the `verus!` proc-macro; `Tracked<T>` and `Ghost<T>`; affine types meeting verification; AWS case studies; current maturity
+4. **F*** (INRIA/Microsoft): dependent types + effect system + SMT discharge; extraction to OCaml/C/Wasm; HACL* — verified crypto in Firefox NSS, Linux WireGuard; the trusted base; Why3 as F*'s alternative backend target
+5. **Why3** — meta-verification platform: WhyML language; targeting Z3, CVC5, Alt-Ergo, Coq; WP calculus; use in CompCert verification cross-ref
+6. **Bounded model checking**: CBMC for C (unwinding assertions, pointer analysis); Kani for Rust (AWS, harness model, `kani::assume`/`kani::assert`; used on s2n-tls and Firecracker); comparison with sanitizers
+7. **Temporal model checkers**: TLA+/TLC (exhaustive state enumeration) + Apalache (symbolic, SMT-backed); AWS DynamoDB/S3 case studies; SPIN for LTL/CSP concurrency; nuXmv for symbolic CTL/LTL
+8. **SV-COMP 2026** (TACAS, Turin): categories and winners; CPAchecker, UAutomizer, Symbiotic; what the competition measures and doesn't
+9. **SMT/SAT engines**: Z3 (MIT) — API basics, tactics, quantifier handling; CVC5 (BSD) — arithmetic and strings; Bitwuzla — bitvector/floating-point; Kissat (SAT, CDCL); how verifiers compose these
+10. **Neural network verification**: α,β-CROWN (multi-year VNN-COMP winner, GPU-accelerated branch-and-bound); Marabou (NYU, simplex-based); use cases (safety-critical ML, adversarial robustness)
+11. **Refinement types for Rust**: Flux — liquid-type checker as rustc plugin; `#[flux::sig]` annotations; qualifier maps; `RefinedBy`; current limitations
+12. **AI-assisted proof**: Lean Copilot (LLM suggestions inside Lean 4 tactic mode); LeanDojo (retrieval-augmented proof search, training infrastructure); DeepSeek-Prover-V2, Kimina-Prover, Goedel-Prover — open-weight models trained via RL against the Lean kernel; 2026 vericoding benchmarks: Dafny 96%, Verus 44%, Lean 27%
+
+**Ch182 — Language Tooling: Parsers, Lexers, and Syntax Trees** (~12 pp)
+1. The tooling-vs-compilation axis: when error-tolerance, incrementality, and speed matter more than full correctness
+2. **Logos** (Rust lexer generator): proc-macro DFA construction; zero-copy token types; `#[regex]` and `#[token]` attributes; performance characteristics
+3. **PEG parsers**: Pest (`.pest` grammar files, built-in error reporting, `pairs()` API); `peg` (proc-macro inline `peg::parser!`); `pom` (PEG via Rust operator overloading, no macros); PEG semantics and packrat memoization tradeoffs
+4. **Parser combinators**: Winnow (actively-maintained nom successor; streaming/partial parsing; built-in error context and span tracking); `combine` (Parsec-style, zero-copy, streaming); `chumsky` (rich error recovery via `Recovery`, built-in Pratt expression parser, migrated to Codeberg)
+5. **LR/LL parser generators**: LALRPOP (LR(1), `.lalrpop` grammar files, the LALRPOP book); Parol (LL(k)+LALR(1), dedicated book, `parol-ls` VS Code language server); Grmtools (YACC-style LR, lexxer+parser suite, Rust-native)
+6. **Lossless syntax trees**: Rowan (green/red tree architecture; immutable green tree + mutable red tree with parent pointers; used by rust-analyzer; preserves all whitespace and trivia; comparison with ANTLR4 parse trees)
+7. **ANTLR4**: LL(*) adaptive parsing; `.g4` grammar syntax; visitor vs listener patterns; the ANTLR4 C++ runtime (`ANTLRInputStream`, `CommonTokenStream`); connecting to LLVM IR generation; error recovery strategies
+8. **TreeSitter**: incremental GLR parsing; `.js` grammar authoring; the C API (`ts_parser_parse`, `ts_node_*`); Rust/Python bindings; `ts_query` pattern matching; why TreeSitter is unsuitable for full compilation; nvim-treesitter and clangd coexistence
+9. **Decision guide**: choosing among hand-written recursive descent, ANTLR4, TreeSitter, PEG, LR generators, and combinator libraries by use-case (production compiler, IDE tooling, DSL, one-off tooling, incrementality requirement)
 
 ## Appendices
 - [x] Appendix A — LLVM IR Quick Reference
@@ -317,6 +340,6 @@
 ---
 
 ## Stats
-- Total chapters: 180 + 8 appendices = 188 items
-- Completed: 184 / 188 (original complete; 4 new Part XXVI chapters pending)
-- Estimated pages written: ~2,900 (original) + ~54 (Part XXVI target) = ~2,954 total target
+- Total chapters: 182 + 8 appendices = 190 items
+- Completed: 184 / 190 (original complete; 6 new Part XXVI chapters pending)
+- Estimated pages written: ~2,900 (original) + ~94 (Part XXVI target) = ~2,994 total target
