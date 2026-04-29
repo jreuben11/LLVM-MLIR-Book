@@ -1,5 +1,5 @@
 # Book Progress Checklist
-*Last updated: 2026-04-29 (Part IX complete — Ch55–Ch58 written). Read this first after any context compaction.*
+*Last updated: 2026-04-29 (Part X complete — Ch59–Ch69 written). Read this first after any context compaction.*
 
 ## Status Legend
 - `[ ]` Not started
@@ -9,9 +9,9 @@
 ---
 
 ## Current Focus
-**Parts I–IX COMPLETE** ✓ (56/184 chapters done)
-**Next up:** Part X — Analysis and the Middle-End (Ch59–Ch69, 11 chapters)
-**Batch:** Ch59–Ch69 sequentially (cross-references within part)
+**Parts I–X COMPLETE** ✓ (67/184 chapters done, ~1,050 estimated pages)
+**Next up:** Part XI — Polyhedral Theory (Ch70–Ch73, 4 theoretical chapters)
+**Batch:** Ch70–Ch73 sequentially (theoretical derivations build on each other)
 
 ---
 
@@ -91,18 +91,18 @@
 - [x] Ch57 — Lowering High-Level Constructs
 - [x] Ch58 — Language Runtime Concerns
 
-## Part X — Analysis and the Middle-End *(~210 pp, 11 ch)*
-- [ ] Ch59 — The New Pass Manager
-- [ ] Ch60 — Writing a Pass
-- [ ] Ch61 — Foundational Analyses
-- [ ] Ch62 — Scalar Optimizations
-- [ ] Ch63 — Loop Optimizations
-- [ ] Ch64 — Vectorization Deep Dive
-- [ ] Ch65 — Inter-Procedural Optimizations
-- [ ] Ch66 — The ML Inliner and ML Regalloc
-- [ ] Ch67 — Profile-Guided Optimization
-- [ ] Ch68 — Hardening and Mitigations
-- [ ] Ch69 — Whole-Program Devirtualization
+## Part X — Analysis and the Middle-End *(~210 pp, 11 ch)* ✓ COMPLETE
+- [x] Ch59 — The New Pass Manager
+- [x] Ch60 — Writing a Pass
+- [x] Ch61 — Foundational Analyses
+- [x] Ch62 — Scalar Optimizations
+- [x] Ch63 — Loop Optimizations
+- [x] Ch64 — Vectorization Deep Dive
+- [x] Ch65 — Inter-Procedural Optimizations
+- [x] Ch66 — The ML Inliner and ML Regalloc
+- [x] Ch67 — Profile-Guided Optimization
+- [x] Ch68 — Hardening and Mitigations
+- [x] Ch69 — Whole-Program Devirtualization
 
 ## Part XI — Polyhedral Theory *(~80 pp, 4 ch)* [THEORETICAL]
 - [ ] Ch70 — Foundations: Polyhedra and Integer Programming
