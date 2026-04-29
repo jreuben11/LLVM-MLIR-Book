@@ -10,7 +10,7 @@
 
 ## Current Focus
 **Part XXVI — Ecosystem and Frontiers** (6 new chapters, Ch177–Ch182)
-- 184/184 original items complete; 6 new chapters planned, 0 written
+- 184/184 original items complete; 6 new chapters planned, 2 written (Ch177, Ch178)
 - Write sequentially within pairs: (Ch177, Ch178) → (Ch179, Ch180) → (Ch181, Ch182)
 
 ---
@@ -242,8 +242,8 @@
 - [x] Ch176 — Contributing to LLVM
 
 ## Part XXVI — Ecosystem and Frontiers *(~94 pp, 6 ch)*
-- [ ] Ch177 — rustc: Architecture, MIR, and Codegen Backends
-- [ ] Ch178 — The Rust Compiler Ecosystem
+- [x] Ch177 — rustc: Architecture, MIR, and Codegen Backends
+- [x] Ch178 — The Rust Compiler Ecosystem
 - [ ] Ch179 — LLVM/MLIR for AI: The Full Stack
 - [ ] Ch180 — AI-Guided Compilation
 - [ ] Ch181 — Formal Verification in Practice
@@ -341,5 +341,5 @@
 
 ## Stats
 - Total chapters: 182 + 8 appendices = 190 items
-- Completed: 184 / 190 (original complete; 6 new Part XXVI chapters pending)
+- Completed: 185 / 190 (Ch177 written 2026-04-29; 5 new Part XXVI chapters pending)
 - Estimated pages written: ~2,900 (original) + ~94 (Part XXVI target) = ~2,994 total target
