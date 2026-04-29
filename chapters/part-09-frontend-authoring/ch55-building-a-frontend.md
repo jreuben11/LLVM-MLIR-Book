@@ -689,3 +689,8 @@ target_link_libraries(cal PRIVATE ${LLVM_LIBS})
 - The Kaleidoscope tutorial in `llvm/examples/Kaleidoscope/` is the canonical LLVM frontend reference; chapters 1–9 walk lexer → JIT → debug info.
 - A type checker assigns types to every AST node before IR emission, catching errors in a single structured pass.
 - CMake integration uses `find_package(LLVM)` + `llvm_map_components_to_libnames` to link the minimal required LLVM libraries.
+
+
+---
+
+@copyright jreuben11

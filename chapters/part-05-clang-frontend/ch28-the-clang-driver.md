@@ -768,3 +768,8 @@ int compileFile(llvm::StringRef SourceFile) {
 - [`clang/lib/Driver/ToolChains/Linux.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/lib/Driver/ToolChains/Linux.cpp)
 - [`clang/lib/Driver/ToolChains/MSVC.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/lib/Driver/ToolChains/MSVC.cpp)
 - [`clang/lib/Driver/ToolChains/CUDA.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/lib/Driver/ToolChains/CUDA.cpp)
+
+
+---
+
+@copyright jreuben11

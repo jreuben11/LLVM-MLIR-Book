@@ -990,3 +990,8 @@ Key points:
 ---
 
 *End of Chapter 11. Chapter 12 begins Part III — Type Theory, opening with lambda calculus and simple types: the formal foundations that underlie every type system in a compiler frontend, from C's structural types to Haskell's System F.*
+
+
+---
+
+@copyright jreuben11

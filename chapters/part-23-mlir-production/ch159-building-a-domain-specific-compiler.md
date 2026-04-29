@@ -638,3 +638,8 @@ Lessons learned from building production DSL compilers with MLIR:
 - FileCheck tests verify every lowering stage; `--mlir-print-ir-after-all` and `mlir-reduce` are the primary debugging tools.
 - The `matalg-opt` driver uses `MlirOptMain` to get standard option parsing, pass pipeline registration, and diagnostic infrastructure for free.
 - Dialect design principles: keep ops high-level, implement interfaces, use multiple lowering stages, and add versioning from the start.
+
+
+---
+
+@copyright jreuben11

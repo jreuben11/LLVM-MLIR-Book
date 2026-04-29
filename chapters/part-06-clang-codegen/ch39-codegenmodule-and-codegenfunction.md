@@ -880,3 +880,8 @@ This one-to-one correspondence between AST nodes and IR instructions is exactly 
 - [`clang/lib/CodeGen/CodeGenAction.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/lib/CodeGen/CodeGenAction.cpp) — `BackendConsumer`, `HandleTranslationUnit()`
 - [`clang/include/clang/CodeGen/CGFunctionInfo.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/include/clang/CodeGen/CGFunctionInfo.h) — `CGFunctionInfo`, `ABIArgInfo`, `RequiredArgs`
 - [`clang/include/clang/CodeGen/ModuleBuilder.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/include/clang/CodeGen/ModuleBuilder.h) — `CodeGenerator` public interface
+
+
+---
+
+@copyright jreuben11

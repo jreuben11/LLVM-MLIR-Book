@@ -383,3 +383,8 @@ Achieving near-cuBLAS performance with MLIR-generated code requires:
 - The Transform dialect path (`transform.nvgpu.rewrite_matmul_as_mma_sync`) is the emerging high-level approach to auto-generate Hopper-optimized GEMM code.
 - SMEM pipeline depth is the key tuning knob: more stages hide TMA latency but reduce occupancy; 3–4 stages is typical for 64×128 tiles on H100.
 - Near-peak WGMMA utilization (85–95%) requires correctly coordinated TMA + WGMMA pipelining and swizzled SMEM layouts.
+
+
+---
+
+@copyright jreuben11

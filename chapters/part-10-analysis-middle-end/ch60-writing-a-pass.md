@@ -452,3 +452,8 @@ opt -passes='instr-count' -verify-each -S input.ll
 - Analysis requests via `AM.getResult<AnalysisT>(IR)` are cached; returning `PreservedAnalyses::all()` from a read-only pass avoids invalidation.
 - CFG-modifying passes should `preserveSet<CFGAnalyses>()` only if they also update `DominatorTree`/`LoopInfo` incrementally; otherwise omit those from the preserved set.
 - `opt -verify-each` and `opt-bisect-limit` are the primary tools for debugging wrong-code bugs introduced by a pass.
+
+
+---
+
+@copyright jreuben11

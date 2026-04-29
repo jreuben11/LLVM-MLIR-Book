@@ -378,3 +378,8 @@ Several directions are being pursued post-LLVM 22.1:
 - The lifetime checker exploits `cir.scope` nesting to detect dangling pointer/reference uses at the source level — an analysis impossible in flat LLVM IR.
 - Idiom recognition (memset loops, NRVO, range-for simplification) benefits from CIR's structured representation before CFG flattening.
 - Using CIR in a build requires `-DCLANG_ENABLE_CIR=ON` at LLVM CMake time; the driver flag is `-fclangir`.
+
+
+---
+
+@copyright jreuben11

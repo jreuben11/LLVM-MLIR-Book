@@ -441,3 +441,8 @@ Notice that:
 - One-shot bufferization (OSB) analyzes tensor programs for aliasing conflicts and converts them to equivalent memref programs with minimal copies. It is driven by `BufferizableOpInterface` implementations on each op.
 - `OneShotBufferizationOptions` controls function boundary handling, return allocation policies, and copy insertion behavior. The post-bufferization pipeline (`--buffer-deallocation-pipeline`, `--buffer-loop-hoisting`) inserts deallocations and hoists invariant allocations.
 - The ownership-based deallocation model inserts `memref.dealloc` via SSA liveness analysis, handling branches, loops, and cross-function ownership transfer without runtime reference counting.
+
+
+---
+
+@copyright jreuben11

@@ -661,3 +661,8 @@ These five dialects often appear together in real pipelines:
 - The `acc` dialect models OpenACC 3.x: `acc.parallel`/`acc.kernels`/`acc.serial` (compute constructs), `acc.copyin`/`acc.copyout`/`acc.create`/`acc.present` (data management), `acc.data` (structured data regions), `acc.routine` (device function annotation). Lowered by `--convert-openacc-to-llvm` or `--convert-openacc-to-scf`.
 - The `dlti` dialect provides `#dlti.dl_spec` (type size/alignment entries on modules), `#dlti.target_system_spec` (machine description), and `#dlti.target_device_spec` (GPU properties). The C++ `DataLayout` API queries this information to drive correct lowering decisions for pointer widths, struct layout, and ABI alignment.
 - The `emitc` dialect enables MLIR → C code generation for MCU and embedded targets. Core ops: `emitc.func`, `emitc.call_opaque` (external C function calls), `emitc.verbatim` (raw C injection), `emitc.apply` (`&`/`*` operators), `emitc.expression`, `emitc.if`/`emitc.for`. `!emitc.lvalue<T>` models C addressable locations. Translation via `mlir-translate --mlir-to-c`.
+
+
+---
+
+@copyright jreuben11

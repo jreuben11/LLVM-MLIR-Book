@@ -362,3 +362,8 @@ The choices are interrelated: a GC-managed language that also uses coroutines mu
 - `SyncScope::System` applies to all threads; `SyncScope::SingleThread` applies to the current thread (appropriate for signal handlers).
 - Stackmap and patchpoint intrinsics support JIT deoptimization and profiling by recording live values and reserving code space for runtime patching.
 - Signal handler bodies must restrict themselves to async-signal-safe operations; LLVM provides no static enforcement, so the frontend must maintain this invariant.
+
+
+---
+
+@copyright jreuben11

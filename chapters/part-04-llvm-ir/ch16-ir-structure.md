@@ -722,3 +722,8 @@ Walking through this module: the `target datalayout` and `target triple` set the
 ---
 
 *Chapter 17 examines LLVM IR's type system in full — integer types, floating-point types, the opaque pointer model, aggregate types, and the first-class vector types that ground scalable vector architectures like SVE and RVV. Chapter 21 returns to the SSA dominance relationship that the verifier enforces here, presenting the dominator tree, dominance frontiers, and their role in SSA construction and destruction.*
+
+
+---
+
+@copyright jreuben11

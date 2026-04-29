@@ -284,3 +284,8 @@ The pre-RA scheduler cooperates with the RegisterCoalescer: when register coales
 - `RegisterCoalescer` eliminates `COPY` instructions by merging non-interfering virtual register live intervals; sub-register lanes are coalesced independently.
 - `MachineCombiner` reassociates commutative instruction chains into balanced trees to expose ILP before register allocation inflates dependencies.
 - `MachineScheduler` (pre-RA) uses a DAG-based bidirectional list scheduling algorithm driven by `SchedMachineModel` resources; `GenericScheduler` balances critical path, register pressure, and resource utilisation.
+
+
+---
+
+@copyright jreuben11

@@ -895,3 +895,8 @@ The richness of LLVM's observable intermediate layers is a design virtue: every 
 - Flang introduces FIR and HLFIR above LLVM IR, preserving Fortran semantics (array sections, intrinsics, intent annotations) through the optimisation stages before lowering to the LLVM backend.
 - ORC JIT compiles IR or objects on-demand in-process, out-of-process, or remotely. Lazy compilation defers function-body compilation until first call, enabling interactive REPLs and language runtimes with fast startup.
 - Every IR layer is observable with a one-liner: `-E` for preprocessed source, `-Xclang -ast-dump` for AST, `-emit-llvm -S` for IR, `-stop-after=finalize-isel` for MIR, `llvm-objdump -d` for final machine code.
+
+
+---
+
+@copyright jreuben11

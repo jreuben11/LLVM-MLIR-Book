@@ -555,3 +555,8 @@ This makes liboffload a general-purpose GPU dispatch layer usable without OpenMP
 - DeviceRTL provides device-side `__kmpc_*` implementations; SPMD mode maps all GPU threads to OpenMP threads directly, while generic mode supports nested parallelism with a master-thread dispatch loop.
 - OMPT provides a standardized profiling callback interface used by HPCToolkit, Score-P, and TAU for OpenMP performance analysis.
 - liboffload can be used directly (without OpenMP) as a portable GPU dispatch layer, complementing SYCL and HIP for LLVM-native heterogeneous workloads.
+
+
+---
+
+@copyright jreuben11

@@ -471,3 +471,8 @@ The key variable is `COMPILER_RT_BAREMETAL_BUILD`: it disables OS-dependent feat
 - Sanitizer runtimes share `sanitizer_common` for platform abstraction, signal handling, and symbolization; they intercept libc functions via platform-specific mechanisms (LD_PRELOAD on Linux, DYLD_INSERT_LIBRARIES on macOS).
 - Bare-metal toolchains set `COMPILER_RT_BAREMETAL_BUILD=ON` to suppress OS-dependent features and produce a minimal static builtins archive.
 - The Apache 2.0 license (with LLVM exception) makes compiler-rt suitable for proprietary firmware, unlike GPL-licensed libgcc.
+
+
+---
+
+@copyright jreuben11

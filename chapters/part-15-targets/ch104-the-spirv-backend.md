@@ -1138,3 +1138,8 @@ The LLVM SPIR-V backend thus occupies a dual role: it is a backend that *produce
 - The Khronos `llvm-spirv` translator provides an alternative out-of-tree path with broader SPIR-V extension coverage and bidirectional translation; the in-tree backend offers better LLVM integration and debuggability.
 - `spirv-val` from SPIRV-Tools should be run on all generated SPIR-V to catch capability omissions, type mismatches, and ordering violations before deployment to a Vulkan or OpenCL runtime.
 - The MLIR SPIR-V dialect (`mlir/lib/Dialect/SPIRV/`) provides a higher-level alternative for frameworks that generate SPIR-V from MLIR, preserving type fidelity that the LLVM IR path must reconstruct.
+
+
+---
+
+@copyright jreuben11

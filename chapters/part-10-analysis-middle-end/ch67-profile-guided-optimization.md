@@ -234,3 +234,8 @@ BOLT transformations complement compiler PGO: the compiler's PGO affects code ge
 - `llvm-profdata` merges, shows, converts, and overlaps profile data; it also supports ThinLTO thin-profile generation.
 - ThinLTO + PGO propagates hotness information through the module summary index for cross-module inlining decisions.
 - BOLT + PGO provides a two-level optimization: PGO for compiler decisions during code generation, BOLT for binary-level basic block layout and function ordering.
+
+
+---
+
+@copyright jreuben11

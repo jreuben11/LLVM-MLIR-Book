@@ -984,3 +984,8 @@ The `GCNRegPressureAnalyzer` estimates VGPR and SGPR pressure during scheduling 
 - MFMA instructions (gfx908+) operate on AGPR register groups; WMMA instructions (gfx1100+) target VGPRs directly. Both require precise hazard NOP insertions (`s_nop`) after matrix operations.
 - Correctness passes — `SIFixSGPRCopies`, `SILowerI1Copies`, `SIInsertWaitcnts` — enforce SGPR/VGPR legality and memory ordering invariants that the ISA cannot express in instruction encoding alone.
 - The ROCm compilation path produces HSA-conformant ELF objects consumed by `amdhip64.so` / `hsa-runtime64.so`; `llvm-readelf --notes` and `llvm-objdump --arch=amdgcn` are primary inspection tools.
+
+
+---
+
+@copyright jreuben11

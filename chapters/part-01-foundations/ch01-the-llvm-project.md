@@ -425,3 +425,8 @@ The pattern across all these downstreams is consistent: a fork or vendored copy 
 - Major downstreams include Apple (`swiftlang/llvm-project` for Xcode and Swift), Google (Android AOSP toolchain), Rust (`rustc_codegen_llvm`), Intel (`intel/llvm` for SYCL/oneAPI), AMD (ROCm), NVIDIA (NVVM/CUDA), Qualcomm (Hexagon/Snapdragon), and Zig (hermetic LLVM-linked distribution). Each carries patches for target-specific or language-specific requirements while upstreaming generic improvements.
 
 - The downstream ecosystem's breadth — from mobile application processors to GPU accelerators to quantum computing toolchains — is the practical consequence of the library-first design philosophy established in LLVM 1.0 and consistently maintained across 22 major releases.
+
+
+---
+
+@copyright jreuben11

@@ -333,3 +333,8 @@ Typical result for a 500 KLOC C++ program: bfd ≈ 15s, gold ≈ 6s, lld ≈ 2s.
 - **Linker scripts** control output section layout, load addresses, and symbol definitions; LLD supports the GNU linker script format for embedded and custom layouts.
 - **Partial linking** (`-r`) combines objects without resolving externals, used in kernel builds and distributed LTO pipelines.
 - LLD achieves 2–5× faster link times than GNU ld through parallel I/O, parallel section processing, and a single-pass design.
+
+
+---
+
+@copyright jreuben11

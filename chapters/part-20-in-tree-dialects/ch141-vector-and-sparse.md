@@ -449,3 +449,8 @@ The key design choice is that sparse encoding is an attribute on the tensor type
 - The `sparse_tensor` dialect represents compressed sparse formats (CSR, CSC, COO, BSR, etc.) via `SparseTensorEncodingAttr` annotations on tensor types. The same `linalg.generic` body describes both dense and sparse algorithms.
 - `--sparsification` is the core pass implementing the Bik-Wijshoff algorithm: it transforms `linalg.generic` with sparse operands into explicit loops over the compressed storage arrays, skipping structural zeros.
 - The sparse lowering pipeline (`--sparsification`, `--sparse-tensor-codegen`, `--sparse-storage-specifier-to-llvm`) produces LLVM-ready code that accesses `positions`, `coordinates`, and `values` arrays directly.
+
+
+---
+
+@copyright jreuben11

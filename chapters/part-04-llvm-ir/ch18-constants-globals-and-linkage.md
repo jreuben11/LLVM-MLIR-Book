@@ -685,3 +685,8 @@ define linkonce_odr void @_ZN3FooD1Ev(ptr %this) comdat($\_ZN3FooD1Ev) {
 ---
 
 *Cross-references: [Chapter 16 — IR Structure](ch16-ir-structure.md) covers module layout and the `Value`/`User`/`Use` graph; [Chapter 17 — The Type System](ch17-the-type-system.md) covers the type hierarchy this chapter assumes; [Chapter 77 — LTO and ThinLTO](../../part-13-lto-whole-program/ch77-lto-and-thinlto.md) explores how `available_externally` and `linkonce_odr` interact during cross-module optimization; [Chapter 79 — Linker Internals: GOT, PLT, TLS](../../part-13-lto-whole-program/ch79-linker-internals-got-plt-tls.md) digs into the ELF relocation mechanics that underpin the TLS models and `dso_local` optimization.*
+
+
+---
+
+@copyright jreuben11

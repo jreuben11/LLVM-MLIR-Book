@@ -1162,3 +1162,8 @@ The integer dot product operations (`dot4add_i8packed`) introduced in SM 6.4 are
 - **Validation** by `dxil-val` enforces no indirect calls, no recursion, reducible CFG, and resource-access constraints; on Windows, `dxil.dll` signs containers for driver acceptance.
 - **Debugging** uses `dxc -Zi` for DXIL debug info, `llvm-dis` for bitcode disassembly, and PIX/RenderDoc for GPU-side debugging.
 - Cross-references: [Chapter 51 — Clang as an HLSL Compiler](../part-07-clang-multilang/ch51-clang-as-hlsl-compiler.md) for the Clang HLSL frontend; [Chapter 104 — The SPIR-V Backend](ch104-spirv-backend.md) for the alternative GPU IR path; [Chapter 82 — TableGen Deep Dive](../part-14-backend/ch82-tablegen-deep-dive.md) for understanding DXIL.td generation.
+
+
+---
+
+@copyright jreuben11

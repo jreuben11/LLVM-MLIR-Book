@@ -425,3 +425,8 @@ Partial bufferization is useful when:
 - **Buffer deallocation** is a separate pass pipeline (`--buffer-deallocation-pipeline`) using ownership tracking to insert `memref.dealloc` exactly once per allocation.
 - **`--test-one-shot-bufferize`** annotates the IR with analysis results (`bufferization.access`, `bufferization.inplace`) without rewriting—invaluable for debugging unexpected copies.
 - **`OpFilter`** enables partial bufferization: only specified ops/dialects are converted, deferring others to a later pass or a specialized handling.
+
+
+---
+
+@copyright jreuben11

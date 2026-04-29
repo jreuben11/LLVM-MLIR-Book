@@ -444,3 +444,8 @@ The `--xla_cpu_enable_thunk_trace` flag logs each thunk execution with wall-cloc
 - Buffer assignment allocates a single contiguous arena; output aliasing via `donate_argnums` avoids copies.
 - LLVM's SLP and Loop vectorizers handle SIMD generation; target feature strings control the ISA level.
 - `CpuExecutable` holds the JIT-compiled code, thunk sequence, and buffer assignment; execution is sequential thunk dispatch with optional intra-op parallelism.
+
+
+---
+
+@copyright jreuben11

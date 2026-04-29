@@ -491,3 +491,8 @@ In practice: use `affine` when the loop nest comes from a polyhedral source (Pol
 - The `scf` dialect provides structured loops (`scf.for`, `scf.while`) and conditionals (`scf.if`) at a higher level than `cf` but without polyhedral restrictions. Loop-carried values via `iter_args` maintain SSA form across loop iterations.
 - `scf.parallel` asserts iteration independence for explicit parallelism; `scf.forall` is the modern form supporting shared outputs via `tensor.parallel_insert_slice`, mapping naturally to GPU thread/block hierarchies.
 - `--convert-scf-to-cf` lowers structured SCF to basic blocks and branches, converting `iter_args` to block arguments and `scf.yield` to `cf.br` instructions. This is the mandatory step before `--convert-cf-to-llvm`.
+
+
+---
+
+@copyright jreuben11

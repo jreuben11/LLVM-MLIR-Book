@@ -1309,3 +1309,8 @@ For bare-metal, the ASan shadow memory and interceptors must be customized: the 
 - **Debug info** should be compiled with `-g -gdwarf-4` and stripped from the production binary; LLDB communicates with on-chip debug probes via the GDB Remote Serial Protocol.
 - **Emerging targets** include Xtensa (ESP32, in-tree since LLVM 20), Cortex-M55 Helium MVE (auto-vectorization target), and RISC-V P extension (DSP packed SIMD).
 - Cross-references: [Chapter 97 — The 32-bit ARM Backend](ch97-the-32-bit-arm-backend.md) for the underlying ARM target machinery; [Chapter 92 — The Machine Outliner](../part-14-backend/ch92-machine-outliner.md) for the outliner used in `-Oz`; [Chapter 119 — compiler-rt Builtins](../part-17-runtime-libs/ch119-compiler-rt-builtins.md) for software FP builtins; [Chapter 78 — The LLVM Linker (LLD)](../part-13-lto-whole-program/ch78-the-llvm-linker.md) for LLD embedded linker usage.
+
+
+---
+
+@copyright jreuben11

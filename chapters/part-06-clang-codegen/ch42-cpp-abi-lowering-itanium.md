@@ -881,3 +881,8 @@ This separation means the Microsoft ABI (Chapter 43) overrides the same set of m
 - [`clang/lib/CodeGen/CGExprCXX.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/lib/CodeGen/CGExprCXX.cpp) — `EmitCXXMemberVirtualCallExpr`, `EmitCXXNewExpr`, `EmitCXXDeleteExpr`
 - [`llvm/lib/Demangle/ItaniumDemangle.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/llvm/lib/Demangle/ItaniumDemangle.cpp) — demangling used by `llvm-cxxfilt`
 - [`llvm/lib/CodeGen/AsmPrinter/EHStreamer.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/llvm/lib/CodeGen/AsmPrinter/EHStreamer.cpp) — LSDA table emission
+
+
+---
+
+@copyright jreuben11

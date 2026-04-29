@@ -245,3 +245,8 @@ MCRegister PhysReg = tryAssignWithinBank(VReg, RB, ...);
 - `RAPBQP` models allocation as a quadratic optimisation problem, useful for targets with heterogeneous register constraints.
 - `SpillPlacementAnalysis` uses a min-cut algorithm on the CFG to minimise weighted spill code insertion.
 - GlobalISel's `RegBankSelect` assigns coarse register banks before full physical-register allocation, enabling bank-aware combining and legalization.
+
+
+---
+
+@copyright jreuben11

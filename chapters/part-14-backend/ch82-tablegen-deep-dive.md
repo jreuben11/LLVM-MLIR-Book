@@ -363,3 +363,8 @@ This generates the `SchedModel` tables that `MachineScheduler` uses to determine
   - `-gen-callingconv`: calling convention assignment functions.
   - `-gen-subtarget`: feature flags, CPU models, `ParseSubtargetFeatures`.
   - `-gen-sched-models`: instruction latency and throughput tables.
+
+
+---
+
+@copyright jreuben11

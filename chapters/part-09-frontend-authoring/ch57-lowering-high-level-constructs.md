@@ -522,3 +522,8 @@ The following table summarizes the IR lowering for each construct:
 - Coroutines use the `@llvm.coro.*` intrinsic family; `CoroSplitPass` and `CoroElidePass` handle frame splitting and heap elision.
 - String literals are `PrivateLinkage` constant `[N x i8]` globals, decayed to `ptr` via a zero-offset GEP.
 - RTTI under the Itanium ABI is a hierarchy of `__*_type_info` structs; custom languages can use any pointer-sized discriminator their runtime understands.
+
+
+---
+
+@copyright jreuben11

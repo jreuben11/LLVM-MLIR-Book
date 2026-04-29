@@ -927,3 +927,8 @@ The PTX is compiled by `ptxas` to a CUBIN embedded in the IREE `.vmfb` FlatBuffe
 - **FlashAttention** demonstrates that high-performance fused kernels still require framework-specific fusion passes (XLA `AttentionRewriter`), cuDNN Graph API, or manually written Triton kernels; the fully automatic MLIR path does not yet implement the online softmax normalisation transform or the WGMMA + TMA producer-consumer pipeline as general reusable passes.
 
 - **The linear-layer walkthrough** makes the seven transformation stages concrete: `aten.linear` → `stablehlo.dot_general` → `linalg.matmul` → tiled `scf.forall` with shared-memory promotion → `vector.contract` → bufferised `memref` → `nvgpu.mma.sync` → PTX `mma.sync.aligned`.
+
+
+---
+
+@copyright jreuben11

@@ -346,3 +346,8 @@ With `__restrict__`, LLVM's alias analysis marks A and B as non-aliasing, and Po
 - **Pattern-based matmul optimization** detects the three-nested matrix multiplication kernel and applies a fixed high-performance schedule (cache tiling + register tiling + vectorization + unroll-and-jam) that bypasses the generic ISL scheduler.
 - **The JSON schedule format** (`.jscop`) exports the full polyhedral representation (domain, schedule, access functions) for external inspection and manual modification; `-polly-import-jscop` allows injecting custom schedules.
 - **Alias analysis** integration uses LLVM's `AAResults` to prove array non-aliasing; when aliasing cannot be disproved, Polly inserts runtime alias checks that fall back to the original code if aliasing is detected.
+
+
+---
+
+@copyright jreuben11

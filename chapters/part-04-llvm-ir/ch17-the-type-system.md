@@ -716,3 +716,8 @@ The distinction between ABI alignment (`getABITypeAlign`) and preferred alignmen
 ---
 
 *Cross-references: [Chapter 16 — IR Structure](../part-04-llvm-ir/ch16-ir-structure.md) introduced the module-level context in which type declarations appear. [Chapter 19 — Instructions I — Arithmetic and Memory](../part-04-llvm-ir/ch19-instructions-i-arithmetic-and-memory.md) uses every type covered here in the context of GEP, load, and store. [Chapter 23 — Attributes, Calling Conventions, and the ABI](../part-04-llvm-ir/ch23-attributes-calling-conventions-and-the-abi.md) shows how types interact with the platform ABI at call boundaries.*
+
+
+---
+
+@copyright jreuben11

@@ -460,3 +460,8 @@ llc -march=amdgcn -mcpu=gfx90a --filetype=obj -o kernel.o
 - The `x86vector` dialect provides AVX/AVX-512 specific ops: `avx.intr.dot.f32` for partial dot products, `avx512.mask.compress`/`expand` for gather/scatter, `avx512.vp2intersect` for set intersection, `avx512.intr.vcvtneps2bf16.*` for f32→bf16 conversion. Lowered by `--convert-x86vector-to-llvm`.
 - The `amdgpu` dialect provides `amdgpu.mfma` for AMD's MFMA matrix instruction family (GCN/CDNA) and `amdgpu.wmma` for RDNA3 wave matrix multiply. Buffer operations (`raw_buffer_load/store`) provide hardware-checked global memory access. Lowered via `--convert-amdgpu-to-rocdl`.
 - The `rocdl` dialect is AMD's hardware intrinsic layer (equivalent to `nvvm` for NVIDIA): `rocdl.workitem.id.x` provides thread IDs, `rocdl.barrier` provides workgroup sync, and `rocdl.mfma.*` provides direct MFMA intrinsics. Lowered by `--convert-rocdl-to-llvm`.
+
+
+---
+
+@copyright jreuben11

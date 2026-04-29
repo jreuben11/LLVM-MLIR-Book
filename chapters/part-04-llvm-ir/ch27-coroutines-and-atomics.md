@@ -555,3 +555,8 @@ The IR verifier enforces that `freeze` receives a single operand of any first-cl
 - [`clang/lib/CodeGen/CGCoroutine.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/lib/CodeGen/CGCoroutine.cpp) — Clang's coroutine codegen
 - Lewandowski, Carruth, Kuperstein, "Coroutines in LLVM" (LLVM Developers' Meeting 2016) — original Switch ABI design
 - Azuma, "LLVM Coroutines for Swift" (LLVM Developers' Meeting 2022) — Async ABI and Swift integration
+
+
+---
+
+@copyright jreuben11

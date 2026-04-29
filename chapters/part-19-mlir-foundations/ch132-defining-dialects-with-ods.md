@@ -578,3 +578,8 @@ The folder for `Calc_ConstantOp` returns `value` attr as `OpFoldResult`; the fol
 - The `assemblyFormat` DSL handles textual syntax for most ops using tokens for operands (`$name`), types (`type($name)`), literals (`` `token` ``), optional groups (`(... ^)?`), and attribute dictionaries (`attr-dict`)
 - Types and attributes are defined with `TypeDef` and `AttrDef`, specifying parameters with typed `TypeParameter<"T", "doc">` entries, optional `assemblyFormat`, and optional `genVerifyDecl` for invariant checking
 - The build system generates `.inc` files via `mlir_tablegen`; these are `#include`-d from hand-written `.h`/`.cpp` files using `GET_OP_CLASSES`/`GET_OP_LIST` guards
+
+
+---
+
+@copyright jreuben11

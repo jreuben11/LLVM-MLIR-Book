@@ -730,3 +730,8 @@ done | sort -u
 - **Corpus management** — minimization (`-merge=1`), crash minimization (`-minimize_crash=1`), and coverage reporting — keeps the fuzzer efficient and analysis tractable over long campaigns.
 
 - LLVM itself is continuously fuzzed on OSS-Fuzz via targets in `llvm/tools/` and `compiler-rt/test/fuzzer/`.
+
+
+---
+
+@copyright jreuben11

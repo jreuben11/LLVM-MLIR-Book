@@ -306,3 +306,8 @@ For existing C/C++ codebases where adding MLIR is impractical, Polly remains the
 - **Polly-ACC** is an experimental CUDA offloading path that generates GPU kernels from polyhedral schedules; it is limited by naive data transfer and is not production-ready.
 - **Maintenance status**: Polly is in maintenance mode as of LLVM 22.1; the MLIR Affine dialect is the preferred platform for new polyhedral optimization work.
 - **MLIR Affine dialect** supersedes Polly's design: it represents polyhedral structure explicitly in the IR rather than recovering it via ScalarEvolution, enabling exact analysis, first-class ML workload support, and integration with GPU dialects.
+
+
+---
+
+@copyright jreuben11

@@ -508,3 +508,8 @@ For LLVM IR, the relevant fragment is primarily QF_BV (for integer operations) p
 - Leroy, X. (2009). "Formal verification of a realistic compiler." *CACM* 52(7):107–115.
 - Lopes, N.P. et al. (2015). "Provably Correct Peephole Optimizations with Alive." *PLDI 2015*.
 - Milner, R. (1980). *A Calculus of Communicating Systems*. Springer LNCS 92.
+
+
+---
+
+@copyright jreuben11

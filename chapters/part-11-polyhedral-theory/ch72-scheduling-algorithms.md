@@ -409,3 +409,8 @@ The polyhedral model ensures that all candidates evaluated are *legal* (dependen
 - Every classical loop transformation — interchange, reversal, skewing, tiling, strip-mining, fusion, distribution — is a special case of an affine schedule change; their legality is verified by checking the schedule against the dependence polyhedra.
 - The **ISL scheduler** reimplements Pluto-style optimization using exact Presburger arithmetic, producing **schedule trees** (band nodes with tileable/coincident annotations) as output; these are consumed by `isl_ast_build` for code generation.
 - **Iterative compilation** and autotuning search the schedule parameter space empirically; the polyhedral model provides the *feasibility guarantee* (all candidates are legal) while the search optimizes actual runtime performance.
+
+
+---
+
+@copyright jreuben11

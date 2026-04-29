@@ -611,3 +611,8 @@ This pattern consumes the `mul` sub-tree entirely and emits a single MADD instru
 - Debugging tools include `-view-dag-combine1`, `-view-legalize-dags`, `-view-sunit-dags` for visual DAG inspection, and `-debug-only=isel` / `-debug-only=dagcombine` for textual traces of every selection and combining decision.
 
 - After SelectCode completes, `InstrEmitter` translates the selected DAG nodes into `MachineInstr` objects, and the pre-RA scheduler reorders them according to the target's scheduling model before register allocation begins.
+
+
+---
+
+@copyright jreuben11

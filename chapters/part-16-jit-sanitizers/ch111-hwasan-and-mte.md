@@ -628,3 +628,8 @@ Process 1234 stopped
 - `AArch64StackTaggingPass` lowers stack tagging via `IRG`+`ADDG`+`STZ2G` in the prologue and `STG xzr` in the epilogue; scope-aware untagging enables use-after-scope detection mid-function.
 - Stack use-after-return: ASan uses a fake stack (heap allocation per frame, ~30–50ns overhead), HWASan/MTE use shadow/tag clearing at function exit (near-zero overhead, no fake memory copies).
 - Production adoption: Android 14 enables MTE async on Pixel 8+ for all system services; HWASan in Chrome's AArch64 renderer; MTE in Linux kernel via `CONFIG_KASAN_HW_TAGS`.
+
+
+---
+
+@copyright jreuben11

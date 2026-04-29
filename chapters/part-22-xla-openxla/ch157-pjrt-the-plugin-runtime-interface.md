@@ -481,3 +481,8 @@ with jax.profiler.trace("/tmp/profile"):
 - IFRT adds a distributed Array abstraction on top of PJRT, enabling logical sharded arrays across hosts; JAX's sharding model maps directly to IFRT.
 - Custom calls are registered through XLA's FFI API and invokable from traced JAX/MLIR code.
 - `HostBufferSemantics`, capability versioning via `struct_size`, and the function pointer ABI together ensure PJRT plugins remain compatible across XLA versions.
+
+
+---
+
+@copyright jreuben11

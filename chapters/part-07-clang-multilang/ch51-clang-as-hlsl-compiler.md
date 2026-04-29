@@ -961,3 +961,8 @@ These features require no special Sema treatment beyond what C++ already provide
 - [`clang/include/clang/Parse/ParseHLSLRootSignature.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/include/clang/Parse/ParseHLSLRootSignature.h) — `RootSignatureParser` interface
 - [DXIL Specification](https://github.com/Microsoft/DirectXShaderCompiler/blob/main/docs/DXIL.rst) — Canonical DXIL format specification
 - [DirectX Shader Compiler source](https://github.com/microsoft/DirectXShaderCompiler) — DXC reference implementation
+
+
+---
+
+@copyright jreuben11

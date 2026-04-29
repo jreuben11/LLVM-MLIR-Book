@@ -699,3 +699,8 @@ void MyTargetPassConfig::addISelPasses() {
 - GlobalISel can fall back to SelectionDAG per-function when it cannot select an instruction, controlled by `-global-isel-abort=0/1/2`.
 
 - Debugging relies on `-print-after=legalizer`, MIR text format, `-verify-machineinstrs`, and `GISelObserver` hooks for tracing instruction creation and erasure.
+
+
+---
+
+@copyright jreuben11

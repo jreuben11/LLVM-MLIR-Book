@@ -350,3 +350,8 @@ Attributes on `func.func`: `sym_visibility`, `arg_attrs`, `res_attrs`, `function
 | `index` | `llvm` | `convert-index-to-llvm` |
 | `complex` | `llvm` | `convert-complex-to-llvm` |
 | whole module | `llvm.mlir.module` | `convert-to-llvmir` (umbrella) |
+
+
+---
+
+@copyright jreuben11

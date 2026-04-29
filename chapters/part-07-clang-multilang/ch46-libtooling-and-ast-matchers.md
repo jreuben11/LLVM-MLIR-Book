@@ -1254,3 +1254,8 @@ The Python bindings require that `libclang.so` (or `libclang.dylib`) is loadable
 - [JSON Compilation Database Format Specification](https://clang.llvm.org/docs/JSONCompilationDatabase.html)
 - [AST Matcher Reference](https://clang.llvm.org/docs/LibASTMatchersReference.html)
 - [Clang LibTooling tutorial](https://clang.llvm.org/docs/LibTooling.html)
+
+
+---
+
+@copyright jreuben11

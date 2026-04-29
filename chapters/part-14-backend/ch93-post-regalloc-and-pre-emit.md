@@ -281,3 +281,8 @@ The function table (registered call targets) is emitted by `AsmPrinter::emitCFII
 - `PostRAScheduler` reschedules after register allocation with full physical register alias awareness; `AggressiveAntiDepBreaker` renames physical registers to eliminate WAR hazards.
 - `MachineFunctionSplitter` moves cold basic blocks to a separate `.text.cold` section, improving hot-path instruction cache density.
 - CFGuard instrumentation adds Windows Control Flow Guard checks at every indirect call and registers all valid call targets in a `.cfguard` section consulted by the OS loader.
+
+
+---
+
+@copyright jreuben11

@@ -537,3 +537,8 @@ grep "amoadd" example.s
 - RVA22U64 and RVA23U64 profiles mandate specific extension supersets for application-class Linux deployment; profile-targeted compilation enables the optimizer to use all mandatory instructions.
 - Scheduling models for Rocket (in-order), SiFive U7/U74 (OOO superscalar), and other cores drive instruction scheduling and loop unrolling; select via `-mcpu=sifive-u74` etc.
 - GlobalISel is production-ready on RV64GC, performing GPR/FPR bank assignment, type legalization (widening narrow types, splitting i128), and instruction selection without constructing a SelectionDAG.
+
+
+---
+
+@copyright jreuben11

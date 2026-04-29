@@ -1023,3 +1023,8 @@ Several mature compilers use the lambda calculus (or close relatives) directly a
 - *Chapter 14 — Advanced Type Systems* adds recursive types (which enable typing Y), dependent types (which extend Curry-Howard to predicate logic), and refinement types.
 - *Chapter 15 — Type Theory in Practice: From Theory to LLVM and MLIR* connects the abstract machinery developed here to the concrete type systems of LLVM IR and MLIR's type and attribute framework.
 - *Chapter 167 — Operational Semantics and Program Logics* and *Chapter 169 — Vellvm* show how the Progress/Preservation methodology is applied to formalize the semantics of LLVM IR itself.
+
+
+---
+
+@copyright jreuben11

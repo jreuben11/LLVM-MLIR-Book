@@ -1194,3 +1194,8 @@ PreferredTypeBuilder PreferredType;
 | Expression parser | [`clang/lib/Parse/ParseExpr.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/lib/Parse/ParseExpr.cpp) |
 | Statement parser | [`clang/lib/Parse/ParseStmt.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/lib/Parse/ParseStmt.cpp) |
 | Template parser | [`clang/lib/Parse/ParseTemplate.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/lib/Parse/ParseTemplate.cpp) |
+
+
+---
+
+@copyright jreuben11

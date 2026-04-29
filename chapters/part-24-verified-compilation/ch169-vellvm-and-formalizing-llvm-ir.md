@@ -423,3 +423,8 @@ The gap between Vellvm and a "fully verified LLVM" is still substantial: LLVM's 
 - Kang, J. et al. (2015). "Formal Verification of a realistic compiler: The CompCert experience." (Kang et al., separate from Leroy)
 - Kang, J., Hur, C.K., Mansky, W., Garbuzov, D., Zdancewic, S., Vafeiadis, V. (2015). "A Formal C Memory Model Supporting Integer-Pointer Casts." *PLDI 2015*.
 - Vellvm repository: [github.com/vellvm/vellvm](https://github.com/vellvm/vellvm)
+
+
+---
+
+@copyright jreuben11

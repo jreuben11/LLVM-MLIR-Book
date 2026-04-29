@@ -786,3 +786,8 @@ Inline assembly is the tool of last resort: powerful, portable across compilers 
 - [`llvm/include/llvm/MC/MCAsmInfo.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/llvm/include/llvm/MC/MCAsmInfo.h) — `MCAsmInfo` class for target assembly syntax information.
 - [GCC Inline Assembly HOWTO](https://gcc.gnu.org/onlinedocs/gcc/Using-Assembly-Language-with-C.html) — canonical reference for GCC-compatible extended asm syntax.
 - [LLVM Language Reference — Inline Assembler Expressions](https://llvm.org/docs/LangRef.html#inline-assembler-expressions) — official IR-level inline asm documentation.
+
+
+---
+
+@copyright jreuben11

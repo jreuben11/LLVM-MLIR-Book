@@ -680,3 +680,8 @@ On targets requiring position-independent code, the indirect branch operand may 
 - `asm goto` is represented by `callbr` in IR and `ISD::INLINEASM_BR` in the DAG, adding basic block successor operands to the normal INLINEASM structure. Label targets are substituted as PC-relative or absolute addresses in the asm string.
 
 - Debugging relies on `-print-after=regallocgreedy` to inspect the final MachineInstr, `-view-legalize-dags` to see the DAG node structure, and clang's `-Wall` plus the integrated assembler's error messages for constraint validation.
+
+
+---
+
+@copyright jreuben11

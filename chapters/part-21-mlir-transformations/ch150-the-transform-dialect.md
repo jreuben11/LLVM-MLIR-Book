@@ -515,3 +515,8 @@ This prints the payload IR state after every transform op application, making it
 - New transform ops implement `TransformOpInterface`; `TransformState` tracks handle-to-payload mappings and enforces linearity.
 - The interpreter entry point is `mlir::transform::applyTransforms`; `mlir-opt --transform-interpreter` runs it from the command line.
 - `--transform-interpreter-enable-expensive-checks` enables runtime invariant checking at the cost of additional overhead.
+
+
+---
+
+@copyright jreuben11

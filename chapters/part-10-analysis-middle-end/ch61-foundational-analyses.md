@@ -415,3 +415,8 @@ When a pass requests `BlockFrequencyAnalysis`, the `FunctionAnalysisManager` rec
 - `DemandedBitsAnalysis` identifies which bits of a value are consumed; zero demanded bits means the instruction is dead.
 - `LazyValueInfo` provides per-point value range and predicate queries; `getPredicateAt` checks a comparison's Tristate value at a specific instruction.
 - `BranchProbabilityInfo` and `BlockFrequencyInfo` assign probabilities and relative frequencies to edges and blocks, derived from `!prof` metadata or heuristics.
+
+
+---
+
+@copyright jreuben11

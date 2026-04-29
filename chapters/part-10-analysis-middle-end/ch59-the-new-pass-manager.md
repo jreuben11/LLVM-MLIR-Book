@@ -431,3 +431,8 @@ LLVM provides `createModuleToFunctionPassAdaptor(createLegacyPMPass<LegacyPassT>
 - The textual format `default<O3>`, `function(instcombine,simplifycfg)`, and `loop(licm)` is used by `opt -passes=` and by `PassBuilder::parsePassPipeline` in library use.
 - `PassInstrumentationCallbacks` + `StandardInstrumentations` provide print-before/after, timing, and bisection hooks.
 - The default O3 pipeline has five major phases: pre-inlining canonicalization, CGSCC inlining, post-inlining scalar opts, loop opts, and vectorization.
+
+
+---
+
+@copyright jreuben11

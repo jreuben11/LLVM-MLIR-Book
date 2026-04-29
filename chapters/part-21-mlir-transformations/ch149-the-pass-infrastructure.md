@@ -550,3 +550,8 @@ The reproducer file contains the module state just before the crashing pass and 
 - `Option<T>` and `ListOption<T>` expose per-pass CLI options parsed from the pipeline string.
 - `getAnalysis<T>()` returns a cached analysis; `markAnalysesPreserved<T>()` prevents unnecessary recomputation.
 - `--mlir-pass-pipeline-crash-reproducer` emits minimal reproducers for debugging pass crashes.
+
+
+---
+
+@copyright jreuben11

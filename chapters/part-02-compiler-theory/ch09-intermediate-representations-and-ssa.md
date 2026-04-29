@@ -1097,3 +1097,8 @@ Chapter 130 develops the full MLIR block-argument and region model.
 - Appel, A.W. *Modern Compiler Implementation in ML*. Cambridge University Press, 1998. [Appel MCI]
 - Flanagan, C., Sabry, A., Duba, B.F., Felleisen, M. "The Essence of Compiling with Continuations." In *Proc. PLDI*, pp. 237–247, 1993.
 - GCC Internals Manual, Chapter 12: GIMPLE. https://gcc.gnu.org/onlinedocs/gccint/GIMPLE.html
+
+
+---
+
+@copyright jreuben11

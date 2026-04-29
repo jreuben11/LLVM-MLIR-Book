@@ -253,3 +253,8 @@ clang -O2 -fprofile-use=profile.profdata program.cpp  # enables splitting with P
 - **PAuth/BTI** (AArch64) and **CET/IBT** (x86) provide hardware-enforced pointer signing and branch target restrictions.
 - **FORTIFY_SOURCE** uses `__builtin_object_size` to replace unsafe stdlib calls with bounds-checked variants; `BoundsCheckingPass` adds runtime array bounds checks.
 - **Hot/cold splitting** moves cold basic blocks into a separate outlined function/section, improving icache utilization for the hot path.
+
+
+---
+
+@copyright jreuben11

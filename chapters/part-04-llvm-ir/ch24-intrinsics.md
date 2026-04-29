@@ -1001,3 +1001,8 @@ if (match(V, m_Intrinsic<Intrinsic::fma>(
 - [`llvm/lib/Transforms/Coroutines/CoroSplit.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/llvm/lib/Transforms/Coroutines/CoroSplit.cpp) — coroutine splitting at `llvm.coro.suspend` points
 - [`llvm/lib/Transforms/Instrumentation/InstrProfiling.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/llvm/lib/Transforms/Instrumentation/InstrProfiling.cpp) — lowering of `llvm.instrprof.*` intrinsics
 - [LLVM Language Reference Manual — Intrinsic Functions](https://llvm.org/docs/LangRef.html#intrinsic-functions) — canonical authoritative specification
+
+
+---
+
+@copyright jreuben11

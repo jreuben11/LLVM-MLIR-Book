@@ -310,3 +310,8 @@ The key advantage of Polly over standalone Pluto is seamless LLVM integration: P
 - **ScheduleOptimizerPass** applies the ISL Pluto-style scheduler, then tiles permutable dimensions and marks parallel/vectorizable dimensions for OpenMP/SIMD code generation.
 - **CodeGenerationPass** uses ISL's `isl_ast_build` to generate an AST from the optimized schedule and walks it to emit LLVM IR, substituting new IV values for original SSA values via a value map.
 - Polly's advantage over standalone polyhedral tools (Pluto, PoCC) is direct LLVM IR I/O: the output feeds immediately into the LLVM backend with no intermediate C compilation step.
+
+
+---
+
+@copyright jreuben11

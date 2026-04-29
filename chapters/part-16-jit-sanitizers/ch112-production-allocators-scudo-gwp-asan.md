@@ -783,3 +783,8 @@ Production (AArch64 with MTE hardware, ARMv8.5-A+):
 - Integration targets: Scudo is Android's default allocator since Android 11; GWP-ASan is default in Android apps, Chrome, ChromeOS; production crash reports include exact error type and dual stack traces.
 - Stack trace symbolization uses `llvm-symbolizer` offline; DWARF CFI slow unwind (~200ns) provides accurate traces through non-frame-pointer code; compressed traces in GWP-ASan metadata reduce per-slot cost from 240 to 60–120 bytes.
 - Production defense-in-depth: ASan+UBSan in CI, Scudo+GWP-ASan in production x86_64, Scudo+MTE async for AArch64 hardware — together providing comprehensive coverage at near-zero production overhead.
+
+
+---
+
+@copyright jreuben11

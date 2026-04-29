@@ -301,3 +301,8 @@ Passes declare which properties they require and which they preserve/invalidate,
 - **GlobalISel** (the new framework) uses a linear MachineFunction with `G_*` generic opcodes, processed by `IRTranslator → Legalizer → RegBankSelect → InstructionSelect`; it is the default for AArch64 and RISC-V.
 - SelectionDAG and GlobalISel **coexist**: GlobalISel is preferred for new work and production AArch64/x86; SDAG remains the fallback and is used by targets without GlobalISel support.
 - The `MachineFunction` is the common representation for both frameworks after instruction selection: it holds virtual registers (with register classes), `MachineBasicBlock` lists, and `MachineInstr` streams that the subsequent backend passes transform.
+
+
+---
+
+@copyright jreuben11

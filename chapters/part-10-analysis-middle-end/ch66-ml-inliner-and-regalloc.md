@@ -208,3 +208,8 @@ The improvements are modest in absolute terms but significant at Google-scale co
 - The ML eviction advisor for register allocation replaces the spill-weight formula with a small neural network that predicts which live interval to evict, trained with spill cost as the reward.
 - Both ML components are built with `LLVM_ENABLE_TENSORFLOW_AOT=ON`; they fall back to traditional heuristics when the runtime is unavailable.
 - Published results show 1–3% code size reduction and 0.5–1% performance improvement over traditional heuristics on large C++ codebases.
+
+
+---
+
+@copyright jreuben11

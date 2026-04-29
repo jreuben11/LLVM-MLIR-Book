@@ -684,3 +684,8 @@ For C++ exception interoperability with Rust (`extern "C++"` linkage), the calli
 - **`sret(T)`** models large struct returns: the caller allocates, the callee writes, and the IR-level return type is `void`. **`byval(T)`** models stack-copy argument passing: the backend copies the struct before the call; the callee's copy is independent. **`byref(T)`** models reference passing without copy, used for Swift `inout`. The IR-level `byval` attribute does not always correspond to C-level pass-by-value; for many struct sizes and targets, Clang decomposes the struct into register-sized IR parameters instead.
 
 - **The producer/consumer split** is fundamental: Clang (via `CGCall.cpp` and the target `ABIInfo` subclasses) produces the correct IR representation for each target's ABI; the backend (via `TargetLowering` and `CCAssignFn`) consumes that representation and generates hardware-correct call sequences. Neither layer can be correct without the other.
+
+
+---
+
+@copyright jreuben11

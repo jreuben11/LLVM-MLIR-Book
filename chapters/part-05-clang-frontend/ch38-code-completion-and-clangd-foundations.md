@@ -747,3 +747,8 @@ When a completion candidate requires including a header not yet present in the c
 - [`clang-tools-extra/clangd/TidyProvider.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang-tools-extra/clangd/TidyProvider.h)
 - [`clang-tools-extra/clangd/Transport.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang-tools-extra/clangd/Transport.h)
 - [`clang/include/clang/Tooling/CompilationDatabase.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/include/clang/Tooling/CompilationDatabase.h)
+
+
+---
+
+@copyright jreuben11

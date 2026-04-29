@@ -953,3 +953,8 @@ This chapter grounded the type theory of Chapters 12–14 in the concrete implem
 ---
 
 *Next chapter: [Chapter 16 — IR Structure](../part-04-llvm-ir/ch16-ir-structure.md) begins the detailed study of LLVM IR that the preceding theory has prepared us for.*
+
+
+---
+
+@copyright jreuben11

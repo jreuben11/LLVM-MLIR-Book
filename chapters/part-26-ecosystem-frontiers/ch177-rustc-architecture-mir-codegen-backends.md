@@ -1200,3 +1200,8 @@ The `rustc_llvm` build script (`build.rs`) determines which LLVM libraries to li
 - **Cranelift** (`rustc_codegen_cranelift`) uses CLIF (SSA IR with block parameters instead of phi nodes), legalization, and `regalloc2` (SSA-aware linear scan) to achieve 1.5×–3× faster debug builds than LLVM; it is the primary backend for Wasmtime's JIT and AOT modes; activated in rustc via `codegen-backend = "cranelift"` (nightly).
 
 - **`rustc_codegen_gcc`** uses `libgccjit` to target architectures LLVM does not support (m68k, ia64, SPARC, AVR); it shares the `CodegenBackend` trait with the LLVM backend; as of April 2026 it compiles `core`/`alloc`/most of `std` with known gaps in inline assembly dialects and some intrinsics.
+
+
+---
+
+@copyright jreuben11

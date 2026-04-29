@@ -695,3 +695,8 @@ This is the recommended approach for building a production Clang toolchain with 
 - **Linker requirements**: `--emit-relocs` enables full BOLT capability. BOLT is compatible with both LTO and PGO — all three optimizations are complementary and can be combined.
 
 - **Applied to Clang itself**, BOLT achieves 5–8% compile-time speedup with 50–60% reduction in i-cache misses, making it a practical addition to any production toolchain build pipeline.
+
+
+---
+
+@copyright jreuben11

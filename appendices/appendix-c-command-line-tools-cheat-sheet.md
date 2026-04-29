@@ -615,3 +615,8 @@ Key LLDB commands:
 | `report_error_type` | Include error type in report |
 
 General format: `ASAN_OPTIONS="key1=val1:key2=val2" ./prog`
+
+
+---
+
+@copyright jreuben11

@@ -481,3 +481,8 @@ Inductor generates Triton kernels with `@triton.jit` decorators for:
 - `triton.autotune` benchmarks a set of `(BLOCK_M, BLOCK_N, BLOCK_K, num_stages, num_warps)` configs and caches the winner in `~/.triton/cache/`.
 - FlashAttention's O(N) attention kernel is the canonical demonstration of Triton's expressive power; SPLIT_K optimizes small-batch GEMMs.
 - PyTorch 2.0's `torch.compile` uses Triton as the default GPU codegen backend through the Inductor compiler.
+
+
+---
+
+@copyright jreuben11

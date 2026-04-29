@@ -505,3 +505,8 @@ Post-fusion, softmax compiles to 3 kernels: one for reduce-max, one for exp+subt
 - The conversion chain: JAX/TF → StableHLO → (CHLO decomposition) → HLO → optimized HLO → backend.
 - `stablehlo-opt` is the tool for processing StableHLO files; JAX's `lowered.as_text()` exposes StableHLO for inspection.
 - `AlgebraicSimplifier` and `InstructionFusion` are the two highest-impact optimization passes; together they eliminate redundant computation and memory traffic.
+
+
+---
+
+@copyright jreuben11

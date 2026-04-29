@@ -280,3 +280,8 @@ Each target implements `TargetTransformInfo::Concept` (using the same concept-ba
 - Reductions use `@llvm.vector.reduce.*` intrinsics after the loop; first-order recurrences use a rotate-and-blend pattern.
 - The SLP vectorizer packs isomorphic scalar operations within basic blocks into SIMD operations using a bottom-up tree construction from stores/reductions.
 - `TargetTransformInfo` provides the cost model queried by both vectorizers; each backend implements it to express hardware throughput and register constraints.
+
+
+---
+
+@copyright jreuben11

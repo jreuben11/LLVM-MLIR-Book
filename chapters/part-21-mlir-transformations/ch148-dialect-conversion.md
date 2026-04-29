@@ -451,3 +451,8 @@ This pass structure—`TypeConverter` + `RewritePatternSet` + `ConversionTarget`
 - Block argument conversion uses `SignatureConversion` and `applySignatureConversion` to handle function and region argument type changes.
 - `UnrealizedConversionCastOp` bridges type mismatches during multi-step conversion; `--reconcile-unrealized-casts` eliminates them after all conversions complete.
 - The idiomatic pattern is: one `populate*` function per source dialect + one `ConversionTarget` + one `applyPartialConversion` call per pass.
+
+
+---
+
+@copyright jreuben11

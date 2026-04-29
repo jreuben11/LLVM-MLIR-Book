@@ -847,3 +847,8 @@ clangd's `HeaderSearch` integration uses `FileManager::getOptionalFileRef` with 
 - [`clang/lib/Basic/SourceManager.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/lib/Basic/SourceManager.cpp)
 - [`clang/lib/Basic/FileManager.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/lib/Basic/FileManager.cpp)
 - [`llvm/include/llvm/Support/VirtualFileSystem.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/llvm/include/llvm/Support/VirtualFileSystem.h)
+
+
+---
+
+@copyright jreuben11

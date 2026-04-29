@@ -614,3 +614,8 @@ module = Module.parse("...", context=ctx)
 - `ExecutionEngine` provides ORC-JIT execution of LLVM-dialect modules; arguments use ctypes descriptors; `mlir.runtime` helpers handle ranked memref ABIs.
 - NumPy integration: `DenseElementsAttr.get(ndarray)` lifts data into MLIR; `get_ranked_memref_descriptor` passes arrays to JIT-compiled code.
 - For large-scale IR construction (millions of ops), string parsing is faster than Python-level construction loops.
+
+
+---
+
+@copyright jreuben11

@@ -548,3 +548,8 @@ When `mlir::verify(op)` runs, it calls `verifyTrait()` on every trait attached t
 - Custom interfaces are defined in TableGen using `OpInterface` + `InterfaceMethod` records; default implementations reduce the amount of boilerplate each implementing op must provide
 - External interface models allow a third-party op to implement an interface defined in a different dialect without creating a dependency; used for cross-dialect contracts in bufferization, effect modeling, and shape inference
 - Trait verification is composed: MLIR's verifier calls both the op's own `verify()` method and `verifyTrait()` on every attached trait, providing layered correctness checks
+
+
+---
+
+@copyright jreuben11

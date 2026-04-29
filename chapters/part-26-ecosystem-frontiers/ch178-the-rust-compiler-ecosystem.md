@@ -1175,3 +1175,8 @@ The comptime-conditional in the kernel IR is distinct from Rust's `if cfg!(...)`
 - **Burn** is a backend-portable deep learning framework where `B: Backend` is a type parameter throughout. `#[derive(Module)]` generates training/inference/checkpoint infrastructure. Switching backends requires only changing a type alias. Burn uses CubeCL for its GPU kernel layer.
 
 - **CubeCL** is a GPU kernel DSL embedded via proc-macros targeting CUDA, Metal, and WGPU from one kernel definition. `#[comptime]` parameters are baked into JIT-compiled kernel source as constants, enabling loop unrolling and specialization. Burn uses CubeCL's comptime-parameterized fused kernels to eliminate intermediate GPU allocations in elementwise operation sequences.
+
+
+---
+
+@copyright jreuben11

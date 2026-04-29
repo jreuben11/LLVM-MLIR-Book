@@ -667,3 +667,8 @@ ctx.getDiagEngine().registerHandler([](mlir::Diagnostic &diag) {
 - `PassManager` assembles pipelines with `addPass()` and `nest<OpTy>()`; `pass.run(module)` executes; `PassWrapper` is the base for custom passes; `Pass::Option<T>` adds command-line-configurable parameters
 - `walk()` traverses nested ops (pre/post-order, with optional early exit via `WalkResult`); value use-def traversal uses `value.getUses()`, `value.getDefiningOp()`, `value.replaceAllUsesWith()`
 - `mlir-opt` is the canonical testing and development tool; combined with FileCheck, it enables precise IR transformation tests; `mlir-translate --mlir-to-llvmir` produces LLVM IR for final compilation
+
+
+---
+
+@copyright jreuben11

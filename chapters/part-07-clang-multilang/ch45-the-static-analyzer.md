@@ -879,3 +879,8 @@ At translation-unit scale, the analyzer is self-contained. Across translation un
 - [`clang/include/clang/StaticAnalyzer/Core/PathSensitive/FunctionSummary.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/include/clang/StaticAnalyzer/Core/PathSensitive/FunctionSummary.h)
 - [Reps, Horwitz, Sagiv — "Precise interprocedural dataflow analysis via graph reachability" (1995)](http://portal.acm.org/citation.cfm?id=199462) — theoretical foundation for ExplodedGraph
 - [Kremenek, Engler — "Z3: An Efficient SMT Solver" applied to Clang SA cross-checking](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/lib/StaticAnalyzer/Core/Z3ConstraintManager.cpp)
+
+
+---
+
+@copyright jreuben11

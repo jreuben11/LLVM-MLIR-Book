@@ -580,3 +580,8 @@ This pattern — header block with accumulator arguments, body block that update
 - The `math` dialect provides transcendentals (`sin`, `cos`, `exp`, `log`, `tanh`, `erf`, `pow`, etc.). Lowering paths include `--convert-math-to-libm` (accurate, requires libm), `--convert-math-to-llvm` (uses LLVM intrinsics), and polynomial approximations for GPU.
 - The `index` dialect represents platform-word-size arithmetic on the `index` type, keeping loop bounds and array sizes target-neutral until `--convert-index-to-llvm` selects `i32` or `i64` based on data layout.
 - The `cf` dialect provides low-level unstructured control flow (`cf.br`, `cf.cond_br`, `cf.switch`, `cf.assert`). Block arguments carry values across branches in place of phi nodes. It is the lowering target for both `affine` and `scf`, and the source for `--convert-cf-to-llvm`.
+
+
+---
+
+@copyright jreuben11

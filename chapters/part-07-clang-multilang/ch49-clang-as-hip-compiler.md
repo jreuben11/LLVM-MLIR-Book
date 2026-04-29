@@ -767,3 +767,8 @@ The device ASan runtime instruments load/store instructions with shadow memory l
 - [HIP Programming Guide](https://rocm.docs.amd.com/projects/HIP/en/latest/user_guide/hip_porting_guide.html)
 - [AMDGPU LLVM User Guide](https://llvm.org/docs/AMDGPUUsage.html)
 - [HSA Runtime Specification](https://hsafoundation.com/standards/)
+
+
+---
+
+@copyright jreuben11

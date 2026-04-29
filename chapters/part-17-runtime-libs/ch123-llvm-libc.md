@@ -554,3 +554,8 @@ As of LLVM 22.1, the state of LLVM-libc:
 - The test suite uses per-function hermetic unit tests, differential fuzzing against reference libm, and exhaustive float-range sweeping for `float`-precision math functions.
 - Scudo integration (`LIBC_USE_SCUDO=ON`) replaces `malloc`/`free` with the hardened allocator for memory-safe full-build deployments.
 - LLVM 22 reaches production readiness for Linux x86_64 full builds, GPU math/string, and bare-metal string/math; `stdio` and `pthread` are functional on Linux but not yet all platforms.
+
+
+---
+
+@copyright jreuben11

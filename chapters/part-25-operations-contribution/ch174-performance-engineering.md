@@ -430,3 +430,8 @@ llvm-lit --param cc=/path/to/clang-old \
 - **`PreservedAnalyses::none()`** is the correct return only when a pass changes everything; incorrect overuse causes expensive analysis recomputation.
 - **PGO** (profile-guided optimization) gives 10–30% runtime speedup on benchmarks representative of real workloads; combine with BOLT for an additional 5–15%.
 - **`llvm-mca`** analyzes assembly for instruction-level throughput, resource usage, and port pressure; identifies machine-code-level bottlenecks invisible at the source level.
+
+
+---
+
+@copyright jreuben11

@@ -1038,3 +1038,8 @@ The `ConstantResultStorageKind::Int64` optimization matters for performance: the
 - [`clang/include/clang/AST/ASTConcept.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/include/clang/AST/ASTConcept.h#L47) — `ConstraintSatisfaction`
 - [`clang/include/clang/Basic/DiagnosticASTKinds.inc`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/include/clang/Basic/DiagnosticASTKinds.inc) — all `note_constexpr_*` diagnostic IDs
 - [`llvm/include/llvm/ADT/APFloat.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/llvm/include/llvm/ADT/APFloat.h) — `APFloat`, `fltSemantics`, `fusedMultiplyAdd`
+
+
+---
+
+@copyright jreuben11

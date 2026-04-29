@@ -486,3 +486,8 @@ NcclComm::Ptr NcclComm::Create(
 - `AutoSharding` formulates sharding selection as an ILP — minimizing communication + memory cost — using OR-Tools; practical use requires time limits and heuristic seeding.
 - JAX exposes the system via `NamedSharding`, `PartitionSpec`, `device_put`, `with_sharding_constraint`, and `shard_map`; these map directly to `HloSharding` annotations.
 - Async collectives (`all-reduce-start` / `all-reduce-done`) overlap communication with computation; topology-aware replica groups exploit NVLink vs. IB bandwidth differences.
+
+
+---
+
+@copyright jreuben11

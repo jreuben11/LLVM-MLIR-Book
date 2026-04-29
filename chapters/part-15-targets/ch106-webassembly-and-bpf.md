@@ -1122,3 +1122,8 @@ The `wasm-tools` toolchain generates Wasm component adapters from WIT definition
 - **BPF loops** historically required unrolling (verifier limitation); modern kernels (5.17+) support `bpf_loop()` and bounded loop verification.
 - **Higher-level BPF toolchains** (bpftrace, bcc) compile BPF programs at runtime using LLVM's JIT or AOT pipeline, then load them via libbpf's CO-RE relocation resolver.
 - Cross-references: [Chapter 78 — The LLVM Linker (LLD)](../part-13-lto-whole-program/ch78-the-llvm-linker.md) for LLD Wasm linker internals; [Chapter 94 — The MC Layer](../part-14-backend/ch94-mc-layer-mir-test.md) for MC emission to Wasm binary format.
+
+
+---
+
+@copyright jreuben11

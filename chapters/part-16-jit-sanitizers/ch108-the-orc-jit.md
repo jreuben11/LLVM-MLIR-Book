@@ -785,3 +785,8 @@ llvm::setCurrentDebugType("orc");
 - `LLJIT` is the high-level convenience API with `LLJITBuilder`; `DynamicLibrarySearchGenerator` and `StaticLibraryDefinitionGenerator` provide process and archive symbols on demand.
 - GDB integration uses `DebugObjectManagerPlugin` + `__jit_debug_descriptor`/`__jit_debug_register_code`; perf integration uses `PerfSupportPlugin` with `/tmp/jit-<PID>.dump`; `llvm-jitlink` is the standalone debugging/testing tool.
 - Production users include LLDB (custom EPC via ptrace), Julia (ResourceTracker-based code GC), and Swift REPL; all have moved or are moving to ORC v2 from older JIT infrastructure.
+
+
+---
+
+@copyright jreuben11

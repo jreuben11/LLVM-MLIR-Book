@@ -233,3 +233,8 @@ bool MachinePipeliner::canPipelineLoop(MachineLoop &L) {
 - Rotating register files (Hexagon, Itanium) provide hardware register renaming across iterations; targets without rotating registers use explicit copies inserted by `ModuloScheduleExpander`.
 - VLIW targets require instruction bundling constraints to be respected during scheduling; Hexagon's `PacketizerDAGMutation` forms legal packets from the scheduler output.
 - Software pipelining is currently production-grade on Hexagon, enabled on PowerPC, and experimental on RISC-V; profitability requires sufficient trip count, bounded II, and manageable register pressure.
+
+
+---
+
+@copyright jreuben11

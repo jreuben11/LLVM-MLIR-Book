@@ -851,3 +851,8 @@ The `MicrosoftCXXABI` implements `GetAddrOfUUID()` to emit a global constant `{i
 - [Microsoft C++ ABI documentation (Itanium-to-MSVC comparison)](https://github.com/MicrosoftDocs/cpp-docs/blob/main/docs/cpp/exception-specifications-throw-cpp.md)
 - [MSVC Decorated Names specification](https://learn.microsoft.com/en-us/cpp/build/reference/decorated-names)
 - [clang/docs/MSVCCompatibility.rst](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/docs/MSVCCompatibility.rst) — official documentation of clang-cl divergences from MSVC
+
+
+---
+
+@copyright jreuben11

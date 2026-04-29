@@ -463,3 +463,8 @@ clang-cl --target=x86_64-windows-msvc -c foo.cpp -o foo.obj
 | Virtual base pointer | Thunks + VTT | Separate `vbptr` field |
 | TLS access model | `fs:` relative (Linux) / `gs:` | `_tls_index` + TEB `gs:` |
 | Stack alignment | 16-byte at call | 16-byte at call (after shadow space) |
+
+
+---
+
+@copyright jreuben11

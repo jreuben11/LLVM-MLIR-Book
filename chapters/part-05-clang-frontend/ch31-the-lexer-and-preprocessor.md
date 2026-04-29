@@ -988,3 +988,8 @@ The token serialization path (for PTH generation, now largely deprecated) used a
 - [`clang/lib/Lex/TokenLexer.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/lib/Lex/TokenLexer.cpp)
 - [`clang/lib/Lex/PPDirectives.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/lib/Lex/PPDirectives.cpp)
 - [`clang/lib/Lex/PPConditionalDirectiveRecord.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/lib/Lex/PPConditionalDirectiveRecord.cpp)
+
+
+---
+
+@copyright jreuben11

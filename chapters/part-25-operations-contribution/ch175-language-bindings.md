@@ -597,3 +597,8 @@ Julia is transitioning from the custom JIT stack it built around MCJIT to ORC v2
 - **MLIR Python bindings** provide `mlir.ir`, `mlir.dialects.*`, `mlir.passmanager`, and `mlir.execution_engine`; used by torch-mlir, IREE, and JAX's linalg-on-tensors pipeline.
 - **Julia** embeds LLVM as a C++ library (not via bindings); uses its own LLVM fork for stability; exposes `@code_llvm` and `@code_native` for transparent inspection of generated code.
 - Julia's GPU stack (CUDA.jl, AMDGPU.jl) uses LLVM to compile Julia functions directly to GPU targets at runtime; transitioning to ORC v2 for concurrent JIT compilation.
+
+
+---
+
+@copyright jreuben11

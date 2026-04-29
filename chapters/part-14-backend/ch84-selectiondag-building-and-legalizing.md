@@ -568,3 +568,8 @@ The fixpoint loop is necessary because legalization can introduce new illegal no
 - The full pipeline is: Build → Combine → LegalizeTypes → Combine → Legalize → Combine → Select. Legalization and combining interleave to allow simplification at each stage.
 
 - Debugging tools include `-view-legalize-types-dags`, `-view-legalize-dags`, `-debug-only=legalizedag`, and `-verify-machineinstrs` to catch invalid machine code after instruction selection.
+
+
+---
+
+@copyright jreuben11

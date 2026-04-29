@@ -536,3 +536,8 @@ flang-new -fopenmp \
 - OpenACC support uses the `acc.*` MLIR dialect; `flang/lib/Lower/OpenACC.cpp` drives the lowering of `!$acc parallel`, `!$acc kernels`, `!$acc data`, and `!$acc routine` constructs
 - `DO CONCURRENT` is a Fortran-native parallelism annotation; Flang's `-fdo-concurrent-parallel=host|device` maps it to OpenMP parallel loops or GPU target regions automatically
 - Reductions in both OpenMP and DO CONCURRENT are represented as `omp.declare_reduction` operations with init and combiner regions, enabling correct parallel reduction semantics
+
+
+---
+
+@copyright jreuben11

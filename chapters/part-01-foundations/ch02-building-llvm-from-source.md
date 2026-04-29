@@ -1058,3 +1058,8 @@ The `-j` flag to `llvm-lit` controls test parallelism independently of the build
 - [Building LLVM with Clang](https://llvm.org/docs/BuildingADistribution.html) — `llvm/docs/BuildingADistribution.rst`
 - [LLVM cross-compilation guide](https://llvm.org/docs/HowToCrossCompileLLVM.html) — `llvm/docs/HowToCrossCompileLLVM.rst`
 - [HandleLLVMOptions.cmake](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/llvm/cmake/modules/HandleLLVMOptions.cmake) — the authoritative source for how CMake variables translate to compiler flags
+
+
+---
+
+@copyright jreuben11

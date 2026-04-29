@@ -528,3 +528,8 @@ int main() {
 - Warp reductions use `gpu.shuffle xor` in a tree pattern; `vector.multi_reduction` provides a higher-level abstraction.
 - Register pressure monitoring via `ptxas -v`; reducing vector widths and using SMEM for intermediate data are primary mitigations.
 - The compiled cubin is loaded and launched via standard CUDA driver API (`cuModuleLoad`, `cuModuleGetFunction`, `cuLaunchKernel`).
+
+
+---
+
+@copyright jreuben11

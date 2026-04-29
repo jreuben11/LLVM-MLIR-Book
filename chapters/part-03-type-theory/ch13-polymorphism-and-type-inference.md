@@ -1071,3 +1071,8 @@ LLVM IR occupies the bottom of this stack: it always receives monomorphic code. 
 ---
 
 *Further reading:* Pierce, *Types and Programming Languages* [TAPL], Chapters 22–25 (HM, System F, existentials, bounded quantification); Harper, *Practical Foundations for Programming Languages* [PFPL], Chapters 16–18; Damas and Milner, "Principal Type-Schemes for Functional Programs," POPL 1982; Wadler, "Theorems for Free!" FPCA 1989; Dunfield and Krishnaswami, "Complete and Easy Bidirectional Typechecking for Higher-Rank Polymorphism," ICFP 2013; Wright, "Simple Imperative Polymorphism," LISP and Symbolic Computation 1995.
+
+
+---
+
+@copyright jreuben11

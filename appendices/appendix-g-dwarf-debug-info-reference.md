@@ -463,3 +463,8 @@ macOS uses its own compact unwind format in `__TEXT/__unwind_info` alongside (or
 | 4 | Stack-indirect | Frameless; stack size from memory location |
 
 Register encoding in compact unwind (x86-64): 3-bit per register: `0`=unused, `1–6`= `rbx/r12/r13/r14/r15/rbp`.
+
+
+---
+
+@copyright jreuben11

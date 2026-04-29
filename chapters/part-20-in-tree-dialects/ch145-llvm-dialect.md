@@ -555,3 +555,8 @@ This enables applying MLIR transformations to legacy LLVM IR, then translating b
 - `LLVMTypeConverter` converts `memref` to a descriptor struct containing allocated/aligned pointers, offset, and shape/stride arrays. `--reconcile-unrealized-casts` removes leftover cast ops after partial conversion.
 - The lowering pipeline: `--convert-arith-to-llvm`, `--convert-cf-to-llvm`, `--convert-func-to-llvm`, `--convert-memref-to-llvm`, `--convert-index-to-llvm`, then `--reconcile-unrealized-casts`, then `mlir-translate --mlir-to-llvmir`.
 - `mlir-translate --import-llvm` enables the reverse: importing `llvm::Module` → LLVM dialect MLIR, allowing MLIR transformations on legacy LLVM IR.
+
+
+---
+
+@copyright jreuben11

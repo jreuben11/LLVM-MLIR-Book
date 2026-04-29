@@ -644,3 +644,8 @@ clang --target=riscv64-linux-gnu \
 - The C intrinsic API from `riscv_vector.h` exposes unit-stride vle/vse, strided vlse/vsse, indexed vluxei/vsuxei, arithmetic (vadd/vmul/vfmacc), permute (vrgather/vslide/vcompress), mask (vmand/vmseq/vcpop), and reduction (vredsum/vfredosum) families.
 - Masking policy (ta/ma vs tu/mu) controls tail and masked-off element treatment; `_tumu`/`_tama`/`_tuma` suffixed intrinsics expose merge semantics with explicit passthru operands.
 - Segmented loads/stores (VLSEG/VSSEG) use RVV tuple types (`vfloat32m1x3_t`) to load/store interleaved N-field structures in a single operation, implementing the AoS↔SoA transformation in hardware with `__riscv_vlseg3e32_v_f32m1x3`.
+
+
+---
+
+@copyright jreuben11

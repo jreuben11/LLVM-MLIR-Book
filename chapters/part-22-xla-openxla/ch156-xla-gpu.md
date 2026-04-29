@@ -427,3 +427,8 @@ int shared_mem_size = (TILE_DIM + 1) * TILE_DIM * sizeof(float);
 - `AllReduceThunk` wraps NCCL calls; async AllReduce (`kAllReduceStart`/`kAllReduceDone`) enables compute-communication overlap.
 - `GpuExecutable` stores the cubin/hsaco binary and a thunk sequence; the kernel cache avoids repeated driver API calls.
 - ROCm mirrors the CUDA path using ROCDL intrinsics, rocBLAS, MIOpen, and RCCL.
+
+
+---
+
+@copyright jreuben11

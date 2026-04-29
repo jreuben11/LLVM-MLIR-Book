@@ -409,3 +409,8 @@ The LLVM MC (Machine Code) layer handles encoding and emission of all object for
 | `MCObjectWriter` | Final ELF/COFF/MachO/Wasm writer |
 
 Source: [llvm/lib/MC/](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/llvm/lib/MC/) and [Chapter 94 — The MC Layer](../chapters/part-14-backend/ch94-mc-layer-and-mir-test-infrastructure.md).
+
+
+---
+
+@copyright jreuben11

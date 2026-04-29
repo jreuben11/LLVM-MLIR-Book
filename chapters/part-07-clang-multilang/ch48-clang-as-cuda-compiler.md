@@ -686,3 +686,8 @@ Device code cannot use C++ exceptions. Clang enforces `-fno-exceptions` implicit
 - [`llvm/lib/Target/NVPTX/`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/llvm/lib/Target/NVPTX/) — NVPTX backend source tree
 - [`clang/lib/Driver/ToolChains/Cuda.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/lib/Driver/ToolChains/Cuda.cpp) — CUDA toolchain driver logic
 - [`llvm/lib/Transforms/Scalar/InferAddressSpaces.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/llvm/lib/Transforms/Scalar/InferAddressSpaces.cpp) — Address space inference pass
+
+
+---
+
+@copyright jreuben11

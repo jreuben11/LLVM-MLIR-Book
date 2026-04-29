@@ -717,3 +717,8 @@ for i in $(seq 100); do llvm-jitlink -noexec foo.o; done | time cat
 - Platform-specific backends handle ELF x86_64 (full relocation table), ELF AArch64 (ADRP/ADD pairs, Branch26 thunks), RISC-V (call relaxation, paired HI20/LO12), COFF x86_64 (SEH), and MachO arm64 (compact unwind, ObjC metadata).
 - The `JITLinkPlugin` architecture provides `modifyPassConfig` / `notifyEmitted` / `notifyFailed` hooks; standard plugins handle EH frame registration, GDB JIT debug info, and perf event emission.
 - `ObjectLinkingLayer` replaces `RTDyldObjectLinkingLayer`; `llvm-jitlink` is the standalone tool for testing, verification, and benchmarking JITLink configurations.
+
+
+---
+
+@copyright jreuben11

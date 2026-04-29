@@ -261,3 +261,8 @@ opt -passes='cgscc(attributor-cgscc)' -S input.ll  # CGSCC variant
 - `PartialInlinerPass` inlines only the hot prefix of a function, reducing call overhead for common fast paths without full code-size cost.
 - `OpenMPOptPass` eliminates provably unnecessary OpenMP parallel regions, barriers, and runtime calls using call graph analysis.
 - The `AttributorPass` provides a general inter-procedural fixpoint analysis framework with pluggable abstract attributes (value ranges, pointer targets, return status) that feed into the inliner and other passes.
+
+
+---
+
+@copyright jreuben11

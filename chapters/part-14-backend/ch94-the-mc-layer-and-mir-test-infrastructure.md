@@ -426,3 +426,8 @@ The `llvm-mc` tool is the standalone MC layer driver; it can assemble `.s` files
 - `MCDisassembler` inverts `MCCodeEmitter`: it decodes bytes to `MCInst` and is used by `llvm-objdump`, debuggers, and the JIT.
 - The `.mir` text format enables pass-level regression testing: `llc --stop-after=<pass>` captures MIR, `--run-pass=<pass>` tests a single pass, and `--start-after=<pass>` resumes from a captured state.
 - `lit` + `FileCheck` is the standard LLVM test harness for backend tests; `update_mir_test_checks.py` automates `CHECK:` line generation; MC tests use `llvm-mc` directly.
+
+
+---
+
+@copyright jreuben11

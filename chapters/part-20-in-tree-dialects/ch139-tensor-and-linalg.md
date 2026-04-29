@@ -525,3 +525,8 @@ These invariants are what distinguish `linalg.generic` from a generic `scf.for` 
 - Vectorization converts linalg ops to `vector.contract` and `vector.transfer_read`/`vector.transfer_write`, enabling hardware SIMD utilization.
 - The standard lowering path goes linalg → scf → cf → llvm for CPU targets, and linalg → tiled linalg → vectorized vectors → gpu.launch_func for GPU targets.
 - The structural invariants of `linalg.generic` — no aliasing, affine index maps, typed iterator types — are what make it transformable in ways that general loops are not.
+
+
+---
+
+@copyright jreuben11

@@ -1181,3 +1181,8 @@ The benefit: a load `ld.flat` (flat/generic, requires segment detection at runti
 - Warp-level primitives — `shfl.sync`, `vote.sync.ballot`, `bar.sync` — are exposed as NVVM intrinsics and lower to native PTX warp instructions.
 - The open LLVM NVPTX backend and NVIDIA's closed libNVVM both consume NVVM IR; the open backend offers full debuggability and LLVM pass integration at the cost of lagging new SM feature coverage.
 - `llc --stop-after=<pass>` and `opt -passes='nvptx-*'` enable stage-by-stage inspection; `nvdisasm` and `cuobjdump` inspect the resulting cubin.
+
+
+---
+
+@copyright jreuben11

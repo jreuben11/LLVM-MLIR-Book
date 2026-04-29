@@ -1149,3 +1149,8 @@ A practical concern: how do we verify that an analysis implementation is sound? 
 - [Ferrante et al. 1987] J. Ferrante, K. Ottenstein, J. Warren, "The program dependence graph and its use in optimization," *TOPLAS* 9(3), 1987.
 - [Knoop et al. 1992] J. Knoop, O. Rüthing, B. Steffen, "Lazy code motion," *PLDI 1992*, pp. 224–234.
 - [Miné 2006] A. Miné, "The octagon abstract domain," *HOSC* 19(1), 2006.
+
+
+---
+
+@copyright jreuben11

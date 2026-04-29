@@ -539,3 +539,8 @@ end subroutine
 - The lowering pipeline runs: `SimplifyHLFIRIntrinsics` → `LowerHLFIROrderedAssignments` → `LowerHLFIRIntrinsics` → `BufferizeHLFIR` → `ConvertHLFIRtoFIR` → FIR passes → `ConvertFIRToLLVM` → LLVM dialect → LLVM IR
 - FIR calls the `flang-rt` runtime library for I/O (`_FortranAio*`), intrinsics (`_FortranAMatmul`), and allocatable management (`_FortranAAllocatableAllocate`)
 - `bbc` and `flang-new -fc1 -emit-hlfir/-emit-fir` are the tools for inspecting intermediate representations
+
+
+---
+
+@copyright jreuben11

@@ -527,3 +527,8 @@ The `llvm::impliesPoison(V)` function (in `llvm/include/llvm/Analysis/ValueTrack
 - Regehr, J. (2013). "Undefined Behavior: What Happened to My Code?" *LLVM Developers' Meeting 2013*.
 - `llvm/include/llvm/Analysis/ValueTracking.h`: `impliesPoison`, `isGuaranteedNotToBePoison`
 - `llvm/lib/IR/Constants.cpp`: `PoisonValue::get()`, `UndefValue::get()`
+
+
+---
+
+@copyright jreuben11

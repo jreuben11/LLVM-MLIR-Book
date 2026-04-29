@@ -324,3 +324,8 @@ Alphabetical glossary of technical terms used throughout this book. Entries are 
 | SBOM | Software Bill of Materials |
 | TAPL | Types and Programming Languages (Pierce) |
 | PFPL | Practical Foundations of Programming Languages (Harper) |
+
+
+---
+
+@copyright jreuben11

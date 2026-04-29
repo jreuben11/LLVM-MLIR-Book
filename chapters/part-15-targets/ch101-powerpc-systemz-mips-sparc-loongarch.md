@@ -590,3 +590,8 @@ grep -E "^	xv" test_la.s
 - LoongArch LA64 is a modern clean-slate RISC ISA with LP64D ABI (integer args in a0–a7, FP args in fa0–fa7), 128-bit LSX and 256-bit LASX SIMD, and LBT shadow registers for x86/ARM flag emulation in binary translators; the LLVM backend has been production-ready since LLVM 14.
 - Cross-compilation for all five targets uses `--target=<triple> --sysroot=<path>` with LLVM's integrated assembler; the `llc -march=<arch> -mattr=+<features>` pipeline verifies codegen output for each target.
 - Among these targets, only PowerPC has partial GlobalISel support; the others rely on the mature SelectionDAG path; LoongArch GlobalISel coverage is expanding rapidly with each LLVM release.
+
+
+---
+
+@copyright jreuben11

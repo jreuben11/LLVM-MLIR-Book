@@ -272,3 +272,8 @@ opt -passes='tailcallelim' -S input.ll
 - `CorrelatedValuePropagationPass` uses `LazyValueInfo` to propagate value ranges through conditional branches, simplifying redundant comparisons.
 - `JumpThreadingPass` duplicates blocks to thread known-condition paths, specializing code for specific path predicates.
 - `TailCallEliminationPass` marks tail calls with `tail`/`musttail`, enabling the backend to convert tail recursion to iteration.
+
+
+---
+
+@copyright jreuben11

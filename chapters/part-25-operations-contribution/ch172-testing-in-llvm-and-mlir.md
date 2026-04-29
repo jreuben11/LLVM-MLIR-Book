@@ -537,3 +537,8 @@ cvise ./interesting.sh large_crashing.c
 - **`llvm-stress`** generates random LLVM IR for crash testing; **`llvm-reduce`**/**`mlir-reduce`** minimize crashing inputs using delta debugging.
 - OSS-Fuzz continuously runs `clang-fuzzer`, `llvm-opt-fuzzer`, and `mlir-opt-fuzzer`; historical runs have found tens of thousands of bugs.
 - **`cvise`/`creduce`** reduce large C/C++ reproducers to minimal test cases for bug reporting.
+
+
+---
+
+@copyright jreuben11

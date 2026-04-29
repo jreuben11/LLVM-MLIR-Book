@@ -454,3 +454,8 @@ The C API has stricter deprecation: breaking changes to the C API require broade
 - Commit access is granted after ~5–10 merged contributions; grants merge rights and responsibility for reverting breaking changes promptly.
 - RFCs are required for new passes, new dialects, semantic changes, and ABI changes; new MLIR dialects face the highest bar (must demonstrate need, complete design, and long-term maintenance commitment).
 - LLVM releases every 6 months (April and October); branches are cut 6 weeks before; only critical bug fixes are cherry-picked to release branches; Release Manager role rotates among community members.
+
+
+---
+
+@copyright jreuben11

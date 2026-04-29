@@ -1008,3 +1008,8 @@ yacc and bison remain in use for hundreds of language tools. The GNU make gramma
 - Leijen, D. and Meijer, E. "Parsec: Direct Style Monadic Parser Combinators for the Real World." *Haskell Workshop 2001*.
 - Warth, A., Douglass, J.R., Millstein, T. "Packrat Parsers Can Support Left Recursion." *PEPM 2008*.
 - Brunsfeld, M. et al. "Tree-sitter." https://tree-sitter.github.io, 2018.
+
+
+---
+
+@copyright jreuben11

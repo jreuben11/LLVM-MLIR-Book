@@ -369,3 +369,8 @@ The project tracks missing coverage explicitly through `MissingFeatures` entries
 - Two lowering paths: direct CIR→LLVM-dialect conversion, and a through-MLIR path enabling the broader MLIR ecosystem.
 - `MissingFeatures.h` provides a compile-time tracking mechanism for unimplemented features.
 - As of LLVM 22.1, CIR covers C and basic C++ but has gaps in atomics, TLS, inline assembly, and OpenMP.
+
+
+---
+
+@copyright jreuben11

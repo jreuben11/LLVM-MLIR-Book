@@ -325,3 +325,8 @@ This mechanism enables function multiversioning (multiple implementations of the
 - **Register classes** (from `-gen-register-info`) group physical registers by type; their allocation order guides the register allocator. **Register banks** (GlobalISel) are coarser groupings across classes.
 - **`SchedMachineModel`** describes microarchitecture (issue width, reorder buffer, functional units) and maps instructions to resource usage and latencies; it drives both pre-RA and post-RA scheduling.
 - **`SubtargetFeature`** represents CPU capabilities with dependency chains; per-function `__attribute__((target(...)))` creates isolated subtargets with different feature sets, enabling function multiversioning.
+
+
+---
+
+@copyright jreuben11

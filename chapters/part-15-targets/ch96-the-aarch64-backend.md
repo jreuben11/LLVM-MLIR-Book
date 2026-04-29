@@ -620,3 +620,8 @@ clang --target=aarch64-linux-gnu \
 - LSE atomics (`CAS`, `LDADD`, `SWP`, etc.) replace LL/SC loops when `+lse` is active, providing single-instruction atomic read-modify-write without retry overhead.
 - MTE embeds 4-bit memory tags in address top-bytes and 16-byte memory granules, hardware-detecting use-after-free and buffer-overflow via tag mismatch faults.
 - GlobalISel on AArch64 is the production path; it assigns vregs to GPR or FPR banks during RegBankSelect, avoiding unnecessary cross-bank FMOV copies, and provides full legalizer coverage for all ARMv8–ARMv9 types.
+
+
+---
+
+@copyright jreuben11

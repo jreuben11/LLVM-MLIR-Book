@@ -724,3 +724,8 @@ class TracedProcess(lldb.ScriptedProcess):
 - **Remote debugging** uses the GDB Remote Serial Protocol with LLDB extensions. `lldb-server` handles both GDB-server mode and platform mode; `ProcessGDBRemote` implements the client side.
 
 - **Python scripting** exposes the complete SB API via the `lldb` module, enabling breakpoint callbacks, custom data formatters, automated debugging scripts, and fully scripted process backends.
+
+
+---
+
+@copyright jreuben11

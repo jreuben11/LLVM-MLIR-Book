@@ -760,3 +760,8 @@ clang -fsanitize=undefined -fsanitize-trap=all \
 - LSan performs a stop-the-world conservative GC scan at process exit; it is integrated into ASan by default and available standalone at ~1.1× overhead; `__lsan_ignore_object` and suppression files handle intentional long-lived allocations.
 - ASan/MSan/TSan shadows are mutually exclusive; UBSan and LSan combine freely with any of the three; recommended development workflow is ASan+UBSan for most work, with separate TSan and MSan builds.
 - Ignorelists (`-fsanitize-ignorelist`), per-function `no_sanitize` attributes, and runtime suppression files allow suppressing third-party library noise and known-benign patterns without disabling the sanitizer globally.
+
+
+---
+
+@copyright jreuben11

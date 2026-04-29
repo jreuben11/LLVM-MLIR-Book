@@ -703,3 +703,8 @@ echo "Coverage: ${COVERAGE_PCT}% (threshold: 80%)"
 - **Build system integration**: CMake custom targets, Bazel `.bazelrc` overrides, GitHub Actions with LCOV upload, and parallel test shard merging.
 
 - **Fuzzing feedback**: run the fuzzer corpus with `-runs=0` to generate a source-based coverage report showing exactly which code the fuzzer has explored, enabling targeted corpus augmentation.
+
+
+---
+
+@copyright jreuben11

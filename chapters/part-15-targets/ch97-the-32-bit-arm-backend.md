@@ -606,3 +606,8 @@ ARM backend scheduling models reside in `ARMSchedule*.td`:
 - Thumb-2 IT blocks permit up to 4 conditionally-executed instructions without branching; `ARMITBlockInsertion` constructs them post-regalloc, but ARMv8 AArch32 deprecates multi-instruction IT blocks.
 - ARM inline assembly uses `r` (any GPR), `l` (low GPR r0–r7), `w` (NEON D/Q), `t` (VFP S register), and `I`/`J` (rotated ARM or Thumb-2 modified immediate) constraints.
 - The SelectionDAG path is production-ready for all ARM/Thumb/NEON/VFP variants; GlobalISel is partially implemented but not recommended for production as of LLVM 22.1.x.
+
+
+---
+
+@copyright jreuben11

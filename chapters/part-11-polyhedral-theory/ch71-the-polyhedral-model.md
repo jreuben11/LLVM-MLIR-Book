@@ -398,3 +398,8 @@ The Pluto algorithm (Chapter 72) finds schedules that maximize the number of per
 - **Schedules** θ_S: ℤⁿ → ℤᵈ assign logical execution times to statement instances; a schedule is legal if all dependences remain lexicographically positive after the schedule change.
 - The **affine schedule space** — the feasibility region of the Farkas-lemma-derived linear system on schedule coefficients — contains all legal schedules; optimizing over it (for parallelism, locality, tileability) is the polyhedral scheduling problem addressed in Chapter 72.
 - Loop transformations (interchange, tiling, skewing, fusion, distribution) are all representable as schedule changes; their legality reduces to checking whether the new schedule remains in the affine schedule space.
+
+
+---
+
+@copyright jreuben11

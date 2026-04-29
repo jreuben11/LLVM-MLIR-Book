@@ -375,3 +375,8 @@ ThinLTO with caching typically adds 10–30% to clean build times compared to no
 - **Distributed ThinLTO** separates the summary phase (compile time) from the optimization phase (link time), enabling the per-module optimization jobs to run on a build cluster; a module cache enables incremental builds.
 - **The `llvm::lto::LTO` API** provides the programmatic interface for both LTO modes; `llvm-lto` is the command-line tool for testing and debugging.
 - LTO typically provides 3–15% performance improvement and 10–20% binary size reduction; ThinLTO with caching adds 10–30% to clean build times with near-zero overhead for incremental builds.
+
+
+---
+
+@copyright jreuben11

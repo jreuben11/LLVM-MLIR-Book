@@ -630,3 +630,8 @@ clang -O3 -march=native -fprofile-use=profile.afdo \
 - Function multiversioning with `__attribute__((target(...)))` produces per-ISA clones dispatched through IFUNC resolvers using `__cpu_supports()` from `compiler-rt`.
 - EFLAGS liveness is tracked as a virtual register throughout codegen, resolved by `X86FlagsCopyLowering` which rewrites EFLAGS copies as condition recomputation.
 - The X86 DAG combiner performs load-op-store folding, LEA synthesis from add+shift patterns, and a hierarchical shuffle decomposition that maps general shuffle masks to specific x86 shuffle instructions.
+
+
+---
+
+@copyright jreuben11

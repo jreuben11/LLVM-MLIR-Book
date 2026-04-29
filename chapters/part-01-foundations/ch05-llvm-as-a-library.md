@@ -915,3 +915,8 @@ opt: error: '-load' is only supported with the legacy pass manager
 - **Out-of-tree backends** are possible but require integration with the TableGen build step and are nearly always done by placing the backend directory inside `llvm/lib/Target/` and enabling it via `LLVM_EXPERIMENTAL_TARGETS_TO_BUILD`. A fully independent out-of-tree backend without build-tree modifications is not currently feasible.
 
 - **Common errors** group into three families: missing components (add them to `llvm_map_components_to_libnames`), RTTI/exception flag mismatch (query `LLVM_ENABLE_RTTI` and match it), and plugin double-initialization (never link a plugin against LLVM libraries). The `--load` vs `--load-pass-plugin` distinction catches everyone who learned LLVM pass loading before LLVM 13.
+
+
+---
+
+@copyright jreuben11

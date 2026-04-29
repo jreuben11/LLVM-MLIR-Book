@@ -423,3 +423,8 @@ Total across volumes: 3465 pages of *target* material — but with the cross-ref
 ---
 
 *Outline pinned to LLVM 22.1.x and corresponding MLIR / OpenXLA snapshot as of April 2026. Theoretical chapters anchored to the canonical literature cited at the head. ClangIR, CUDA Tile IR, Triton, Mojo, ML Inliner/Regalloc, and the Verified Compilation chapters track moving research and engineering frontiers. Part XXVI (Ecosystem and Frontiers, 6 chapters) added April 2026: rustc internals (MIR/Miri/Polonius/a-mir-formality/Cranelift), Rust compiler ecosystem (inkwell/llvm-sys/melior/gimli/Burn/CubeCL), LLVM/MLIR for AI, AI-guided compilation, formal verification in practice (Dafny/Verus/F*/HACL*/Kani/Flux/LLM provers), and language tooling (Logos/Pest/LALRPOP/Rowan/Chumsky/Winnow/ANTLR4/TreeSitter).*
+
+
+---
+
+@copyright jreuben11

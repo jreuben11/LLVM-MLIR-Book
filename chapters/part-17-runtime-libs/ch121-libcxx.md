@@ -521,3 +521,8 @@ Tests are organized by the standard's chapter structure: `test/std/algorithms/`,
 - Availability annotations gate C++ runtime features on Apple OS version requirements; `_LIBCPP_DISABLE_AVAILABILITY` suppresses these for embedded/cross-platform builds.
 - Bare-metal deployment is supported by disabling threads, filesystem, and shared-library builds via CMake flags, producing a static `libc++.a` suitable for RTOS or firmware use.
 - The lit-based test suite (`ninja check-cxx`) is organized by standard chapter and supports per-test hardening level parameterization.
+
+
+---
+
+@copyright jreuben11

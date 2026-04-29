@@ -300,3 +300,8 @@ Constructors marked with hidden visibility are placed in the same `.init_array` 
 - **TLSDESC** is an alternative TLS descriptor mechanism that avoids the `__tls_get_addr` overhead by using an indirect call through a resolver that is often a no-op for initial-exec modules.
 - **`.eh_frame`** records DWARF CFI for stack unwinding; LLD merges and deduplicates FDE records and generates `.eh_frame_hdr` (a binary-searchable sorted table) for O(log N) unwind frame lookup.
 - **`.init_array`/`.fini_array`** replace the legacy `.ctors`/`.dtors` mechanism for C++ global constructor/destructor registration; LLD sorts entries by `init_priority` attribute value, controlling cross-TU initialization order.
+
+
+---
+
+@copyright jreuben11

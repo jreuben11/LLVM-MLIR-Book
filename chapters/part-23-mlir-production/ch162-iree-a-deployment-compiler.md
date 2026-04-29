@@ -486,3 +486,8 @@ IREE's primary advantages are portability and the MLIR foundation. TensorRT outp
 - `.vmfb` FlatBuffer is IREE's portable binary format; it embeds compiled kernels, VM bytecode, and constant weights.
 - `iree.compiler.compile_str()` and `iree.runtime.SystemContext` are the primary Python APIs.
 - IREE is competitive with TensorRT for int8 inference and outperforms it for portable/embedded/web targets; its MLIR foundation enables rapid addition of new hardware backends.
+
+
+---
+
+@copyright jreuben11

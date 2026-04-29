@@ -273,3 +273,8 @@ When PGO data is available, the outliner can weight its profitability calculatio
 - AArch64 is the primary target: the three frame types handle LR-saving strategy, BTI landing pads must be inserted when branch-target enforcement is active, and `ADRP` instructions are illegal to outline due to PC-relative addressing constraints.
 - The outliner is enabled at `-Oz` and `-Os`; at `-O2`/`-O3`, the performance cost of the call overhead outweighs the icache benefit unless explicitly overridden.
 - Under ThinLTO, the outliner gains cross-TU visibility, substantially increasing the number of candidates in real-world codebases.
+
+
+---
+
+@copyright jreuben11

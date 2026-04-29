@@ -720,3 +720,8 @@ For native constraint failures, adding a temporary `llvm::errs()` call in the co
 - **Mixing both systems** in one `RewritePatternSet` is idiomatic and recommended: PDLL handles the majority of canonicalization cases; C++ handles the complex structural transformations.
 
 - Key source locations: [`mlir/Dialect/PDL/IR/`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/mlir/include/mlir/Dialect/PDL/IR/), [`mlir/Tools/PDLL/`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/mlir/include/mlir/Tools/PDLL/), [`mlir/IR/PatternBase.td`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/mlir/include/mlir/IR/PatternBase.td), [`mlir/IR/PDLPatternMatch.h.inc`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/mlir/include/mlir/IR/PDLPatternMatch.h.inc).
+
+
+---
+
+@copyright jreuben11

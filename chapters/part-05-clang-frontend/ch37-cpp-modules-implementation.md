@@ -792,3 +792,8 @@ For exported inline functions, Clang emits the function body into both the BMI (
 - [`clang/include/clang/Tooling/DependencyScanningTool.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/include/clang/Tooling/DependencyScanningTool.h) — `DependencyScanningTool`, `P1689Rule`
 - [`clang/include/clang/AST/Decl.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/include/clang/AST/Decl.h#L5131) — `ExportDecl`
 - [P1689R5 — Format for describing dependencies of source files](https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2022/p1689r5.html)
+
+
+---
+
+@copyright jreuben11

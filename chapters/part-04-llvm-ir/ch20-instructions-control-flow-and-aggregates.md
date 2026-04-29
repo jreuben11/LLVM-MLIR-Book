@@ -768,3 +768,8 @@ The `SimplifyCFG` pass routinely folds edges to `unreachable` blocks, propagatin
 - The **funclet EH model** (Windows) uses `catchswitch`, `catchpad`, `cleanuppad`, `catchret`, and `cleanupret`. The `within`-chain builds the funclet-parent tree required by the OS exception dispatcher.
 
 - **`unreachable`** marks dead code. The optimizer uses it to prune CFG edges and tighten value ranges on live paths. It is generated after `noreturn` calls, exhaustive switch default arms, and `__builtin_unreachable()`.
+
+
+---
+
+@copyright jreuben11

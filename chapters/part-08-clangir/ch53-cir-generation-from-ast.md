@@ -413,3 +413,8 @@ For complex numbers, CIR uses `cir.complex<cir.float>` types and `cir.complex.cr
 - Local variables are `cir.alloca` ops tied to `cir.scope` regions; destructors are emitted at scope exits.
 - C++ virtual calls, exceptions, and ABI detail are handled by `CXXABILoweringPass` post-generation, with generation-time ops as placeholders.
 - AST back-references (pointers to `VarDecl*`, `FunctionDecl*`, `RecordDecl*`) survive in CIR during in-process compilation, enabling analysis passes to query Clang AST semantics.
+
+
+---
+
+@copyright jreuben11

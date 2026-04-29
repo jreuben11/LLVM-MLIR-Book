@@ -684,3 +684,8 @@ The pseudo-probe infrastructure is implemented in [`llvm/lib/Transforms/IPO/Samp
 *Cross-references:* [Chapter 19 — Instructions I — Arithmetic and Memory](../part-04-llvm-ir/ch19-instructions-arithmetic-and-memory.md) · [Chapter 21 — SSA, Dominance, and Loops](../part-04-llvm-ir/ch21-ssa-dominance-and-loops.md) · [Chapter 67 — Profile-Guided Optimization](../part-10-analysis-middle-end/ch67-pgo.md) · [Chapter 116 — LLDB: Source-Level Debugging](../part-16-jit-sanitizers/ch116-lldb.md) · [Chapter 117 — DWARF in Depth](../part-16-jit-sanitizers/ch117-dwarf.md) · [Chapter 171 — The Undef/Poison Story Formally](../part-24-verified-compilation/ch171-the-undef-poison-story-formally.md)
 
 *Reference links:* [LangRef — Metadata](https://llvm.org/docs/LangRef.html#metadata) · [LangRef — Debug Info](https://llvm.org/docs/LangRef.html#debug-info-metadata) · [LLVM TBAA Documentation](https://llvm.org/docs/AliasAnalysis.html#tbaa-metadata) · [RemoveDIs migration doc](https://llvm.org/docs/RemoveDIsDebugInfo.html) · [Pseudo-probes for sampling PGO](https://llvm.org/docs/PseudoProbeForSampling.html) · [llvm/include/llvm/IR/Metadata.h](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/llvm/include/llvm/IR/Metadata.h) · [clang/lib/CodeGen/CodeGenTBAA.cpp](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/lib/CodeGen/CodeGenTBAA.cpp) · [clang/lib/CodeGen/CGLoopInfo.cpp](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/lib/CodeGen/CGLoopInfo.cpp) · [llvm/lib/Transforms/IPO/SampleProfileProbe.cpp](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/llvm/lib/Transforms/IPO/SampleProfileProbe.cpp)
+
+
+---
+
+@copyright jreuben11

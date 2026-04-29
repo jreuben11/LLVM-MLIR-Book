@@ -430,3 +430,8 @@ nvvm.barrier0  // __syncthreads()
 - The `nvgpu` dialect extends `gpu` with NVIDIA-specific ops: `nvgpu.mma.sync` for Tensor Core warp-level matmul, `nvgpu.ldmatrix` for fragment loads, `nvgpu.device_async_copy` for Ampere `cp.async`, and Hopper WGMMA/TMA operations.
 - GPU lowering pipeline: `--gpu-kernel-outlining` separates host/device, `--gpu-to-nvvm` lowers to NVVM dialect for NVIDIA targets, `--gpu-to-rocdl` for AMD targets. `--gpu-to-llvm` on the host side replaces `gpu.launch_func` with CUDA/HIP runtime API calls.
 - The complete NVIDIA pipeline produces PTX via the LLVM NVPTX backend, then embeds compiled cubins in the host module for runtime loading.
+
+
+---
+
+@copyright jreuben11

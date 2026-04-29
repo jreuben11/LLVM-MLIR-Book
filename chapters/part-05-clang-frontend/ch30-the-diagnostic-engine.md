@@ -959,3 +959,8 @@ Sema checks `DiagnosticIDs::getDiagnosticSFINAEResponse(DiagID)` before emitting
 - [`clang/lib/Frontend/TextDiagnosticPrinter.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/lib/Frontend/TextDiagnosticPrinter.cpp)
 - [`clang/include/clang/Basic/DiagnosticGroups.td`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/include/clang/Basic/DiagnosticGroups.td)
 - [`clang/include/clang/Basic/DiagnosticSemaKinds.td`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/include/clang/Basic/DiagnosticSemaKinds.td)
+
+
+---
+
+@copyright jreuben11

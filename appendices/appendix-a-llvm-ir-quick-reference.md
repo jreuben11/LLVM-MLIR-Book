@@ -428,3 +428,8 @@ Ordered predicates return false if either operand is NaN. Unordered predicates r
 | `llvm.masked.store` | `(<N x T> val, ptr, i32 align, <N x i1> mask)` | Predicated store |
 | `llvm.masked.gather` | `(<N x ptr>, i32 align, <N x i1> mask, <N x T> passthru)` | Gather |
 | `llvm.masked.scatter` | `(<N x T>, <N x ptr>, i32 align, <N x i1> mask)` | Scatter |
+
+
+---
+
+@copyright jreuben11

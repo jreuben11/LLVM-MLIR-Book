@@ -492,3 +492,8 @@ Pass implementers should call `MF->verify(this, "after my pass")` at the end of 
 - `MachineMemOperand` carries alias analysis metadata; `PseudoSourceValue` abstracts non-IR memory objects (stack slots, constant pool, GOT) for AA.
 - The `.mir` textual format enables pass-level regression testing: use `llc --stop-after=<pass>` to capture state and `--run-pass=<pass>` to test a single pass in isolation.
 - `MachineVerifier` enforces structural invariants across the MIR lifecycle; enable it with `-verify-machineinstrs` and call `MF->verify()` in custom passes.
+
+
+---
+
+@copyright jreuben11

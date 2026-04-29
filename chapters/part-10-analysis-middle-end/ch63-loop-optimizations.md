@@ -306,3 +306,8 @@ opt -passes='function(loop-versioning-licm)' -S input.ll
 - `LoopDistributePass` splits independent operations into separate loops to enable partial vectorization.
 - `LoopInterchangePass` swaps nested loop order to improve spatial locality; `LoopFlattenPass` collapses perfectly nested loops into a single loop.
 - `LoopVersioningLICMPass` creates aliasing-optimized and conservative loop versions selected by a runtime check.
+
+
+---
+
+@copyright jreuben11

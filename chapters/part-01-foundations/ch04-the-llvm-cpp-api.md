@@ -1084,3 +1084,8 @@ These primitives form the vocabulary of every LLVM subsystem. Chapter 60 puts th
 - [`llvm/include/llvm/Support/CommandLine.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/llvm/include/llvm/Support/CommandLine.h) — `cl::opt` and friends
 - [`llvm/include/llvm/IR/InstVisitor.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/llvm/include/llvm/IR/InstVisitor.h) — `InstVisitor<>` template
 - LLVM Programmer's Manual: [https://llvm.org/docs/ProgrammersManual.html](https://llvm.org/docs/ProgrammersManual.html)
+
+
+---
+
+@copyright jreuben11

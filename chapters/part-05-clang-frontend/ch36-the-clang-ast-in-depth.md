@@ -1033,3 +1033,8 @@ llvm::outs() << std::string(RBuf->begin(), RBuf->end());
 - [`clang/include/clang/AST/ASTDumper.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/include/clang/AST/ASTDumper.h)
 - [`clang/include/clang/Tooling/Tooling.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/include/clang/Tooling/Tooling.h)
 - [`clang/include/clang/Sema/Sema.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/include/clang/Sema/Sema.h) — `DeclareImplicit*` methods
+
+
+---
+
+@copyright jreuben11

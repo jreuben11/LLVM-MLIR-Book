@@ -456,3 +456,8 @@ Pass analysis objects must be computed before calling `applyPatternsGreedily` an
 - The **matcher DSL** (`m_Constant`, `m_Zero`, `m_Op<T>`, etc.) enables concise, composable pattern conditions.
 - **Region inlining** uses `DialectInlinerInterface` plus `CallOpInterface`/`CallableOpInterface`; the `--inline` pass drives it.
 - **Debugging**: `--debug-only=greedy-rewriter`, `--mlir-print-ir-after-each-pattern`, and `RewriterListener` are the primary tools.
+
+
+---
+
+@copyright jreuben11

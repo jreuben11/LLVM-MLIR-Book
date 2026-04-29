@@ -671,3 +671,8 @@ attributes #0 = { "target-features"="-xcustom" }
 - Zicfilp (landing pads via `LPAD`) and Zicfiss (shadow stack via `SSPUSH`/`SSPOPCHK`) provide RISC-V's CFI mechanisms for forward-edge and backward-edge protection respectively.
 - Zcmp/Zcmpe add compressed multi-register push/pop (`CM.PUSH`, `CM.POP`, `CM.POPRET`) that pack prologue/epilogue into 16-bit encodings, critical for code density on embedded RISC-V cores.
 - Adding a custom extension to LLVM requires six steps: `SubtargetFeature` in `RISCVFeatures.td`, instruction encoding in a new `RISCVInstrInfoX*.td` with ISel patterns, optional LLVM intrinsic in `IntrinsicsRISCV.td`, a clang driver `-march` parser entry, a C header, and a FileCheck test confirming correct instruction emission.
+
+
+---
+
+@copyright jreuben11

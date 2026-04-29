@@ -667,3 +667,8 @@ In all of these cases, the programmer is explicitly opting out of provenance tra
 *Cross-references:* [Chapter 9 — Intermediate Representations and SSA Construction](../part-02-compiler-theory/ch09-ssa-construction.md) · [Chapter 17 — The Type System](../part-04-llvm-ir/ch17-the-type-system.md) · [Chapter 20 — Instructions II — Control Flow and Aggregates](../part-04-llvm-ir/ch20-instructions-control-flow-and-aggregates.md) · [Chapter 21 — SSA, Dominance, and Loops](../part-04-llvm-ir/ch21-ssa-dominance-and-loops.md) · [Chapter 27 — Coroutines and Atomics](../part-04-llvm-ir/ch27-coroutines-and-atomics.md) · [Chapter 171 — The Undef/Poison Story Formally](../part-24-verified-compilation/ch171-the-undef-poison-story-formally.md)
 
 *Reference links:* [LangRef — Binary Operations](https://llvm.org/docs/LangRef.html#binary-operations) · [LangRef — Memory Access and Addressing Operations](https://llvm.org/docs/LangRef.html#memory-access-and-addressing-operations) · [LangRef — freeze instruction](https://llvm.org/docs/LangRef.html#freeze-instruction) · [LangRef — getelementptr instruction](https://llvm.org/docs/LangRef.html#getelementptr-instruction) · [Memarian et al., "Exploring C Semantics and Pointer Provenance" (POPL 2019)](https://www.cl.cam.ac.uk/~pes20/cerberus/cerberus-popl2019.pdf) · [LLVM Poison Semantics RFC](https://llvm.org/docs/PoisonSemantics.html)
+
+
+---
+
+@copyright jreuben11

@@ -806,3 +806,8 @@ These calls are emitted as ordinary `call` instructions to externally-declared f
 - [System V AMD64 ABI specification](https://refspecs.linuxbase.org/elf/x86_64-abi-0.99.pdf) — §3.2.3 Parameter Passing.
 - [AAPCS64 specification](https://github.com/ARM-software/abi-aa/blob/main/aapcs64/aapcs64.rst) — §6.4–6.9 Parameter Passing.
 - [RISC-V psABI](https://github.com/riscv-non-isa/riscv-elf-psabi-doc/blob/master/riscv-cc.adoc) — §Calling Convention.
+
+
+---
+
+@copyright jreuben11

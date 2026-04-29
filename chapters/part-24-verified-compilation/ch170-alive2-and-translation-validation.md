@@ -388,3 +388,8 @@ The ideas underlying Alive2 are applicable to MLIR transformations. MLIR's diale
 - Yang, X., Chen, Y., Eide, E., Regehr, J. (2011). "Finding and Understanding Bugs in C Compilers." *PLDI 2011*.
 - Alive2 repository: [github.com/AliveToolkit/alive2](https://github.com/AliveToolkit/alive2)
 - de Moura, L. and Bjørner, N. (2008). "Z3: An Efficient SMT Solver." *TACAS 2008*.
+
+
+---
+
+@copyright jreuben11

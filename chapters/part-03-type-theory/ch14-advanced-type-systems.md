@@ -1299,3 +1299,8 @@ This chapter surveyed the principal advanced type systems that compiler engineer
 - **[Pierce and Steffen 1994]** Pierce, B. C. and Steffen, B. "Higher-Order Subtyping." *ICALP* 1994
 - **[Leijen 2014]** Leijen, D. "Koka: Programming with Row Polymorphic Effect Types." *MSFP* 2014
 - **[Marino and Millstein 2009]** Marino, D. and Millstein, T. "A Generic Type-and-Effect System." *TLDI* 2009
+
+
+---
+
+@copyright jreuben11

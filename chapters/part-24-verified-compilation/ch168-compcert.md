@@ -444,3 +444,8 @@ CompCert's generated code is competitive with GCC at `-O1`:
 - George, L. and Appel, A.W. (1996). "Iterated Register Coalescing." *TOPLAS* 18(3).
 - CompCert source: [github.com/AbsInt/CompCert](https://github.com/AbsInt/CompCert)
 - AbsInt CompCert: [https://www.absint.com/compcert/](https://www.absint.com/compcert/)
+
+
+---
+
+@copyright jreuben11

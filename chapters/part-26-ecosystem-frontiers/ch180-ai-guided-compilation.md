@@ -626,3 +626,8 @@ This division of labour exploits the complementary strengths of each approach: M
 - `CompilerGym` wraps the LLVM pass pipeline as an OpenAI Gym environment, allowing RL agents to learn pass orderings that outperform `-O3` on individual benchmarks; POSET-RL's hierarchical decomposition improves sample efficiency.
 - The near-term practical deployment model for learned policies restricts ML to selecting among a small set of pre-validated pipeline variants rather than freely composing passes; this eliminates miscompilation risk while capturing the majority of the ML benefit.
 - The long-term trajectory converges ML proposal with formal verification: neural models generate candidates, equivalence checkers (Alive2, SMT solvers) certify correctness, and only verified transformations enter the compiler's action space.
+
+
+---
+
+@copyright jreuben11

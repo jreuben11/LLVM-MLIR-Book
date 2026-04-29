@@ -452,3 +452,8 @@ flang-new hello.f90 -O2 -o hello.o
 - The `Descriptor` class in `flang-rt` mirrors `CFI_cdesc_t` and is the runtime representation of `fir.box<T>` passed to all runtime routines
 - IEEE floating-point exception handling is implemented via `feenableexcept`/`fegetexceptflag` on Linux; `IEEE_SET_HALTING_MODE` is functional on x86-64 and AArch64 with known limitations on macOS and for extended-precision types
 - The test suite uses lit with `%flang_fc1`/`%bbc` substitutions; SPEC CPU 2017 Fortran benchmarks serve as the primary end-to-end correctness validation
+
+
+---
+
+@copyright jreuben11

@@ -695,3 +695,8 @@ This information is usually sufficient to identify the bug. KASAN in particular 
 - **KCFI** provides Control Flow Integrity via inline type hash checks before indirect calls. **Shadow Call Stack** (`x18`-based) complements CFI against ROP attacks on AArch64.
 
 - **syzkaller + syzbot** use `CONFIG_KCOV` for coverage-guided kernel fuzzing, combined with KASAN/KCSAN for bug detection. This infrastructure drives the majority of kernel bug reports in the Linux security community.
+
+
+---
+
+@copyright jreuben11

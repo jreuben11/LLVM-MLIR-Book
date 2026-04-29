@@ -1122,3 +1122,8 @@ MLIR's operation system and Rust's `enum`-based IR representations (e.g., Cranel
 - Clang source code: `clang/lib/AST/DeclBase.cpp` (DeclContext), `clang/lib/Sema/SemaLookup.cpp` (lookup algorithms), `clang/include/clang/AST/RecursiveASTVisitor.h`.
 - GCC source code: `gcc/cp/name-lookup.c` (cp_binding_level, pushlevel/poplevel).
 - LLVM source code: `llvm/include/llvm/IR/InstVisitor.h` (InstVisitor CRTP).
+
+
+---
+
+@copyright jreuben11

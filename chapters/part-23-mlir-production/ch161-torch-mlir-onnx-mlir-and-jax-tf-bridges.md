@@ -508,3 +508,8 @@ print(result.to_host().shape)  # (32, 10)
 - TF's bridge (`tf.mlir.experimental.convert_saved_model`) converts TF graphs to `tf.*` dialect, then lowers through `mhlo`/StableHLO to XLA.
 - TOSA provides a portable ~60-op inference operator set; it serves as an intermediate for embedded and hardware-accelerated targets; ARM Ethos-U and IREE consume TOSA natively.
 - The canonical end-to-end path for new ML deployment: PyTorch → torch-mlir → StableHLO → IREE → device binary.
+
+
+---
+
+@copyright jreuben11

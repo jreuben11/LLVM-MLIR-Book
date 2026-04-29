@@ -459,3 +459,8 @@ Unroll-and-jam is legal if and only if no dependence is violated by bringing i%U
 - **SIMD vectorization** marks the innermost fully-parallel dimension for vector code generation; in MLIR, this targets the vector dialect for hardware-portable SIMD before lowering to LLVM IR vectors.
 - **GPU code generation** (PPCG, Polly-ACC) maps the two outermost parallel dimensions to CUDA grid and block dimensions, with shared memory tiling derived from the k-dimension tile in the polyhedral schedule.
 - **Unroll-and-jam** is a composition of strip-mining and interchange in the polyhedral model; it exposes ILP within the inner loop body by statically unrolling the strip-mined outer loop.
+
+
+---
+
+@copyright jreuben11

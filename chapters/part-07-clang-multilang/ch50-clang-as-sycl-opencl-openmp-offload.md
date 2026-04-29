@@ -868,3 +868,8 @@ This interoperability is implemented in the SYCL runtime's backend abstraction l
 - [OpenCL C 3.0 Specification](https://www.khronos.org/registry/OpenCL/specs/3.0-unified/pdf/OpenCL_C.pdf)
 - [SYCL 2020 Specification](https://registry.khronos.org/SYCL/specs/sycl-2020/pdf/sycl-2020.pdf)
 - [OpenMP 5.2 Target Offloading](https://www.openmp.org/spec-html/5.2/openmpsu116.html)
+
+
+---
+
+@copyright jreuben11

@@ -302,3 +302,8 @@ Also: `MachineInstr::getDebugLoc()` now returns `DebugLoc` (previously `const De
 | `sed -i 's/i32\*/ptr/g; s/i64\*/ptr/g'` | Quick sed to strip typed pointer syntax from IR (must verify GEP source types manually) |
 | `opt --verify-uselistorder` | Verify use-list order stability (for bitcode reproducibility) |
 | Custom `llvm-project/llvm/utils/migration/` scripts | Version-specific migration helpers when available |
+
+
+---
+
+@copyright jreuben11

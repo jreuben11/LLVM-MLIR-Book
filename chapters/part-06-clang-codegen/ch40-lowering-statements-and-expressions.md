@@ -800,3 +800,8 @@ The load-modify-store sequence is at `-O0`. Optimizers can simplify this when th
 - [`clang/lib/CodeGen/EHScopeStack.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/lib/CodeGen/EHScopeStack.h) — `EHScopeStack` and `Cleanup` interface
 - [`clang/lib/CodeGen/CGCXXExpr.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/lib/CodeGen/CGCXXExpr.cpp) — C++ expression lowering
 - [Smith, R.L. (1962). Algorithm 116: Complex division. *CACM* 5(8), 435](https://dl.acm.org/doi/10.1145/368637.368661) — the algorithm behind `__divdc3`
+
+
+---
+
+@copyright jreuben11

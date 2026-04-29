@@ -308,3 +308,8 @@ The local CAS acts as an L1 cache; the remote service acts as an L2 cache shared
 - **CASFS** presents the compiler with a hermetic, read-only virtual filesystem rooted in a CAS tree that captures all inputs (source, headers, system headers) as content-addressed snapshots, eliminating implicit input dependencies.
 - **The CAS Plugin API** allows custom backends (remote HTTP, GRPC Remote Execution API, Apple's Xcode network cache) to implement the `CASPlugin` interface, integrating with LLVM's build infrastructure.
 - Practical applications: Apple's Xcode Explicit Module Builds, distributed hermetic CI builds where workers receive only CASID inputs and produce CASID outputs, and team-shared compilation caches eliminating redundant work across developers.
+
+
+---
+
+@copyright jreuben11

@@ -745,3 +745,8 @@ llvm-dwarfdump --debug-names binary | head -20
 - **`llvm-dwarfdump`** inspects and verifies DWARF sections. `llvm-symbolizer`/`addr2line` translate addresses to source locations. `pahole` analyzes struct layouts.
 
 - **Split DWARF** (`-gsplit-dwarf`) separates full debug info into `.dwo` files excluded from the linked binary, dramatically reducing link time. `llvm-dwp` merges `.dwo` files into `.dwp` packages. `.debug_names` provides O(1) name-to-DIE lookup.
+
+
+---
+
+@copyright jreuben11

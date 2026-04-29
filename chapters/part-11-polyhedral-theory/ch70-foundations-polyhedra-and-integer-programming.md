@@ -363,3 +363,8 @@ ISL uses heuristics to avoid exponential blowup in practice:
 - **Integer linear programming** is NP-hard in general but tractable for the small-dimensional loop nests that appear in practice; branch-and-bound and Gomory cuts are the standard methods.
 - **Presburger arithmetic** — first-order integer arithmetic without multiplication — is decidable. **Cooper's quantifier elimination** and the **Omega test** are the two main practical algorithms; both appear inside ISL.
 - **ISL** implements sets and relations over integer points as Presburger formulas, providing exact union/intersection/projection/QE operations plus parametric integer programming and polyhedral schedule computation. It is the algorithmic core of Polly and MLIR's Affine dialect.
+
+
+---
+
+@copyright jreuben11

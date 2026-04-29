@@ -425,3 +425,8 @@ Semantic error tests use `%flang_fc1 -fsyntax-only` with `! CHECK-ERROR:` marker
 - The `Lower::Bridge` class drives the translation from semantic representation to MLIR HLFIR dialect ops inside an `mlir::ModuleOp`; `AbstractConverter` is the interface contract
 - `bbc` is the testing/development tool equivalent to `mlir-opt`, used in the lit test suite via `%flang_fc1` substitution
 - Flang is production-ready for SPEC CPU 2017 and large scientific codes; remaining gaps are in IEEE exception handling, coarray teams, and some Fortran 2023 features
+
+
+---
+
+@copyright jreuben11

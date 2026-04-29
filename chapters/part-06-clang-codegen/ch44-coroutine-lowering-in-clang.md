@@ -891,3 +891,8 @@ The pipeline order matters: `CoroSplit` must run before inlining of the resume/d
 - [P0057R8](https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p0057r8.pdf) — Original C++ Coroutines TS proposal
 - [P0913R1](https://wg21.link/P0913R1) — Symmetric transfer for coroutines
 - [P2502R2](https://wg21.link/P2502R2) — `std::generator` specification
+
+
+---
+
+@copyright jreuben11

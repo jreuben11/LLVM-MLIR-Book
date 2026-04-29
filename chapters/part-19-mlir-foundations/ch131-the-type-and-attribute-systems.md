@@ -539,3 +539,8 @@ DenseIntOrFPElementsAttr weights = DenseIntOrFPElementsAttr::get(
 - `DenseIntOrFPElementsAttr` stores dense constant tensor data inline; `DenseResourceElementsAttr` externalizes large blobs for efficient bytecode; `AffineMapAttr` and `SymbolRefAttr` are the other key structural attributes
 - The **Properties** system (MLIR 17+) replaces attribute dictionary access for op-owned data with a direct struct layout, eliminating hash lookups and type erasure for frequently accessed op data
 - `TypeConstraint` values in ODS (e.g., `AnyFloat`, `RankedTensorOf<[F32]>`) encode operand/result type requirements; `ShapedType` and `SubElementTypeInterface` provide interfaces for generic shaped-type operations; `TypeConverter` drives type transformations between dialects
+
+
+---
+
+@copyright jreuben11

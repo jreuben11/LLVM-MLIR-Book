@@ -646,3 +646,8 @@ The redundant loads and alloca for `n` are eliminated; the parameter is used dir
 - All allocas for a function should be emitted in the entry block; use a separate `IRBuilder` positioned at `fn->getEntryBlock().begin()` to guarantee this.
 - `llvm::verifyFunction` / `llvm::verifyModule` should be called after emission during development to catch IR invariant violations early.
 - `DIBuilder` attaches DWARF debug metadata to functions (via `createFunction`/`setSubprogram`), variables (via `createAutoVariable`/`insertDeclare`), and instructions (via `SetCurrentDebugLocation`).
+
+
+---
+
+@copyright jreuben11

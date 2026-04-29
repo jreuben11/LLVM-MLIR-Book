@@ -868,3 +868,8 @@ Configure in VS Code via the `vscode-mlir` extension by pointing `mlir.server_pa
 - **Production patterns**: use `.mlirbc` files as cached pipeline checkpoints; rely on dialect versioning for forward-compatible schema evolution; use `--split-input-file` for multi-test `.mlir` files; deploy `mlir-lsp-server` and `mlir-pdll-lsp-server` for IDE integration.
 
 - Key source locations: [`mlir/include/mlir/Bytecode/`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/mlir/include/mlir/Bytecode/), [`mlir/include/mlir/Parser/Parser.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/mlir/include/mlir/Parser/Parser.h), [`mlir/include/mlir/Tools/mlir-translate/Translation.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/mlir/include/mlir/Tools/mlir-translate/Translation.h), [`mlir/include/mlir/IR/BuiltinAttributes.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/mlir/include/mlir/IR/BuiltinAttributes.h#L699).
+
+
+---
+
+@copyright jreuben11

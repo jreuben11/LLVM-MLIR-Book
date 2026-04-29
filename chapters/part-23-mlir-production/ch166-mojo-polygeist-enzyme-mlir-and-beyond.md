@@ -459,3 +459,8 @@ As of early 2026:
 - CIRCT applies MLIR's extensibility to hardware design: HW/Comb/Seq/SV dialects represent combinational and sequential logic, lowering to SystemVerilog for synthesis.
 - VAST provides C/C++ AST-level MLIR dialects for security analysis and formal verification; it preserves C semantics including pointer arithmetic and UB.
 - The common theme: each project contributes to a shared MLIR ecosystem, creating network effects where improvements to core dialects benefit multiple downstream projects simultaneously.
+
+
+---
+
+@copyright jreuben11

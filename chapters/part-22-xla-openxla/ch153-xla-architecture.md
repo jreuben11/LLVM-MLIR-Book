@@ -349,3 +349,8 @@ The practical picture: MLIR is the compile-time representation for the frontend 
 - `LocalClient` provides JIT execution; `AotCompilationResult` supports ahead-of-time compilation.
 - MLIR integration is through StableHLO at the input level; MHLO is deprecated; a Linalg codegen path is emerging for GPU.
 - `HloModuleConfig` and `DebugOptions` control optimization and diagnostic behavior; `XLA_FLAGS` environment variable is the common diagnostic entry point.
+
+
+---
+
+@copyright jreuben11

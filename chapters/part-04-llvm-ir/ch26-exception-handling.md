@@ -694,3 +694,8 @@ Rust's panic/unwind uses `rust_eh_personality` (`EHPersonality::Rust`), which wr
 - [`llvm/include/llvm/IR/IntrinsicsWebAssembly.td`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/llvm/include/llvm/IR/IntrinsicsWebAssembly.td) — `int_wasm_throw`, `int_wasm_catch`, `int_wasm_rethrow`, `int_wasm_landingpad_index`
 - [LLVM Exception Handling documentation](https://llvm.org/docs/ExceptionHandling.html)
 - [Windows x64 Exception Handling](https://learn.microsoft.com/en-us/cpp/build/exception-handling-x64)
+
+
+---
+
+@copyright jreuben11

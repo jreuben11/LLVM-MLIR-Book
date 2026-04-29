@@ -456,3 +456,8 @@ ms_print massif.out.* | head -50
 - **GDB breakpoints**: `mlir::emitError`, `mlir::Operation::verify`, `llvm_unreachable` for interactive MLIR debugging.
 - **`-ftime-trace`**: Chrome trace output showing per-include and per-pass compilation times; fastest way to find compilation performance bottlenecks.
 - Building LLVM with `LLVM_USE_SANITIZER=Address` or `Undefined` catches memory errors and UB in pass development; essential for any non-trivial pass.
+
+
+---
+
+@copyright jreuben11

@@ -1081,3 +1081,8 @@ Lazy lexing is essentially the default for hand-written lexers (since they call 
 - Bumbulis, P. and Cowan, D.D. "RE2C: a more versatile scanner generator." *ACM Letters on Programming Languages and Systems* 2(1–4), 1993.
 - Thurston, A. "Ragel state machine compiler." *Proc. USENIX*, 2007.
 - Brunsfeld, M. et al. "Tree-sitter: a new parsing system for programming tools." *Proc. USENIX*, 2018.
+
+
+---
+
+@copyright jreuben11

@@ -478,3 +478,8 @@ See [Chapter 122 — libc++abi](ch122-libcxxabi.md) for the personality function
 - Bare-metal use requires `LIBUNWIND_ENABLE_STATIC_UNWIND_TABLES=ON` and manual `__register_frame` calls since `dl_iterate_phdr` is unavailable.
 - Sanitizer runtimes use `_Unwind_Backtrace` for slow stack capture and bypass libunwind with direct frame-pointer reads for the fast path.
 - libunwind is a dependency of libc++abi; the two must be built and deployed together for correct C++ exception semantics.
+
+
+---
+
+@copyright jreuben11

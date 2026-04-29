@@ -469,3 +469,8 @@ mlir-translate --mlir-to-spirvasm input.mlir
 - The capability system requires each instruction's capabilities to be declared in `spirv.module`. `TargetEnvAttr` describes device support for verification.
 - Serialization via `mlir-translate --serialize-spirv` produces binary SPIR-V suitable for Vulkan's `VkShaderModuleCreateInfo`. Deserialization allows round-tripping arbitrary SPIR-V through MLIR.
 - Specialization constants (`spirv.SpecConstant`) enable parameterizing compiled SPIR-V at Vulkan pipeline creation time without recompilation.
+
+
+---
+
+@copyright jreuben11

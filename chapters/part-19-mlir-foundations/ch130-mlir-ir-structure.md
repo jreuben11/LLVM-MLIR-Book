@@ -632,3 +632,8 @@ for (OpResult result : op.getResults()) {
 - `IsolatedFromAbove` regions (e.g., `func.func`) prevent capturing outer SSA values; non-isolated regions (e.g., `scf.for`) can capture freely from enclosing scopes
 - `AffineMap` is a first-class IR concept representing multi-dimensional affine index functions; it underpins memory layouts in `memref`, loop bounds in `affine.for`, and indexing in `linalg.generic`
 - Locations track source provenance through transformations; `walk()` and `getParentOfType()` are the primary IR navigation APIs
+
+
+---
+
+@copyright jreuben11

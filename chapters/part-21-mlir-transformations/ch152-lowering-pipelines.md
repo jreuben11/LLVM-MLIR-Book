@@ -506,3 +506,8 @@ if (mlir::failed(pm.run(module))) {
 - The **IREE pipeline** demonstrates industrial-scale multi-stage lowering: StableHLO/TOSA → flow dispatches → stream commands → HAL executables → backend kernels, each stage expressed as MLIR passes.
 - **Debugging tools**: `--mlir-print-ir-after-change`, `--mlir-verify-each`, `--mlir-pass-failure-dump-pass-pipeline`, and `mlir-reduce` for delta debugging to minimal reproducers.
 - **C++ pipeline construction** uses `PassManager::addPass`, `pm.nest<T>()`, and typed pass creation functions from the `create*Pass` family; `--mlir-timing-display=tree` profiles pass execution overhead.
+
+
+---
+
+@copyright jreuben11

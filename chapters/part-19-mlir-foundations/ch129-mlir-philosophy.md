@@ -302,3 +302,8 @@ llc -filetype=obj -o hello.o
 - Key design decisions — mandatory verification, no implicit captures, value semantics for tensors, structured regions — distinguish MLIR from prior IRs and enable the composability that makes it practical
 - MLIR originated at Google in 2018, was open-sourced in 2019, and merged into the LLVM monorepo in 2020; the CGO 2021 paper "MLIR: Scaling Compiler Infrastructure for Domain Specific Computation" is the canonical reference
 - The ecosystem spans Flang (Fortran), IREE (ML deployment), torch-mlir (PyTorch), Triton (GPU kernels), CIRCT (hardware design), and StableHLO (ML model interchange)
+
+
+---
+
+@copyright jreuben11

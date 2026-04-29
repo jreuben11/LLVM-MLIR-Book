@@ -567,3 +567,8 @@ llvm-lit libcxxabi/test/catch_class_01.pass.cpp
 - `__cxa_demangle` exposes the Itanium demangler; the same implementation is used in LLDB and sanitizer symbolizers via `llvm::demangle()`.
 - `__dynamic_cast` traverses the most-derived object's inheritance DAG to find an unambiguous target subobject, using the vtable's `offset_to_top` field to find the complete object.
 - `LIBCXXABI_USE_LLVM_UNWINDER=ON` ensures libc++abi uses LLVM's libunwind rather than libgcc_s — required for a fully LLVM-based toolchain.
+
+
+---
+
+@copyright jreuben11

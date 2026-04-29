@@ -418,3 +418,8 @@ The two virtual calls are now two branches, each with inlined implementations an
 - **ThinLTO integration**: WPD runs in two phases — export (write decisions to module summary index) and import (apply decisions during per-module compilation); each module receives WPD decisions without seeing the full IR of other modules.
 - **Diagnostics**: `-Rpass=wholeprogramdevirt` emits optimization remarks per devirtualized call site; `-fsave-optimization-record` captures them in YAML for offline analysis.
 - **Combined pipeline**: `-O2 -flto=thin -fwhole-program-vtables -fvisibility=hidden -fsanitize=cfi-vcall` enables WPD for performance and CFI for security simultaneously; WPD eliminates indirect calls where possible, CFI guards the remaining ones.
+
+
+---
+
+@copyright jreuben11
