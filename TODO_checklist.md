@@ -9,9 +9,9 @@
 ---
 
 ## Current Focus
-**Parts I–XI COMPLETE** ✓ (71/184 chapters done, ~1,130 estimated pages)
-**Next up:** Part XII — Polly (Ch74–Ch76, 3 chapters)
-**Batch:** Ch74–Ch76 sequentially
+**Parts I–XII COMPLETE** ✓ (74/184 chapters done, ~1,190 estimated pages)
+**Next up:** Part XIII — Link-Time and Whole-Program (Ch77–Ch80, 4 chapters)
+**Batch:** Ch77–Ch80 sequentially
 
 ---
 
@@ -110,10 +110,10 @@
 - [x] Ch72 — Scheduling Algorithms
 - [x] Ch73 — Code Generation from Polyhedral Schedules
 
-## Part XII — Polly *(~50 pp, 3 ch)*
-- [ ] Ch74 — Polly Architecture
-- [ ] Ch75 — Polly Transformations
-- [ ] Ch76 — Polly in Practice
+## Part XII — Polly *(~50 pp, 3 ch)* ✓ COMPLETE
+- [x] Ch74 — Polly Architecture
+- [x] Ch75 — Polly Transformations
+- [x] Ch76 — Polly in Practice
 
 ## Part XIII — Link-Time and Whole-Program *(~80 pp, 4 ch)*
 - [ ] Ch77 — LTO and ThinLTO
