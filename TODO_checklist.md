@@ -9,9 +9,9 @@
 ---
 
 ## Current Focus
-**Parts I–XII COMPLETE** ✓ (74/184 chapters done, ~1,190 estimated pages)
-**Next up:** Part XIII — Link-Time and Whole-Program (Ch77–Ch80, 4 chapters)
-**Batch:** Ch77–Ch80 sequentially
+**Parts I–XIII COMPLETE** ✓ (78/184 chapters done, ~1,270 estimated pages)
+**Next up:** Part XIV — The Backend (Ch81–Ch94, 14 chapters)
+**Batch:** Ch81–Ch94 sequentially (backend pipeline is strongly sequential)
 
 ---
 
@@ -115,11 +115,11 @@
 - [x] Ch75 — Polly Transformations
 - [x] Ch76 — Polly in Practice
 
-## Part XIII — Link-Time and Whole-Program *(~80 pp, 4 ch)*
-- [ ] Ch77 — LTO and ThinLTO
-- [ ] Ch78 — The LLVM Linker (LLD)
-- [ ] Ch79 — Linker Internals: GOT, PLT, TLS
-- [ ] Ch80 — llvm-cas and Content-Addressable Builds
+## Part XIII — Link-Time and Whole-Program *(~80 pp, 4 ch)* ✓ COMPLETE
+- [x] Ch77 — LTO and ThinLTO
+- [x] Ch78 — The LLVM Linker (LLD)
+- [x] Ch79 — Linker Internals: GOT, PLT, TLS
+- [x] Ch80 — llvm-cas and Content-Addressable Builds
 
 ## Part XIV — The Backend *(~280 pp, 14 ch)*
 - [ ] Ch81 — Backend Architecture
