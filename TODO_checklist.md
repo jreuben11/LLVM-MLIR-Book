@@ -1,5 +1,5 @@
 # Book Progress Checklist
-*Last updated: 2026-04-29 (Part VIII complete — Ch52–Ch54 written). Read this first after any context compaction.*
+*Last updated: 2026-04-29 (Part IX complete — Ch55–Ch58 written). Read this first after any context compaction.*
 
 ## Status Legend
 - `[ ]` Not started
@@ -9,9 +9,9 @@
 ---
 
 ## Current Focus
-**Parts I–VIII COMPLETE** ✓ (52/184 chapters done)
-**Next up:** Part IX — Frontend Authoring (Ch55–Ch58, 4 chapters)
-**Batch:** Ch55–Ch58 sequentially (cross-references within part)
+**Parts I–IX COMPLETE** ✓ (56/184 chapters done)
+**Next up:** Part X — Analysis and the Middle-End (Ch59–Ch69, 11 chapters)
+**Batch:** Ch59–Ch69 sequentially (cross-references within part)
 
 ---
 
@@ -86,10 +86,10 @@
 - [x] Ch54 — CIR Lowering and Analysis
 
 ## Part IX — Frontend Authoring (Building Your Own) *(~80 pp, 4 ch)*
-- [ ] Ch55 — Building a Frontend
-- [ ] Ch56 — Lowering AST to IR
-- [ ] Ch57 — Lowering High-Level Constructs
-- [ ] Ch58 — Language Runtime Concerns
+- [x] Ch55 — Building a Frontend
+- [x] Ch56 — Lowering AST to IR
+- [x] Ch57 — Lowering High-Level Constructs
+- [x] Ch58 — Language Runtime Concerns
 
 ## Part X — Analysis and the Middle-End *(~210 pp, 11 ch)*
 - [ ] Ch59 — The New Pass Manager
@@ -260,5 +260,5 @@
 
 ## Stats
 - Total chapters: 176 + 8 appendices = 184 items
-- Completed: 52 / 184
-- Estimated pages written: ~851 / ~2195
+- Completed: 56 / 184
+- Estimated pages written: ~919 / ~2195
