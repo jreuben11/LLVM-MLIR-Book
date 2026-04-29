@@ -1,5 +1,5 @@
 # Book Progress Checklist
-*Last updated: 2026-04-29 (ALL COMPLETE — 176 chapters + 8 appendices written). Read this first after any context compaction.*
+*Last updated: 2026-04-29 (Part XXVI planned — 4 new chapters to write). Read this first after any context compaction.*
 
 ## Status Legend
 - `[ ]` Not started
@@ -9,7 +9,9 @@
 ---
 
 ## Current Focus
-**ALL 184 ITEMS COMPLETE** ✓ (184/184 done, ~2,900 estimated pages)
+**Part XXVI — Ecosystem and Frontiers** (4 new chapters, Ch177–Ch180)
+- 184/184 original items complete; 4 new chapters planned, 0 written
+- Write sequentially: Ch177 → Ch178 → Ch179 → Ch180
 
 ---
 
@@ -239,6 +241,64 @@
 - [x] Ch175 — Language Bindings
 - [x] Ch176 — Contributing to LLVM
 
+## Part XXVI — Ecosystem and Frontiers *(~54 pp, 4 ch)*
+- [ ] Ch177 — rustc and the Rust Codegen Backend
+- [ ] Ch178 — LLVM/MLIR for AI: The Full Stack
+- [ ] Ch179 — AI-Guided Compilation
+- [ ] Ch180 — ANTLR4, TreeSitter, and Language Tooling with LLVM
+
+### Chapter Plans
+
+**Ch177 — rustc and the Rust Codegen Backend** (~15 pp)
+1. rustc architecture: driver → HIR → THIR → MIR → codegen
+2. MIR: Rust's mid-level SSA-like IR; `Place`/`Rvalue`/`Terminator`; borrow-check output
+3. `rustc_codegen_llvm`: `FunctionCx`, MIR→LLVM IR lowering; ADT/enum layout; trait objects (`dyn Trait` vtable emission)
+4. Rust-specific LLVM attributes: `nounwind`, `noalias`, `dereferenceable`, `noundef`, `align`
+5. Panics and unwinding: `begin_unwind` → `llvm.eh.sjlj`/Itanium EH; `-C panic=abort`
+6. The Cranelift alternative backend (`rustc_codegen_cranelift`): motivation, IR model, maturity
+7. The GCC backend (`rustc_codegen_gcc`): status and rationale
+8. LTO: `-C lto=thin`, `-C lto=fat`; ThinLTO with rustc's ThinLTO cache
+9. PGO in Rust: `-C profile-generate`/`-C profile-use`
+10. Cross-compilation: target triples, `--target`, sysroot, `build.rs` implications
+11. rustc's vendored LLVM: why, version delta, custom patches
+
+**Ch178 — LLVM/MLIR for AI: The Full Stack** (~15 pp)
+1. The AI compiler hierarchy: PyTorch/JAX eager → `torch.export`/`jax.jit` capture → StableHLO → MLIR dialects → target
+2. Key dialects in the AI stack: `tosa`, `stablehlo`, `tensor`, `linalg.generic`, `vector`, `memref`, `gpu`
+3. Quantization: `quant` dialect encoding; INT8/INT4/FP8 lowering; GPTQ and GGUF pipelines
+4. Dynamic shapes: StableHLO dynamism extensions; `tensor.dim` / `shape` dialect; IREE's dynamic shape model
+5. Target landscape: CUDA (PTX via NVPTX), ROCm (HSACO via AMDGPU), NPUs (Apple ANE via CoreML, Hexagon DSP via Qualcomm toolchain, Edge TPU)
+6. Inference deployment: IREE (multi-target, VM-based), TFLite (flatbuffer format), ONNX Runtime (EP model), TensorRT (engine caching)
+7. Training vs inference: different optimization priorities (throughput vs latency), different precision requirements
+8. Kernel fusion: FlashAttention 2/3 as a case study in tiling and softmax fusion through MLIR
+9. The full end-to-end path: PyTorch model → `torch.export` → torch-mlir → StableHLO → IREE dispatch → PTX/HSACO
+
+**Ch179 — AI-Guided Compilation** (~12 pp)
+1. MLGO: the ML-guided optimization framework in LLVM; the `MLModelRunner` abstraction
+2. The RL-trained inliner: feature vector, reward function (binary size + perf), training loop (cross-ref Ch66)
+3. ML-based register allocator eviction: the `RegAllocEvictionAdvisor`; priority model; deployment
+4. The TFLite runtime embedded in LLVM: AOT-compiled models, the LLVM build flag, offline vs development mode
+5. ML-based cost models: instruction scheduling cost functions; IREE's ML-based tile size selection
+6. Ansor/AutoTVM: search space definition, sketch-based program sampler, cost model learning
+7. Triton's autotuner: `@triton.autotune` mechanism; exhaustive vs evolutionary search
+8. Profile inference with ML: synthesizing PGO profiles from code structure without instrumented runs
+9. LLM-assisted compiler development: TableGen authoring with LLMs; pass synthesis; LLM-guided fuzzing (EvoFuzz, CovRL-Fuzz)
+10. LLVM IR as training corpus: the `llvm-ir` dataset; training code LLMs on compiler IRs
+11. Neural superoptimization: Bansal-Aiken PLDI approach; learned peephole rules
+
+**Ch180 — ANTLR4, TreeSitter, and Language Tooling with LLVM** (~12 pp)
+1. Tooling vs compilation: why editor tooling needs different properties (error tolerance, incrementality, speed) than a compiler
+2. ANTLR4 fundamentals: LL(*) parsing; `.g4` grammar syntax; lexer rules vs parser rules; semantic predicates
+3. The ANTLR4 C++ runtime: `ANTLRInputStream`, `CommonTokenStream`, visitor vs listener patterns
+4. ANTLR4 → LLVM pipeline: walking the parse tree to build an AST; emitting LLVM IR from the AST; a worked example (a simple expression language)
+5. Error recovery in ANTLR4: sync-and-return, single-token insertion/deletion, default error strategy
+6. TreeSitter fundamentals: incremental GLR parsing; `.js` grammar authoring; the C API (`ts_parser_parse`, `ts_node_*`)
+7. TreeSitter language bindings: Rust (`tree-sitter` crate), Python (`tree_sitter` package), Node.js
+8. What TreeSitter is for: syntax highlighting, structural navigation, lightweight pattern matching (`ts_query`); what it is NOT for (ambiguous grammars, full semantic analysis)
+9. The nvim-treesitter ecosystem; integrating with clangd over LSP for a two-tier toolchain
+10. Comparison matrix: hand-written (Clang/GCC), ANTLR4, TreeSitter, PEG (pest, nom, peg.js), parser combinators (`combine`, `winnow`)
+11. The two-tier frontend pattern: TreeSitter for IDE tooling + ANTLR4/hand-written recursive descent for compilation
+
 ## Appendices
 - [x] Appendix A — LLVM IR Quick Reference
 - [x] Appendix B — MLIR Dialect Quick Reference
@@ -257,6 +317,6 @@
 ---
 
 ## Stats
-- Total chapters: 176 + 8 appendices = 184 items
-- Completed: 184 / 184 (all chapters and appendices complete)
-- Estimated pages written: ~2,900 (chapters + appendices)
+- Total chapters: 180 + 8 appendices = 188 items
+- Completed: 184 / 188 (original complete; 4 new Part XXVI chapters pending)
+- Estimated pages written: ~2,900 (original) + ~54 (Part XXVI target) = ~2,954 total target
