@@ -9,9 +9,9 @@
 ---
 
 ## Current Focus
-**Parts I–X COMPLETE** ✓ (67/184 chapters done, ~1,050 estimated pages)
-**Next up:** Part XI — Polyhedral Theory (Ch70–Ch73, 4 theoretical chapters)
-**Batch:** Ch70–Ch73 sequentially (theoretical derivations build on each other)
+**Parts I–XI COMPLETE** ✓ (71/184 chapters done, ~1,130 estimated pages)
+**Next up:** Part XII — Polly (Ch74–Ch76, 3 chapters)
+**Batch:** Ch74–Ch76 sequentially
 
 ---
 
@@ -104,11 +104,11 @@
 - [x] Ch68 — Hardening and Mitigations
 - [x] Ch69 — Whole-Program Devirtualization
 
-## Part XI — Polyhedral Theory *(~80 pp, 4 ch)* [THEORETICAL]
-- [ ] Ch70 — Foundations: Polyhedra and Integer Programming
-- [ ] Ch71 — The Polyhedral Model
-- [ ] Ch72 — Scheduling Algorithms
-- [ ] Ch73 — Code Generation from Polyhedral Schedules
+## Part XI — Polyhedral Theory *(~80 pp, 4 ch)* [THEORETICAL] ✓ COMPLETE
+- [x] Ch70 — Foundations: Polyhedra and Integer Programming
+- [x] Ch71 — The Polyhedral Model
+- [x] Ch72 — Scheduling Algorithms
+- [x] Ch73 — Code Generation from Polyhedral Schedules
 
 ## Part XII — Polly *(~50 pp, 3 ch)*
 - [ ] Ch74 — Polly Architecture
