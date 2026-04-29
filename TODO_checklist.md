@@ -1,5 +1,5 @@
 # Book Progress Checklist
-*Last updated: 2026-04-29 (Parts I–XIX complete, Ch125–Ch136 written). Read this first after any context compaction.*
+*Last updated: 2026-04-29 (Parts I–XX complete, Ch137–Ch146 written). Read this first after any context compaction.*
 
 ## Status Legend
 - `[ ]` Not started
@@ -9,9 +9,9 @@
 ---
 
 ## Current Focus
-**Parts I–XIX fully written** ✓ (136/184 chapters done, ~2,150 estimated pages)
-**Next up:** Part XX — In-Tree Dialects (Ch137–Ch146)
-**Batch:** Ch137–Ch146 sequentially (Core, Memory, Tensor/Linalg, Affine/SCF, Vector/Sparse, GPU, SPIR-V, HW Vector, LLVM dialect, Async/OpenMP/etc.)
+**Parts I–XX fully written** ✓ (146/184 chapters done, ~2,310 estimated pages)
+**Next up:** Part XXI — MLIR Transformations (Ch147–Ch152)
+**Batch:** Ch147–Ch152 sequentially (Pattern Rewriting, Dialect Conversion, Pass Infrastructure, Transform Dialect, Bufferization Deep Dive, Lowering Pipelines)
 
 ---
 
@@ -189,17 +189,17 @@
 - [x] Ch135 — PDL and PDLL
 - [x] Ch136 — MLIR Bytecode and Serialization
 
-## Part XX — In-Tree Dialects *(~190 pp, 10 ch)*
-- [ ] Ch137 — Core Dialects
-- [ ] Ch138 — Memory Dialects
-- [ ] Ch139 — Tensor and Linalg
-- [ ] Ch140 — Affine and SCF
-- [ ] Ch141 — Vector and Sparse
-- [ ] Ch142 — GPU Dialect Family
-- [ ] Ch143 — SPIR-V Dialect
-- [ ] Ch144 — Hardware Vector Dialects
-- [ ] Ch145 — LLVM Dialect
-- [ ] Ch146 — Async, OpenMP, OpenACC, DLTI, EmitC
+## Part XX — In-Tree Dialects *(~190 pp, 10 ch)* ✓ COMPLETE
+- [x] Ch137 — Core Dialects
+- [x] Ch138 — Memory Dialects
+- [x] Ch139 — Tensor and Linalg
+- [x] Ch140 — Affine and SCF
+- [x] Ch141 — Vector and Sparse
+- [x] Ch142 — GPU Dialect Family
+- [x] Ch143 — SPIR-V Dialect
+- [x] Ch144 — Hardware Vector Dialects
+- [x] Ch145 — LLVM Dialect
+- [x] Ch146 — Async, OpenMP, OpenACC, DLTI, EmitC
 
 ## Part XXI — MLIR Transformations *(~110 pp, 6 ch)*
 - [ ] Ch147 — Pattern Rewriting
