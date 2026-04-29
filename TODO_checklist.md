@@ -1,5 +1,5 @@
 # Book Progress Checklist
-*Last updated: 2026-04-28 (Part VI complete — Ch39–Ch44 committed). Read this first after any context compaction.*
+*Last updated: 2026-04-29 (Part VIII complete — Ch52–Ch54 written). Read this first after any context compaction.*
 
 ## Status Legend
 - `[ ]` Not started
@@ -9,9 +9,9 @@
 ---
 
 ## Current Focus
-**Parts I–VI COMPLETE** ✓ (49/184 chapters done)
-**Next up:** Part VII — Clang as a Multi-Language Compiler (Ch45–Ch51, 7 chapters)
-**Batch:** Ch45–Ch51 in parallel
+**Parts I–VIII COMPLETE** ✓ (52/184 chapters done)
+**Next up:** Part IX — Frontend Authoring (Ch55–Ch58, 4 chapters)
+**Batch:** Ch55–Ch58 sequentially (cross-references within part)
 
 ---
 
@@ -72,18 +72,18 @@
 - [x] Ch44 — Coroutine Lowering in Clang
 
 ## Part VII — Clang as a Multi-Language Compiler *(~140 pp, 7 ch)*
-- [ ] Ch45 — The Static Analyzer
-- [ ] Ch46 — libtooling and AST Matchers
-- [ ] Ch47 — clangd, clang-tidy, clang-format, clang-refactor
-- [ ] Ch48 — Clang as a CUDA Compiler
-- [ ] Ch49 — Clang as a HIP Compiler
-- [ ] Ch50 — Clang as SYCL, OpenCL, and OpenMP-Offload
-- [ ] Ch51 — Clang as an HLSL Compiler
+- [x] Ch45 — The Static Analyzer
+- [x] Ch46 — libtooling and AST Matchers
+- [x] Ch47 — clangd, clang-tidy, clang-format, clang-refactor
+- [x] Ch48 — Clang as a CUDA Compiler
+- [x] Ch49 — Clang as a HIP Compiler
+- [x] Ch50 — Clang as SYCL, OpenCL, and OpenMP-Offload
+- [x] Ch51 — Clang as an HLSL Compiler
 
 ## Part VIII — ClangIR (CIR) *(~50 pp, 3 ch)*
-- [ ] Ch52 — ClangIR Architecture
-- [ ] Ch53 — CIR Generation from AST
-- [ ] Ch54 — CIR Lowering and Analysis
+- [x] Ch52 — ClangIR Architecture
+- [x] Ch53 — CIR Generation from AST
+- [x] Ch54 — CIR Lowering and Analysis
 
 ## Part IX — Frontend Authoring (Building Your Own) *(~80 pp, 4 ch)*
 - [ ] Ch55 — Building a Frontend
@@ -260,5 +260,5 @@
 
 ## Stats
 - Total chapters: 176 + 8 appendices = 184 items
-- Completed: 49 / 184
-- Estimated pages written: ~801 / ~2195
+- Completed: 52 / 184
+- Estimated pages written: ~851 / ~2195
