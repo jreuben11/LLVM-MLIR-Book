@@ -1,5 +1,5 @@
 # Book Progress Checklist
-*Last updated: 2026-04-29 (Parts I–XX complete, Ch137–Ch146 written). Read this first after any context compaction.*
+*Last updated: 2026-04-29 (Parts I–XXV complete, Ch167–Ch176 written). Read this first after any context compaction.*
 
 ## Status Legend
 - `[ ]` Not started
@@ -9,9 +9,9 @@
 ---
 
 ## Current Focus
-**Parts I–XX fully written** ✓ (146/184 chapters done, ~2,310 estimated pages)
-**Next up:** Part XXI — MLIR Transformations (Ch147–Ch152)
-**Batch:** Ch147–Ch152 sequentially (Pattern Rewriting, Dialect Conversion, Pass Infrastructure, Transform Dialect, Bufferization Deep Dive, Lowering Pipelines)
+**Parts I–XXV fully written** ✓ (176/184 chapters done, ~2,770 estimated pages)
+**Next up:** Appendices (A–H)
+**Batch:** All 8 appendices (LLVM IR Quick Ref, MLIR Dialect Quick Ref, CLI Cheat Sheet, Migration Notes, Glossary, Object File Format, DWARF Reference, C++ ABI)
 
 ---
 
@@ -202,44 +202,44 @@
 - [x] Ch146 — Async, OpenMP, OpenACC, DLTI, EmitC
 
 ## Part XXI — MLIR Transformations *(~110 pp, 6 ch)*
-- [ ] Ch147 — Pattern Rewriting
-- [ ] Ch148 — Dialect Conversion
-- [ ] Ch149 — The Pass Infrastructure
-- [ ] Ch150 — The Transform Dialect
-- [ ] Ch151 — Bufferization Deep Dive
-- [ ] Ch152 — Lowering Pipelines
+- [x] Ch147 — Pattern Rewriting
+- [x] Ch148 — Dialect Conversion
+- [x] Ch149 — The Pass Infrastructure
+- [x] Ch150 — The Transform Dialect
+- [x] Ch151 — Bufferization Deep Dive
+- [x] Ch152 — Lowering Pipelines
 
 ## Part XXII — XLA and the OpenXLA Stack *(~120 pp, 6 ch)*
-- [ ] Ch153 — XLA Architecture
-- [ ] Ch154 — HLO and StableHLO
-- [ ] Ch155 — XLA:CPU
-- [ ] Ch156 — XLA:GPU
-- [ ] Ch157 — PJRT — The Plugin Runtime Interface
-- [ ] Ch158 — SPMD, GSPMD, and Auto-Sharding
+- [x] Ch153 — XLA Architecture
+- [x] Ch154 — HLO and StableHLO
+- [x] Ch155 — XLA:CPU
+- [x] Ch156 — XLA:GPU
+- [x] Ch157 — PJRT — The Plugin Runtime Interface
+- [x] Ch158 — SPMD, GSPMD, and Auto-Sharding
 
 ## Part XXIII — MLIR in Production *(~160 pp, 8 ch)*
-- [ ] Ch159 — Building a Domain-Specific Compiler
-- [ ] Ch160 — MLIR Python Bindings
-- [ ] Ch161 — torch-mlir, ONNX-MLIR, and JAX/TF Bridges
-- [ ] Ch162 — IREE — A Deployment Compiler
-- [ ] Ch163 — Triton — A Compiler for GPU Kernels
-- [ ] Ch164 — CUDA Tile IR
-- [ ] Ch165 — GPU Compilation Through MLIR
-- [ ] Ch166 — Mojo, Polygeist, Enzyme-MLIR, and Beyond
+- [x] Ch159 — Building a Domain-Specific Compiler
+- [x] Ch160 — MLIR Python Bindings
+- [x] Ch161 — torch-mlir, ONNX-MLIR, and JAX/TF Bridges
+- [x] Ch162 — IREE — A Deployment Compiler
+- [x] Ch163 — Triton — A Compiler for GPU Kernels
+- [x] Ch164 — CUDA Tile IR
+- [x] Ch165 — GPU Compilation Through MLIR
+- [x] Ch166 — Mojo, Polygeist, Enzyme-MLIR, and Beyond
 
-## Part XXIV — Verified Compilation *(~110 pp, 5 ch)* [THEORETICAL]
-- [ ] Ch167 — Operational Semantics and Program Logics
-- [ ] Ch168 — CompCert
-- [ ] Ch169 — Vellvm and Formalizing LLVM IR
-- [ ] Ch170 — Alive2 and Translation Validation
-- [ ] Ch171 — The Undef/Poison Story Formally
+## Part XXIV — Verified Compilation *(~110 pp, 5 ch)* [THEORETICAL] ✓ COMPLETE
+- [x] Ch167 — Operational Semantics and Program Logics
+- [x] Ch168 — CompCert
+- [x] Ch169 — Vellvm and Formalizing LLVM IR
+- [x] Ch170 — Alive2 and Translation Validation
+- [x] Ch171 — The Undef/Poison Story Formally
 
-## Part XXV — Operations, Bindings, and Contribution *(~100 pp, 5 ch)*
-- [ ] Ch172 — Testing in LLVM and MLIR
-- [ ] Ch173 — Debugging the Compiler
-- [ ] Ch174 — Performance Engineering
-- [ ] Ch175 — Language Bindings
-- [ ] Ch176 — Contributing to LLVM
+## Part XXV — Operations, Bindings, and Contribution *(~100 pp, 5 ch)* ✓ COMPLETE
+- [x] Ch172 — Testing in LLVM and MLIR
+- [x] Ch173 — Debugging the Compiler
+- [x] Ch174 — Performance Engineering
+- [x] Ch175 — Language Bindings
+- [x] Ch176 — Contributing to LLVM
 
 ## Appendices
 - [ ] Appendix A — LLVM IR Quick Reference
@@ -260,5 +260,5 @@
 
 ## Stats
 - Total chapters: 176 + 8 appendices = 184 items
-- Completed: 124 / 184
-- Estimated pages written: ~1,980 / ~2195
+- Completed: 176 / 184 (all chapters complete; appendices remaining)
+- Estimated pages written: ~2,770 / ~2,195 (chapters only)
