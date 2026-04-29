@@ -1,5 +1,5 @@
 # Book Progress Checklist
-*Last updated: 2026-04-29 (Part XV all 13 chapters written, including Ch102–Ch104 GPU targets). Read this first after any context compaction.*
+*Last updated: 2026-04-29 (Parts I–XVII complete; Ch119–Ch124 written: compiler-rt Builtins, libunwind, libc++, libc++abi, LLVM-libc, OpenMP Runtimes). Read this first after any context compaction.*
 
 ## Status Legend
 - `[ ]` Not started
@@ -9,9 +9,9 @@
 ---
 
 ## Current Focus
-**Parts I–XV fully written** ✓ (107/184 chapters done, ~1,690 estimated pages)
-**Next up:** Part XVI — JIT, Sanitizers, and Diagnostic Tools (Ch108–Ch118)
-**Batch:** Ch108–Ch118 sequentially (JIT + sanitizer stack)
+**Parts I–XVII fully written** ✓ (124/184 chapters done, ~1,980 estimated pages)
+**Next up:** Part XVIII — Flang (Ch125–Ch128)
+**Batch:** Ch125–Ch128 sequentially (Flang architecture, HLFIR/FIR, OpenMP/OpenACC, Flang codegen/runtime)
 
 ---
 
@@ -152,26 +152,26 @@
 - [x] Ch106 — WebAssembly and BPF
 - [x] Ch107 — Embedded Targets
 
-## Part XVI — JIT, Sanitizers, and Diagnostic Tools *(~210 pp, 11 ch)*
-- [ ] Ch108 — The ORC JIT
-- [ ] Ch109 — JITLink
-- [ ] Ch110 — User-Space Sanitizers
-- [ ] Ch111 — HWASan and MTE
-- [ ] Ch112 — Production Allocators: Scudo and GWP-ASan
-- [ ] Ch113 — Kernel Sanitizers
-- [ ] Ch114 — LibFuzzer and Coverage-Guided Fuzzing
-- [ ] Ch115 — Source-Based Code Coverage
-- [ ] Ch116 — LLDB Architecture
-- [ ] Ch117 — DWARF and Debug Info
-- [ ] Ch118 — BOLT and Post-Link Optimization
+## Part XVI — JIT, Sanitizers, and Diagnostic Tools *(~210 pp, 11 ch)* ✓ COMPLETE
+- [x] Ch108 — The ORC JIT
+- [x] Ch109 — JITLink
+- [x] Ch110 — User-Space Sanitizers
+- [x] Ch111 — HWASan and MTE
+- [x] Ch112 — Production Allocators: Scudo and GWP-ASan
+- [x] Ch113 — Kernel Sanitizers
+- [x] Ch114 — LibFuzzer and Coverage-Guided Fuzzing
+- [x] Ch115 — Source-Based Code Coverage
+- [x] Ch116 — LLDB Architecture
+- [x] Ch117 — DWARF and Debug Info
+- [x] Ch118 — BOLT and Post-Link Optimization
 
-## Part XVII — Runtime Libraries *(~110 pp, 6 ch)*
-- [ ] Ch119 — compiler-rt Builtins
-- [ ] Ch120 — libunwind
-- [ ] Ch121 — libc++
-- [ ] Ch122 — libc++abi
-- [ ] Ch123 — LLVM-libc
-- [ ] Ch124 — OpenMP and Offload Runtimes
+## Part XVII — Runtime Libraries *(~110 pp, 6 ch)* ✓ COMPLETE
+- [x] Ch119 — compiler-rt Builtins
+- [x] Ch120 — libunwind
+- [x] Ch121 — libc++
+- [x] Ch122 — libc++abi
+- [x] Ch123 — LLVM-libc
+- [x] Ch124 — OpenMP and Offload Runtimes
 
 ## Part XVIII — Flang *(~80 pp, 4 ch)*
 - [ ] Ch125 — Flang Architecture and Driver
@@ -260,5 +260,5 @@
 
 ## Stats
 - Total chapters: 176 + 8 appendices = 184 items
-- Completed: 92 / 184
-- Estimated pages written: ~1,438 / ~2195
+- Completed: 124 / 184
+- Estimated pages written: ~1,980 / ~2195
