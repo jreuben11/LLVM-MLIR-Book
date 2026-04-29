@@ -1,5 +1,5 @@
 # Book Progress Checklist
-*Last updated: 2026-04-29 (Part XV Ch95–Ch101 written). Read this first after any context compaction.*
+*Last updated: 2026-04-29 (Part XV all 13 chapters written, including Ch102–Ch104 GPU targets). Read this first after any context compaction.*
 
 ## Status Legend
 - `[ ]` Not started
@@ -9,9 +9,9 @@
 ---
 
 ## Current Focus
-**Parts I–XV Ch95–Ch101 written** ✓ (99/184 chapters done, ~1,550 estimated pages)
-**Next up:** Part XV — Targets Ch102–Ch107 (NVPTX, AMDGPU, SPIR-V, DXIL, WASM/BPF, Embedded)
-**Batch:** Ch102–Ch107 sequentially (GPU/special targets)
+**Parts I–XV fully written** ✓ (107/184 chapters done, ~1,690 estimated pages)
+**Next up:** Part XVI — JIT, Sanitizers, and Diagnostic Tools (Ch108–Ch118)
+**Batch:** Ch108–Ch118 sequentially (JIT + sanitizer stack)
 
 ---
 
@@ -145,12 +145,12 @@
 - [x] Ch99 — The RISC-V Vector Extension (RVV)
 - [x] Ch100 — RISC-V Bit-Manip, Crypto, and Custom Extensions
 - [x] Ch101 — PowerPC, SystemZ, MIPS, SPARC, LoongArch
-- [ ] Ch102 — NVPTX and the CUDA Path
-- [ ] Ch103 — AMDGPU and the ROCm Path
-- [ ] Ch104 — The SPIR-V Backend
-- [ ] Ch105 — DXIL and DirectX Shader Compilation
-- [ ] Ch106 — WebAssembly and BPF
-- [ ] Ch107 — Embedded Targets
+- [x] Ch102 — NVPTX and the CUDA Path
+- [x] Ch103 — AMDGPU and the ROCm Path
+- [x] Ch104 — The SPIR-V Backend
+- [x] Ch105 — DXIL and DirectX Shader Compilation
+- [x] Ch106 — WebAssembly and BPF
+- [x] Ch107 — Embedded Targets
 
 ## Part XVI — JIT, Sanitizers, and Diagnostic Tools *(~210 pp, 11 ch)*
 - [ ] Ch108 — The ORC JIT
