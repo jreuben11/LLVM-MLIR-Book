@@ -1,5 +1,5 @@
 # Book Progress Checklist
-*Last updated: 2026-04-29 (Parts I–XVII complete; Ch119–Ch124 written: compiler-rt Builtins, libunwind, libc++, libc++abi, LLVM-libc, OpenMP Runtimes). Read this first after any context compaction.*
+*Last updated: 2026-04-29 (Parts I–XIX complete, Ch125–Ch136 written). Read this first after any context compaction.*
 
 ## Status Legend
 - `[ ]` Not started
@@ -9,9 +9,9 @@
 ---
 
 ## Current Focus
-**Parts I–XVII fully written** ✓ (124/184 chapters done, ~1,980 estimated pages)
-**Next up:** Part XVIII — Flang (Ch125–Ch128)
-**Batch:** Ch125–Ch128 sequentially (Flang architecture, HLFIR/FIR, OpenMP/OpenACC, Flang codegen/runtime)
+**Parts I–XIX fully written** ✓ (136/184 chapters done, ~2,150 estimated pages)
+**Next up:** Part XX — In-Tree Dialects (Ch137–Ch146)
+**Batch:** Ch137–Ch146 sequentially (Core, Memory, Tensor/Linalg, Affine/SCF, Vector/Sparse, GPU, SPIR-V, HW Vector, LLVM dialect, Async/OpenMP/etc.)
 
 ---
 
@@ -174,20 +174,20 @@
 - [x] Ch124 — OpenMP and Offload Runtimes
 
 ## Part XVIII — Flang *(~80 pp, 4 ch)*
-- [ ] Ch125 — Flang Architecture and Driver
-- [ ] Ch126 — The HLFIR and FIR Dialects
-- [ ] Ch127 — Flang OpenMP and OpenACC
-- [ ] Ch128 — Flang Codegen and Runtime
+- [x] Ch125 — Flang Architecture and Driver
+- [x] Ch126 — The HLFIR and FIR Dialects
+- [x] Ch127 — Flang OpenMP and OpenACC
+- [x] Ch128 — Flang Codegen and Runtime
 
 ## Part XIX — MLIR Foundations *(~150 pp, 8 ch)*
-- [ ] Ch129 — MLIR Philosophy
-- [ ] Ch130 — MLIR IR Structure
-- [ ] Ch131 — The Type and Attribute Systems
-- [ ] Ch132 — Defining Dialects with ODS
-- [ ] Ch133 — Op Interfaces and Traits
-- [ ] Ch134 — The MLIR C++ API
-- [ ] Ch135 — PDL and PDLL
-- [ ] Ch136 — MLIR Bytecode and Serialization
+- [x] Ch129 — MLIR Philosophy
+- [x] Ch130 — MLIR IR Structure
+- [x] Ch131 — The Type and Attribute Systems
+- [x] Ch132 — Defining Dialects with ODS
+- [x] Ch133 — Op Interfaces and Traits
+- [x] Ch134 — The MLIR C++ API
+- [x] Ch135 — PDL and PDLL
+- [x] Ch136 — MLIR Bytecode and Serialization
 
 ## Part XX — In-Tree Dialects *(~190 pp, 10 ch)*
 - [ ] Ch137 — Core Dialects
