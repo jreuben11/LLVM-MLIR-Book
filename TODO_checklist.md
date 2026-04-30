@@ -255,8 +255,8 @@
 ## Part XXVII — Mathematical Foundations and Verified Systems *(~120 pp, 6 ch)* [THEORETICAL]
 - [x] Ch184 — Proof Assistant Internals: Lean 4, Coq/Rocq, and Isabelle/HOL
 - [x] Ch185 — Mathematical Logic and Model Theory for Compiler Engineers
-- [ ] Ch186 — Verified Hardware: CHERI Capabilities and the seL4 Microkernel
-- [ ] Ch187 — Commutative Algebra and Its Applications in Compilation
+- [x] Ch186 — Verified Hardware: CHERI Capabilities and the seL4 Microkernel
+- [x] Ch187 — Commutative Algebra and Its Applications in Compilation
 - [ ] Ch188 — Category Theory for Compiler Engineers
 - [ ] Ch189 — Denotational Semantics and Domain Theory
 
