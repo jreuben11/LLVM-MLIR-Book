@@ -261,9 +261,9 @@
 - [x] Ch189 — Denotational Semantics and Domain Theory
 
 ## Part XXVIII — Language Ecosystems, Emerging Targets, and Engineering Practice *(~86 pp, 7 ch)*
-- [ ] Ch190 — CIRCT: Circuit IR Compilers and Tools
-- [ ] Ch191 — Quantum Compilation: QIR, QUIR, and MLIR Quantum Dialects
-- [ ] Ch192 — Swift SIL: Ownership, Optimization, and Influence on MLIR
+- [x] Ch190 — CIRCT: Circuit IR Compilers and Tools
+- [x] Ch191 — Quantum Compilation: QIR, QUIR, and MLIR Quantum Dialects
+- [x] Ch192 — Swift SIL: Ownership, Optimization, and Influence on MLIR
 - [ ] Ch193 — Julia: Type-Inference-Driven LLVM Specialization
 - [ ] Ch194 — Zig: Comptime Metaprogramming and LLVM IR Generation
 - [ ] Ch195 — Safety-Critical Toolchain Qualification: DO-178C, ISO 26262, and Ferrocene
