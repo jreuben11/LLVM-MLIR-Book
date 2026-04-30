@@ -6,9 +6,72 @@
 
 ---
 
-A ~3,000-page expert reference for the LLVM compiler ecosystem. 182 chapters and 8 appendices across 26 parts. Beyond the LLVM/MLIR/XLA/Clang implementation, the book covers the theoretical foundations of compilation (Dragon Book / Cooper-Torczon), modern type theory (Pierce's TAPL / Harper's PFPL), the polyhedral model derived from Presburger arithmetic, formal verification of compilers (CompCert, Vellvm, Alive2), and the Rust compiler ecosystem including push-button program verification tools.
+## About This Book
 
-Practical chapters are verified against LLVM 22.1.x (`clang --version` → `22.x`). Theoretical chapters are anchored to the canonical literature cited per-chapter. All Rust code targets Edition 2024 (Rust 1.85+).
+~2,300 pages of expert-level material spanning 182 chapters and 8 appendices across 26 parts. The book is organised around **five structural arcs**:
+
+1. **LLVM and Clang implementation** — the compiler infrastructure itself: LLVM IR, SelectionDAG, GlobalISel, the backend and target ports, LTO/ThinLTO, the linker (LLD), JIT (ORC/JITLink), sanitizers, BOLT, runtime libraries, and Clang's full internals from driver through Sema, CodeGen, AST, modules, and the C++ ABI.
+2. **Compiler theory** (Part II, ~120 pp) — lexical analysis, parsing theory, SSA construction, the lattice-based dataflow framework, and classical optimization theory. Anchored to Aho/Lam/Sethi/Ullman (*Dragon Book* 2e), Cooper & Torczon (*Engineering a Compiler* 3e), Appel (*Modern Compiler Implementation*), and Muchnick.
+3. **Type theory** (Part III, ~80 pp) — lambda calculus, System F, Hindley-Milner and Algorithm W, dependent types (Martin-Löf / CoC), linear and affine types, refinement types, and a capstone chapter mapping theory to LLVM and MLIR. Anchored to Pierce (*TAPL*, *ATTAPL*), Harper (*PFPL*), Mitchell, and Reynolds.
+4. **Polyhedral model and MLIR** — polyhedral theory from Presburger arithmetic through the Pluto scheduling algorithm and CLooG code generation (Part XI, ~80 pp, anchored to Bondhugula's PhD thesis, Feautrier's papers, Verdoolaege's ISL papers, and Grosser et al.); followed by Polly (Part XII) and the entire MLIR stack: foundations, in-tree dialects, transformations, XLA/OpenXLA, and production deployment (Parts XIX–XXIII, ~730 pp total).
+5. **Verified compilation and ecosystem frontiers** — formal semantics, CompCert, Vellvm, Alive2, and the undef/poison story (Part XXIV, ~110 pp, anchored to Leroy's CompCert papers, Zhao/Zdancewic/Nagarakatte on Vellvm, and Lopes/Lee/Hur on Alive2); plus Part XXVI (see below).
+
+---
+
+## Scope
+
+**In scope:** Everything listed above, plus four theoretical pillars (Parts II, III, XI, XXIV), the rustc compiler internals, the Rust compiler ecosystem (inkwell, llvm-sys, melior, gimli, Burn, CubeCL), LLVM/MLIR for AI compilation, AI-guided compilation (MLGO, autotuners, LLM-assisted), formal verification tools in practice (Dafny, Verus, F\*, HACL\*, Kani, TLA+, Flux, LLM provers), and language tooling (Logos, Pest, LALRPOP, Rowan, Chumsky, Winnow, ANTLR4, TreeSitter).
+
+**Out of scope:** Proof-assistant internals (Coq/Lean/Isabelle internals are referenced, not derived); full model theory and mathematical logic beyond what polyhedral and type-theory chapters need; verified hardware (CHERI, seL4 hardware extensions); pure commutative algebra.
+
+---
+
+## Part XXVI — Ecosystem and Frontiers *(added April 2026)*
+
+Six chapters added beyond the original 176:
+
+| Ch | Title | Key topics |
+|----|-------|------------|
+| 177 | rustc: Architecture, MIR, and Codegen Backends | rustc pipeline, MIR, Miri, Polonius, a-mir-formality, rustc_codegen_llvm, Cranelift, GCC backend |
+| 178 | The Rust Compiler Ecosystem | llvm-sys, inkwell, melior, pliron, Calyxir, object, gimli, addr2line, ena, rust-cuda, Burn, CubeCL |
+| 179 | LLVM/MLIR for AI: The Full Stack | torch.export → StableHLO → MLIR → target ISA; key dialects, quantization, IREE, TFLite, TensorRT |
+| 180 | AI-Guided Compilation | MLGO RL inliner, Ansor/AutoTVM, IREE tile selection, Triton autotuner, LLM-assisted compiler dev |
+| 181 | Formal Verification in Practice | Dafny, Verus, F\*, HACL\*, Kani, TLA+, CBMC, Z3/CVC5, α,β-CROWN, Flux, Lean Copilot |
+| 182 | Language Tooling: Parsers, Lexers, and Syntax Trees | Logos, Pest, Winnow, Chumsky, LALRPOP, Rowan, ANTLR4, TreeSitter; decision guide by use case |
+| 183 | Modern C++ for Compiler Development: C++23, Contracts, and Reflection | LLVM coding standards; C++20 in LLVM today; C++23 `std::expected`/`mdspan`/deducing-`this`; C++26 Contracts (P2900); C++26 Static Reflection (P2996); pattern matching (P2688); C++/Rust boundary |
+
+All Rust code in Part XXVI targets **Edition 2024** (Rust 1.85+, `edition = "2024"` in every `Cargo.toml`).
+
+---
+
+## Estimated Page Distribution
+
+| Volume | Parts | Pages |
+|--------|-------|-------|
+| Vol 1 — Foundations and Theory | I, II, III, IX, XI | ~445 pp |
+| Vol 2 — LLVM Core | IV, X, XII–XVI | ~1,115 pp |
+| Vol 3 — Clang and Runtimes | V–VIII, XVII–XVIII | ~870 pp |
+| Vol 4 — MLIR and ML Compilation | XIX–XXIII | ~730 pp |
+| Vol 5 — Verified Compilation + Operations + Ecosystem + Appendices | XXIV–XXVI + A–H | ~413 pp |
+| **Total** | **26 parts + 8 appendices** | **~3,574 pp target** |
+
+The consolidated single-set total is **~2,303 pages** (theoretical chapters at ~20 pp each, practical chapters at ~12 pp each).
+
+---
+
+## Audience and Prerequisites
+
+Expert audience. Assumed: C++ proficiency, familiarity with compilers at the level of having used Clang/GCC and read assembly output. Not assumed: prior LLVM API experience, type theory, or formal methods. The theoretical parts (II, III, XI, XXIV) build from first principles while keeping an eye on how the theory maps to concrete LLVM and MLIR code.
+
+---
+
+## Verification Methodology
+
+**Practical chapters** (Parts I, IV–X, XII–XVIII, XIX–XXIII, XXV): all code verified against LLVM 22.1.x (`clang --version` → `22.x`; `llvm-config --version` → `22.x`). Source file cross-references use paths valid in the LLVM 22 monorepo. Code is emitted and checked with `clang -emit-llvm -S` or `mlir-opt` as appropriate.
+
+**Theoretical chapters** (Parts II, III, XI, XXIV): verified against the canonical literature cited per-chapter (Dragon Book, TAPL/PFPL, Bondhugula thesis, CompCert/Vellvm/Alive2 papers). No LLVM toolchain verification is applicable or attempted.
+
+---
 
 **License:** [CC BY 4.0](LICENSE) · **Copyright:** © 2026 [jreuben11](https://github.com/jreuben11)
 
@@ -317,7 +380,7 @@ Practical chapters are verified against LLVM 22.1.x (`clang --version` → `22.x
 | 175 | [Language Bindings](chapters/part-25-operations-contribution/ch175-language-bindings.md) |
 | 176 | [Contributing to LLVM](chapters/part-25-operations-contribution/ch176-contributing-to-llvm.md) |
 
-### Part XXVI — Ecosystem and Frontiers *(~94 pp)*
+### Part XXVI — Ecosystem and Frontiers *(~108 pp)*
 
 | # | Chapter |
 |---|---------|
@@ -327,6 +390,7 @@ Practical chapters are verified against LLVM 22.1.x (`clang --version` → `22.x
 | 180 | [AI-Guided Compilation](chapters/part-26-ecosystem-frontiers/ch180-ai-guided-compilation.md) |
 | 181 | [Formal Verification in Practice](chapters/part-26-ecosystem-frontiers/ch181-formal-verification-in-practice.md) |
 | 182 | [Language Tooling: Parsers, Lexers, and Syntax Trees](chapters/part-26-ecosystem-frontiers/ch182-language-tooling-parsers-lexers-syntax-trees.md) |
+| 183 | [Modern C++ for Compiler Development: C++23, Contracts, and Reflection](chapters/part-26-ecosystem-frontiers/ch183-modern-cpp-for-compiler-development.md) |
 
 ---
 

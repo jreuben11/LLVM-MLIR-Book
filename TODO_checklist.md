@@ -1,5 +1,5 @@
 # Book Progress Checklist
-*Last updated: 2026-04-29 (Part XXVI in progress — Ch181 written, 1 chapter remains: Ch182). Read this first after any context compaction.*
+*Last updated: 2026-04-30 (Part XXVI complete — all 7 chapters Ch177–Ch183 written). All 190 items complete.*
 
 ## Status Legend
 - `[ ]` Not started
@@ -9,9 +9,8 @@
 ---
 
 ## Current Focus
-**Part XXVI — Ecosystem and Frontiers** (6 new chapters, Ch177–Ch182)
-- 184/184 original items complete; 6 new chapters planned, 5 written (Ch177, Ch178, Ch179, Ch180, Ch181)
-- Write sequentially within pairs: (Ch177, Ch178) → (Ch179, Ch180) → (Ch181, Ch182)
+**Part XXVI — Ecosystem and Frontiers** (7 new chapters, Ch177–Ch183) — COMPLETE
+- All 190 items written (Ch177–Ch183 all complete as of 2026-04-30)
 
 ---
 
@@ -241,13 +240,14 @@
 - [x] Ch175 — Language Bindings
 - [x] Ch176 — Contributing to LLVM
 
-## Part XXVI — Ecosystem and Frontiers *(~94 pp, 6 ch)*
+## Part XXVI — Ecosystem and Frontiers *(~108 pp, 7 ch)*
 - [x] Ch177 — rustc: Architecture, MIR, and Codegen Backends
 - [x] Ch178 — The Rust Compiler Ecosystem
 - [x] Ch179 — LLVM/MLIR for AI: The Full Stack
 - [x] Ch180 — AI-Guided Compilation
 - [x] Ch181 — Formal Verification in Practice
-- [ ] Ch182 — Language Tooling: Parsers, Lexers, and Syntax Trees
+- [x] Ch182 — Language Tooling: Parsers, Lexers, and Syntax Trees
+- [x] Ch183 — Modern C++ for Compiler Development: C++23, Contracts, and Reflection
 
 ### Chapter Plans
 
@@ -340,6 +340,6 @@
 ---
 
 ## Stats
-- Total chapters: 182 + 8 appendices = 190 items
-- Completed: 188 / 190 (Ch177-Ch181 written 2026-04-29; 1 new Part XXVI chapter pending: Ch182)
-- Estimated pages written: ~2,900 (original) + ~94 (Part XXVI target) = ~2,994 total target
+- Total chapters: 183 + 8 appendices = 191 items
+- Completed: 191 / 191 (Ch183 written 2026-04-30 — all chapters complete)
+- Estimated pages written: ~2,900 (original) + ~108 (Part XXVI actual) = ~3,008 total
