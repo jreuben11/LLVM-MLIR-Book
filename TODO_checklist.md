@@ -1,5 +1,5 @@
 # Book Progress Checklist
-*Last updated: 2026-04-30 (Part XXVII planned — 4 new theoretical chapters Ch184–Ch187). 191 items complete; 4 new chapters planned, not yet written.*
+*Last updated: 2026-04-30 (Parts XXVII–XXVIII planned — 13 new chapters Ch184–Ch196). 191 items complete; 13 new chapters planned, not yet written.*
 
 ## Status Legend
 - `[ ]` Not started
@@ -9,9 +9,11 @@
 ---
 
 ## Current Focus
-**Part XXVII — Mathematical Foundations and Verified Systems** (4 new theoretical chapters, Ch184–Ch187)
+**Parts XXVII–XXVIII — Mathematical Foundations + Language Ecosystems** (13 new chapters, Ch184–Ch196)
 - Part XXVI complete (Ch177–Ch183 all written and committed)
-- Next: write Ch184–Ch187 sequentially (all are theoretical, no inter-part cross-ref conflicts)
+- Part XXVII: 6 theoretical chapters Ch184–Ch189 (write sequentially — each builds on prior)
+- Part XXVIII: 7 practical chapters Ch190–Ch196 (can parallelize within the part after Ch184–189 complete)
+- Recommended order: Ch184 → Ch185 → Ch186 → Ch187 → Ch188 → Ch189 → Ch190–Ch196 (parallel)
 
 ---
 
@@ -250,11 +252,22 @@
 - [x] Ch182 — Language Tooling: Parsers, Lexers, and Syntax Trees
 - [x] Ch183 — Modern C++ for Compiler Development: C++23, Contracts, and Reflection
 
-## Part XXVII — Mathematical Foundations and Verified Systems *(~80 pp, 4 ch)* [THEORETICAL]
+## Part XXVII — Mathematical Foundations and Verified Systems *(~120 pp, 6 ch)* [THEORETICAL]
 - [ ] Ch184 — Proof Assistant Internals: Lean 4, Coq/Rocq, and Isabelle/HOL
 - [ ] Ch185 — Mathematical Logic and Model Theory for Compiler Engineers
 - [ ] Ch186 — Verified Hardware: CHERI Capabilities and the seL4 Microkernel
 - [ ] Ch187 — Commutative Algebra and Its Applications in Compilation
+- [ ] Ch188 — Category Theory for Compiler Engineers
+- [ ] Ch189 — Denotational Semantics and Domain Theory
+
+## Part XXVIII — Language Ecosystems, Emerging Targets, and Engineering Practice *(~86 pp, 7 ch)*
+- [ ] Ch190 — CIRCT: Circuit IR Compilers and Tools
+- [ ] Ch191 — Quantum Compilation: QIR, QUIR, and MLIR Quantum Dialects
+- [ ] Ch192 — Swift SIL: Ownership, Optimization, and Influence on MLIR
+- [ ] Ch193 — Julia: Type-Inference-Driven LLVM Specialization
+- [ ] Ch194 — Zig: Comptime Metaprogramming and LLVM IR Generation
+- [ ] Ch195 — Safety-Critical Toolchain Qualification: DO-178C, ISO 26262, and Ferrocene
+- [ ] Ch196 — Cross-Language ABI Interoperability: Binding Generators and UniFFI
 
 ### Chapter Plans
 
@@ -347,6 +360,7 @@
 ---
 
 ## Stats
-- Total chapters: 183 + 8 appendices = 191 items
-- Completed: 191 / 191 (Ch183 written 2026-04-30 — all chapters complete)
+- Total chapters: 196 + 8 appendices = 204 items
+- Completed: 191 / 204 (Ch183 written 2026-04-30; Ch184–Ch196 planned, not yet written)
 - Estimated pages written: ~2,900 (original) + ~108 (Part XXVI actual) = ~3,008 total
+- Planned additional: ~120 pp (Part XXVII) + ~86 pp (Part XXVIII) = ~206 pp remaining
