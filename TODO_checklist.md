@@ -264,10 +264,10 @@
 - [x] Ch190 — CIRCT: Circuit IR Compilers and Tools
 - [x] Ch191 — Quantum Compilation: QIR, QUIR, and MLIR Quantum Dialects
 - [x] Ch192 — Swift SIL: Ownership, Optimization, and Influence on MLIR
-- [ ] Ch193 — Julia: Type-Inference-Driven LLVM Specialization
-- [ ] Ch194 — Zig: Comptime Metaprogramming and LLVM IR Generation
-- [ ] Ch195 — Safety-Critical Toolchain Qualification: DO-178C, ISO 26262, and Ferrocene
-- [ ] Ch196 — Cross-Language ABI Interoperability: Binding Generators and UniFFI
+- [x] Ch193 — Julia: Type-Inference-Driven LLVM Specialization
+- [x] Ch194 — Zig: Comptime Metaprogramming and LLVM IR Generation
+- [x] Ch195 — Safety-Critical Toolchain Qualification: DO-178C, ISO 26262, and Ferrocene
+- [x] Ch196 — Cross-Language ABI Interoperability: Binding Generators and UniFFI
 
 
 ## Appendices
@@ -289,6 +289,5 @@
 
 ## Stats
 - Total chapters: 196 + 8 appendices = 204 items
-- Completed: 191 / 204 (Ch183 written 2026-04-30; Ch184–Ch196 planned, not yet written)
-- Estimated pages written: ~2,900 (original) + ~108 (Part XXVI actual) = ~3,008 total
-- Planned additional: ~120 pp (Part XXVII) + ~86 pp (Part XXVIII) = ~206 pp remaining
+- Completed: 204 / 204 (ALL CHAPTERS COMPLETE — Ch196 written 2026-04-30)
+- Estimated pages written: ~2,900 (original) + ~108 (Part XXVI) + ~120 (Part XXVII) + ~86 (Part XXVIII) = ~3,214 total
