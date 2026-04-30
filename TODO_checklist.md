@@ -1,5 +1,5 @@
 # Book Progress Checklist
-*Last updated: 2026-04-30 (Part XXVI complete — all 7 chapters Ch177–Ch183 written). All 190 items complete.*
+*Last updated: 2026-04-30 (Part XXVII planned — 4 new theoretical chapters Ch184–Ch187). 191 items complete; 4 new chapters planned, not yet written.*
 
 ## Status Legend
 - `[ ]` Not started
@@ -9,8 +9,9 @@
 ---
 
 ## Current Focus
-**Part XXVI — Ecosystem and Frontiers** (7 new chapters, Ch177–Ch183) — COMPLETE
-- All 190 items written (Ch177–Ch183 all complete as of 2026-04-30)
+**Part XXVII — Mathematical Foundations and Verified Systems** (4 new theoretical chapters, Ch184–Ch187)
+- Part XXVI complete (Ch177–Ch183 all written and committed)
+- Next: write Ch184–Ch187 sequentially (all are theoretical, no inter-part cross-ref conflicts)
 
 ---
 
@@ -248,6 +249,12 @@
 - [x] Ch181 — Formal Verification in Practice
 - [x] Ch182 — Language Tooling: Parsers, Lexers, and Syntax Trees
 - [x] Ch183 — Modern C++ for Compiler Development: C++23, Contracts, and Reflection
+
+## Part XXVII — Mathematical Foundations and Verified Systems *(~80 pp, 4 ch)* [THEORETICAL]
+- [ ] Ch184 — Proof Assistant Internals: Lean 4, Coq/Rocq, and Isabelle/HOL
+- [ ] Ch185 — Mathematical Logic and Model Theory for Compiler Engineers
+- [ ] Ch186 — Verified Hardware: CHERI Capabilities and the seL4 Microkernel
+- [ ] Ch187 — Commutative Algebra and Its Applications in Compilation
 
 ### Chapter Plans
 
