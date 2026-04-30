@@ -257,8 +257,8 @@
 - [x] Ch185 — Mathematical Logic and Model Theory for Compiler Engineers
 - [x] Ch186 — Verified Hardware: CHERI Capabilities and the seL4 Microkernel
 - [x] Ch187 — Commutative Algebra and Its Applications in Compilation
-- [ ] Ch188 — Category Theory for Compiler Engineers
-- [ ] Ch189 — Denotational Semantics and Domain Theory
+- [x] Ch188 — Category Theory for Compiler Engineers
+- [x] Ch189 — Denotational Semantics and Domain Theory
 
 ## Part XXVIII — Language Ecosystems, Emerging Targets, and Engineering Practice *(~86 pp, 7 ch)*
 - [ ] Ch190 — CIRCT: Circuit IR Compilers and Tools
