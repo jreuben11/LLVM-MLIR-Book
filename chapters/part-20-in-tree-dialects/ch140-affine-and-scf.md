@@ -481,6 +481,120 @@ In practice: use `affine` when the loop nest comes from a polyhedral source (Pol
 
 ---
 
+## The MLIR Presburger Arithmetic Library
+
+MLIR's affine dialect relies on decidable integer arithmetic to analyze loop bounds, check dependences, verify legality of transformations, and prove loop fusion conditions. Rather than depending on ISL (Integer Set Library, which is a C library with LGPL licensing and external build complexity), MLIR includes its own pure-C++ implementation of Presburger arithmetic in `mlir/lib/Analysis/Presburger/`.
+
+### What Presburger Arithmetic Is
+
+Presburger arithmetic is the first-order theory of the natural numbers with addition (but not multiplication by variables). It is decidable — every statement in Presburger arithmetic can be determined true or false in finite time — unlike Peano arithmetic which includes multiplication and is undecidable (Gödel). For compiler analysis, Presburger arithmetic covers affine expressions and their constraints: `2i + 3j ≤ N`, `i ≥ 0`, `j = 2k + 1`.
+
+The Omega test (Pugh 1991) is the canonical decision procedure for Presburger arithmetic: it performs Fourier-Motzkin elimination extended to handle integer variables with divisibility constraints.
+
+### Core Data Structures
+
+The Presburger library lives in `mlir/include/mlir/Analysis/Presburger/` and `mlir/lib/Analysis/Presburger/`.
+
+**`IntegerRelation`** — the fundamental object: a conjunction of linear constraints over integer variables. Represents a set of integer points satisfying `Ax + b ≥ 0` where `A` is an integer matrix and `b` is a vector. Variables are split into: dimension variables (the set's "free" variables), symbol variables (parameters treated as constants), and division variables (introduced by Omega test for divisibility constraints).
+
+```cpp
+// Create the set { (x, y) | 0 ≤ x ≤ 10, 0 ≤ y ≤ x }
+using namespace mlir::presburger;
+IntegerPolyhedron poly(/*numDims=*/2, /*numSymbols=*/0, /*numLocals=*/0);
+poly.addBound(BoundType::LB, 0, 0);   // x ≥ 0
+poly.addBound(BoundType::UB, 0, 10);  // x ≤ 10
+poly.addBound(BoundType::LB, 1, 0);   // y ≥ 0
+// y ≤ x  →  x - y ≥ 0
+poly.addInequality({1, -1, 0});        // [x coeff, y coeff, constant]
+```
+
+Reference: [`IntegerRelation.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/mlir/include/mlir/Analysis/Presburger/IntegerRelation.h)
+
+**`IntegerPolyhedron`** — a subclass of `IntegerRelation` for sets (not relations). The most commonly used type in affine analyses.
+
+**`PresburgerSet`** — a union of `IntegerPolyhedron` objects. Represents non-convex integer sets that arise from union of affine loop iteration spaces. Operations: `unionWith`, `intersect`, `subtract`, `complement`, `isEqual`, `isSubsetOf`.
+
+**`PWMAFunction`** (Piecewise Multi-Affine Function) — maps points in a domain to values via a piecewise affine function. Used for representing schedule functions in dependence analysis.
+
+**`Matrix<T>`** and `FracMatrix` — integer and rational matrices underlying the constraint representation. `Matrix<MPInt>` for exact integer arithmetic.
+
+**`MPInt`** — MLIR's arbitrary-precision integer type (multi-precision int), similar to `APInt` but designed for Presburger arithmetic operations.
+
+### The Omega Test Implementation
+
+`mlir/lib/Analysis/Presburger/Simplex.cpp` implements the Simplex method for rational feasibility and `IntegerRelation.cpp` implements the Omega test for integer feasibility.
+
+The Omega test steps:
+1. **Dark shadow test**: project out a variable using Fourier-Motzkin; if infeasible, original is infeasible
+2. **Gray shadow test**: check divisibility constraints — for each eliminated variable `x` with `lcm(c_i) * x = expr`, add the divisibility constraint `expr ≡ 0 (mod lcm(c_i))`
+3. **Recursive application** until a decision is reached
+
+```cpp
+// Check if a set is empty (feasible = false means empty)
+PresburgerRelation rel = ...;
+if (rel.isIntegerEmpty()) {
+  // All loop iterations are dependent — fusion is illegal
+}
+```
+
+Key methods:
+- `IntegerRelation::isEmpty()` — Simplex-based rational emptiness (fast)
+- `IntegerRelation::isIntegerEmpty()` — Omega test (exact, slower)
+- `IntegerRelation::findIntegerLexMin()` — find lexicographically minimal integer point
+- `IntegerRelation::computeVolume()` — count integer points (Barvinok's algorithm, approximate)
+
+### Use in Affine Dependence Analysis
+
+`mlir/lib/Analysis/AffineAnalysis.cpp` — `checkMemrefAccessDependence()` uses the Presburger library to determine whether two affine memory accesses in nested loops can access the same memory location:
+
+```cpp
+// Check dependence between two affine.load / affine.store ops
+FlatAffineValueConstraints domain1, domain2;
+// ... populate from loop bounds and access maps
+mlir::DependenceResult result =
+    mlir::checkMemrefAccessDependence(srcAccess, dstAccess, loopDepth,
+                                       &dependenceConstraints,
+                                       &dependenceComponents);
+// result.hasDependence() uses Presburger emptiness test
+```
+
+The dependence polyhedron is constructed by intersecting:
+- The iteration domain of the source loop (from `affine.for` bounds)
+- The iteration domain of the destination loop
+- The equality constraint that the access indices are equal (`i_src = i_dst`)
+
+If this intersection is non-empty (has integer points), a dependence exists.
+
+### Use in Loop Fusion Legality
+
+`mlir/lib/Dialect/Affine/Transforms/LoopFusion.cpp` uses Presburger arithmetic to verify that fusing two loops does not violate data dependences:
+
+```cpp
+// Can we fuse these two loops?
+bool isFusionLegal = mlir::isFusionValid(
+    srcForOp, dstForOp, /*maximalFusion=*/false);
+```
+
+Internally this computes the "fusion prevents dependence satisfaction" condition using `PresburgerSet::subtract` and `isIntegerEmpty`.
+
+### Comparison with ISL
+
+| Property | MLIR Presburger | ISL (Integer Set Library) |
+|----------|----------------|--------------------------|
+| Language | Pure C++ | C library |
+| License | Apache 2.0 | LGPL |
+| Dependency | None (in-tree) | External build |
+| API | C++ value types | C pointer/opaque types |
+| Completeness | Omega test (complete) | Omega test + Barvinok |
+| Parametric integer programming | Limited | Full (PIP algorithm) |
+| Used by | MLIR affine analysis | Polly (cross-ref Ch74) |
+
+The key tradeoff: ISL supports parametric counting (Barvinok's algorithm for exact lattice-point counting in parametric polytopes) and more complete PIP, while MLIR's Presburger library is simpler, has no external dependency, and is sufficient for MLIR's affine analysis needs.
+
+Cross-reference: [Ch70 — Foundations: Polyhedra and Integer Programming](../part-11-polyhedral-theory/ch70-foundations-polyhedra-integer-programming.md) for the mathematical background on Presburger arithmetic and the Omega test.
+
+---
+
 ## Chapter 140 Summary
 
 - The `affine` dialect represents loop nests and memory accesses as polyhedral (affine) expressions, enabling static dependence analysis and powerful loop transformations. `affine.for` requires affine loop bounds; `affine.load`/`affine.store` require affine index maps.
