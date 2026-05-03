@@ -8,25 +8,17 @@
 
 ## About This Book
 
-~2,582 pages of expert-level material spanning 202 chapters and 8 appendices across 29 parts. The book is organised around **five structural arcs**:
+~2,642 pages of expert-level material spanning 207 chapters and 8 appendices across 30 parts. The book is organised around **five structural arcs**:
 
 1. **LLVM and Clang implementation** — the compiler infrastructure itself: LLVM IR, SelectionDAG, GlobalISel, the backend and target ports, LTO/ThinLTO, the linker (LLD), JIT (ORC/JITLink), sanitizers, BOLT, runtime libraries, and Clang's full internals from driver through Sema, CodeGen, AST, modules, and the C++ ABI.
 2. **Compiler theory** (Part II, ~120 pp) — lexical analysis, parsing theory, SSA construction, the lattice-based dataflow framework, and classical optimization theory. Anchored to Aho/Lam/Sethi/Ullman (*Dragon Book* 2e), Cooper & Torczon (*Engineering a Compiler* 3e), Appel (*Modern Compiler Implementation*), and Muchnick.
 3. **Type theory** (Part III, ~80 pp) — lambda calculus, System F, Hindley-Milner and Algorithm W, dependent types (Martin-Löf / CoC), linear and affine types, refinement types, and a capstone chapter mapping theory to LLVM and MLIR. Anchored to Pierce (*TAPL*, *ATTAPL*), Harper (*PFPL*), Mitchell, and Reynolds.
 4. **Polyhedral model and MLIR** — polyhedral theory from Presburger arithmetic through the Pluto scheduling algorithm and CLooG code generation (Part XI, ~80 pp, anchored to Bondhugula's PhD thesis, Feautrier's papers, Verdoolaege's ISL papers, and Grosser et al.); followed by Polly (Part XII) and the entire MLIR stack: foundations, in-tree dialects, transformations, XLA/OpenXLA, and production deployment (Parts XIX–XXIII, ~730 pp total).
-5. **Verified compilation and ecosystem frontiers** — formal semantics, CompCert, Vellvm, Alive2, and the undef/poison story (Part XXIV, ~110 pp, anchored to Leroy's CompCert papers, Zhao/Zdancewic/Nagarakatte on Vellvm, and Lopes/Lee/Hur on Alive2); plus Parts XXVI–XXIX covering the ecosystem, mathematical foundations, language ecosystems, and compiler tooling (see below).
+5. **Verified compilation and ecosystem frontiers** — formal semantics, CompCert, Vellvm, Alive2, and the undef/poison story (Part XXIV, ~110 pp, anchored to Leroy's CompCert papers, Zhao/Zdancewic/Nagarakatte on Vellvm, and Lopes/Lee/Hur on Alive2); plus Parts XXVI–XXX covering the ecosystem, mathematical foundations, language ecosystems, compiler tooling, and AI-first programming language design (see below).
 
 ---
 
-## Scope
-
-**In scope:** Everything listed above, plus the full formal verification ecosystem (Part XXVI Ch181: Dafny, Verus, F\*/HACL\*, Jasmin/libjade, CBMC, Kani, TLA+, Z3/CVC5/Bitwuzla/Kissat, α,β-CROWN, Flux, Lean Copilot, DeepSeek-Prover-V2), proof assistant internals (Part XXVII Ch184: Lean 4, Coq/Rocq, Isabelle/HOL, Agda + Cubical Type Theory), mathematical logic and model theory (Ch185), verified hardware (Ch186: CHERI, Sail, seL4), commutative algebra and category theory for compiler engineers (Ch187–188), denotational semantics (Ch189), hardware and quantum compilation (Ch190–191), language ecosystems (Ch192–196: Swift SIL, Julia, Zig, safety-critical, cross-language ABI), and compiler tooling (Part XXIX: Clang plugins, value tracking, llvm-mca, Linux kernel compilation, binary lifting, Apache TVM).
-
-**Out of scope:** Proof-assistant internals beyond Lean 4, Coq/Rocq, Isabelle/HOL, and Agda (e.g., HOL4, HOL Light, Twelf, Nuprl); neural network architectures themselves (the book covers NN *verification* and *compilation* only); hardware RTL synthesis beyond CIRCT; OS kernel internals beyond what seL4 and Linux kernel compilation require.
-
----
-
-## Parts XXVI–XXIX — Ecosystem, Foundations, and Tooling *(added April 2026)*
+## Parts XXVI–XXX — Ecosystem, Foundations, Tooling, and AI-First PLs *(added April–May 2026)*
 
 Twenty-six chapters added beyond the original 176, organised into four parts:
 
@@ -78,6 +70,16 @@ All Rust code in Part XXVI targets **Edition 2024** (Rust 1.85+, `edition = "202
 | 201 | Binary Lifting to LLVM IR | Remill, McSema, RetDec, CFG recovery, `State` struct model, post-lifting optimisation, Alive2 validation |
 | 202 | Apache TVM: ML Operator Compiler | Relay, TIR/TVMScript, TE API, AutoTVM, Ansor/Meta-Schedule, BYOC, Relax/Unity, microTVM |
 
+### Part XXX — AI-First Programming Language Design *(Ch203–207)*
+
+| Ch | Title | Key topics |
+|----|-------|------------|
+| 203 | AI-First PL Principles and Landscape | 7 design pressures, capability maturity matrix, MoonBit/Pel/Dana, Dafny/Lean/Verus, Unison/Koka/LMQL/DSPy, Stan/Pyro/Gen PPL bridge |
+| 204 | Formal Language Specification for AI-First PLs | 6-layer spec (lexical, EBNF, type rules, operational semantics, metatheory, impl plan), effect rows, security labels, `Dist[A]`, `Code[T]` |
+| 205 | Transformer Model Development PLs | 10 design considerations, Mojo/Dex/Futhark/Exo 2/Burn survey, named tensor dims, first-class AD, MLIR backends, production serving |
+| 206 | Multi-Agent PLs, AI-First SDLC, Security, and Paradigm Failures | Choral/HasChor/EnCompass, Pijul/Nickel/Dagger/NixOS, Pony ref-caps, Jif IFT, 9-row paradigm failures table, Phase 0 sketches |
+| 207 | Reflective Code, Open Problems, and Build Roadmap | Lean 4 MetaM, AlphaProof/AlphaVerus, Maude META-LEVEL, G1–G7 open problems, Phase 0–5 build roadmap, unified synthesis |
+
 ---
 
 ## Estimated Page Distribution
@@ -89,10 +91,10 @@ All Rust code in Part XXVI targets **Edition 2024** (Rust 1.85+, `edition = "202
 | Vol 3 — Clang and Runtimes | V–VIII, XVII–XVIII | ~870 pp |
 | Vol 4 — MLIR and ML Compilation | XIX–XXIII | ~730 pp |
 | Vol 5 — Verified Compilation + Operations + Ecosystem + Appendices | XXIV–XXVI + A–H | ~413 pp |
-| Vol 6 — Mathematical Foundations + Language Ecosystems + Tooling | XXVII–XXIX | ~373 pp |
-| **Total** | **29 parts + 8 appendices** | **~3,946 pp target** |
+| Vol 6 — Mathematical Foundations + Language Ecosystems + Tooling + AI-First PLs | XXVII–XXX | ~433 pp |
+| **Total** | **30 parts + 8 appendices** | **~4,006 pp target** |
 
-The consolidated single-set total is **~2,582 pages** (theoretical chapters at ~20 pp each, practical chapters at ~12 pp each).
+The consolidated single-set total is **~2,642 pages** (theoretical chapters at ~20 pp each, practical chapters at ~12 pp each).
 
 ---
 
@@ -463,6 +465,16 @@ Expert audience. Assumed: C++ proficiency, familiarity with compilers at the lev
 | 201 | [Binary Lifting to LLVM IR](chapters/part-29-compiler-tooling/ch201-binary-lifting-to-llvm-ir.md) |
 | 202 | [Apache TVM: ML Operator Compiler](chapters/part-29-compiler-tooling/ch202-apache-tvm-ml-operator-compiler.md) |
 
+### Part XXX — AI-First Programming Language Design *(~60 pp)*
+
+| # | Chapter |
+|---|---------|
+| 203 | [AI-First PL Principles and Landscape](chapters/part-30-AI-first-PL-design/ch203-ai-first-pl-principles.md) |
+| 204 | [Formal Language Specification for AI-First PLs](chapters/part-30-AI-first-PL-design/ch204-formal-language-specification.md) |
+| 205 | [Transformer Model Development PLs](chapters/part-30-AI-first-PL-design/ch205-transformer-model-development-pls.md) |
+| 206 | [Multi-Agent PLs, AI-First SDLC, Security, and Paradigm Failures](chapters/part-30-AI-first-PL-design/ch206-multi-agent-pls-sdlc-security.md) |
+| 207 | [Reflective Code, Open Problems, and Build Roadmap](chapters/part-30-AI-first-PL-design/ch207-reflective-code-open-problems-roadmap.md) |
+
 ---
 
 ### Appendices *(~95 pp)*
@@ -484,11 +496,11 @@ Expert audience. Assumed: C++ proficiency, familiarity with compilers at the lev
 
 | | |
 |-|-|
-| Parts | 29 |
-| Chapters | 202 |
+| Parts | 30 |
+| Chapters | 207 |
 | Appendices | 8 |
-| Total items | 210 |
-| Estimated pages | ~2,582 |
+| Total items | 215 |
+| Estimated pages | ~2,642 |
 | LLVM version | 22.1.x |
 | Rust edition | 2024 (1.85+) |
 | License | [CC BY 4.0](LICENSE) |
