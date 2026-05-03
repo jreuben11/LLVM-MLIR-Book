@@ -444,6 +444,155 @@ ms_print massif.out.* | head -50
 
 ---
 
+## MLIR IDE Support: mlir-lsp-server and mlir-query
+
+MLIR ships two tools that bring compiler-development-quality IDE support to `.mlir` files and that make IR exploration interactive: `mlir-lsp-server` implements the Language Server Protocol for MLIR textual IR, and `mlir-query` provides command-line pattern search over IR dumps.
+
+### mlir-lsp-server
+
+`mlir-lsp-server` (`mlir/tools/mlir-lsp-server/`) is a Language Server Protocol (LSP) server for `.mlir` files. It provides:
+- **Hover**: hovering over an op shows its ODS documentation, operand types, result types, and attribute constraints
+- **Go to definition**: jumping from an op use to its `%result` definition, from a symbol reference to the symbol op
+- **Find all references**: all uses of a `func.func @foo` symbol or a `%val` SSA value
+- **Code completion**: completing op names, attribute names, and type names based on registered dialects
+- **Inlay hints**: showing inferred types on `%val : !unknown` uses
+- **Diagnostics**: real-time syntax errors and verifier failures as you type (squiggly underlines in the IDE)
+- **Document symbols**: outline view showing all functions, modules, and named symbols
+
+### Architecture
+
+`mlir-lsp-server` is built on LLVM's `mlir/lib/Tools/mlir-lsp-server/` library. Key components:
+
+```
+MLIRLspServerMain
+├── MLIRServer (handles LSP protocol messages)
+│   ├── parseSourceFile() → calls mlir::parseSourceFile()
+│   ├── getHover() → walks the parsed IR to find the op at cursor
+│   ├── getDefinition() → resolves symbol references and SSA defs
+│   └── getCodeActions() → suggests fixes for verifier errors
+└── MlirLspServerSetupFn — user-provided dialect registration
+```
+
+The server re-parses the `.mlir` file on every edit (incremental parsing is a future goal). This is fast enough for files up to ~10k lines.
+
+### Building and Running
+
+```bash
+# Build (included in default LLVM build with LLVM_BUILD_TOOLS=ON)
+cmake --build build --target mlir-lsp-server
+
+# Run standalone (not needed if using VS Code extension)
+mlir-lsp-server --help
+```
+
+The server communicates over stdin/stdout using JSON-RPC (LSP protocol). You never run it directly — the IDE extension manages it.
+
+### VS Code Integration: mlir-vscode
+
+The `mlir-vscode` extension (`mlir/utils/vscode/`) is the official VS Code client:
+
+```bash
+# Install from VS Code marketplace
+code --install-extension mlir-vscode
+
+# Or install from source (for development)
+cd mlir/utils/vscode && npm install && vsce package
+code --install-extension mlir-vscode-*.vsix
+```
+
+Extension settings (`settings.json`):
+```json
+{
+  "mlir.server.path": "/usr/lib/llvm-22/bin/mlir-lsp-server",
+  "mlir.pdll.server.path": "/usr/lib/llvm-22/bin/mlir-pdll-lsp-server",
+  "mlir.tablegen.server.path": "/usr/lib/llvm-22/bin/tblgen-lsp-server"
+}
+```
+
+### Custom Dialect Registration
+
+The default `mlir-lsp-server` binary only knows about in-tree dialects. To get IDE support for your custom dialect, build a custom server:
+
+```cpp
+// tools/my-lsp-server/main.cpp
+#include "mlir/Tools/mlir-lsp-server/MlirLspServerMain.h"
+#include "my-project/Dialect/MyDialect.h"
+
+int main(int argc, char **argv) {
+  mlir::DialectRegistry registry;
+  // Register all in-tree dialects
+  mlir::registerAllDialects(registry);
+  // Register your custom dialect
+  registry.insert<myproject::MyDialect>();
+  // Register any external models needed for verification
+  myproject::registerMyDialectExternalModels(registry);
+
+  return mlir::MlirLspServerMain(argc, argv, registry);
+}
+```
+
+```cmake
+# CMakeLists.txt
+add_llvm_tool(my-lsp-server main.cpp)
+target_link_libraries(my-lsp-server PRIVATE
+  MLIRLspServerLib
+  MyDialect
+  MLIRAllDialects)
+```
+
+Point VS Code at the custom binary:
+```json
+{ "mlir.server.path": "/path/to/build/bin/my-lsp-server" }
+```
+
+### mlir-pdll-lsp-server
+
+`mlir-pdll-lsp-server` (`mlir/tools/mlir-pdll-lsp-server/`) provides LSP support specifically for `.pdll` files (PDLL pattern files, cross-ref Ch135). It understands PDLL's `Pattern`, `Constraint`, and `Rewrite` constructs, provides hover for constraint types, and validates PDLL syntax in real time.
+
+### tblgen-lsp-server
+
+`tblgen-lsp-server` (`mlir/tools/tblgen-lsp-server/`) provides LSP support for `.td` TableGen files — the ODS op definitions, trait definitions, and interface definitions. Hover shows the generated C++ interface; go-to-definition navigates between `def Foo` and its `multiclass` instantiation.
+
+### mlir-query: Command-Line IR Pattern Search
+
+`mlir-query` (`mlir/tools/mlir-query/`) provides a `grep`-like interface for querying MLIR IR. It is to MLIR what `clang-query` is to Clang ASTs.
+
+```bash
+mlir-query module.mlir -c "m hasOpName(\"linalg.generic\")"
+mlir-query module.mlir -c "m isOp<linalg::GenericOp>()"
+```
+
+The query language uses the same matcher DSL as `mlir-opt`'s pattern infrastructure:
+
+```bash
+# Find all ops that have a certain result type
+mlir-query module.mlir \
+  -c 'm hasResultType(isF32Type())'
+
+# Find all ops in a specific region that match a pattern
+mlir-query lowered.mlir \
+  -c 'm allOf(hasOpName("memref.load"), hasParentOp(hasOpName("func.func")))'
+```
+
+`mlir-query` is especially useful for debugging lowering pipelines: run `mlir-opt --print-ir-after-all` to get IR at each stage, then use `mlir-query` to locate specific patterns.
+
+### Practical Workflow
+
+A typical MLIR development session using these tools:
+
+1. Write `.mlir` file in VS Code with `mlir-lsp-server` active — get real-time verifier feedback
+2. Write `.pdll` patterns with `mlir-pdll-lsp-server` — hover shows constraint types
+3. Write ODS definitions in `.td` with `tblgen-lsp-server` — navigate interface inheritance
+4. Use `mlir-query` on IR dumps to find unexpected ops after lowering
+5. Use `mlir-opt --mlir-print-op-on-diagnostic` to print the failing op on verification error
+
+Reference LLVM 22 source links:
+- [`MlirLspServerMain.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/mlir/include/mlir/Tools/mlir-lsp-server/MlirLspServerMain.h)
+- [`mlir-lsp-server/`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/mlir/tools/mlir-lsp-server/)
+- [`mlir-query/`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/mlir/tools/mlir-query/)
+
+---
+
 ## Chapter Summary
 
 - **`--print-before-all`/`--print-after-all`/`--print-changed`**: dump IR at every pass boundary; `--print-changed` is the most useful for narrowing down which pass introduced a bug.

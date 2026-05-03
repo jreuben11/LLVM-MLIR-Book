@@ -284,7 +284,7 @@
 - [x] Ch110 expansion — DataFlowSanitizer (DFSan): taint tracking, shadow memory, dfsan_label API
 - [x] Ch133 expansion — MLIR external models (registerExternalModels, retroactive interface attachment)
 - [x] Ch140 expansion — MLIR Presburger arithmetic library (IntegerPolyhedron, Omega test)
-- [ ] Ch173 expansion — mlir-lsp-server (dialect registration for LSP, mlir-vscode, mlir-query)
+- [x] Ch173 expansion — mlir-lsp-server (dialect registration for LSP, mlir-vscode, mlir-query)
 
 ## Appendices
 - [x] Appendix A — LLVM IR Quick Reference
