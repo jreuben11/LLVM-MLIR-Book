@@ -1111,6 +1111,280 @@ world image-processor {
 
 The `wasm-tools` toolchain generates Wasm component adapters from WIT definitions. LLVM's role is compiling the core Wasm module; the component adapter wraps it. This architecture is the foundation for the WASI 0.2 ecosystem (replacing WASI preview 1's C API).
 
+## WASI: The WebAssembly System Interface
+
+WebAssembly's sandboxed execution model provides security but creates an isolation problem: Wasm modules cannot access the file system, network, clocks, or random numbers without a host-provided API. WASI (WebAssembly System Interface) is the standardized capability-based API for accessing system resources from WebAssembly. It addresses this gap by providing a portable, OS-agnostic interface that any Wasm runtime can implement, enabling programs compiled to Wasm to run portably on servers, embedded systems, and edge devices without browser JavaScript glue.
+
+### WASI Design: Capabilities, Not Ambient Authority
+
+WASI follows the principle of least privilege via capability-based security: a Wasm module only has access to resources explicitly granted by its host. There is no ambient access to the file system — a module must be given a "preopened" directory descriptor to access files. This contrasts sharply with POSIX, where any process can open any path if file-system permissions allow. Under WASI, even if the underlying OS would permit an access, the Wasm runtime denies it unless the caller explicitly granted that capability at startup.
+
+The WASI specification is maintained by the Bytecode Alliance at [`github.com/WebAssembly/WASI`](https://github.com/WebAssembly/WASI). The spec is divided into proposals with independent stabilization tracks, so individual interfaces (e.g., `wasi:sockets`) can advance separately from the core `wasi:filesystem` interface. This modular approach avoids the monolithic versioning problems of POSIX and allows runtimes to implement only the interfaces relevant to their deployment context.
+
+Capability passing in practice: when launching a WASI program with Wasmtime, the host explicitly lists which directories and sockets are accessible:
+
+```bash
+# Grant access to /tmp only; all other paths are denied
+wasmtime --dir=/tmp my_program.wasm
+
+# Grant access to current directory
+wasmtime --dir=. my_program.wasm
+
+# Grant network capabilities (Preview 2 / wasi:sockets)
+wasmtime --tcplisten=127.0.0.1:8080 server.wasm
+```
+
+Inside the Wasm module, file operations that reference paths outside the granted directories return `ENOTCAPABLE` (errno 76), a WASI-specific error code not present in standard POSIX. The Wasm module has no mechanism to escalate privileges — unlike a POSIX process that could call `setuid` if available.
+
+### WASI Preview 1 vs Preview 2
+
+WASI has undergone a major architectural redesign between its two major versions:
+
+**WASI Preview 1** (snapshot-01): the widely-adopted first version, shipped in 2019 and supported by virtually every Wasm runtime today. It defines a flat, POSIX-inspired API surface: `fd_read`, `fd_write`, `fd_seek`, `fd_close`, `path_open`, `path_create_directory`, `clock_time_get`, `random_get`, `proc_exit`, `environ_get`, `args_get`, and around 50 other functions. The API uses raw integer file descriptors and path strings, closely resembling POSIX syscall wrappers. The target triple in Clang is `wasm32-wasi` (now aliased to `wasm32-wasip1` in Clang 22 for clarity).
+
+**WASI Preview 2** (component model-based): a complete redesign using the WebAssembly Component Model and WIT (WebAssembly Interface Types). Instead of a single monolithic import namespace, Preview 2 provides composable, typed interfaces:
+
+| Interface | Description |
+|-----------|-------------|
+| `wasi:filesystem` | File and directory operations with typed error results |
+| `wasi:sockets` | TCP/UDP networking with capability-based socket creation |
+| `wasi:cli` | Command-line arguments, environment, stdin/stdout/stderr |
+| `wasi:random` | Cryptographically secure random number generation |
+| `wasi:clocks` | Wall-clock and monotonic clock access |
+| `wasi:http` | HTTP client and server (incoming/outgoing handler model) |
+
+Resources in Preview 2 are **typed handles** — a `wasi:filesystem/descriptor` is a distinct type from a `wasi:sockets/tcp-socket`, not a raw integer. This enables the Wasm type system to enforce capability safety at the type level. The Clang target triple for Preview 2 is `wasm32-wasip2`.
+
+The transition between Preview 1 and Preview 2 is managed via **adapter modules** — thin shim Wasm modules that translate Preview 1 imports to Preview 2 interfaces at link time, allowing existing Preview 1 programs to run on Preview 2 runtimes without recompilation.
+
+### Clang/LLVM WASI Support
+
+Clang 22 supports both WASI targets with first-class triple support:
+
+```bash
+# WASI Preview 1 — broadly compatible
+clang --target=wasm32-wasip1 -o hello.wasm hello.c
+
+# WASI Preview 2 — component model
+clang --target=wasm32-wasip2 -o hello.wasm hello.c
+```
+
+The **WASI SDK** ([`github.com/WebAssembly/wasi-sdk`](https://github.com/WebAssembly/wasi-sdk)) is the authoritative toolchain distribution: it bundles a specific Clang/LLD/LLVM version, `wasi-libc`, and a sysroot with POSIX-compatible headers. Install and use:
+
+```bash
+export WASI_SDK_PATH=/opt/wasi-sdk
+CC=$WASI_SDK_PATH/bin/clang
+$CC --sysroot=$WASI_SDK_PATH/share/wasi-sysroot --target=wasm32-wasip1 \
+    -o hello.wasm hello.c
+```
+
+**`wasi-libc`** implements the C standard library and a POSIX compatibility layer on top of WASI imports. It provides `stdio.h`, `stdlib.h`, `string.h`, `unistd.h`, `dirent.h`, and `pthread.h` (cooperative threading only — WASI Preview 1 has no preemptive threading). The sysroot layout:
+
+```
+$WASI_SDK_PATH/share/wasi-sysroot/
+├── include/          # POSIX and C standard headers
+└── lib/
+    ├── wasm32-wasi/
+    │   ├── libc.a                         # main C library
+    │   ├── libwasi-emulated-mman.a        # mmap() emulation
+    │   ├── libwasi-emulated-signal.a      # signal() emulation
+    │   └── libwasi-emulated-process-clocks.a
+```
+
+The `libwasi-emulated-*` archives provide optional POSIX extensions (signals, mmap, getpid) that WASI does not natively support, implemented via in-process emulation without actual kernel calls.
+
+**Reactor vs command model**: a WASI command module has a `_start` export (the entry point, like `main`) and is expected to run to completion. A reactor module has an `_initialize` export and exports named functions for repeated calls — suitable for library-style Wasm modules that are instantiated once and called multiple times. The reactor model is selected via:
+
+```bash
+# wasm-ld reactor flag
+/usr/lib/llvm-22/bin/wasm-ld --reactor -o lib.wasm lib.o
+```
+
+The [WebAssembly.cpp](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/llvm/lib/Target/WebAssembly/WebAssemblyISelLowering.cpp) lowering layer handles the ABI differences between command and reactor entry points, including the initialization sequence for `wasi-libc` global constructors.
+
+**WASI socket extensions**: `wasi:sockets` in Preview 2 provides `tcp-socket` and `udp-socket` resource types with capability-based creation. Wasmtime enables them per-program:
+
+```bash
+# Grant TCP listen capability on port 8080
+wasmtime --tcplisten=0.0.0.0:8080 server.wasm
+
+# Grant TCP connect capability (outbound connections only)
+wasmtime --tcpconnect server.wasm
+```
+
+### Running WASI Programs
+
+```bash
+# With Wasmtime (most common WASI runtime)
+wasmtime --dir=. hello.wasm
+
+# With WasmEdge
+wasmedge --dir=. hello.wasm
+
+# With WAMR (WebAssembly Micro Runtime, for embedded)
+iwasm --dir=. hello.wasm
+
+# Cross-compile for WASI and run on any platform
+clang --target=wasm32-wasip1 \
+      --sysroot=$WASI_SDK_PATH/share/wasi-sysroot \
+      -o hello.wasm hello.c
+wasmtime hello.wasm
+```
+
+The portability story: a single `hello.wasm` binary compiled for `wasm32-wasip1` runs identically on Linux, macOS, Windows, and embedded RTOS environments that have a WASI runtime — with no native compilation, no container image, and no OS ABI dependencies.
+
+---
+
+## WasmGC: Garbage-Collected WebAssembly
+
+The WasmGC proposal (W3C WebAssembly Working Group, Phase 4 as of 2024) adds managed memory and typed heap objects to WebAssembly, enabling languages like Kotlin, Dart, OCaml, and Java to compile to Wasm without an embedded GC runtime in linear memory. This is a significant architectural addition: prior to WasmGC, the only way to run a GC language in Wasm was to compile the language runtime itself — including its garbage collector — into the linear memory sandbox, resulting in large binaries and a GC that could not cooperate with the host VM's own GC.
+
+### The Problem WasmGC Solves
+
+Before WasmGC, GC languages targeting Wasm had two unsatisfactory options:
+
+1. **Compile the GC into linear memory**: The JVM, .NET CLR, or a custom GC is compiled to Wasm linear memory. The GC scans the Wasm linear memory for roots and manages a heap within that memory region. This works (Emscripten does it for Java via TeaVM/JWebAssembly) but produces binaries of 5–20 MB even for "hello world" programs, and the GC cannot cooperate with the JavaScript engine's GC — objects held by JS cannot keep Wasm objects alive without explicit root registration.
+
+2. **Use `externref` for opaque references**: The Wasm reference types proposal introduced `externref` (an opaque reference to a host object) and `funcref`. A GC language can store its objects as JS objects and access them via `externref`, but this limits operations to whatever the host exposes through the Wasm import table — no typed field access, no struct layout control.
+
+WasmGC solves both problems: the host VM (browser V8/SpiderMonkey, Wasmtime) knows the layout of every WasmGC object (because the Wasm module declares it), enabling precise GC without conservative scanning, and enabling zero-copy sharing of object references between Wasm and the host.
+
+### WasmGC Type System
+
+WasmGC introduces a rich type system for heap-allocated objects, integrated into the Wasm type section:
+
+**Struct types** define fixed-layout, GC-managed objects:
+
+```wat
+(type $Point (struct
+  (field $x f64)
+  (field $y f64)))
+
+(type $ColoredPoint (sub $Point  ;; subtype of $Point
+  (field $x f64)
+  (field $y f64)
+  (field $color i32)))
+```
+
+**Array types** define typed, GC-managed arrays:
+
+```wat
+(type $IntArray (array (mut i32)))
+(type $RefArray (array (mut (ref null $Point))))
+```
+
+**Reference type hierarchy**: WasmGC establishes a typed reference hierarchy:
+
+| Type | Supertype | Description |
+|------|-----------|-------------|
+| `anyref` | (top) | Any GC reference |
+| `eqref` | `anyref` | References comparable with `ref.eq` |
+| `structref` | `eqref` | Any struct reference |
+| `arrayref` | `eqref` | Any array reference |
+| `i31ref` | `eqref` | Unboxed 31-bit integer as a reference |
+| `(ref $T)` | (per type) | Non-nullable reference to type $T |
+| `(ref null $T)` | (per type) | Nullable reference to type $T |
+| `funcref` | `anyref` | Function reference |
+| `externref` | (top) | Opaque host reference |
+| `noref` | (bottom) | Uninhabited (for null literals) |
+
+**Subtyping**: struct types can declare supertypes, creating a nominal type hierarchy within each Wasm module. This enables virtual dispatch through `ref.cast` (checked downcast) and `ref.test` (instanceof test) without storing vtable pointers in linear memory.
+
+New instructions for WasmGC:
+
+```wat
+;; Allocation
+struct.new $Point (f64.const 1.0) (f64.const 2.0)  ;; allocate and initialize
+struct.new_default $Point                            ;; allocate with zero fields
+
+;; Field access
+struct.get $Point 0                                  ;; read field 0 (x)
+struct.get_s $Point 2                                ;; read field 2, sign-extend (for i8/i16)
+struct.set $Point 1 (f64.const 3.0)                 ;; write field 1 (y)
+
+;; Array operations
+array.new $IntArray (i32.const 0) (i32.const 10)    ;; new array of 10 zeros
+array.new_fixed $IntArray 3 (i32.const 1) (i32.const 2) (i32.const 3)
+array.get $IntArray                                  ;; indexed read
+array.set $IntArray                                  ;; indexed write
+array.len                                            ;; length (no bounds check needed: built-in)
+array.copy $IntArray $IntArray                       ;; bulk copy (analogous to memory.copy)
+
+;; Type testing and casting
+ref.test (ref $Point)                                ;; 1 if top-of-stack is a $Point, else 0
+ref.cast (ref $Point)                                ;; downcast; traps if wrong type
+ref.cast (ref null $Point)                           ;; nullable downcast; returns null if wrong
+br_on_cast $label (ref $Point)                       ;; branch if cast succeeds
+
+;; Miscellaneous
+ref.eq                                               ;; reference equality (for eqref)
+ref.i31 (i32.const 42)                               ;; box integer into i31ref
+i31.get_s                                            ;; unbox i31ref (sign-extend)
+```
+
+### Clang/LLVM WasmGC Support
+
+WasmGC support in LLVM is experimental and evolving. The current state in LLVM 22:
+
+- The `wasm32-unknown-unknown` target with `-mreference-types` enables the reference types proposal; the `--experimental-wasm-gc` flag (available since LLVM 18) enables WasmGC struct and array type emission.
+- Address space 10 (`externref`) and address space 20 (`funcref`) in LLVM IR map to the corresponding Wasm reference types, as documented in the type mapping table in §106.3.2.
+- LLD's WasmGC-aware linker: merges struct type sections across input objects, deduplicates type definitions by structural equivalence (two modules defining identical struct layouts share a single type index in the linked output), and emits the type section before function section per the Wasm binary spec.
+- WasmGC instruction emission is implemented in [`llvm/lib/Target/WebAssembly/`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/llvm/lib/Target/WebAssembly/WebAssemblyISelLowering.cpp) — the `WebAssemblyTargetLowering` class handles `ref.cast`, `ref.test`, `struct.get/set`, and `array.get/set` operations.
+- Full frontend support for compiling arbitrary C/C++ to WasmGC structs is not yet complete in LLVM 22; the primary consumers of WasmGC are Kotlin and Dart, which have their own compiler frontends that emit WasmGC instructions directly.
+
+**Kotlin/Wasm** is the most mature WasmGC production consumer:
+
+```kotlin
+// Kotlin class → WasmGC struct type
+class Point(val x: Double, val y: Double) {
+    fun distanceTo(other: Point): Double =
+        Math.sqrt((x - other.x).pow(2) + (y - other.y).pow(2))
+}
+```
+
+The Kotlin K2 compiler (Kotlin 1.9.20+) compiles each Kotlin class to a WasmGC struct type. Kotlin's class hierarchy maps to WasmGC's subtyping: `Any` becomes the root struct type, every Kotlin class becomes a WasmGC struct subtype of its superclass's struct type. Virtual method dispatch uses Wasm `ref.cast` + `call_ref` (indirect call through a typed function reference).
+
+```bash
+# Compile Kotlin to WasmGC
+kotlinc-wasm -Xwasm-use-new-exception-proposal Main.kt -output main.wasm
+```
+
+**Dart/Wasm**: Flutter Web now compiles Dart to WasmGC via `dart compile wasm`:
+
+```bash
+dart compile wasm lib/main.dart -o main.wasm
+# Produces: main.wasm (WasmGC) + main.mjs (JS interop glue)
+```
+
+Dart's WasmGC backend maps Dart classes to struct types and uses `i31ref` for small integer optimization (avoiding heap allocation for Smi-sized integers, as in V8's JavaScript engine). The Dart GC cooperates fully with V8's GC when running in Chrome — a Dart object referenced by a JavaScript value is kept alive by V8's tracing GC without any explicit root registration.
+
+**Java/Wasm**: Multiple projects compile Java to WasmGC: TeaVM (mature, widely used), J2Wasm (Google), and GraalWasm. The Java object model maps naturally to WasmGC: each class becomes a struct type (fields as struct fields), interfaces are implemented via `ref.cast` and interface dispatch tables stored as struct fields, and the Java `Object` base class maps to the WasmGC struct type root.
+
+### WasmGC and the Host GC
+
+The architectural advantage of WasmGC over linear-memory GC: the Wasm module's objects are visible to the host VM's garbage collector. In a browser:
+
+- V8 (Chrome), SpiderMonkey (Firefox), and JavaScriptCore (Safari) all implement WasmGC natively
+- A Kotlin object reference held by a JavaScript variable keeps the Kotlin WasmGC struct alive via the browser's tracing GC — no explicit GC root registration or weak reference tables needed
+- The browser GC can collect Kotlin objects that are unreachable from both Kotlin code and JavaScript code in a single GC cycle, avoiding the "cross-heap reference" complexity of the linear-memory approach
+- Memory pressure from WasmGC objects is visible to the host VM's GC heuristics (heap size, allocation rate), allowing the GC to trigger collection at appropriate times rather than relying on the Wasm module's internal GC logic
+
+For Wasmtime (server-side), WasmGC uses the runtime's reference-counted or tracing GC depending on the Wasmtime version. Wasmtime's WasmGC support (enabled via `--wasm gc` flag) uses a deferred reference counting scheme with cycle detection.
+
+### WasmGC Binary Size Impact
+
+WasmGC programs are dramatically smaller than their linear-memory-GC equivalents:
+
+| Language | Linear-memory GC | WasmGC | Reduction |
+|----------|------------------|--------|-----------|
+| Kotlin "hello world" | ~8 MB | ~100 KB | 80× |
+| Dart "hello world" | ~6 MB | ~50 KB | 120× |
+| Java (TeaVM) "hello world" | ~200 KB | ~40 KB | 5× |
+
+The size reduction comes from eliminating the GC runtime itself from the binary — the host VM provides GC services, so the Wasm binary contains only the application logic and the language runtime's non-GC code (standard library, type system machinery).
+
+---
+
 ## Chapter 106 Summary
 
 - **WebAssembly** is a stack machine with structured control flow; LLVM's Wasm backend uniquely must convert register-based MachineIR into stack form via the `WebAssemblyRegStackify` and `WebAssemblyExplicitLocals` passes.
