@@ -8,27 +8,29 @@
 
 ## About This Book
 
-~2,300 pages of expert-level material spanning 182 chapters and 8 appendices across 26 parts. The book is organised around **five structural arcs**:
+~2,582 pages of expert-level material spanning 202 chapters and 8 appendices across 29 parts. The book is organised around **five structural arcs**:
 
 1. **LLVM and Clang implementation** — the compiler infrastructure itself: LLVM IR, SelectionDAG, GlobalISel, the backend and target ports, LTO/ThinLTO, the linker (LLD), JIT (ORC/JITLink), sanitizers, BOLT, runtime libraries, and Clang's full internals from driver through Sema, CodeGen, AST, modules, and the C++ ABI.
 2. **Compiler theory** (Part II, ~120 pp) — lexical analysis, parsing theory, SSA construction, the lattice-based dataflow framework, and classical optimization theory. Anchored to Aho/Lam/Sethi/Ullman (*Dragon Book* 2e), Cooper & Torczon (*Engineering a Compiler* 3e), Appel (*Modern Compiler Implementation*), and Muchnick.
 3. **Type theory** (Part III, ~80 pp) — lambda calculus, System F, Hindley-Milner and Algorithm W, dependent types (Martin-Löf / CoC), linear and affine types, refinement types, and a capstone chapter mapping theory to LLVM and MLIR. Anchored to Pierce (*TAPL*, *ATTAPL*), Harper (*PFPL*), Mitchell, and Reynolds.
 4. **Polyhedral model and MLIR** — polyhedral theory from Presburger arithmetic through the Pluto scheduling algorithm and CLooG code generation (Part XI, ~80 pp, anchored to Bondhugula's PhD thesis, Feautrier's papers, Verdoolaege's ISL papers, and Grosser et al.); followed by Polly (Part XII) and the entire MLIR stack: foundations, in-tree dialects, transformations, XLA/OpenXLA, and production deployment (Parts XIX–XXIII, ~730 pp total).
-5. **Verified compilation and ecosystem frontiers** — formal semantics, CompCert, Vellvm, Alive2, and the undef/poison story (Part XXIV, ~110 pp, anchored to Leroy's CompCert papers, Zhao/Zdancewic/Nagarakatte on Vellvm, and Lopes/Lee/Hur on Alive2); plus Part XXVI (see below).
+5. **Verified compilation and ecosystem frontiers** — formal semantics, CompCert, Vellvm, Alive2, and the undef/poison story (Part XXIV, ~110 pp, anchored to Leroy's CompCert papers, Zhao/Zdancewic/Nagarakatte on Vellvm, and Lopes/Lee/Hur on Alive2); plus Parts XXVI–XXIX covering the ecosystem, mathematical foundations, language ecosystems, and compiler tooling (see below).
 
 ---
 
 ## Scope
 
-**In scope:** Everything listed above, plus four theoretical pillars (Parts II, III, XI, XXIV), the rustc compiler internals, the Rust compiler ecosystem (inkwell, llvm-sys, melior, gimli, Burn, CubeCL), LLVM/MLIR for AI compilation, AI-guided compilation (MLGO, autotuners, LLM-assisted), formal verification tools in practice (Dafny, Verus, F\*, HACL\*, Kani, TLA+, Flux, LLM provers), and language tooling (Logos, Pest, LALRPOP, Rowan, Chumsky, Winnow, ANTLR4, TreeSitter).
+**In scope:** Everything listed above, plus the full formal verification ecosystem (Part XXVI Ch181: Dafny, Verus, F\*/HACL\*, Jasmin/libjade, CBMC, Kani, TLA+, Z3/CVC5/Bitwuzla/Kissat, α,β-CROWN, Flux, Lean Copilot, DeepSeek-Prover-V2), proof assistant internals (Part XXVII Ch184: Lean 4, Coq/Rocq, Isabelle/HOL, Agda + Cubical Type Theory), mathematical logic and model theory (Ch185), verified hardware (Ch186: CHERI, Sail, seL4), commutative algebra and category theory for compiler engineers (Ch187–188), denotational semantics (Ch189), hardware and quantum compilation (Ch190–191), language ecosystems (Ch192–196: Swift SIL, Julia, Zig, safety-critical, cross-language ABI), and compiler tooling (Part XXIX: Clang plugins, value tracking, llvm-mca, Linux kernel compilation, binary lifting, Apache TVM).
 
-**Out of scope:** Proof-assistant internals (Coq/Lean/Isabelle internals are referenced, not derived); full model theory and mathematical logic beyond what polyhedral and type-theory chapters need; verified hardware (CHERI, seL4 hardware extensions); pure commutative algebra.
+**Out of scope:** Proof-assistant internals beyond Lean 4, Coq/Rocq, Isabelle/HOL, and Agda (e.g., HOL4, HOL Light, Twelf, Nuprl); neural network architectures themselves (the book covers NN *verification* and *compilation* only); hardware RTL synthesis beyond CIRCT; OS kernel internals beyond what seL4 and Linux kernel compilation require.
 
 ---
 
-## Part XXVI — Ecosystem and Frontiers *(added April 2026)*
+## Parts XXVI–XXIX — Ecosystem, Foundations, and Tooling *(added April 2026)*
 
-Six chapters added beyond the original 176:
+Twenty-six chapters added beyond the original 176, organised into four parts:
+
+### Part XXVI — Ecosystem and Frontiers *(Ch177–183)*
 
 | Ch | Title | Key topics |
 |----|-------|------------|
@@ -36,11 +38,45 @@ Six chapters added beyond the original 176:
 | 178 | The Rust Compiler Ecosystem | llvm-sys, inkwell, melior, pliron, Calyxir, object, gimli, addr2line, ena, rust-cuda, Burn, CubeCL |
 | 179 | LLVM/MLIR for AI: The Full Stack | torch.export → StableHLO → MLIR → target ISA; key dialects, quantization, IREE, TFLite, TensorRT |
 | 180 | AI-Guided Compilation | MLGO RL inliner, Ansor/AutoTVM, IREE tile selection, Triton autotuner, LLM-assisted compiler dev |
-| 181 | Formal Verification in Practice | Dafny, Verus, F\*, HACL\*, Kani, TLA+, CBMC, Z3/CVC5, α,β-CROWN, Flux, Lean Copilot |
+| 181 | Formal Verification in Practice | Dafny, Verus, F\*/HACL\*, Jasmin/libjade, CBMC, Kani, TLA+, Z3/CVC5/Bitwuzla/Kissat, α,β-CROWN, Marabou, Flux, Lean Copilot, LeanDojo, DeepSeek-Prover-V2, SV-COMP 2026 |
 | 182 | Language Tooling: Parsers, Lexers, and Syntax Trees | Logos, Pest, Winnow, Chumsky, LALRPOP, Rowan, ANTLR4, TreeSitter; decision guide by use case |
 | 183 | Modern C++ for Compiler Development: C++23, Contracts, and Reflection | LLVM coding standards; C++20 in LLVM today; C++23 `std::expected`/`mdspan`/deducing-`this`; C++26 Contracts (P2900); C++26 Static Reflection (P2996); pattern matching (P2688); C++/Rust boundary |
 
 All Rust code in Part XXVI targets **Edition 2024** (Rust 1.85+, `edition = "2024"` in every `Cargo.toml`).
+
+### Part XXVII — Mathematical Foundations and Verified Systems *(Ch184–189)* `[THEORETICAL]`
+
+| Ch | Title | Key topics |
+|----|-------|------------|
+| 184 | Proof Assistant Internals: Lean 4, Coq/Rocq, Isabelle/HOL, and Agda | Lean 4 LCNF + kernel; Coq pCIC + extraction; Isabelle LCF + Sledgehammer; Agda cubical type theory, `PathP`, `ua`, HITs, `agda2hs` |
+| 185 | Mathematical Logic and Model Theory for Compiler Engineers | Natural deduction, sequent calculus, Gödel incompleteness, DPLL(T), SMT theory stack, model theory |
+| 186 | Verified Hardware: CHERI Capabilities and the seL4 Microkernel | CHERI ISA, Morello, CHERI-LLVM, Sail, seL4 three-level refinement, AutoCorres, CAmkES |
+| 187 | Commutative Algebra and Its Applications in Compilation | Polynomial rings, Gröbner bases, integer programming, scheduling, loop transformations |
+| 188 | Category Theory for Compiler Engineers | Functors, natural transformations, adjunctions, monads, fibrations, categorical semantics |
+| 189 | Denotational Semantics and Domain Theory | Scott domains, CPOs, fixed points, continuation semantics, process algebras (CCS, CSP) |
+
+### Part XXVIII — Language Ecosystems and Engineering Practice *(Ch190–196)*
+
+| Ch | Title | Key topics |
+|----|-------|------------|
+| 190 | CIRCT: Circuit IR Compilers and Tools | FIRRTL, Calyx, ArcSim, DC/LEC workflows, LLHD dialect |
+| 191 | Quantum Compilation: QIR, QUIR, and MLIR Quantum Dialects | QIR (LLVM-based), QUIR (IBM), `quake`/`cc` dialects, optimization passes, Q# pipeline |
+| 192 | Swift SIL: Ownership, Optimization, and Influence on MLIR | SIL ownership SSA, SILGen, mandatory passes, SIL → LLVM, influence on MLIR bufferization |
+| 193 | Julia: Type-Inference-Driven LLVM Specialization | Method dispatch, AbstractInterpreter, `code_llvm`, world-age, Enzyme.jl, GPU offload |
+| 194 | Zig: Comptime Metaprogramming and LLVM IR Generation | `comptime`, stage1→stage2 bootstrap, self-hosted compiler, `@cImport`, async frames |
+| 195 | Safety-Critical Toolchain Qualification: DO-178C, ISO 26262, and Ferrocene | TÜV qualification, Ferrocene LS, MISRA-C, ASIL-D, kCFI, shadow-call-stack, CFI |
+| 196 | Cross-Language ABI Interoperability: Binding Generators and UniFFI | bindgen, cbindgen, UniFFI, Swift/Kotlin interop, cargo-component, WIT interface types |
+
+### Part XXIX — Compiler Tooling, Kernel Integration, and Binary Analysis *(Ch197–202)*
+
+| Ch | Title | Key topics |
+|----|-------|------------|
+| 197 | Clang Plugin System | `PluginASTAction`, `FrontendPluginRegistry`, `RecursiveASTVisitor`, custom diagnostics, IR-level hooks, `ParsedAttrInfo` |
+| 198 | Value Tracking Infrastructure | `KnownBits`, `ConstantRange`, `DemandedBits`, `LazyValueInfo`, `SimplifyQuery`, `AssumptionCache` |
+| 199 | llvm-mca: Static Performance Analysis | Pipeline/Stage/InstrBuilder, ProcResourceUnits, SummaryView, BottleneckAnalysis, CustomBehaviour plugin |
+| 200 | Linux Kernel Compilation with LLVM/Clang | ClangBuiltLinux, `CC=clang LLVM=1`, kCFI, ThinLTO, BPF+BTF+CO-RE, KASAN/KMSAN, objtool, Android GKI |
+| 201 | Binary Lifting to LLVM IR | Remill, McSema, RetDec, CFG recovery, `State` struct model, post-lifting optimisation, Alive2 validation |
+| 202 | Apache TVM: ML Operator Compiler | Relay, TIR/TVMScript, TE API, AutoTVM, Ansor/Meta-Schedule, BYOC, Relax/Unity, microTVM |
 
 ---
 
@@ -53,9 +89,10 @@ All Rust code in Part XXVI targets **Edition 2024** (Rust 1.85+, `edition = "202
 | Vol 3 — Clang and Runtimes | V–VIII, XVII–XVIII | ~870 pp |
 | Vol 4 — MLIR and ML Compilation | XIX–XXIII | ~730 pp |
 | Vol 5 — Verified Compilation + Operations + Ecosystem + Appendices | XXIV–XXVI + A–H | ~413 pp |
-| **Total** | **26 parts + 8 appendices** | **~3,574 pp target** |
+| Vol 6 — Mathematical Foundations + Language Ecosystems + Tooling | XXVII–XXIX | ~373 pp |
+| **Total** | **29 parts + 8 appendices** | **~3,946 pp target** |
 
-The consolidated single-set total is **~2,303 pages** (theoretical chapters at ~20 pp each, practical chapters at ~12 pp each).
+The consolidated single-set total is **~2,582 pages** (theoretical chapters at ~20 pp each, practical chapters at ~12 pp each).
 
 ---
 
@@ -392,6 +429,40 @@ Expert audience. Assumed: C++ proficiency, familiarity with compilers at the lev
 | 182 | [Language Tooling: Parsers, Lexers, and Syntax Trees](chapters/part-26-ecosystem-frontiers/ch182-language-tooling-parsers-lexers-syntax-trees.md) |
 | 183 | [Modern C++ for Compiler Development: C++23, Contracts, and Reflection](chapters/part-26-ecosystem-frontiers/ch183-modern-cpp-for-compiler-development.md) |
 
+### Part XXVII — Mathematical Foundations and Verified Systems *(~120 pp)* `[THEORETICAL]`
+
+| # | Chapter |
+|---|---------|
+| 184 | [Proof Assistant Internals: Lean 4, Coq/Rocq, Isabelle/HOL, and Agda](chapters/part-27-mathematical-foundations/ch184-proof-assistant-internals-lean4-coq-isabelle.md) |
+| 185 | [Mathematical Logic and Model Theory for Compiler Engineers](chapters/part-27-mathematical-foundations/ch185-mathematical-logic-model-theory.md) |
+| 186 | [Verified Hardware: CHERI Capabilities and the seL4 Microkernel](chapters/part-27-mathematical-foundations/ch186-verified-hardware-cheri-sel4.md) |
+| 187 | [Commutative Algebra and Its Applications in Compilation](chapters/part-27-mathematical-foundations/ch187-commutative-algebra-compilation.md) |
+| 188 | [Category Theory for Compiler Engineers](chapters/part-27-mathematical-foundations/ch188-category-theory-compiler-engineers.md) |
+| 189 | [Denotational Semantics and Domain Theory](chapters/part-27-mathematical-foundations/ch189-denotational-semantics-domain-theory.md) |
+
+### Part XXVIII — Language Ecosystems and Engineering Practice *(~84 pp)*
+
+| # | Chapter |
+|---|---------|
+| 190 | [CIRCT: Circuit IR Compilers and Tools](chapters/part-28-language-ecosystems/ch190-circt-hardware-compiler.md) |
+| 191 | [Quantum Compilation: QIR, QUIR, and MLIR Quantum Dialects](chapters/part-28-language-ecosystems/ch191-quantum-compilation-qir-quir.md) |
+| 192 | [Swift SIL: Ownership, Optimization, and Influence on MLIR](chapters/part-28-language-ecosystems/ch192-swift-sil-ownership-mlir.md) |
+| 193 | [Julia: Type-Inference-Driven LLVM Specialization](chapters/part-28-language-ecosystems/ch193-julia-llvm-specialization.md) |
+| 194 | [Zig: Comptime Metaprogramming and LLVM IR Generation](chapters/part-28-language-ecosystems/ch194-zig-comptime-llvm.md) |
+| 195 | [Safety-Critical Toolchain Qualification: DO-178C, ISO 26262, and Ferrocene](chapters/part-28-language-ecosystems/ch195-safety-critical-qualification.md) |
+| 196 | [Cross-Language ABI Interoperability: Binding Generators and UniFFI](chapters/part-28-language-ecosystems/ch196-cross-language-abi.md) |
+
+### Part XXIX — Compiler Tooling, Kernel Integration, and Binary Analysis *(~72 pp)*
+
+| # | Chapter |
+|---|---------|
+| 197 | [Clang Plugin System](chapters/part-29-compiler-tooling/ch197-clang-plugin-system.md) |
+| 198 | [Value Tracking Infrastructure](chapters/part-29-compiler-tooling/ch198-value-tracking-infrastructure.md) |
+| 199 | [llvm-mca: Static Performance Analysis](chapters/part-29-compiler-tooling/ch199-llvm-mca-static-performance-analysis.md) |
+| 200 | [Linux Kernel Compilation with LLVM/Clang](chapters/part-29-compiler-tooling/ch200-linux-kernel-compilation-llvm-clang.md) |
+| 201 | [Binary Lifting to LLVM IR](chapters/part-29-compiler-tooling/ch201-binary-lifting-to-llvm-ir.md) |
+| 202 | [Apache TVM: ML Operator Compiler](chapters/part-29-compiler-tooling/ch202-apache-tvm-ml-operator-compiler.md) |
+
 ---
 
 ### Appendices *(~95 pp)*
@@ -413,11 +484,11 @@ Expert audience. Assumed: C++ proficiency, familiarity with compilers at the lev
 
 | | |
 |-|-|
-| Parts | 26 |
-| Chapters | 182 |
+| Parts | 29 |
+| Chapters | 202 |
 | Appendices | 8 |
-| Total items | 190 |
-| Estimated pages | ~3,000 |
+| Total items | 210 |
+| Estimated pages | ~2,582 |
 | LLVM version | 22.1.x |
 | Rust edition | 2024 (1.85+) |
 | License | [CC BY 4.0](LICENSE) |

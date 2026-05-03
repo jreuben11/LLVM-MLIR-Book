@@ -657,15 +657,195 @@ The code generator uses **code refinements** to replace abstract datatype implem
 
 ---
 
-## 184.4 Comparison and Connections
+## 184.4 Agda and Cubical Type Theory
 
-### 184.4.1 The de Bruijn Criterion
+Agda is the fourth major proof assistant in widespread use, developed at Chalmers University of Technology (Ulf Norell, 2007). Its distinguishing characteristics are: dependent pattern matching as a first-class language feature, a totality checker that enforces structural termination and case exhaustiveness at the kernel level, and Cubical Agda — an extension that internalises homotopy type theory (HoTT), making univalence a theorem provable by computation rather than a postulated axiom. Agda is the primary vehicle for formalising cubical and higher-categorical mathematics, and `agda2hs` enables extraction of Agda proofs to Haskell for production deployment.
+
+### 184.4.1 Language Core: Dependent Pattern Matching
+
+Agda's type theory is Martin-Löf dependent type theory with a cumulative predicative universe hierarchy `Set₀ : Set₁ : Set₂ : ...` (written `Set`, `Set₁`, `Set₂` in Agda syntax). Unlike Coq/Rocq, Agda has no proof-irrelevant `Prop` sort by default; all inhabitants are proof-relevant unless the experimental `--prop` flag is enabled. This makes proof-relevant mathematics natural and type-theoretic constructions uniform.
+
+Ulf Norell's 2007 PhD thesis contributed *dependent pattern matching with definitional equality*: Agda's `with`-abstraction and dot-pattern mechanism allow case analyses that refine the types of other variables in scope, checking clauses for exhaustiveness as part of the type-checking loop. A vector append whose return type tracks length exactly:
+
+```agda
+data Vec (A : Set) : ℕ → Set where
+  []   : Vec A zero
+  _∷_  : A → Vec A n → Vec A (suc n)
+
+_++_ : Vec A m → Vec A n → Vec A (m + n)
+[]       ++ ys = ys
+(x ∷ xs) ++ ys = x ∷ (xs ++ ys)
+```
+
+The return type `Vec A (m + n)` reduces definitionally at each clause — to `Vec A (zero + n) = Vec A n` in the first, and `Vec A (suc k + n) = Vec A (suc (k + n))` in the second. No `subst` or `eq.mpr` coercions are needed. In Lean 4 and Coq, the same function requires rewriting by `Nat.zero_add` at the first clause; Agda's discriminating advantage is that `m + n` reduces definitionally in each branch.
+
+**Copatterns** extend pattern matching to coinductive types. A `Stream A` (infinite sequence) is defined by observation rather than by construction:
+
+```agda
+record Stream (A : Set) : Set where
+  coinductive
+  field
+    head : A
+    tail : Stream A
+
+ones : Stream ℕ
+ones .head = 1
+ones .tail = ones
+```
+
+The `.head` and `.tail` copatterns define `ones` observation-by-observation. Agda's *productivity checker* (the coinductive analogue of the termination checker) verifies that every observation of a corecursively defined value terminates.
+
+### 184.4.2 The Totality Checker
+
+Agda enforces *total* programming: a definition is accepted only when simultaneously:
+
+1. **Terminating** — every recursive call is on a structurally smaller argument (Foetus termination analysis, extended with sized types and `Acc`-based well-founded recursion).
+2. **Covering** — every constructor case is handled; no partial pattern matches.
+3. **Productive** (for coinductive definitions) — every corecursive call is guarded by at least one constructor or copattern observation.
+
+The termination checker implements *call matrix analysis* from Abel's sized types work: it constructs a call graph where each edge carries a size-change annotation (decreasing `<`, non-increasing `≤`, or unknown `?`), then checks for the absence of cycles with no decreasing edge. Non-structural recursion requires the user to supply a well-founded relation via the `Acc` (accessibility) predicate from the standard library:
+
+```agda
+open import Data.Nat.Induction using (Acc; acc; <-wellFounded)
+
+-- Euclidean GCD via well-founded recursion
+gcd : (m n : ℕ) → Acc _<_ m → ℕ
+gcd zero    n _         = n
+gcd (suc m) zero    _   = suc m
+gcd (suc m) (suc n) (acc h) with compare (suc m) (suc n)
+... | less    m<n = gcd (suc m) (suc n ∸ suc m) (h _ m<n)
+... | equal   _   = suc m
+... | greater n<m = gcd (suc m ∸ suc n) (suc n) (subAcc _ _ n<m (acc h))
+```
+
+The `{-# TERMINATING #-}` pragma marks a definition as trusted-terminating by assertion (the user accepts the proof obligation). `--no-termination-check` disables the checker per-definition.
+
+### 184.4.3 Universe Levels
+
+Agda's universe hierarchy is predicative: `Set₀ : Set₁ : Set₂ : ...`, generalised as `Set ℓ` for a universe level `ℓ : Level` from `Agda.Primitive`. Universe polymorphism abstracts over levels:
+
+```agda
+open import Agda.Primitive using (Level; _⊔_; lzero; lsuc)
+
+id : {ℓ : Level} {A : Set ℓ} → A → A
+id x = x
+
+_×_ : {ℓ₁ ℓ₂ : Level} → Set ℓ₁ → Set ℓ₂ → Set (ℓ₁ ⊔ ℓ₂)
+A × B = Σ A (λ _ → B)
+```
+
+Unlike Lean 4's `Prop` with `imax u 0 = 0` (impredicative), standard Agda is uniformly predicative — certain Church-encoding tricks available in Lean 4 / Coq require explicit universe lifting in Agda. The `--type-in-type` flag collapses the hierarchy (unsound; used for rapid prototyping only).
+
+### 184.4.4 Cubical Agda: HoTT as Computation
+
+Cubical Agda (Mörtberg, Vezzosi, Bordg, 2019 — `{-# OPTIONS --cubical #-}`) implements **Cubical Type Theory** (CTT, Cohen/Coquand/Huber/Mörtberg, LICS 2016). The path type `Path A a b` — propositional equality in HoTT — is given a *computational* interpretation as a function from the De Morgan interval `I` (with elements `i0`, `i1` and operations `~`, `∧`, `∨`) to `A`, satisfying boundary conditions at `i0` and `i1`. This gives equality proofs that reduce definitionally.
+
+```agda
+{-# OPTIONS --cubical #-}
+open import Cubical.Core.Everything
+
+-- sym and cong are terms, not axioms
+sym : a ≡ b → b ≡ a
+sym p = λ i → p (~ i)     -- reverse the interval: i0↦p(i1)=b, i1↦p(i0)=a
+
+cong : (f : A → B) → a ≡ b → f a ≡ f b
+cong f p = λ i → f (p i)  -- apply f pointwise along the path
+```
+
+These are definitionally equal to `refl` at their respective endpoints — no `rw`, `subst`, or `eq.symm` needed; they compute.
+
+**`PathP`** (path over a path) generalises to heterogeneous equality: if `P : I → Type ℓ` is a line of types, `PathP P a b` is the type of paths from `a : P i0` to `b : P i1` lying over `P`. `PathP` underlies the `Glue` construction and univalence.
+
+**Univalence** is provable (not postulated) via the `Glue` type:
+
+```agda
+ua : {A B : Type ℓ} → A ≃ B → A ≡ B
+ua {A = A} {B = B} e i =
+  Glue B ( λ { (i = i0) → A , e
+              ; (i = i1) → B , idEquiv B } )
+```
+
+At `i = i0`, `Glue B (A, e)` reduces to `A`; at `i = i1`, to `B`. `transport` along `ua e` computes — unlike Coq and Lean 4 where univalence is postulated and `ua`-transport does not reduce.
+
+**Higher Inductive Types (HITs)** have both point and path constructors. The circle:
+
+```agda
+data S¹ : Type where
+  base : S¹
+  loop : base ≡ base
+```
+
+The fundamental group `π₁(S¹) ≅ ℤ` is proved in Cubical Agda via the winding number construction. The `Cubical.HITs.*` library contains `π₁(S¹) ≅ ℤ`, the Seifert–van Kampen theorem, and properties of pushouts and suspensions.
+
+For compiler engineers, Cubical Agda enables formalising semantic equivalences — two program semantics that are propositionally equal as functions become equal by `funext` (now a theorem, not an axiom) — and working with quotient types (modular arithmetic, free algebras, graph models) without explicit setoid arguments everywhere.
+
+### 184.4.5 `agda2hs`: Verified Haskell via Extraction
+
+[`agda2hs`](https://github.com/agda/agda2hs) (Cockx et al., ICFP 2022) compiles a subset of Agda to idiomatic Haskell. Unlike Coq's extraction (which targets a functional IR and pretty-prints machine-generated code), `agda2hs` is designed so that the extracted Haskell is *readable* — it looks like hand-written Haskell. The supported subset excludes dependent types with no Haskell counterpart (universe levels, `PathP`, HITs) but includes:
+
+- Standard data types and records → Haskell ADTs and records
+- Typeclass definitions and instances → Haskell typeclasses (1-to-1)
+- Higher-kinded types and GADTs
+- **Proof erasure**: `@0` (erased) annotations drop proof arguments in extraction
+
+```agda
+{-# OPTIONS --erasure #-}
+open import Haskell.Prelude   -- agda2hs standard prelude
+
+data SortedList (A : Set) {{Ord A}} : Set where
+  Nil  : SortedList A
+  Cons : (x : A) → SortedList A → @0 (All (x ≤_) _) → SortedList A
+  --                                ^^ erased proof field
+
+insertSorted : {{Ord A}} → A → SortedList A → SortedList A
+insertSorted x Nil = Cons x Nil []
+insertSorted x (Cons y ys _) with compare x y
+... | LT = Cons x (Cons y ys _) _
+... | _  = Cons y (insertSorted x ys) _
+
+{-# COMPILE AGDA2HS insertSorted #-}
+```
+
+The `@0` proof argument disappears entirely in the Haskell output:
+
+```haskell
+insertSorted :: Ord a => a -> SortedList a -> SortedList a
+insertSorted x Nil = Cons x Nil
+insertSorted x (Cons y ys) = case compare x y of
+  LT -> Cons x (Cons y ys)
+  _  -> Cons y (insertSorted x ys)
+```
+
+Correctness guarantee: if the Agda program type-checks and `agda2hs` extraction succeeds, the Haskell has the behaviour specified by the Agda type (modulo Haskell's `seq`/`error` semantics for partiality). The `agda2hs` library is being used for verified data structure libraries (heaps, search trees, sorting algorithms) whose Haskell output deploys unchanged in production Haskell codebases.
+
+### 184.4.6 When to Choose Agda
+
+| Criterion | Prefer Agda | Prefer Lean 4 | Prefer Coq/Rocq | Prefer Isabelle |
+|-----------|-------------|---------------|-----------------|-----------------|
+| Cubical / HoTT | **Yes** — native CTT | HoTT as axioms only | HoTT library, axioms | No |
+| Dependent pattern matching | **Yes** — first class | Yes (similar) | Partial (`Equations`) | No (HOL) |
+| Mathlib-scale library | No (smaller) | **Yes** — Mathlib4 | Yes — mathcomp | Partial — AFP |
+| Extraction to Haskell | `agda2hs` (idiomatic) | C (stable), LLVM (WIP) | Yes (standard) | Yes |
+| Classical logic by default | No (constructive) | No (axiom) | No (axiom) | **Yes** |
+| ATP/SMT automation | Limited | Limited | `coq-hammer` (WIP) | **Sledgehammer** |
+| Coinduction / streams | **Yes** — copatterns | Partial | Partial | Partial |
+| Cubical HITs | **Yes** — native | No | No | No |
+
+Agda's unique value is cubical type theory: univalence-as-computation, HITs, and quotient types without setoid boilerplate. For new mechanisation projects outside cubical mathematics, Lean 4's larger library (Mathlib4) and better automation (`aesop`, `omega`, LeanDojo) make it the better default as of 2026.
+
+The Agda–LLVM connection runs through `agda2hs`: verified Haskell extracted from Agda is compiled by GHC, which uses LLVM as its backend (`-fllvm` flag). The correctness guarantee extends from the Agda type system through `agda2hs` to the GHC → LLVM IR path — at which point Alive2 ([Chapter 170](../part-24-verified-compilation/ch170-alive2-and-translation-validation.md)) and the Vellvm formalisation ([Chapter 169](../part-24-verified-compilation/ch169-vellvm-and-formalizing-llvm-ir.md)) address the remaining compiler-correctness gap.
+
+---
+
+## 184.5 Comparison and Connections
+
+### 184.5.1 The de Bruijn Criterion
 
 The **de Bruijn criterion** (N.G. de Bruijn, Automath project, Eindhoven, 1967–1977) states: a formal system is trustworthy if its **proof certificates** can be independently checked by a **small, auditable verifier**. The criterion demands not just that proofs are machine-checked, but that the checker itself is small enough for a human expert to read and verify manually. The checker is the **entire** trusted computing base for logical correctness; everything above it — tactic engines, ATP integrations, proof search, extraction mechanisms — may contain bugs without compromising the logical validity of accepted theorems.
 
 De Bruijn applied this criterion to the Automath language by designing it so that proof checking required no backtracking or search — just a forward pass over a term. Modern proof assistants implement the criterion differently but the principle is the same: Lean 4's C++ kernel (~6,000 lines), Coq's OCaml kernel (~10,000 lines), and Isabelle's ML kernel (~6,000 lines) are all small enough for a careful audit, and the architecture ensures that no theorem can be accepted without passing through kernel code.
 
-### 184.4.2 The Three Kernels Compared
+### 184.5.2 The Three Kernels Compared
 
 | Property | Lean 4 | Coq/Rocq | Isabelle/HOL |
 |----------|--------|----------|--------------|
@@ -685,7 +865,7 @@ De Bruijn applied this criterion to the Automath language by designing it so tha
 | **Verified meta-kernel** | Lean4Lean (arXiv 2403.14064) | Partial work on verified extraction | None as of 2026 |
 | **Primary large use** | Mathlib4, LLM proof search | CompCert, Vellvm, mathematical proofs | seL4 (l4v), Archive of Formal Proofs |
 
-### 184.4.3 Why Each Project Made Its Choice
+### 184.5.3 Why Each Project Made Its Choice
 
 **CompCert chose Coq** for three interlocking reasons. First, Coq's extraction to OCaml was the only mature mechanism in 2003–2006 for producing an executable compiler from a verified specification. Isabelle's code generation was less mature; Lean 4 did not exist. Second, Coq's pCIC, with `Prop` as impredicative, supported the program-logic reasoning needed to state and prove the simulation theorems in `backend/Smallstep.v` — particularly the coinductive reasoning about program divergence. Third, Coq's dependent types allowed CompCert to write verified passes as Coq functions with machine-checked types, ensuring that every pass returned a semantically consistent program.
 
@@ -693,7 +873,7 @@ De Bruijn applied this criterion to the Automath language by designing it so tha
 
 **seL4 chose Isabelle** for reasons that reflect the nature of C verification. First, Isabelle/HOL includes classical logic and the axiom of choice as axioms, which match the reasoning style of C programmers and hardware designers — C code implicitly assumes that `if (p != NULL)` and `if (p == NULL)` are exhaustive. Second, Isabelle's `Simpl` language and C parser infrastructure existed before seL4 began its verification effort, providing a proven path from C source to Isabelle proof obligations. Third, Sledgehammer's ATP integration dramatically reduces the cost of routine lemmas — the l4v team has stated that Sledgehammer saved years of manual proof work on the 200,000-line proof corpus.
 
-### 184.4.3b The HOL Family and Minimal Kernels
+### 184.5.3b The HOL Family and Minimal Kernels
 
 Isabelle/HOL belongs to the **HOL family** of proof assistants, all sharing Gordon's original LCF-style HOL logic. The family members and their kernel sizes illustrate that the de Bruijn criterion is achievable at various scales:
 
@@ -708,7 +888,7 @@ Isabelle/HOL belongs to the **HOL family** of proof assistants, all sharing Gord
 
 **HOL4** has been used for the first fully machine-checked proof of the ARMv8-A ISA semantics (the official Arm architecture specification in HOL4 covers approximately 1,000 instruction encodings) and for the RISC-V formal model used in the RISC-V Foundation compliance test suite. These uses directly connect to LLVM backend verification: the HOL4 ARMv8 model is the ground-truth specification against which LLVM AArch64 code generation correctness could theoretically be checked.
 
-### 184.4.4 Extracted and Compiled Code in the LLVM Pipeline
+### 184.5.4 Extracted and Compiled Code in the LLVM Pipeline
 
 All three proof assistants can produce OCaml, Haskell, SML, or Scala code that is subsequently compiled by a conventional compiler. If the downstream compiler is LLVM-based — GHC with the LLVM backend, OCaml with the LLVM output plugin, the Scala native backend, or Rust — the formal verification guarantee terminates at the source level. The compiled binary is in the trusted base of the deployment.
 
@@ -716,7 +896,7 @@ This matters concretely. HACL* (the verified cryptographic library from F*) prod
 
 The **Lean 4 LLVM backend** (PR #1837, §184.1.8) makes this connection direct in the future: Lean programs compiled to LLVM IR could become self-verifying substrates, but the current approach means both the Lean compiler's LCNF-to-IR translation and the system C compiler (when taking the C path) are in the trusted base of any Lean-generated binary. Closing this gap requires either CompCert-style verification of Lean's code generation or a verified Lean 4 LLVM backend — a research project that does not exist as of April 2026.
 
-### 184.4.5 Connection to Type Theory (Chapters 12–15)
+### 184.5.5 Connection to Type Theory (Chapters 12–15)
 
 The three systems are concrete instantiations of the abstract type theory of [Chapters 12–15](../part-03-type-theory/):
 
@@ -728,7 +908,7 @@ The three systems are concrete instantiations of the abstract type theory of [Ch
 
 [Chapter 15](../part-03-type-theory/ch15-type-theory-in-practice.md) connects theory to practice. The practical tactics — `simp`, `omega`, `Sledgehammer` — are the operational faces of the decidability results from Chapters 12–15. `omega` implements Cooper's decision procedure for Presburger arithmetic (which is a decidable fragment of arithmetic, as discussed in Chapter 185 on mathematical logic). `simp` implements conditional term rewriting, sound by construction via the `Eq.mpr` proof term mechanism.
 
-### 184.4.5b Proof Terms vs. Proof Certificates: Practical Performance Implications
+### 184.5.5b Proof Terms vs. Proof Certificates: Practical Performance Implications
 
 A fundamental architectural difference between the three systems affects practical verification performance: whether the system retains explicit **proof terms** (Lean 4, Coq) or works with **proof certificates** that are checked but not stored (Isabelle in certain modes).
 
@@ -743,7 +923,7 @@ The practical consequence for compiler verification projects:
 
 The trend is toward **proof certificate storage and independent checking**: Lean4Lean (§184.1.10) demonstrates that Lean 4's proof terms can be re-checked by an independently-written kernel; a similar "Coq checker" (`coqchk`) exists for Coq and re-checks `.vo` files without the elaborator.
 
-### 184.4.6 Connection to Alive2 (Chapter 170) and LLM Provers (Chapter 181)
+### 184.5.6 Connection to Alive2 (Chapter 170) and LLM Provers (Chapter 181)
 
 Alive2 ([Chapter 170](../part-24-verified-compilation/ch170-alive2-and-translation-validation.md)) uses Z3 as an SMT oracle to verify LLVM peephole rewrites. Its verification conditions are encoded directly in first-order logic with bitvector arithmetic — not in any of the three proof assistants discussed here. The relationship is complementary: Alive2's Z3-based checks are push-button (no proof terms, no kernel) but scope-limited (only quantifier-free bitvector formulas about peephole rewrites); Lean 4, Coq, and Isabelle handle unbounded induction, semantic definitions, and program-logic reasoning. Bringing Alive2's peephole-rewrite results into Lean 4 or Coq would require formalizing LLVM IR semantics (as Vellvm does) and proving each rewrite rule as an Isabelle/HOL or Coq theorem — a project that would significantly strengthen the formal basis of LLVM's correctness argument.
 
@@ -753,7 +933,7 @@ For Coq, the `coq-hammer` tactic provides Sledgehammer-like functionality via th
 
 ---
 
-## 184.5 Chapter Summary
+## 184.6 Chapter Summary
 
 - **Lean 4's kernel** (`Lean.Kernel.check`, ~6,000 lines C++) is the sole trusted base. It implements CIC with universe polymorphism, proof irrelevance, and quotient types. It checks β, δ, ι, ζ, η definitional equality but does not perform unification — that is the elaborator's responsibility.
 - **`Lean.Expr`** uses twelve constructors (`bvar`, `fvar`, `mvar`, `sort`, `const`, `app`, `lam`, `forallE`, `letE`, `lit`, `mdata`, `proj`) with de Bruijn indices for bound variables (`bvar`). Every node caches a hash and occurrence flags for efficient checking.
@@ -767,7 +947,8 @@ For Coq, the `coq-hammer` tactic provides Sledgehammer-like functionality via th
 - **Isabelle/HOL's kernel** (~6,000 lines SML) enforces the **LCF invariant**: `thm` is an abstract ML type; the only route to theorem values is through primitive rules in `src/Pure/thm.ML`. Tactics, Sledgehammer, ATP certificates, and code generation all ultimately terminate at kernel primitive calls — the architecture makes it structurally impossible for external tools to introduce unsound theorems.
 - **Isar** provides structured proofs that read as mathematical arguments, with each intermediate step kernel-checked before proceeding. **Sledgehammer** calls Z3, CVC5, Vampire, E, and SPASS in parallel and reconstructs proofs through `metis`/`smt` → kernel primitives; external ATPs are untrusted.
 - **seL4 chose Isabelle** for classical logic matching C reasoning patterns, `Simpl` C embedding, and Sledgehammer automation. The l4v proof (~200,000 lines) covers functional correctness, integrity, and confidentiality but excludes compiler correctness — a gap CompCert could close.
-- The **de Bruijn criterion** — a trusted kernel small enough to audit independently — is satisfied by all three systems. Kernels are 6,000–10,000 lines; everything above (tactics, automation, extraction, code generation) is untrusted performance infrastructure.
+- **Agda** (§184.4) is the fourth major proof assistant, distinguished by first-class dependent pattern matching, the totality checker (termination + coverage + productivity), and **Cubical Agda** — which internalises homotopy type theory so that univalence and `funext` are theorems with computation content rather than postulated axioms. HITs, `PathP`, and `Glue` are built-in constructs. `agda2hs` extracts idiomatic Haskell from a subset of Agda with `@0`-erased proof arguments. Agda is the primary tool for cubical and higher-categorical mathematics; for new mechanisation projects outside that area, Lean 4 + Mathlib4 is currently the better default due to library scale and automation.
+- The **de Bruijn criterion** — a trusted kernel small enough to audit independently — is satisfied by all four systems. Kernels are 6,000–10,000 lines; everything above (tactics, automation, extraction, code generation) is untrusted performance infrastructure.
 - **Extracted and compiled code** enters the LLVM pipeline and inherits LLVM's correctness assumptions. Alive2's misoptimization detection ([Chapter 170](../part-24-verified-compilation/ch170-alive2-and-translation-validation.md)) directly strengthens the practical validity of formally verified programs compiled by LLVM-based toolchains.
 
 ---

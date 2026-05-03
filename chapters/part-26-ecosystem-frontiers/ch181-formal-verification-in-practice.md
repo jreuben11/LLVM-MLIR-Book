@@ -318,6 +318,68 @@ The practical implication: HACL* provides meaningfully stronger assurance than a
 
 Why3 also serves as a compilation target for other languages. The Frama-C static analysis platform (widely used in the avionics and automotive safety communities) can emit Why3 proof obligations from annotated C programs, leveraging the same multi-prover dispatch for C-level verification with the DO-178C and ISO 26262 standards in mind. [Frama-C](https://frama-c.com/)'s WP (Weakest Precondition) plugin translates ACSL (ANSI/ISO C Specification Language) annotations into WhyML goals and dispatches them to Why3; the combination is used in avionics certification projects where the DO-178C standard requires a formal methods supplement for the highest safety levels (DAL-A). The ACSL annotation language for C parallels Dafny's specification language: `//@ requires n >= 0; ensures \result >= 0;` annotations on C functions generate WP goals that Why3 then tries to discharge. Where solvers fail, the developer writes explicit Coq proofs, invoked through Why3's Coq back-end.
 
+### 181.4.5 Jasmin: Assembly-Level Verification for Cryptography
+
+[Jasmin](https://github.com/jasmin-lang/jasmin) (Almeida, Barthe, Besson, Blot, Grégoire, Laporte, Loew, Moreau, Strub, Tillich; CCS 2017, PLDI 2022) is a verification-oriented imperative language for high-assurance cryptographic implementations. Its distinguishing design choice — which differentiates it from F*/HACL* — is that Jasmin compiles directly to **x86-64 assembly** and simultaneously generates **EasyCrypt proof obligations** relating the source program to the assembly output. The verification chain terminates at the binary, not at a C intermediate.
+
+#### The Jasmin Compilation Model
+
+Jasmin programs carry pre/postconditions (`requires`, `ensures`) and loop invariants, similar to Dafny:
+
+```jasmin
+/* Constant-time conditional move: result = cond ? src : dst */
+fn cmov(reg u64 dst, reg u64 src, reg bool cond) -> reg u64 {
+  requires { true }
+  ensures  { res = if cond then src else dst }
+  reg u64 result;
+  result = dst;
+  if (cond) { result = src; }
+  return result;
+}
+```
+
+`jasminc` compiles this to x86-64 assembly and emits an EasyCrypt theory containing: (1) a Jasmin semantics of the source function, (2) a compiled semantics of the assembly, and (3) a preservation theorem relating them. Every compiler pass is verified in Coq/Rocq for correctness, making `jasminc` a verified compiler for the Jasmin language — analogous to CompCert for C ([Chapter 168](../part-24-verified-compilation/ch168-compcert.md)) but targeting the cryptographic domain and producing native assembly directly.
+
+#### EasyCrypt Integration
+
+[EasyCrypt](https://www.easycrypt.info/) is a framework for proving *cryptographic security* properties — indistinguishability, semantic security, IND-CCA — in a probabilistic relational Hoare logic (pRHL). The Jasmin/EasyCrypt connection enables a two-layer proof strategy:
+
+1. **Functional correctness** — proved in Jasmin (Coq backend): the implementation correctly computes the mathematical function (e.g., ChaCha20 key stream matches the RFC specification).
+2. **Cryptographic security** — proved in EasyCrypt: the specification-level algorithm is cryptographically secure (e.g., ChaCha20-Poly1305 achieves IND-CPA given ChaCha20's PRF security).
+
+The combination yields an end-to-end proof: from cryptographic assumption to assembly binary.
+
+#### libjade: Open Library of Verified Assembly Cryptography
+
+[libjade](https://github.com/formosa-crypto/libjade) is an open-source library of Jasmin-verified cryptographic implementations, analogous to HACL* for the F* ecosystem. As of April 2026, libjade includes:
+
+| Algorithm | Standard | AVX2 variant |
+|-----------|----------|--------------|
+| ML-KEM (Kyber) | NIST FIPS 203 | Yes |
+| ML-DSA (Dilithium) | NIST FIPS 204 | Yes |
+| Falcon | NIST FIPS 206 | No |
+| BLAKE2b | RFC 7693 | Yes |
+| SHA-3 / SHAKE | NIST FIPS 202 | Yes |
+| X25519 | RFC 7748 | Yes |
+| ChaCha20-Poly1305 | RFC 8439 | Yes |
+
+The ML-KEM and ML-DSA implementations are particularly significant since NIST standardised these post-quantum algorithms in August 2024; formally verified implementations are required for high-assurance cryptographic libraries targeting Common Criteria EAL6+ or NIST FIPS 140-3.
+
+#### Comparison with F*/HACL*
+
+| Property | F*/HACL* | Jasmin/libjade |
+|----------|----------|----------------|
+| Source language | F* (functional, dependently typed) | Jasmin (imperative, C-like) |
+| Compilation target | C (then Clang → assembly) | x86-64 assembly directly |
+| Verification level | Source (F*) to C | Source to assembly |
+| Trusted base | F* type system + Clang + LLVM | `jasminc` Coq proof + assembler |
+| Security proofs | F*/Low* effects | EasyCrypt pRHL |
+| Constant-time | `constant_time_select` F* effects | Language-level `ct` annotations |
+| Production deployment | Firefox NSS, Linux WireGuard | libsodium (in progress), PQC libraries |
+| Primary algorithm focus | ChaCha20-Poly1305, Curve25519, AES | ML-KEM, ML-DSA, Falcon, BLAKE2, SHA-3 |
+
+The structural difference: HACL* verifies at the C level, so its trusted base includes Clang and the LLVM optimisation pipeline. Any misoptimisation detected by Alive2 ([Chapter 170](../part-24-verified-compilation/ch170-alive2-and-translation-validation.md)) in the compilation of HACL* C code would in principle invalidate the end-to-end security guarantee. Jasmin's verified-compiler approach eliminates this gap by targeting assembly directly and making the compilation itself a formal artefact verified in Coq.
+
 ---
 
 ## 181.5 Bounded Model Checking: CBMC and Kani
@@ -891,6 +953,8 @@ For the LLVM practitioner specifically, the most immediately actionable entry po
 - **Verus** brings Dafny-style verification to production Rust (Edition 2024). `Tracked<T>` enables linear ghost state integrated with Rust's ownership model; `cargo verus` and `vstd` provide a complete workflow. AWS uses it on s2n-tls and Firecracker.
 
 - **F*/HACL*** proves memory safety, functional correctness, and constant-time execution for cryptographic algorithms. ChaCha20-Poly1305 and Curve25519 verified in F* run in Firefox NSS; Poly1305 runs in Linux kernel WireGuard. The trusted base includes Clang, linking F* proofs to LLVM correctness.
+
+- **Jasmin** (§181.4.5) is a verification-oriented imperative language that compiles directly to x86-64 assembly, simultaneously emitting EasyCrypt proof obligations relating source to assembly. `jasminc` is a Coq-verified compiler. The **libjade** library provides Jasmin-verified implementations of ML-KEM, ML-DSA, Falcon, BLAKE2b, SHA-3, X25519, and ChaCha20-Poly1305, targeting post-quantum cryptography libraries and FIPS 140-3 deployments. Compared to HACL*, Jasmin eliminates LLVM/Clang from the trusted base by targeting assembly directly; the two tools are complementary in coverage.
 
 - **CBMC** performs bounded model checking of C programs via SAT/SMT; `--unwind N` bounds loops; `--bounds-check --pointer-check --overflow-check` catches common memory and arithmetic errors. **Kani** wraps CBMC for Rust with `#[kani::proof]` harnesses, `kani::any::<T>()` symbolic inputs, and `cargo kani` integration.
 
