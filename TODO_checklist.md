@@ -278,7 +278,7 @@
 - [x] Ch202 — Apache TVM: An ML Operator Compiler
 
 ## Existing Chapter Expansions (planned, not yet written)
-- [ ] Ch79 expansion — linker relaxation in depth (RISC-V, AArch64, x86 GOTPCRELX, TLS chains)
+- [x] Ch79 expansion — linker relaxation in depth (RISC-V, AArch64, x86 GOTPCRELX, TLS chains)
 - [ ] Ch80 expansion — reproducible builds and toolchain supply-chain security
 - [ ] Ch106 expansion — WASI/WasmGC (WASI preview 2, wasm32-wasip1/p2, WasmGC typed references)
 - [ ] Ch110 expansion — DataFlowSanitizer (DFSan): taint tracking, shadow memory, dfsan_label API

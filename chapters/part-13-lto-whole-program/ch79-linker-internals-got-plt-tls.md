@@ -290,6 +290,314 @@ LLD sorts `.init_array` by priority at link time, ensuring correct initializatio
 
 Constructors marked with hidden visibility are placed in the same `.init_array` sort group, but their symbols are not exported from the DSO. This prevents accidental execution from external code and reduces DSO symbol table size.
 
+## Linker Relaxation
+
+Linker relaxation is a post-assembly optimization where the linker replaces instruction sequences with shorter equivalents once it knows the final layout of the binary — information unavailable to the assembler. The assembler must emit conservative (worst-case-size) instruction sequences because it does not yet know the final addresses of symbols. It emits relocations alongside those sequences so the linker can revisit the decision later. The linker, having resolved all symbol addresses and determined section placement, applies the "relaxed" (cheaper) form wherever the target is within reach. The result is smaller code, fewer cycles, and no runtime overhead — the optimization is entirely static.
+
+### Why Relaxation Exists
+
+Consider what the assembler knows at translation time: the contents of a single translation unit, a handful of local labels, and the sizes of sections it has emitted. It does not know:
+
+- Whether a called function will end up in the same load segment.
+- The final value of `__global_pointer$` (the RISC-V GP register datum).
+- Whether a thread-local symbol will land in the executable's initial TLS block or in a dynamically-loaded DSO.
+- Whether two sections separated by a forward reference will end up within ±1 MiB of each other.
+
+Faced with this uncertainty, the assembler takes the pessimistic choice: it emits the longest encoding that is guaranteed to work at any distance. For a RISC-V function call that might be far away, that means an `auipc`+`jalr` pair (8 bytes) even if the target turns out to be 200 bytes away. For an x86-64 reference to an extern symbol, that means going through the GOT (two memory accesses) even if the symbol is in the same executable and the offset is known statically.
+
+The linker pays no runtime cost to apply relaxation because the substitution happens before the binary is emitted. Contrast this with two related mechanisms:
+
+- **Compile-time constant folding**: the compiler has all the information at once and does not need a two-phase protocol. Relaxation is the linker-level analogue.
+- **Runtime dispatch** (e.g., `ifunc`): the decision is deferred to load or call time and carries actual overhead.
+
+The cost model is favorable. Code-size savings from relaxation are commonly 3–8% on RISC-V binaries compiled with `-mrelax`. On constrained embedded targets, this directly reduces flash usage. On cache-sensitive hot paths, denser code means higher instruction-cache hit rates. For GOT-elimination relaxation on x86-64, each relaxed call removes one memory indirection, saving 4–10 cycles on a cold miss path.
+
+The mechanism requires three cooperating pieces:
+
+1. **Assembler**: emits conservative encodings and tags them with relaxation-capable relocation types (e.g., `R_RISCV_CALL` instead of bare `R_RISCV_JAL`).
+2. **Linker**: iterates over the relocations, checks whether relaxation is possible given resolved addresses, rewrites the bytes, and adjusts sizes.
+3. **Convergence protocol**: because relaxing an instruction changes section size, which changes subsequent symbol offsets, which may unlock further relaxations, the linker must iterate until a fixpoint.
+
+### RISC-V Relaxation (the most comprehensive implementation)
+
+RISC-V is the canonical example of linker relaxation because the ISA was designed with it in mind from the outset. The RISC-V psABI specifies a rich set of relaxation-capable relocations, and LLD's RISC-V implementation in [`RISCV.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/lld/ELF/Arch/RISCV.cpp) is the most complete relaxation engine in any open-source linker.
+
+#### `R_RISCV_CALL` → `R_RISCV_JAL`: Call Relaxation
+
+A function call to an externally-visible symbol that might be in a distant section compiles to two instructions:
+
+```asm
+# Before relaxation (assembler output, 8 bytes):
+  auipc   ra, %pcrel_hi(target_func)    # R_RISCV_CALL / R_RISCV_CALL_PLT
+  jalr    ra, %pcrel_lo(target_func)(ra)
+```
+
+The `auipc` loads the upper 20 bits of the PC-relative offset; `jalr` adds the lower 12 bits and jumps. This covers a ±2 GiB range. Once the linker knows `target_func`'s address, it checks: is `target_func` within ±1 MiB of the call site? If yes, the entire two-instruction sequence relaxes to:
+
+```asm
+# After relaxation (4 bytes):
+  jal     ra, target_func              # R_RISCV_JAL
+  nop                                  # (slot reclaimed; deleted if R_RISCV_ALIGN adjusts)
+```
+
+`jal` encodes a 21-bit signed offset (±1 MiB). The relocation pair `R_RISCV_CALL` (on the `auipc`) and an implicit `R_RISCV_CALL_PLT` variant trigger this check in LLD's `relaxCall()` function. If the target is a PLT entry, LLD additionally checks whether the PLT stub itself is within range before relaxing.
+
+The saved 4 bytes are not simply filled with a NOP — LLD adjusts section sizes downward and updates all subsequent offsets, which may enable cascading relaxations elsewhere.
+
+#### GP-Relative Relaxation (`--relax-gp`)
+
+The RISC-V ABI reserves register `x3` (conventionally named `gp`) as the **global pointer**, initialized once by the CRT startup code to the symbol `__global_pointer$`. The linker places `__global_pointer$` at the midpoint of the `.sdata`/`.data` region (typically `__data_start + 0x800`), chosen so that the ±2 KiB reach of a 12-bit signed immediate covers as many globals as possible.
+
+A variable access that might be far from the PC but close to the GP:
+
+```asm
+# Before GP-relaxation (auipc + load, 8 bytes):
+  auipc   t0, %pcrel_hi(global_var)       # R_RISCV_PCREL_HI20
+  lw      a0, %pcrel_lo(global_var)(t0)   # R_RISCV_PCREL_LO12_I
+```
+
+When `|global_var - __global_pointer$| < 2048`, LLD rewrites to:
+
+```asm
+# After GP-relaxation (single instruction, 4 bytes):
+  lw      a0, %gp_rel(global_var)(gp)     # gp-relative 12-bit offset
+```
+
+This requires two opt-ins:
+- **Assembler**: `-mrelax` (emitted by Clang/GCC by default for RISC-V bare-metal targets).
+- **Linker**: `--relax-gp` (opt-in in LLD because GP-relative addressing assumes `gp` is not clobbered by callee code).
+
+LLD's `relaxHi20Lo12()` function handles this case. It computes `sym_addr - gp_value` and checks that the result fits in a signed 12-bit field. For data accesses in the primary `.data`/`.sdata`/`.sbss` sections, this relaxation fires frequently on typical embedded workloads, halving the instruction count for global variable reads and writes.
+
+#### `R_RISCV_ALIGN`: Alignment Relaxation
+
+When the assembler emits a `.align N` directive, it pads the current position to a multiple of `N` bytes — typically with NOP instructions. If relaxation later removes preceding instructions (shrinking the section), those NOPs become wasteful: the alignment is already satisfied, or could be satisfied with fewer NOPs.
+
+The `R_RISCV_ALIGN` relocation encodes the required alignment (and the maximum amount of padding the assembler assumed) so LLD can reduce or eliminate the padding. The relocation is unusual: it does not patch an address, it controls how much of the NOP sequence to keep. LLD's `relaxAlign()` recalculates the alignment requirement after each pass and removes excess NOPs.
+
+This interaction is subtle. Call relaxation shrinks instructions by 4 bytes. If a function was 4-byte aligned with 4 bytes of NOP padding before it, removing a call-site NOP might push the alignment point so that the function's own padding can also be removed. `R_RISCV_ALIGN` makes this chain possible without any approximation.
+
+#### LLD Implementation: Iterative Fixpoint
+
+LLD's top-level relaxation loop in [`RISCV.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/lld/ELF/Arch/RISCV.cpp) drives a `relaxOnce()` function that makes a single pass over all RISC-V input sections:
+
+```
+relaxOnce():
+  for each InputSection with R_RISCV_RELAX relocations:
+    for each relocation pair:
+      if relaxCall() succeeds: shrink section by 4, mark changed
+      if relaxHi20Lo12() succeeds: shrink section by 4, mark changed
+      if relaxGot() succeeds: shrink section by 4, mark changed
+      if relaxAlign() succeeds: reduce NOP count, mark changed
+  return changed
+```
+
+The outer loop in `relaxSections()` calls `relaxOnce()` repeatedly until it returns `false` (no changes). Because each relaxation can only remove bytes (sections never grow), the fixpoint is guaranteed to be reached. In practice, two or three passes suffice for most binaries; pathological cases (a dense graph of near-threshold calls all just under ±1 MiB) may require more.
+
+After the fixpoint, LLD updates all symbol values, section offsets, and non-relaxation relocation addends to reflect the reduced section sizes, then writes the final binary.
+
+### AArch64 Relaxation
+
+AArch64's relaxation is less pervasive than RISC-V's but covers two significant cases: address materialization and GOT elimination for local symbols.
+
+#### `ADRP`+`ADD` → `ADR`
+
+Loading the address of a symbol on AArch64 normally requires two instructions:
+
+```asm
+# Two-instruction sequence (8 bytes):
+  adrp    x0, :pg_hi21:sym      # load page (4 KiB-aligned) address of sym
+  add     x0, x0, :lo12:sym     # add page offset
+```
+
+The `adrp` instruction covers ±4 GiB (21-bit signed page offset). When `sym` is within ±1 MiB of the PC (a 21-bit signed byte offset), a single `adr` instruction suffices:
+
+```asm
+# Relaxed form (4 bytes):
+  adr     x0, sym               # PC + signed 21-bit offset
+```
+
+LLD's `relaxAdrpAdd()` in [`AArch64.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/lld/ELF/Arch/AArch64.cpp) checks whether the `R_AARCH64_ADR_PREL_PG_HI21` + `R_AARCH64_ADD_ABS_LO12_NC` relocation pair can be replaced with `R_AARCH64_ADR_PREL_LO21`. If yes, it rewrites the `adrp` opcode to `adr` (the top two bits of the encoding differ) and removes the `add` instruction.
+
+#### GOT → PC-Relative for Protected/Local Symbols
+
+When a DSO references a symbol with `protected` or `hidden` visibility (or when linking a position-independent executable where the symbol is local), going through the GOT is unnecessary. The two-instruction GOT load:
+
+```asm
+# GOT-indirect (8 bytes):
+  adrp    x0, :got:sym
+  ldr     x0, [x0, :got_lo12:sym]
+```
+
+can be replaced with the direct PC-relative address computation:
+
+```asm
+# Relaxed (8 bytes; same size, but eliminates one memory load):
+  adrp    x0, sym
+  add     x0, x0, :lo12:sym
+```
+
+This relaxation does not shrink the code but eliminates a memory indirection — the GOT load is replaced by an arithmetic operation. LLD performs this for `R_AARCH64_ADR_GOT_PAGE` + `R_AARCH64_LD64_GOT_LO12_NC` pairs when the symbol is known to be non-preemptible.
+
+#### Thunks for Long-Range Branches (Inverse of Relaxation)
+
+AArch64's `B` and `BL` instructions encode a 26-bit signed offset covering ±128 MiB. When a function call target is beyond that range — common in large binaries with aggressive dead-code stripping — the linker must insert a **veneer thunk**: a small trampoline that loads the target address via an indirect branch.
+
+```asm
+# AArch64BranchThunk (generated by LLD):
+__AArch64AbsLongThunk_target_func:
+  ldr     x16, =target_func_abs   # load absolute address
+  br      x16                     # indirect branch
+.target_func_abs: .quad target_func
+```
+
+LLD's `AArch64BranchThunk` class in [`AArch64.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/lld/ELF/Arch/AArch64.cpp) synthesizes these thunks. Thunk insertion *grows* the binary and is therefore not a form of relaxation — it is the opposite transformation, applied when the optimistic (short) form turns out to be out of range.
+
+### x86-64 GOT Relaxation
+
+x86-64's relaxation is focused on GOT elimination for symbols that do not actually require dynamic resolution. The mechanism is encoded in two modern relocation types added to the psABI in 2015.
+
+#### `R_X86_64_GOTPCRELX` and `R_X86_64_REX_GOTPCRELX`
+
+Legacy x86-64 PIC code uses `R_X86_64_GOTPCREL`, which tells the linker to patch an address-of-GOT-entry displacement. This relocation carries no information about the *instruction* that uses it, so the linker cannot safely rewrite the opcode. The newer relocations `R_X86_64_GOTPCRELX` (non-REX instructions) and `R_X86_64_REX_GOTPCRELX` (REX-prefixed instructions) encode the full instruction context — the assembler emits the relocation on the displacement byte of a known instruction pattern — enabling opcode rewriting.
+
+For a reference to a local or hidden symbol, the GOT indirection is unnecessary. LLD's `relaxGot()` in [`X86_64.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/lld/ELF/Arch/X86_64.cpp) rewrites the instruction:
+
+| Original instruction | Relocation | Relaxed instruction | Relaxed relocation |
+|---|---|---|---|
+| `movq sym@GOTPCREL(%rip), %rax` | `R_X86_64_REX_GOTPCRELX` | `leaq sym(%rip), %rax` | `R_X86_64_PC32` |
+| `callq *sym@GOTPCREL(%rip)` | `R_X86_64_GOTPCRELX` | `callq sym` | `R_X86_64_PC32` |
+| `jmpq *sym@GOTPCREL(%rip)` | `R_X86_64_GOTPCRELX` | `jmpq sym` | `R_X86_64_PC32` |
+
+The opcode transformations are a simple byte substitution. For the `movq → leaq` case, the ModRM byte changes from `0x8B` (MOV r64, r/m64) to `0x8D` (LEA r64, m). For `callq *` → `callq`, the opcode changes from `0xFF /2` to `0xE8`. For `jmpq *` → `jmpq`, it changes from `0xFF /4` to `0xE9`. These two-byte sequences are compact enough that the instruction does not change size — only the opcode and the displacement are rewritten.
+
+The impact is significant: each extern function call or global variable access in a shared library compiled with `-fpic` goes through the GOT by default. Relaxation eliminates that indirection for symbols that do not need runtime resolution, turning a load + branch-through-pointer into a direct PC-relative branch. This matters most for:
+
+- **Cold code**: the GOT entry may not be in L1 cache; eliminating the load saves a full cache-miss penalty.
+- **Shared libraries with `protected` visibility**: symbols marked `protected` are not preemptible; LLD can relax them even in DSO links.
+- **Position-independent executables (PIE)**: all symbols in a PIE are non-preemptible; relaxation fires broadly.
+
+On a typical Linux application built with `-fpie`, `R_X86_64_REX_GOTPCRELX` relaxation eliminates GOT lookups for the majority of internal function calls, reducing the GOT section size and improving hot-path instruction density.
+
+### TLS Relaxation Chains
+
+TLS relaxation is the most impactful form because it can eliminate entire function calls (`__tls_get_addr`) that are on the critical path of every TLS variable access. The four TLS models described in §79.3 form a lattice from most general to most specific, and the linker walks down the lattice as far as the final link configuration permits.
+
+#### GD → IE Relaxation
+
+When linking a shared library (`.so`) that uses GD TLS for a variable defined in the main executable, the GD call sequence can be replaced with an IE GOT load. The linker knows the variable is in the executable (it is `BINDING_GLOBAL` with no `DYNAMIC` dependency), so `__tls_get_addr` is not needed — the offset is fixed relative to the thread pointer at load time.
+
+On x86-64, the GD sequence:
+
+```asm
+# GD (16 bytes + PLT call overhead):
+  leaq    var@tlsgd(%rip), %rdi      # R_X86_64_TLSGD
+  callq   __tls_get_addr@plt
+  # %rax = &var for this thread
+```
+
+becomes the IE sequence:
+
+```asm
+# IE (7 bytes, no call):
+  movq    var@GOTTPOFF(%rip), %rax   # R_X86_64_GOTTPOFF: load TP offset from GOT
+  movq    %fs:(%rax), %rax           # access via thread pointer
+```
+
+LLD detects this when it finds a `R_X86_64_TLSGD` relocation in a `.so` link whose target symbol is defined in the executable. The rewrite touches two instruction words: the `leaq`→`movq` substitution and removal of the `callq __tls_get_addr` (replaced with a `nop` or folded into the subsequent access).
+
+#### GD → LE Relaxation
+
+When linking the main executable and the variable is defined in the same executable, the GD sequence collapses entirely to Local Exec:
+
+```asm
+# GD → LE (x86-64): 7 bytes, no GOT, no call:
+  movq    %fs:0, %rax                # load thread pointer base
+  leaq    var@tpoff(%rax), %rax      # add compile-time constant TP offset
+```
+
+Or, when the compiler can fold the base load:
+
+```asm
+# Single-instruction LE (x86-64):
+  movq    %fs:var@tpoff, %rax        # segment-override direct offset
+```
+
+The 16-byte `leaq`+`callq` sequence has vanished; only an `fs:`-prefixed memory access remains. LLD applies this in `TlsRelaxation.cpp` by rewriting the TLSGD relocation pair and patching the preceding instruction bytes. The instruction stream change is significant: not only is the call gone, but the register pressure drops (no more spill of `%rdi` to set up the argument) and branch prediction is not disrupted.
+
+#### IE → LE Relaxation
+
+For a symbol defined in the executable with IE TLS, the GOT slot that holds the TP offset is constant — it never changes between threads (only the thread pointer base changes). The IE GOT load:
+
+```asm
+# IE (GOT load + TP-relative access):
+  movq    var@GOTTPOFF(%rip), %rax   # GOT load of TP offset
+  movl    %fs:(%rax), %eax           # access variable
+```
+
+relaxes to the LE immediate:
+
+```asm
+# LE (immediate TP offset, no GOT):
+  movl    %fs:var@tpoff, %eax        # single instruction, constant offset
+```
+
+This fires when `R_X86_64_GOTTPOFF` is encountered in an executable (not a `.so`) link and the symbol is local to the executable. The GOT entry is eliminated entirely.
+
+#### AArch64 TLSDESC Relaxation Chain
+
+AArch64's preferred TLS access mechanism is **TLSDESC** (TLS Descriptor), which uses an indirect call through a descriptor pair rather than `__tls_get_addr`. The TLSDESC model is itself already faster than GD, but LLD can further relax it:
+
+**TLSDESC → TLSIE**: when the descriptor's resolver is the standard GOT-based resolver (i.e., the variable is in a known-loaded module), LLD replaces the `adrp`+`ldr`+`add`+`blr` sequence with an `adrp`+`ldr` GOT load. The descriptor pair is replaced with a single GOT slot holding the TP offset.
+
+**TLSIE → TLSLE**: when the variable is in the executable and the offset fits in an immediate, LLD replaces the GOT load with a `movz`/`movk` immediate load of the TP offset, then folds that into a `mrs x0, tpidr_el0; add x0, x0, #tpoff` pair — or, for small offsets, a single `mrs` + load with offset.
+
+```asm
+# TLSDESC (AArch64, 4 instructions):
+  adrp    x0, :tlsdesc:var
+  ldr     x1, [x0, :tlsdesc_lo12:var]
+  add     x0, x0, :tlsdesc_lo12:var
+  blr     x1
+
+# After TLSIE relaxation (2 instructions):
+  adrp    x0, :gottprel:var
+  ldr     x0, [x0, :gottprel_lo12:var]   # GOT slot = TP offset
+
+# After TLSLE relaxation (2 instructions, no GOT):
+  mrs     x0, tpidr_el0
+  add     x0, x0, #var@tpoff             # compile-time constant
+```
+
+LLD performs TLSDESC-to-TLSLE relaxation in a single pass when it detects that the symbol is local to the executable, collapsing the 4-instruction+GOT path to 2 instructions.
+
+### Relaxation and Section Layout
+
+#### The Iterative Fixpoint
+
+Relaxation changes section sizes, which changes the positions of all subsequent symbols, which may enable or disable additional relaxations. LLD's relaxation engine must therefore iterate:
+
+```
+repeat:
+  for each InputSection:
+    apply all applicable relaxations (shrink-only)
+  recalculate all symbol values and section offsets
+until no changes
+```
+
+The **shrink-only invariant** — relaxations never grow sections — is critical. It guarantees convergence: each pass either makes progress (removes bytes) or terminates. Because section sizes are non-negative integers and each iteration strictly decreases the total byte count when changes occur, the process terminates in at most `sum_of_all_savings / 4` iterations in the pathological case. In practice, two or three passes suffice.
+
+If relaxation could grow sections (as thunk insertion can), the fixpoint would not be guaranteed — an offset change could enable a new thunk, which grows the section, which pushes another call out of range, requiring another thunk, and so on. LLD handles thunk insertion separately (in a pre-relaxation pass) and does not mix it with the shrink-only relaxation loop.
+
+#### Interaction with `--gc-sections`
+
+Dead-code elimination (`--gc-sections`) removes unreachable sections. This must complete **before** relaxation: relaxation requires stable final section sizes to compute symbol offsets accurately. If a dead section were removed after relaxation, the offsets computed during relaxation would be wrong. LLD's pipeline therefore orders: GC → relaxation → relocation application → output.
+
+#### Interaction with `-z relro` and Page Alignment
+
+Some relaxations interact with page-alignment constraints. The `.got.plt` section under `-z relro -z now` is marked read-only after startup via `PT_GNU_RELRO`. This segment must end on a page boundary, which imposes alignment padding. If GOT relaxation eliminates enough GOT entries to shrink `.got.plt` significantly, LLD adjusts the padding to maintain page alignment. Conversely, a relaxation that would move a protected symbol across a page boundary (breaking `relro` invariants) is suppressed.
+
+Similarly, `-z relro` applies to the `.data.rel.ro` section, which contains constants that require runtime relocations (C++ vtable pointers, for instance). Relaxation that eliminates dynamic relocations for local symbols reduces the size of this section, which can affect the `PT_GNU_RELRO` segment boundary and downstream alignment. LLD recalculates all segment boundaries after each relaxation pass to ensure alignment constraints are satisfied before emitting the final layout.
+
 ---
 
 ## Chapter Summary
