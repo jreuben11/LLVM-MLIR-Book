@@ -539,6 +539,147 @@ When `mlir::verify(op)` runs, it calls `verifyTrait()` on every trait attached t
 
 ---
 
+## External Models: Retroactive Interface Attachment
+
+The standard way to attach an interface to an op is to list it in the op's ODS definition or add it to the `interfaces` list in the C++ `Op` class. This requires owning or modifying the dialect's source. External models solve the case where you want to add an interface to ops you don't own — typically when writing a pass that works across dialects, or when extending in-tree dialects from a downstream project.
+
+### The Problem: Cross-Dialect Interface Attachment
+
+Consider a bufferization pass that needs to call `BufferizableOpInterface` methods on `linalg.generic`, `tensor.extract`, and `arith.constant`. The bufferization pass is in `mlir/lib/Dialect/Bufferization/` — a different dialect than all three op definitions. The in-tree solution is to define `BufferizableOpInterface` external models in `mlir/lib/Dialect/Linalg/Transforms/BufferizableOpInterfaceImpl.cpp` and register them separately from the dialect registration.
+
+Without external models, the alternative would be to add `BufferizableOpInterface` to every op's ODS definition — making every dialect depend on bufferization headers, creating a circular dependency.
+
+### The External Model API
+
+External models are implemented via the `OpExternalModel<ConcreteModel, OpTy>` CRTP base:
+
+```cpp
+// In mlir/lib/Dialect/Linalg/Transforms/BufferizableOpInterfaceImpl.cpp
+namespace {
+struct GenericOpBufferizationModel
+    : public BufferizableOpInterface::ExternalModel<
+          GenericOpBufferizationModel, linalg::GenericOp> {
+
+  bool bufferizesToMemoryRead(Operation *op, OpOperand &opOperand,
+                               const AnalysisState &state) const {
+    auto genericOp = cast<linalg::GenericOp>(op);
+    return genericOp.getMatchingIndexingMap(&opOperand)
+               .isProjectedPermutation();
+  }
+
+  bool bufferizesToMemoryWrite(Operation *op, OpOperand &opOperand,
+                                const AnalysisState &state) const {
+    return opOperand.getOperandNumber() >= genericOp.getNumDpsInputs();
+  }
+
+  AliasingValueList getAliasingValues(Operation *op, OpOperand &opOperand,
+                                      const AnalysisState &state) const {
+    // ... alias analysis for linalg.generic outputs
+    return {};
+  }
+};
+} // namespace
+
+void mlir::linalg::registerBufferizableOpInterfaceExternalModels(
+    DialectRegistry &registry) {
+  registry.addExtension(+[](MLIRContext *ctx, LinalgDialect *dialect) {
+    linalg::GenericOp::attachInterface<GenericOpBufferizationModel>(*ctx);
+    linalg::FillOp::attachInterface<GenericOpBufferizationModel>(*ctx);
+    // ... other linalg ops
+  });
+}
+```
+
+Key API points:
+- `OpExternalModel<ConcreteModel, OpTy>` — CRTP base; `ConcreteModel` implements the interface methods, `OpTy` is the op type being extended
+- `attachInterface<Model>(MLIRContext &)` — registers the model; must be called before any analysis that uses the interface
+- `DialectRegistry::addExtension` — the preferred registration mechanism; the lambda is called when the dialect is loaded into the context
+
+### DialectRegistry Extensions
+
+`DialectRegistry::addExtension` is the preferred pattern over calling `attachInterface` directly:
+
+```cpp
+// In your tool's main() or pass plugin registration:
+DialectRegistry registry;
+registry.insert<linalg::LinalgDialect, tensor::TensorDialect,
+                bufferization::BufferizationDialect>();
+
+// Register external models
+mlir::linalg::registerBufferizableOpInterfaceExternalModels(registry);
+mlir::tensor::registerBufferizableOpInterfaceExternalModels(registry);
+mlir::arith::registerBufferizableOpInterfaceExternalModels(registry);
+
+MLIRContext ctx(registry);
+```
+
+The extension lambda runs lazily when the dialect is first loaded — this avoids the initialization order problem where the dialect might not exist yet when the extension is registered.
+
+### The DLTI Dialect as a Canonical Example
+
+The `dlti` (Data Layout and Target Info) dialect demonstrates external models across the entire in-tree codebase. `DLTIDialect` defines `DataLayoutOpInterface`, and every dialect that has layout-aware ops (memref, LLVM, SPIRV) attaches external models:
+
+```cpp
+// mlir/lib/Dialect/DLTI/DLTI.cpp
+void DLTIDialect::initialize() {
+  addAttributes<DataLayoutSpecAttr, TargetSystemSpecAttr>();
+  // External models for upstream dialects are NOT registered here —
+  // they live in separate *ExternalModels.cpp files per dialect.
+}
+```
+
+Source reference: [`DLTIDialect.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/mlir/lib/Dialect/DLTI/DLTI.cpp) and [`mlir/lib/Dialect/MemRef/Transforms/BufferizableOpInterfaceImpl.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/mlir/lib/Dialect/MemRef/Transforms/BufferizableOpInterfaceImpl.cpp)
+
+### Fallback Models
+
+For interfaces with a default behavior, you can register a *fallback* external model that handles all ops of a dialect that don't have a more specific model:
+
+```cpp
+// Register a fallback for all ops in MyDialect that implement
+// OpAsmOpInterface but haven't registered a specific model:
+registry.addExtension(+[](MLIRContext *ctx, MyDialect *dialect) {
+  dialect->addOpInterfaceFallback<OpAsmOpInterface>(
+      [](Operation *op, OpAsmPrinter &printer) {
+        // Default printing logic
+      });
+});
+```
+
+### When to Use External Models vs. ODS Inheritance
+
+Use ODS interface declaration (`let interfaces = [MyInterface];`) when:
+- You own the dialect
+- The interface is logically part of the op's contract (not an analysis-specific view)
+- The interface is stable and not likely to cause circular dependencies
+
+Use external models when:
+- You don't own the dialect (upstream or third-party)
+- The interface belongs to an analysis framework that the dialect shouldn't depend on (e.g., bufferization, cost models)
+- You need to add interface support to multiple ops across multiple dialects from a single registration site
+- The interface is experimental or evolving
+
+### Downstream Project Pattern
+
+In a downstream MLIR-based compiler (e.g., a custom AI accelerator compiler), you typically:
+
+1. Define your own dialect (`accel.conv2d`, `accel.matmul`)
+2. Want these ops to work with upstream passes (`bufferize`, `convert-linalg-to-loops`)
+3. Register external models in your dialect's `*ExternalModels.cpp` file
+
+```cpp
+// accel/lib/Dialect/AccelExternalModels.cpp
+void registerAccelBufferizationExternalModels(DialectRegistry &reg) {
+  reg.addExtension(+[](MLIRContext *ctx, accel::AccelDialect *d) {
+    accel::Conv2DOp::attachInterface<Conv2DBufferizationModel>(*ctx);
+    accel::MatmulOp::attachInterface<MatmulBufferizationModel>(*ctx);
+  });
+}
+```
+
+This pattern is used by IREE (cross-ref Ch162), CIRCT (cross-ref Ch190), and virtually every non-trivial MLIR downstream project.
+
+---
+
 ## Chapter Summary
 
 - Interfaces are MLIR's protocol mechanism: an interface declares virtual method signatures; ops implement them by listing `DeclareOpInterfaceMethods<I>` in their ODS traits; passes dispatch via `dyn_cast<Interface>(op)`

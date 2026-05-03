@@ -282,7 +282,7 @@
 - [x] Ch80 expansion — reproducible builds and toolchain supply-chain security
 - [x] Ch106 expansion — WASI/WasmGC (WASI preview 2, wasm32-wasip1/p2, WasmGC typed references)
 - [x] Ch110 expansion — DataFlowSanitizer (DFSan): taint tracking, shadow memory, dfsan_label API
-- [ ] Ch133 expansion — MLIR external models (registerExternalModels, retroactive interface attachment)
+- [x] Ch133 expansion — MLIR external models (registerExternalModels, retroactive interface attachment)
 - [ ] Ch140 expansion — MLIR Presburger arithmetic library (IntegerPolyhedron, Omega test)
 - [ ] Ch173 expansion — mlir-lsp-server (dialect registration for LSP, mlir-vscode, mlir-query)
 
