@@ -1,5 +1,5 @@
 # Book Progress Checklist
-*Last updated: 2026-04-30 (Parts XXVII–XXVIII complete; Part XXIX in progress — Ch197–Ch199 written; Ch200–Ch202 + 7 existing chapter expansions remaining). 207 items complete; 3 new chapters planned, not yet written.*
+*Last updated: 2026-04-30 (Parts XXVII–XXVIII complete; Part XXIX in progress — Ch197–Ch201 written; Ch202 + 7 existing chapter expansions remaining). 209 items complete; 1 new chapter planned, not yet written.*
 
 ## Status Legend
 - `[ ]` Not started
@@ -273,9 +273,9 @@
 - [x] Ch197 — Clang Plugin System
 - [x] Ch198 — Value Tracking Infrastructure in LLVM
 - [x] Ch199 — llvm-mca: Static Performance Analysis
-- [ ] Ch200 — Linux Kernel Compilation with LLVM/Clang
-- [ ] Ch201 — Binary Lifting to LLVM IR
-- [ ] Ch202 — Apache TVM: An ML Operator Compiler
+- [x] Ch200 — Linux Kernel Compilation with LLVM/Clang
+- [x] Ch201 — Binary Lifting to LLVM IR
+- [x] Ch202 — Apache TVM: An ML Operator Compiler
 
 ## Existing Chapter Expansions (planned, not yet written)
 - [ ] Ch79 expansion — linker relaxation in depth (RISC-V, AArch64, x86 GOTPCRELX, TLS chains)
@@ -305,6 +305,6 @@
 
 ## Stats
 - Total chapters: 202 + 8 appendices = 210 items (+ 7 existing chapter expansions)
-- Completed: 207 / 210 (Ch200–Ch202 not yet written; 7 expansions not yet written)
+- Completed: 208 / 210 (Ch202 not yet written; 7 expansions not yet written)
 - Estimated pages written: ~2,900 (original) + ~108 (Part XXVI) + ~120 (Part XXVII) + ~86 (Part XXVIII) = ~3,214 total
 - Planned: +~72 (Part XXIX, 6 ch) + ~35 (7 chapter expansions, ~5 pp each) = ~3,321 total when complete
