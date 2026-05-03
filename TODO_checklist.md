@@ -281,7 +281,7 @@
 - [x] Ch79 expansion — linker relaxation in depth (RISC-V, AArch64, x86 GOTPCRELX, TLS chains)
 - [x] Ch80 expansion — reproducible builds and toolchain supply-chain security
 - [x] Ch106 expansion — WASI/WasmGC (WASI preview 2, wasm32-wasip1/p2, WasmGC typed references)
-- [ ] Ch110 expansion — DataFlowSanitizer (DFSan): taint tracking, shadow memory, dfsan_label API
+- [x] Ch110 expansion — DataFlowSanitizer (DFSan): taint tracking, shadow memory, dfsan_label API
 - [ ] Ch133 expansion — MLIR external models (registerExternalModels, retroactive interface attachment)
 - [ ] Ch140 expansion — MLIR Presburger arithmetic library (IntegerPolyhedron, Omega test)
 - [ ] Ch173 expansion — mlir-lsp-server (dialect registration for LSP, mlir-vscode, mlir-query)

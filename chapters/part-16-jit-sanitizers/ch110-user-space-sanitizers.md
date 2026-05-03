@@ -750,6 +750,194 @@ clang -fsanitize=undefined -fsanitize-trap=all \
 
 ---
 
+## DataFlowSanitizer (DFSan)
+
+DataFlowSanitizer tracks *information flow* through a program — which data values influence which other data values — using a technique called *taint tracking* or *dynamic data flow analysis*. Where ASan asks "was this memory access valid?", DFSan asks "did this sensitive value reach this output?".
+
+### How Taint Tracking Works
+
+DFSan associates each byte of memory and each register with a *label* — an integer identifying which "taint sources" influence that byte. Labels propagate automatically through arithmetic, comparisons, and memory operations: if tainted bytes `a` and `b` are added together, the result carries the union of their labels.
+
+The label union operation is the heart of DFSan. Every binary operation produces a result whose label is the union of the operands' labels. A label of zero means "not tainted by any tracked source". Non-zero labels encode which taint sources have contributed to the value's computation. This transitivity ensures that any value derived — however indirectly — from a labelled source will itself carry a non-zero label.
+
+### Shadow Memory Architecture
+
+DFSan uses *shadow memory* — a parallel address space that shadows every byte of the application's memory. The shadow stores the label for each application byte.
+
+Two label schemes, selected at compile time:
+
+- **`fast8`** (default in LLVM 22): 8-bit labels; supports up to 255 distinct taint sources. Shadow ratio: 1:1 (one shadow byte per application byte). Shadow base: `0x200000000000`.
+- **`fast16`**: 16-bit labels; supports up to 65535 sources. Shadow ratio: 2:1 (two shadow bytes per application byte).
+
+The shadow mapping on x86-64:
+
+```
+Shadow(app_addr) = (app_addr & ~0x700000000000) | 0x200000000000
+```
+
+DFSan instruments every load and store to propagate labels:
+
+```cpp
+// Original: int c = a + b;
+// DFSan instrumented (conceptual):
+dfsan_label la = dfsan_read_label(&a, sizeof(a));
+dfsan_label lb = dfsan_read_label(&b, sizeof(b));
+int c = a + b;
+dfsan_label lc = dfsan_union(la, lb);
+dfsan_set_label(lc, &c, sizeof(c));
+```
+
+In `fast8` mode, `dfsan_union(l1, l2)` is resolved via a precomputed 256×256 lookup table (64 KiB). This makes the union operation a single table lookup — O(1) with no dynamic allocation — at the cost of limiting the label space to 255 sources. For most auditing and fuzzing applications this is sufficient; when more sources are needed, `fast16` extends the space to 65535.
+
+The shadow pages are mapped lazily via `MAP_NORESERVE`; only pages corresponding to application pages that carry tainted data are ever physically backed. Application memory that was never labelled has a zero shadow and incurs no physical overhead.
+
+### Building with DFSan
+
+```bash
+clang -fsanitize=dataflow -fno-sanitize-ignorelist \
+      -o target target.c libdfsan_abi.a
+```
+
+Key flags:
+
+- `-fsanitize=dataflow`: enables DFSan instrumentation pass and links the DFSan runtime from `compiler-rt/lib/dfsan/`
+- `-fsanitize-dataflow-track-origins=1`: enables origin tracking (records where each taint was introduced, at the cost of 4× memory overhead for the origin map)
+- `-mllvm -dfsan-fast-8-labels` (default) or `-mllvm -dfsan-fast-16-labels`: selects the label scheme
+- `-fno-sanitize-ignorelist`: prevents the default ignorelist from suppressing instrumentation on libc wrappers
+
+DFSan requires that all libraries that the target links against be either (a) compiled with DFSan themselves, or (b) covered by ABI lists (`dfsan_abilist.txt`) that teach DFSan how to propagate taint through their functions. The DFSan runtime ships a default ABI list covering common libc functions.
+
+### The DFSan API
+
+```c
+#include <sanitizer/dfsan_interface.h>
+
+// Create a new label for a taint source
+dfsan_label secret_label = dfsan_create_label("secret", 0);
+
+// Apply a label to memory
+dfsan_set_label(secret_label, &password, sizeof(password));
+
+// Read the label of a value
+dfsan_label result_label = dfsan_get_label(computed_value);
+
+// Test label membership
+if (dfsan_has_label(result_label, secret_label)) {
+    fprintf(stderr, "Secret data reached output!\n");
+}
+
+// Get all labels on a memory range
+dfsan_label range_label = dfsan_read_label(buf, buf_len);
+
+// Retrieve the human-readable name attached to a label
+const dfsan_label_info *info = dfsan_get_label_info(result_label);
+fprintf(stderr, "Tainted by: %s\n", info->name);
+```
+
+`dfsan_union(l1, l2)` — returns the union of two labels. In `fast8` mode, the union table is a precomputed 256×256 array (64 KiB). In `fast16` mode, the union is stored in a dynamically grown union table and unions are memoised to avoid repeated allocation.
+
+`dfsan_has_label(label, needle)` — returns non-zero if `needle` is in the union represented by `label`. Because `fast8` and `fast16` use flat integers rather than sets, this is implemented by walking the union table backward from `label` looking for `needle` as a component — O(depth of the union tree), typically O(1) for simple cases.
+
+### Origin Tracking
+
+When `-fsanitize-dataflow-track-origins=1` is set, DFSan records the *origin* of each tainted value: the stack trace where `dfsan_set_label` was called, and subsequent stores that propagated the label. Origins are stored in a separate shadow (4 bytes per application byte). `dfsan_get_origin(val)` returns the origin ID; `dfsan_print_origin_trace(origin, desc)` prints the propagation chain.
+
+Origin tracking substantially increases memory overhead (the origin map is 4× the size of the application's memory footprint relative to the label shadow) and adds approximately 30–50% additional CPU cost on top of baseline DFSan overhead. However, it is indispensable when diagnosing violations: without origins, DFSan can tell you that a value at the point of a sink check carries label `secret_label`, but not where in the code that label was first applied or which intermediate operations carried it along.
+
+```bash
+# Enable origin tracking and verbose reporting:
+clang -fsanitize=dataflow -fsanitize-dataflow-track-origins=1 -g \
+      -o target target.c
+DFSAN_OPTIONS=warn_unimplemented=0:strict_data_dependencies=0 ./target
+```
+
+### Use Cases
+
+**1. Information-flow security analysis**
+
+Verify that secret values (cryptographic keys, passwords, personal data) never flow to logging functions, network outputs, or debug prints. The pattern is to label sensitive inputs at the point they are read, then check labels at all output sinks:
+
+```c
+// Read a key from an HSM or config:
+unsigned char aes_key[32];
+read_key_from_secure_store(aes_key, 32);
+dfsan_label key_label = dfsan_create_label("aes_key", 0);
+dfsan_set_label(key_label, aes_key, 32);
+
+// ... program executes ...
+
+// At any logging call:
+void audited_printf(const char *fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    // Check that the format string itself is not tainted:
+    if (dfsan_has_label(dfsan_get_label(fmt), key_label)) {
+        abort();  // key material in format string — information leak
+    }
+    // Check each variadic argument (requires type information) ...
+    vprintf(fmt, args);
+    va_end(args);
+}
+```
+
+**2. Taint-guided fuzzing**
+
+Use DFSan labels to track which bytes of the input influence a target condition. When DFSan reports that a comparison involves input bytes N..M, the fuzzer can mutate those bytes specifically. AFL++ and libFuzzer both have DFSan integration modes:
+
+```bash
+# libFuzzer + DFSan for data-flow guided fuzzing:
+clang -fsanitize=fuzzer,dataflow -g target_fuzz.c -o fuzz_target
+# libFuzzer will internally call dfsan_get_label on comparison operands
+# to guide mutation toward bytes that influence branch decisions.
+./fuzz_target -data_flow_trace=1 corpus/
+```
+
+The fuzzer reads DFSan labels on both operands of each `cmp` instruction to determine which input bytes are "interesting" for that comparison. This dramatically improves fuzzer efficiency on programs with complex input parsers where random mutations rarely produce valid structures.
+
+**3. Third-party library auditing**
+
+Track whether untrusted input (from a network parser, for example) reaches unsafe operations like `memcpy` length arguments or `exec` arguments:
+
+```c
+// Mark data arriving from the network as tainted:
+ssize_t n = recv(sockfd, network_buf, sizeof(network_buf), 0);
+dfsan_label net_label = dfsan_create_label("network_input", 0);
+dfsan_set_label(net_label, network_buf, n);
+
+// In the program logic, check before using as a length:
+size_t copy_len = parse_length_field(network_buf);
+if (dfsan_has_label(dfsan_get_label(copy_len), net_label)) {
+    // copy_len is influenced by network data — validate before use
+    if (copy_len > MAX_SAFE_COPY) { handle_error(); }
+}
+memcpy(dst, src, copy_len);
+```
+
+### Integration with ASan
+
+DFSan can be combined with ASan for simultaneous memory safety and information-flow checking:
+
+```bash
+clang -fsanitize=dataflow,address -o target target.c
+```
+
+Both shadow maps coexist because they use different shadow address ranges. ASan's shadow occupies `0x000000000000`–`0x1fffffffffff` (shifted right by 3), while DFSan's shadow base is `0x200000000000` — they do not overlap on x86-64. The combined build pays the overhead of both sanitizers, but provides the strictest possible safety net during development: memory safety violations (ASan) and information-flow violations (DFSan) are both caught in a single execution.
+
+### Limitations
+
+- **No inter-process taint propagation**: taint does not cross `fork()`/`exec()` boundaries. The child process starts with a clean shadow.
+- **Implicit flows not tracked**: control flow depending on tainted data (e.g., `if (secret) { x = 1; } else { x = 0; }`) is not tracked — only explicit data-flow edges are instrumented. A determined adversary can exfiltrate 1 bit per branch, which DFSan cannot detect.
+- **Syscall boundaries**: system calls that copy data into user buffers are treated as "uninstrumented writes" — the kernel-side is not instrumented. DFSan relies on interceptors in the ABI list to manually unpoison buffers that receive kernel-written data (e.g., `read(2)` is intercepted to `__dfsan_unpoison` the read buffer).
+- **Significant overhead**: 2–10× slowdown, 2–3× memory overhead (comparable to MSan). Not suitable for production use; intended for offline auditing and fuzzing.
+- **ABI list completeness**: any library function not covered by the ABI list is treated as "uninstrumented" and receives the "discard" policy (output labels are dropped). Missing ABI entries are a common source of false negatives (taint being silently dropped at library boundaries).
+
+Reference LLVM 22 source links:
+
+- [`DataFlowSanitizer.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/llvm/lib/Transforms/Instrumentation/DataFlowSanitizer.cpp)
+- [`dfsan_interface.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/compiler-rt/include/sanitizer/dfsan_interface.h)
+
+---
+
 ## Chapter 110 Summary
 
 - Sanitizers combine compile-time LLVM pass instrumentation with a `compiler-rt` runtime library; shared infrastructure in `sanitizer_common/` provides stack unwinding, symbolization, and environment-variable flag parsing.
