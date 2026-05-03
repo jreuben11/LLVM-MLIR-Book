@@ -1,5 +1,5 @@
 # Book Progress Checklist
-*Last updated: 2026-04-30 (Parts XXVII–XXVIII planned — 13 new chapters Ch184–Ch196). 191 items complete; 13 new chapters planned, not yet written.*
+*Last updated: 2026-04-30 (Parts XXVII–XXVIII complete; Part XXIX in progress — Ch197–Ch199 written; Ch200–Ch202 + 7 existing chapter expansions remaining). 207 items complete; 3 new chapters planned, not yet written.*
 
 ## Status Legend
 - `[ ]` Not started
@@ -9,11 +9,11 @@
 ---
 
 ## Current Focus
-**Parts XXVII–XXVIII — Mathematical Foundations + Language Ecosystems** (13 new chapters, Ch184–Ch196)
-- Part XXVI complete (Ch177–Ch183 all written and committed)
-- Part XXVII: 6 theoretical chapters Ch184–Ch189 (write sequentially — each builds on prior)
-- Part XXVIII: 7 practical chapters Ch190–Ch196 (can parallelize within the part after Ch184–189 complete)
-- Recommended order: Ch184 → Ch185 → Ch186 → Ch187 → Ch188 → Ch189 → Ch190–Ch196 (parallel)
+**Part XXIX — Compiler Tooling, Kernel Integration, and Binary Analysis** (6 new chapters, Ch197–Ch202)
+- Parts XXVII–XXVIII complete (Ch184–Ch196 all written and committed)
+- Part XXIX: 6 practical chapters (~12 pp each), all independent — can fully parallelize
+- Recommended order: Ch197–Ch202 can be written in parallel (no inter-chapter cross-references)
+- Also: 7 existing chapters have planned expansions (Ch79, Ch80, Ch106, Ch110, Ch133, Ch140, Ch173)
 
 ---
 
@@ -269,6 +269,22 @@
 - [x] Ch195 — Safety-Critical Toolchain Qualification: DO-178C, ISO 26262, and Ferrocene
 - [x] Ch196 — Cross-Language ABI Interoperability: Binding Generators and UniFFI
 
+## Part XXIX — Compiler Tooling, Kernel Integration, and Binary Analysis *(~72 pp, 6 ch)*
+- [x] Ch197 — Clang Plugin System
+- [x] Ch198 — Value Tracking Infrastructure in LLVM
+- [x] Ch199 — llvm-mca: Static Performance Analysis
+- [ ] Ch200 — Linux Kernel Compilation with LLVM/Clang
+- [ ] Ch201 — Binary Lifting to LLVM IR
+- [ ] Ch202 — Apache TVM: An ML Operator Compiler
+
+## Existing Chapter Expansions (planned, not yet written)
+- [ ] Ch79 expansion — linker relaxation in depth (RISC-V, AArch64, x86 GOTPCRELX, TLS chains)
+- [ ] Ch80 expansion — reproducible builds and toolchain supply-chain security
+- [ ] Ch106 expansion — WASI/WasmGC (WASI preview 2, wasm32-wasip1/p2, WasmGC typed references)
+- [ ] Ch110 expansion — DataFlowSanitizer (DFSan): taint tracking, shadow memory, dfsan_label API
+- [ ] Ch133 expansion — MLIR external models (registerExternalModels, retroactive interface attachment)
+- [ ] Ch140 expansion — MLIR Presburger arithmetic library (IntegerPolyhedron, Omega test)
+- [ ] Ch173 expansion — mlir-lsp-server (dialect registration for LSP, mlir-vscode, mlir-query)
 
 ## Appendices
 - [x] Appendix A — LLVM IR Quick Reference
@@ -288,6 +304,7 @@
 ---
 
 ## Stats
-- Total chapters: 196 + 8 appendices = 204 items
-- Completed: 204 / 204 (ALL CHAPTERS COMPLETE — Ch196 written 2026-04-30)
+- Total chapters: 202 + 8 appendices = 210 items (+ 7 existing chapter expansions)
+- Completed: 207 / 210 (Ch200–Ch202 not yet written; 7 expansions not yet written)
 - Estimated pages written: ~2,900 (original) + ~108 (Part XXVI) + ~120 (Part XXVII) + ~86 (Part XXVIII) = ~3,214 total
+- Planned: +~72 (Part XXIX, 6 ch) + ~35 (7 chapter expansions, ~5 pp each) = ~3,321 total when complete
