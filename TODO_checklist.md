@@ -298,16 +298,16 @@
 
 ## Part XXXI — Frontier AI Evolution *(~132 pp, 11 ch)*
 - [ ] Ch208 — GPU Kernel DSLs: Triton, Helion, and Gluon
-- [ ] Ch209 — CuTe and TileIR: Layout Algebra for Tiled Computation
-- [ ] Ch210 — JAX/Flax as a Functional Neural IR
+- [ ] Ch209 — CUTLASS, Thrust, CuTe, and TileIR: GPU Parallel Primitives and Layout Algebra
+- [ ] Ch210 — The JAX Ecosystem: A Functional Neural Compilation Stack
 - [ ] Ch211 — Neural Programs as Compiled Artifacts: The Self-Aware Execution Stack (bridging)
 - [ ] Ch212 — Weights as a Programming Substrate
 - [ ] Ch213 — Mechanistic Interpretability Infrastructure
-- [ ] Ch214 — Meta-Learning and Gradient-Based Self-Modification
+- [ ] Ch214 — Gradient-Based Self-Modification: Model Editing, Meta-Learning, and Test-Time Adaptation
 - [ ] Ch215 — Evolutionary Architecture Search
 - [ ] Ch216 — Formal Self-Improvement Theory
-- [ ] Ch217 — Inference-Time Scaling and Chain-of-Thought Amplification
-- [ ] Ch218 — Evaluation Infrastructure and Capability Benchmarking
+- [ ] Ch217 — Self-Reflective Inference and Architecture Introspection
+- [ ] Ch218 — Self-Improvement Fitness Functions and Capability Assessment
 
 ## Appendices
 - [x] Appendix A — LLVM IR Quick Reference
