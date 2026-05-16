@@ -300,9 +300,9 @@
 - [x] Ch208 — GPU Kernel DSLs: Triton, Helion, and Gluon
 - [x] Ch209 — CUTLASS, Thrust, CuTe, and TileIR: GPU Parallel Primitives and Layout Algebra
 - [x] Ch210 — The JAX Ecosystem: A Functional Neural Compilation Stack
-- [ ] Ch211 — Neural Programs as Compiled Artifacts: The Self-Aware Execution Stack (bridging)
+- [x] Ch211 — Neural Programs as Compiled Artifacts: The Self-Aware Execution Stack (bridging)
 - [ ] Ch212 — Weights as a Programming Substrate
-- [ ] Ch213 — Mechanistic Interpretability Infrastructure
+- [x] Ch213 — Mechanistic Interpretability Infrastructure
 - [ ] Ch214 — Gradient-Based Self-Modification: Model Editing, Meta-Learning, and Test-Time Adaptation
 - [ ] Ch215 — Evolutionary Architecture Search
 - [ ] Ch216 — Formal Self-Improvement Theory
