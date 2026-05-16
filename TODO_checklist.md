@@ -1,5 +1,5 @@
 # Book Progress Checklist
-*Last updated: 2026-05-03 (ALL PARTS COMPLETE — Parts XXVII–XXX written; Ch197–Ch207 all complete; 7 existing chapter expansions complete). 215 / 215 items complete.*
+*Last updated: 2026-05-16 (ALL PARTS COMPLETE — Parts XXVII–XXX written; Ch197–Ch207 all complete; 10 existing chapter expansions complete including Ch58/Ch108/Ch200 self-modifying-code). 218 / 218 items complete.*
 
 ## Status Legend
 - `[ ]` Not started
@@ -285,6 +285,9 @@
 - [x] Ch133 expansion — MLIR external models (registerExternalModels, retroactive interface attachment)
 - [x] Ch140 expansion — MLIR Presburger arithmetic library (IntegerPolyhedron, Omega test)
 - [x] Ch173 expansion — mlir-lsp-server (dialect registration for LSP, mlir-vscode, mlir-query)
+- [x] Ch58 expansion — patchpoint→code-mutation full cycle (stackmap v3, dual-map W^X pattern, guard IR emission for deopt)
+- [x] Ch108 expansion — self-modifying code: ReOptimizeLayer/RedirectableSymbolManager tiered JIT (LLVM 22); OSR/guard/deopt cycle; ELF W^X + JITLink dual-mapping; homoiconic language examples (Forth, SBCL, Julia @generated); WASM limitations; cross-ref Ch207
+- [x] Ch200 expansion — Linux kernel live patching (klp_func/klp_object/klp_patch/klp_enable_patch); text_poke_bp() int3 protocol; poking_mm dual-mapping; ftrace/-mfentry NOP-sled redirection; userspace uprobes
 
 ## Part XXX — AI-First Programming Language Design *(~60 pp, 5 ch)*
 - [x] Ch203 — AI-First PL Principles and Landscape
@@ -311,7 +314,8 @@
 ---
 
 ## Stats
-- Total chapters: 207 + 8 appendices = 215 items (+ 7 existing chapter expansions)
-- Completed: 215 / 215 (all chapters and appendices written)
+- Total chapters: 207 + 8 appendices = 215 items (+ 7 existing chapter expansions complete + 3 new expansions planned)
+- Completed: 218 / 218 (all items complete including 3 self-modifying-code expansions)
 - Estimated pages written: ~2,900 (original) + ~108 (Part XXVI) + ~120 (Part XXVII) + ~86 (Part XXVIII) + ~72 (Part XXIX) + ~35 (7 ch expansions) + ~60 (Part XXX) = ~3,381 total written
 - Part XXX complete: Ch203–Ch207 all written (2026-05-03)
+- 2026-05-16: added 3 self-modifying-code expansion items (Ch58, Ch108, Ch200) covering OSR, ReOptimizeLayer, kernel live patching, W^X dual-mapping, homoiconic examples

@@ -460,7 +460,176 @@ make -C /path/to/linux M=$(pwd) \
 
 ---
 
-## 10. Chapter Summary
+## 10. Linux Kernel Live Patching and Runtime Code Modification
+
+The preceding sections covered compile-time toolchain choices. This section covers runtime modification of the running kernel — applying security fixes or bug patches to a live system without a reboot. The mechanisms involve the same dual-mapping and instruction-replacement techniques used by user-space JITs, but in the kernel address space with additional synchronization requirements.
+
+### 10.1 The Livepatch Subsystem
+
+The Linux kernel livepatch subsystem (`kernel/livepatch/`, public API in `include/linux/livepatch.h`) supports hot-replacing individual kernel functions at runtime. The subsystem is architecture-independent; the low-level instruction replacement is delegated to `ftrace` and `text_poke_bp` (Sections 10.3 and 10.2).
+
+The data structures form a three-level hierarchy:
+
+```c
+/* A replacement for one kernel function. */
+struct klp_func {
+    const char *old_name;     /* function to replace, e.g. "vfs_read"    */
+    unsigned long old_sympos; /* disambiguates when multiple symbols match;
+                                 0 = first match                         */
+    void *new_func;           /* pointer to the replacement function      */
+    /* runtime fields filled by the subsystem: */
+    unsigned long old_addr;   /* resolved address of old_name             */
+    /* ... */
+};
+
+/* A kernel module (or vmlinux) whose functions are being patched. */
+struct klp_object {
+    const char *name;        /* NULL for vmlinux; module name otherwise   */
+    struct klp_func *funcs;  /* NULL-terminated array of klp_func         */
+    struct klp_callbacks callbacks; /* pre_patch, post_patch, pre_unpatch,
+                                       post_unpatch hooks                 */
+};
+
+/* The top-level patch descriptor registered with the kernel. */
+struct klp_patch {
+    struct module *mod;      /* the livepatch module itself               */
+    struct klp_object *objs; /* NULL-terminated array of klp_object       */
+    bool enabled;            /* true after klp_enable_patch() succeeds    */
+    /* ... */
+};
+```
+
+A minimal livepatch module patches a single kernel function:
+
+```c
+#include <linux/kernel.h>
+#include <linux/module.h>
+#include <linux/livepatch.h>
+
+/* Replacement for the hypothetical vulnerable_fn in vmlinux */
+static int patched_vulnerable_fn(int arg)
+{
+    if (arg < 0)
+        return -EINVAL;      /* bounds check the original forgot */
+    return original_logic(arg);
+}
+
+static struct klp_func funcs[] = {
+    { .old_name = "vulnerable_fn", .new_func = patched_vulnerable_fn },
+    { }   /* sentinel */
+};
+
+static struct klp_object objs[] = {
+    { .name = NULL, .funcs = funcs },  /* NULL name → patch vmlinux */
+    { }
+};
+
+static struct klp_patch patch = {
+    .mod  = THIS_MODULE,
+    .objs = objs,
+};
+
+static int __init livepatch_init(void) { return klp_enable_patch(&patch); }
+static void __exit livepatch_exit(void) { }
+
+module_init(livepatch_init);
+module_exit(livepatch_exit);
+MODULE_LICENSE("GPL");
+MODULE_INFO(livepatch, "Y");  /* required; marks this as a livepatch module */
+```
+
+**Consistency model.** After `klp_enable_patch()`, the kernel does not immediately redirect all callers. Instead it waits for a *safe point*: each task is migrated to the new code only after it has fully unwound out of any frame that contains `old_func`. This prevents the deopt scenario where a task is executing old code that has been removed from underneath it. The consistency model is called "per-task consistency" and is implemented in `kernel/livepatch/transition.c`.
+
+### 10.2 `text_poke_bp()` — Atomic Instruction Replacement
+
+`text_poke_bp()` (`arch/x86/include/asm/text-patching.h`, implementation in `arch/x86/kernel/alternative.c`) is the low-level primitive that atomically replaces an instruction sequence of up to `POKE_MAX_OPCODE_SIZE = 5` bytes in the kernel's text without taking the kernel offline. The atomicity guarantee is provided by an int3-based protocol that prevents any CPU from executing a partially-written instruction:
+
+```
+Step 1: Replace the first byte of the target instruction with int3 (0xCC).
+        Any CPU about to execute the instruction hits the breakpoint instead.
+
+Step 2: IPI (inter-processor interrupt) to all other CPUs — wait for them
+        to acknowledge the int3 is in place (smp_call_function_many).
+
+Step 3: Write the remaining bytes of the new instruction sequence.
+        The int3 serializes instruction fetch, so no CPU sees a torn instruction.
+
+Step 4: IPI to all CPUs again to flush their instruction pipelines.
+
+Step 5: Replace the int3 with the final first byte of the new instruction.
+        The instruction is now atomically visible to all CPUs.
+```
+
+The int3 breakpoint handler (`poke_int3_handler()` in `arch/x86/kernel/alternative.c`) emulates the old instruction's effect while the replacement is in progress, ensuring forward progress. For `ftrace`-size patches (a `CALL_INSN_SIZE = 5` byte call instruction), the sequence patches the call target in one text_poke_bp operation.
+
+For patching multiple sites atomically, use the batching API:
+
+```c
+/* Queue multiple patches (does not flush yet): */
+text_poke_queue(addr1, opcode1, len1, emulate1);
+text_poke_queue(addr2, opcode2, len2, emulate2);
+/* Apply all queued patches atomically with a single IPI round: */
+text_poke_finish();
+```
+
+**The `poking_mm` dual-mapping.** Because kernel `.text` is mapped read-only in the page tables, `text_poke` cannot write directly. It uses `poking_mm` — a separate `mm_struct` maintained by the kernel that maps the same physical kernel-text page frames with write permission (`poking_addr` in `arch/x86/kernel/alternative.c`). The write is performed via a temporary mapping in `poking_mm`; the actual kernel virtual address remains read-only throughout. This is the kernel's implementation of the same dual-mapping pattern used by user-space JITs.
+
+### 10.3 ftrace-Based Function Redirection
+
+`ftrace` (function tracer) is the mechanism that livepatch uses to redirect calls to patched functions. At kernel build time, Clang with `-pg` (or `-mfentry` for x86_64) emits a `call __fentry__` instruction — a 5-byte `CALL_INSN_SIZE` call — at the very start of every non-inline function prologue. This call is initially to a NOP stub but can be redirected at runtime.
+
+Build the kernel with ftrace-compatible Clang flags:
+
+```bash
+# -pg emits the __fentry__ call on x86_64:
+make CC=clang LLVM=1 CONFIG_FUNCTION_TRACER=y -j$(nproc) vmlinux
+```
+
+At runtime, `ftrace_modify_call()` (`kernel/trace/ftrace.c`) patches the `call __fentry__` instruction to call a trampoline. The livepatch subsystem registers `ftrace_ops` handlers for each function being patched:
+
+```
+Before patching:
+  call __fentry__  (no-op; returns immediately)
+  <function prologue>
+  <function body>
+
+After klp_enable_patch():
+  call klp_ftrace_handler  (→ checks klp_task_in_transition, redirects to new_func)
+  <function prologue — now unreachable for patched tasks>
+```
+
+The `klp_ftrace_handler` in `kernel/livepatch/patch.c` redirects the call by modifying the return address on the stack (`ftrace_regs`) before `__fentry__` returns — effectively a return-address hijack that is safe because the entire protocol is synchronized.
+
+`ftrace` itself uses `text_poke_bp` to install the redirected call, completing the layering: livepatch → ftrace → `text_poke_bp` → `poking_mm` dual-mapping.
+
+### 10.4 Userspace Dynamic Probes
+
+The same code-patching concepts extend to userspace via `uprobes` (userspace probes). A uprobe installs an int3 breakpoint at a virtual address in a running process — including inside shared libraries — and fires a handler on every hit.
+
+```bash
+# Attach a probe to the entry of function 'handle_request' in a running server:
+perf probe --exec=/usr/sbin/my_server --add 'handle_request'
+
+# Record all hits with arguments (if DWARF debug info is present):
+perf record -e probe:handle_request -aR sleep 10
+perf script
+```
+
+Under the hood, `perf probe --add` calls `uprobe_register()` in the kernel (`kernel/events/uprobes.c`), which:
+1. Locates the virtual address of the symbol via `/proc/<pid>/maps` and ELF symbol lookup.
+2. Writes an `int3` to the target page in the process's address space via `get_user_pages` + `copy_to_user_page`.
+3. On each `int3` hit, the kernel calls the registered uprobe handler before returning to userspace.
+
+Uprobes work identically to kprobes (kernel dynamic probes) but in user virtual memory. They require no recompilation and no source access — only the ELF binary and, for argument capture, DWARF debug information.
+
+For Clang-compiled binaries, ensure DWARF info is present:
+
+```bash
+clang -O2 -g my_server.c -o my_server
+# -g emits DWARF; uprobe argument capture uses it to locate registers/offsets
+```
+
+## 11. Chapter Summary
 
 - **`LLVM=1`** replaces the entire GNU binutils toolchain with LLVM equivalents in a single make variable; `LLVM_IAS=1` adds the integrated assembler and is now default for most architectures.
 
@@ -477,5 +646,13 @@ make -C /path/to/linux M=$(pwd) \
 - **objtool** runs on each `.o` after Clang and before the linker, validating stack frames for ORC unwinder generation, checking `noinstr` section isolation, validating `uaccess` regions, and enforcing retpoline compliance. It emits `.orc_unwind` tables as a compact, allocation-free DWARF replacement.
 
 - **Android GKI** mandates Clang for all Android kernels since Android 12, enforces symbol-list-based ABI stability checked by `abi_gki_*` scripts, and uses `randstruct` for struct layout randomization with per-build seeds encoded in module metadata.
+
+- **Linux kernel live patching** uses a three-level hierarchy (`klp_func` → `klp_object` → `klp_patch`) registered via `klp_enable_patch()`; the per-task consistency model (`kernel/livepatch/transition.c`) ensures tasks are migrated to new code only after unwinding out of all old-function frames, preventing mid-execution code removal.
+
+- **`text_poke_bp()`** (`arch/x86/include/asm/text-patching.h`) atomically replaces up to `POKE_MAX_OPCODE_SIZE = 5` bytes in kernel text via an int3-based protocol: write int3 → IPI-sync → write remaining bytes → IPI-sync → write final first byte; the `poking_mm` dual-mapping provides a writable alias to the read-only kernel text pages without violating W^X; `text_poke_queue()`+`text_poke_finish()` batch multiple patches under one IPI round.
+
+- **ftrace-based redirection**: Clang with `-pg`/`-mfentry` emits a `CALL_INSN_SIZE = 5` byte `call __fentry__` NOP at each function prologue; `ftrace_modify_call()` patches it to call a livepatch trampoline; `klp_ftrace_handler` redirects execution to the replacement function by rewriting the return address in `ftrace_regs` before `__fentry__` returns; the full chain is livepatch → ftrace → `text_poke_bp` → `poking_mm`.
+
+- **Userspace dynamic probes** (`perf probe --add` / `uprobe_register()`): install an int3 breakpoint in a live process via `get_user_pages`+`copy_to_user_page`; fire a handler on every hit without recompilation; DWARF debug info enables argument capture; uprobes apply the same int3-based patching as kprobes but in user virtual memory.
 
 - A complete x86_64 kernel build with full LLVM toolchain requires only `make LLVM=1 LLVM_IAS=1 -j$(nproc) bzImage`; all compiler and binutils substitutions follow automatically.

@@ -678,9 +678,205 @@ Julia's JIT (`src/jitlayers.cpp` in the Julia source tree) uses ORC v2 heavily:
 
 ---
 
-## 108.9 Debugging JIT-Compiled Code
+## 108.9 Adaptive Recompilation, OSR, and Self-Modifying Code
 
-### 108.9.1 GDB JIT Interface
+### 108.9.1 ReOptimizeLayer — Tiered Recompilation
+
+`ReOptimizeLayer` (`llvm/include/llvm/ExecutionEngine/Orc/ReOptimizeLayer.h`) is an `IRLayer` that implements function-granularity tiered compilation: it emits tier-1 code with lightweight profiling instrumentation, detects hot functions at runtime, and recompiles them at a higher optimization level, redirecting callers atomically.
+
+Two callbacks define its behaviour:
+
+```cpp
+// Called at tier-1 emission: inject profiling code into the module.
+using AddProfilerFunc = unique_function<Error(
+    ReOptimizeLayer &Parent,
+    ReOptMaterializationUnitID MUID,  // stable ID for this compilation unit
+    unsigned CurVersion,              // 0 on first emission
+    ThreadSafeModule &TSM)>;
+
+// Called when reoptimization is triggered: rewrite the module for tier 2.
+using ReOptimizeFunc = unique_function<Error(
+    ReOptimizeLayer &Parent,
+    ReOptMaterializationUnitID MUID,
+    unsigned CurVersion,              // ≥1 for all reoptimized versions
+    ResourceTrackerSP OldRT,          // tracker for tier-1 code; kept alive
+    ThreadSafeModule &TSM)>;
+```
+
+The built-in `reoptimizeIfCallFrequent` profiler injects a global call counter and triggers reoptimization when the count exceeds `CallCountThreshold = 10`. The `ReOptimizeFunc` receives the original IR module (not the profiling-instrumented copy) and may apply any transformation before handing it back for tier-2 compilation.
+
+Setting up a two-tier JIT:
+
+```cpp
+#include "llvm/ExecutionEngine/Orc/ReOptimizeLayer.h"
+#include "llvm/ExecutionEngine/Orc/JITLinkRedirectableSymbolManager.h"
+
+auto ObjLayer     = std::make_unique<ObjectLinkingLayer>(*ES);
+auto CompileLayer = std::make_unique<IRCompileLayer>(
+    *ES, *ObjLayer,
+    std::make_unique<ConcurrentIRCompiler>(
+        cantFail(JITTargetMachineBuilder::detectHost())));
+
+// RedirectableSymbolManager: manages stub+pointer-cell pairs.
+auto RSM = cantFail(JITLinkRedirectableSymbolManager::Create(*ObjLayer));
+
+// Build the reoptimize layer on top; default profiler injects call counters.
+auto ReOptLayer = std::make_unique<ReOptimizeLayer>(
+    *ES, DL, *CompileLayer, *RSM);
+
+// Custom tier-2: recompile with O3.
+ReOptLayer->setReoptimizeFunc(
+    [](ReOptimizeLayer &, ReOptMaterializationUnitID,
+       unsigned, ResourceTrackerSP OldRT,
+       ThreadSafeModule &TSM) -> Error {
+      TSM.withModuleDo([](Module &M) {
+        PassBuilder PB;
+        LoopAnalysisManager LAM;  FunctionAnalysisManager FAM;
+        CGSCCAnalysisManager CGAM; ModuleAnalysisManager MAM;
+        PB.registerModuleAnalyses(MAM);
+        PB.registerCGSCCAnalyses(CGAM);
+        PB.registerFunctionAnalyses(FAM);
+        PB.registerLoopAnalyses(LAM);
+        PB.crossRegisterProxies(LAM, FAM, CGAM, MAM);
+        PB.buildPerModuleDefaultPipeline(OptimizationLevel::O3).run(M, MAM);
+      });
+      // OldRT keeps tier-1 machine code alive until all frames on it have
+      // returned. It is automatically removed when it goes out of scope here.
+      return Error::success();
+    });
+
+// Register in-process runtime support (no separate ORC runtime needed).
+cantFail(ReOptLayer->addOrcRTLiteSupport(MainJD, DL));
+cantFail(ReOptLayer->registerRuntimeFunctions(MainJD));
+
+// Add a module — compiled at O0 with call-count instrumentation on first call.
+cantFail(ReOptLayer->add(MainJD, std::move(TSM)));
+```
+
+`addOrcRTLiteSupport` injects the `__orc_rt_reoptimize_dispatch` runtime helper into `PlatformJD` using in-process function pointers, avoiding the need for the full ORC runtime shared library. `registerRuntimeFunctions` registers the dispatch handler so that profiling callbacks from tier-1 code can trigger tier-2 compilation asynchronously.
+
+### 108.9.2 RedirectableSymbolManager and Atomic Stub Redirection
+
+`RedirectableSymbolManager` (`llvm/include/llvm/ExecutionEngine/Orc/RedirectionManager.h`) is the base class for managing symbols whose call target can be atomically changed at runtime. `JITLinkRedirectableSymbolManager` (`llvm/include/llvm/ExecutionEngine/Orc/JITLinkRedirectableSymbolManager.h`) implements it using JITLink stub primitives.
+
+Internally, each redirectable symbol has two allocations on separate pages:
+
+- **Pointer cell** (writable `rw-` page): a machine-word holding the current target function address.
+- **Stub code** (executable `r-x` page): an indirect branch through the pointer cell — `jmpq *(%rip + offset)` on x86_64, `ldr x16, [pc+8]; br x16` on AArch64 — created by `jitlink::getPointerJumpStubCreator(triple)`.
+
+The `JITLinkRedirectableSymbolManager::Create` factory calls `jitlink::getAnonymousPointerCreator(triple)` and `jitlink::getPointerJumpStubCreator(triple)` to obtain architecture-specific constructors, failing gracefully on unsupported triples.
+
+`redirect(JITDylib &JD, const SymbolMap &NewDests)` writes the new target address to the pointer cell. Because the stub always loads through the cell, the redirect takes effect on the very next call from any thread — even from code already executing on another CPU — without any instruction-cache flush required on coherent ISAs (x86_64, AArch64).
+
+```cpp
+// Initially point the stub at tier-1:
+SymbolMap initDests;
+initDests[ES->intern("hot_fn")] =
+    {ExecutorAddr::fromPtr(tier1Ptr), JITSymbolFlags::Exported};
+cantFail(RSM->createRedirectableSymbols(RT, std::move(initDests)));
+
+// After tier-2 compilation, atomically redirect:
+SymbolMap newDests;
+newDests[ES->intern("hot_fn")] =
+    {ExecutorAddr::fromPtr(tier2Ptr), JITSymbolFlags::Exported};
+cantFail(RSM->redirect(MainJD, newDests));
+// All future calls to "hot_fn" reach tier2Ptr.
+// Tier-1 code remains mapped (OldRT alive) until in-flight frames return.
+```
+
+### 108.9.3 The OSR / Guard / Deoptimization Cycle
+
+On-Stack Replacement (OSR) and deoptimization are the control-flow complements of tiered recompilation. When a speculative assumption embedded in compiled code turns out to be wrong, the runtime must:
+
+1. **Detect the violation** via a compiled guard — a conditional branch that checks the assumption at each relevant call site (type check, null check, bounds check).
+2. **Reconstruct interpreter state** — the `.llvm_stackmaps` section records, for each patchpoint ID, the register number or frame-relative stack offset of every live value at that program point. The deopt handler uses these locations to rebuild the interpreter's variable table.
+3. **Transfer to a slower tier** and resume from the deoptimized point.
+
+The connection between `ReOptimizeLayer` and the patchpoint/stackmap mechanism (described in detail in Chapter 58):
+
+```
+Tier-1 emission:
+  @llvm.experimental.patchpoint(ID, sled_size, slow_fn, ...)
+  → backend emits CALL + NOP sled; .llvm_stackmaps gains ID→{PC, live-value-locs}
+
+Runtime:
+  call-count counter fires → reoptimize callback → tier-2 compiled
+  → RSM->redirect() patches pointer cell → all future calls reach tier-2
+
+Guard failure (if tier-2 speculated incorrectly):
+  conditional branch in tier-2 fires → deopt block
+  → @llvm.experimental.stackmap records live values for interpreter
+  → deopt handler reads .llvm_stackmaps, reconstructs frame
+  → interpreter resumes from deoptimized program point
+  → RSM->redirect() may redirect back to tier-1 if assumption is violated frequently
+```
+
+Compared to JVM HotSpot: HotSpot C1 profiles branch frequencies and loop-back-edge counters; when a counter exceeds a threshold, OSR compiles the **loop body** (not the whole function) into C2 code and transfers the running stack frame in-place mid-loop. `ReOptimizeLayer` performs function-granularity replacement, which is simpler and sufficient for most JIT use cases. Full loop-granularity OSR requires per-loop frame-layout negotiation between tiers, which LLVM does not currently provide as a built-in mechanism.
+
+V8's Ignition→Turbofan pipeline is function-granularity: Ignition bytecode runs until Turbofan compiles a hot function; the stub for that function is patched via `redirect`-equivalent logic to reach the Turbofan-compiled version. V8 deoptimization reconstructs the Ignition frame from Turbofan safepoints — the direct analogue of LLVM's `.llvm_stackmaps` records.
+
+### 108.9.4 W^X, ELF `.text`, and the Dual-Mapping Pattern
+
+**Why ELF `.text` is read-only.** The ELF loader maps `.text` into a segment with program-header flags `PF_R | PF_X` (no `PF_W`). The OS enforces W^X (write XOR execute): `mprotect(PROT_WRITE | PROT_EXEC)` on an existing executable mapping is rejected by SELinux or silently strips `PROT_EXEC` depending on kernel configuration. Apple Silicon enforces W^X in hardware: the AArch64 MMU prohibits simultaneously-writable-and-executable page-table entries. Mach-O `__TEXT` has identical constraints.
+
+**JIT avoids the problem entirely.** ORC/JITLink never touches the binary's `.text`. Every compiled function lives in fresh anonymous memory:
+
+```
+mmap(PROT_READ | PROT_WRITE)    ← scratch: writable, not executable
+<write machine code>
+mprotect(PROT_READ | PROT_EXEC) ← sealed: executable, no longer writable
+```
+
+`MapperJITLinkMemoryManager` (`llvm/lib/ExecutionEngine/Orc/MemoryMapper.cpp`) abstracts this across local, remote, and shared-memory executor configurations.
+
+**Dual-mapping for stub pointer cells.** `IndirectStubsManager` and `JITLinkRedirectableSymbolManager` must write to pointer cells after the executable view is sealed. They use dual-mapping: the same physical memory appears at two virtual addresses — `rw-` for patching and `r-x` for execution:
+
+```cpp
+// Linux:
+int fd = memfd_create("stubs", MFD_CLOEXEC);
+ftruncate(fd, pageSize);
+void *rx = mmap(nullptr, pageSize, PROT_READ | PROT_EXEC, MAP_SHARED, fd, 0);
+void *rw = mmap(nullptr, pageSize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+close(fd);
+// Write the new target through rw; the change is visible via rx immediately.
+```
+
+On Apple Silicon:
+```cpp
+void *mem = mmap(nullptr, pageSize,
+                 PROT_READ | PROT_WRITE | PROT_EXEC,
+                 MAP_PRIVATE | MAP_ANONYMOUS | MAP_JIT, -1, 0);
+pthread_jit_write_protect_np(false);
+// ... write to mem ...
+pthread_jit_write_protect_np(true);
+```
+
+**Format comparison — self-modification posture:**
+
+| Format / Platform | Self-modification posture |
+|---|---|
+| ELF `.text` (`PF_R\|PF_X`) | Not writable; JITs use fresh-mmap or dual-map for new code |
+| Mach-O `__TEXT` | Identical W^X constraints; `MAP_JIT` required on Apple Silicon |
+| WASM | No self-modification — bytecode validated before execution; no raw address space |
+| JVM `.class` | Immutable after classloading; modification requires `ClassLoader.defineClass` |
+| SBCL / Common Lisp FASL | `COMPILE` generates native code at runtime; `save-lisp-and-die` snapshots the code heap |
+| Forth dictionary | Code and data share the same address space; `CREATE`/`DOES>` adds executable words dynamically |
+
+### 108.9.5 Homoiconic Language Examples
+
+Homoiconic languages treat code as a first-class data value, making runtime code generation natural. The following illustrate the range of techniques at the machine level.
+
+**Forth.** The Forth dictionary is a contiguous block of memory containing linked list headers (name, flags, link pointer) immediately followed by the body — raw native code (in native-code Forths) or threaded-code pointers. `CREATE` allocates the next dictionary entry; `DOES>` appends a pointer to runtime-behavior code. Writing a new word is literally writing to the next free address in a region that the Forth inner interpreter also fetches from. There is no separate `.text` / `.data` boundary: the dictionary is simultaneously executable and mutable.
+
+**SBCL / Common Lisp.** SBCL compiles to native x86_64 machine code. `(compile nil '(lambda (x) (* x x)))` JIT-compiles a new native function, allocates it in the code heap (a separately managed `rw-` → `r-x` region), and returns a callable function object. `(save-lisp-and-die "image.core")` snapshots the entire Lisp heap — including all live native-code objects — to a binary file. Reloading the image restores all compiled functions without recompilation. This is the closest production system to a binary format designed from the ground up for runtime code generation.
+
+**Julia `@generated`.** A `@generated` function produces its own IR body at compile time, specialized on the concrete types of its arguments. The generated body is compiled by LLVM's ORC JIT and cached per type-signature. `@code_llvm f(1.0)` inspects the LLVM IR for a specialization; `@code_native f(1.0)` shows the emitted machine code. See Chapter 193 for Julia's full type-inference-driven specialization model.
+
+For the **theoretical treatment** — Lean 4 `Syntax` quotation, ρ-calculus `quote`/`unquote`, certified self-modification (`patch : Program → MetaModel → Σ(Program, Proof)`), and the SICA self-improving coding agent — see Chapter 207.
+
+## 108.10 Debugging JIT-Compiled Code
+
+### 108.10.1 GDB JIT Interface
 
 GDB's JIT debug interface defines a protocol via a pair of symbols in the JIT'd process:
 
@@ -705,7 +901,7 @@ ObjLayer.addPlugin(std::make_unique<DebugObjectManagerPlugin>(
     /*EmitDebugObjects=*/true));
 ```
 
-### 108.9.2 Perf Integration
+### 108.10.2 Perf Integration
 
 `PerfJITEventListener` emits `jit_code_load` records to `/tmp/jit-<PID>.dump` in the format expected by `perf inject --jit`. The records include:
 - Function name (from the `Symbol` in the `LinkGraph`)
@@ -730,7 +926,7 @@ ObjLayer.addPlugin(std::make_unique<PerfSupportPlugin>(
     *EPC, MainJD, /*EmitDebugInfo=*/true, /*RegisterPerf=*/true));
 ```
 
-### 108.9.3 llvm-jitlink as Debugging Tool
+### 108.10.3 llvm-jitlink as Debugging Tool
 
 `llvm-jitlink` is the essential JITLink/ORC debugging tool:
 
@@ -754,7 +950,7 @@ llvm-jitlink -show-defined-symbols foo.o bar.o
 time llvm-jitlink -noexec foo.o
 ```
 
-### 108.9.4 ORC Logging and Debugging
+### 108.10.4 ORC Logging and Debugging
 
 ORC provides verbose logging via LLVM's debug infrastructure:
 
@@ -783,6 +979,11 @@ llvm::setCurrentDebugType("orc");
 - `ThreadSafeModule`/`ThreadSafeContext` ensure LLVM Context is accessed under a mutex; `ConcurrentIRCompiler` creates a fresh `TargetMachine` per compilation thread; the thread pool dispatcher enables true concurrent compilation.
 - `ExecutorProcessControl` (EPC) separates compiler from executor: `SelfExecutorProcessControl` for in-process JIT, `SimpleRemoteEPC` + `llvm-jitlink-executor` for out-of-process/cross-architecture JIT.
 - `LLJIT` is the high-level convenience API with `LLJITBuilder`; `DynamicLibrarySearchGenerator` and `StaticLibraryDefinitionGenerator` provide process and archive symbols on demand.
+- `ReOptimizeLayer` provides function-granularity tiered recompilation: `AddProfilerFunc` injects call-count instrumentation into tier-1 code; `reoptimizeIfCallFrequent` (threshold = 10 calls) triggers tier-2 compilation; `ReOptimizeFunc` receives the original IR module and may apply any optimization pipeline; `OldRT` keeps tier-1 code alive until all in-flight frames return.
+- `RedirectableSymbolManager` → `JITLinkRedirectableSymbolManager` manages stub+pointer-cell pairs; `createRedirectableSymbols` allocates the pairs via `jitlink::getAnonymousPointerCreator` / `getPointerJumpStubCreator`; `redirect(JD, SymbolMap)` atomically patches the pointer cell, redirecting all future calls without halting any CPU.
+- The OSR/deoptimization cycle: speculative guard (conditional branch) → guard failure → deopt block records live values via `@llvm.experimental.stackmap` → deopt handler reads `.llvm_stackmaps` v3 records → interpreter reconstructs frame; contrast with JVM HotSpot (loop-granularity OSR) and V8 Ignition→Turbofan (function-granularity, same pattern as ORC).
+- ELF `.text` (`PF_R|PF_X`) and Mach-O `__TEXT` are never writable; JITLink allocates fresh anonymous pages (write → `mprotect(EXEC)`) for compiled code; stub pointer cells use dual-mapping (`memfd_create`+two `mmap` calls on Linux; `MAP_JIT`+`pthread_jit_write_protect_np` on Apple Silicon) to enable write-through without a W^X violation; WASM prohibits self-modification entirely.
+- Homoiconic languages make runtime code generation natural: Forth dictionary mixes executable code and linked-list metadata in one region; SBCL `COMPILE` generates native x86_64 at runtime with `save-lisp-and-die` image snapshots; Julia `@generated` functions produce LLVM IR bodies specialized per type-signature; theoretical treatment (Lean 4 `Syntax`, ρ-calculus, certified self-modification) in Chapter 207.
 - GDB integration uses `DebugObjectManagerPlugin` + `__jit_debug_descriptor`/`__jit_debug_register_code`; perf integration uses `PerfSupportPlugin` with `/tmp/jit-<PID>.dump`; `llvm-jitlink` is the standalone debugging/testing tool.
 - Production users include LLDB (custom EPC via ptrace), Julia (ResourceTracker-based code GC), and Swift REPL; all have moved or are moving to ORC v2 from older JIT infrastructure.
 

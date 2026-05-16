@@ -309,6 +309,160 @@ void IREmitter::emitDeoptPoint(uint64_t id, llvm::Value *liveVal) {
 }
 ```
 
+### 58.4.1 The Complete Code-Mutation Workflow
+
+The patchpoint intrinsic reserves a NOP sled in compiled code. At runtime the JIT — or any code-patching runtime — locates the sled, overwrites it with a real instruction, and resumes execution. The complete cycle has five steps.
+
+**Step 1 — Emit.** At IR construction time, emit a patchpoint for every call site that may require future patching:
+
+```cpp
+// Emit a patchpoint wrapping @fastpath with a 13-byte NOP sled.
+// 13 bytes accommodates a REX.W CALL r/m64 (3 bytes) or a JZ rel32 (6 bytes)
+// plus padding NOPs on x86_64.
+llvm::Function *ppDecl = llvm::Intrinsic::getOrInsertDeclaration(
+    mod.get(),
+    llvm::Intrinsic::experimental_patchpoint_i64,
+    {builder.getInt64Ty()});
+
+llvm::Value *ppArgs[] = {
+    builder.getInt64(patchpointID),  // unique ID → keyed in .llvm_stackmaps
+    builder.getInt32(13),            // NOP-sled size in bytes
+    fastpathFn,                      // initial callee
+    builder.getInt32(1),             // number of call arguments
+    arg,                             // the actual argument
+    livePtr,                         // live value recorded for deopt reconstruction
+};
+llvm::Value *result = builder.CreateCall(ppDecl, ppArgs, "pp_result");
+```
+
+After compilation the backend emits a `call` to `fastpathFn` at the patchpoint address followed by `(13 - CALL_SIZE)` bytes of `nop` padding. One record keyed by `patchpointID` is appended to `.llvm_stackmaps`.
+
+**Step 2 — Locate the sled.** At runtime, parse `.llvm_stackmaps` using `StackMapParser` to find the patchpoint's code address:
+
+```cpp
+#include "llvm/Object/StackMapParser.h"
+
+// smData: raw bytes of the .llvm_stackmaps section obtained from the JIT
+// (e.g., via an ObjectLinkingLayer plugin that captures section contents).
+llvm::ArrayRef<uint8_t> smData = getStackMapSection();
+llvm::StackMapParser<llvm::support::little> SMP(smData);
+// SMP.getVersion() == 3  (the only format LLVM 22 emits)
+
+uint64_t sledPC = 0;
+for (auto &Rec : SMP.records()) {
+    if (Rec.getID() == patchpointID) {
+        // getInstructionOffset() is the PC of the patchpoint relative to
+        // the start of the function; add the function's load address.
+        sledPC = funcLoadAddr + Rec.getInstructionOffset();
+        break;
+    }
+}
+```
+
+Each record also carries a list of live-value locations. Each location is either a register number (type `Register`) or a frame-pointer-relative offset (type `Direct` / `Indirect`) — the raw materials for frame reconstruction.
+
+**Step 3 — Establish a writable mapping.** ELF `.text` carries program-header flags `PF_R | PF_X` (no `PF_W`). Modern OS kernels and security policies enforce W^X: a page cannot be simultaneously writable and executable. The standard solution is **dual-mapping** — map the same physical memory at two virtual addresses: one `r-x` (for execution) and one `rw-` (for patching). Writes through the `rw-` alias appear immediately in the `r-x` view because both virtual addresses reference the same physical page frames.
+
+On Linux using `memfd_create`:
+
+```cpp
+int memFd = memfd_create("jit_patch", MFD_CLOEXEC);
+ftruncate(memFd, pageSize);
+
+// Executable view — what the CPU fetches instructions from:
+void *rxView = mmap(nullptr, pageSize, PROT_READ | PROT_EXEC,
+                    MAP_SHARED, memFd, 0);
+
+// Writable alias at a distinct virtual address:
+void *rwView = mmap(nullptr, pageSize, PROT_READ | PROT_WRITE,
+                    MAP_SHARED, memFd, 0);
+close(memFd);  // mappings remain after fd is closed
+```
+
+On Apple Silicon, use `MAP_JIT` and bracket writes with `pthread_jit_write_protect_np`:
+
+```cpp
+void *mem = mmap(nullptr, pageSize,
+                 PROT_READ | PROT_WRITE | PROT_EXEC,
+                 MAP_PRIVATE | MAP_ANONYMOUS | MAP_JIT, -1, 0);
+pthread_jit_write_protect_np(false);
+// ... write machine code or patch pointer cells ...
+pthread_jit_write_protect_np(true);
+```
+
+`JITLink`'s `InProcessMemoryManager` handles these platform differences automatically when allocating JIT memory.
+
+**Step 4 — Overwrite the sled.** Compute the offset of the sled within the mapped page and write the new instruction sequence through `rwView`:
+
+```cpp
+uintptr_t offsetInPage = sledPC % pageSize;
+uint8_t *rwSled = static_cast<uint8_t *>(rwView) + offsetInPage;
+
+// On x86_64: write a JZ rel32 (6 bytes) — branch to deopt handler if guard fails.
+rwSled[0] = 0x0F;
+rwSled[1] = 0x84;                                 // JZ near opcode
+int32_t rel = static_cast<int32_t>(
+    deoptHandlerAddr - (sledPC + 6));             // PC-relative displacement
+memcpy(rwSled + 2, &rel, 4);
+for (int i = 6; i < 13; ++i) rwSled[i] = 0x90;  // NOP padding
+
+// Sequential memory fence — ensure write is visible before any CPU fetches the page.
+std::atomic_thread_fence(std::memory_order_seq_cst);
+```
+
+**Step 5 — Resume.** Execution continues normally through `rxView`. On the next call, the formerly-NOP sled contains the conditional branch. If the guard condition holds, fall-through continues to the fast path with zero added cost. If the guard fails, the deopt block fires, the deopt handler reads the live-value locations from the `.llvm_stackmaps` record for `patchpointID`, reconstructs the interpreter's variable table, and resumes execution in the interpreter.
+
+### 58.4.2 Guard IR Patterns
+
+Guards are conditional branches that enforce speculative assumptions. When a guard fails the program deoptimizes — it falls back to a slower, more general execution tier. The following patterns cover the three most common guard forms.
+
+**Type guard** — assume an object's type tag matches a concrete class:
+
+```llvm
+; Assume %obj is an instance of Foo (runtime tag == 0x42).
+%tag = load i32, ptr %obj, align 4
+%ok  = icmp eq i32 %tag, 42
+br i1 %ok, label %fast_path, label %deopt_block
+
+fast_path:
+  ; Optimized code that exploits Foo-specific field layout.
+  %field = getelementptr inbounds %Foo, ptr %obj, i32 0, i32 1
+  %val   = load i64, ptr %field, align 8
+  ret i64 %val
+
+deopt_block:
+  ; Record all values the interpreter needs to reconstruct state.
+  call void (i64, i32, ...) @llvm.experimental.stackmap(
+      i64 1001,   ; deopt-site ID — matched against .llvm_stackmaps at runtime
+      i32 0,
+      ptr %obj,   ; live: the object
+      i64 %a,     ; live: other values
+      i64 %b)
+  call void @__deopt_handler(i64 1001)
+  unreachable    ; tells LLVM this path never returns; enables fast-path cleanup
+```
+
+The `unreachable` terminator is mandatory: without it LLVM must keep register save/restore code on the fast path in case the deopt block returns.
+
+**Null guard** — check a pointer before dereferencing:
+
+```llvm
+%null = icmp eq ptr %ptr, null
+br i1 %null, label %deopt_block, label %continue
+continue:
+  %val = load i64, ptr %ptr, align 8
+```
+
+**Bounds guard** — verify an array index before a GEP:
+
+```llvm
+%len   = load i64, ptr %arr_len_ptr, align 8
+%inbnd = icmp ult i64 %idx, %len
+br i1 %inbnd, label %continue, label %deopt_block
+```
+
+**Connecting guards to patchpoints.** A guard that is never observed to fail can be patched away entirely: emit the guard condition check as a patchpoint; once the JIT determines the guard always passes, overwrite the patchpoint's sled with an unconditional fall-through (NOP or `jmp` past the branch). When an assumption finally fails, the deopt runtime restores the conditional branch before re-executing through the interpreter. This is the pattern used in V8 Turbofan (type-feedback-driven guard elision), JVM HotSpot C2 (uncommon-trap nodes), and YJIT for Ruby (side-exit guards).
+
 ## 58.5 Signal Safety
 
 Signal handlers execute asynchronously relative to the main thread. Code in a signal handler must be async-signal-safe: it may not call `malloc`, `free`, or any function that acquires a lock. This constrains what IR the frontend may emit inside signal handler bodies.
@@ -360,7 +514,9 @@ The choices are interrelated: a GC-managed language that also uses coroutines mu
 - TLS globals are emitted with `setThreadLocalMode`; General Dynamic is safest for shared libraries, Local Exec fastest for executables.
 - Atomic loads/stores use `setAtomic` on `LoadInst`/`StoreInst`; RMW uses `CreateAtomicRMW`; CAS uses `CreateAtomicCmpXchg`.
 - `SyncScope::System` applies to all threads; `SyncScope::SingleThread` applies to the current thread (appropriate for signal handlers).
-- Stackmap and patchpoint intrinsics support JIT deoptimization and profiling by recording live values and reserving code space for runtime patching.
+- Stackmap and patchpoint intrinsics (`@llvm.experimental.stackmap`, `@llvm.experimental.patchpoint`) support JIT deoptimization and profiling; the `.llvm_stackmaps` section (version-3 format, parsed by `StackMapParser`) records patchpoint IDs, instruction offsets, and per-live-value register/stack locations.
+- The complete code-mutation workflow: emit patchpoint → compile → locate sled via `StackMapParser::records()` → establish a writable alias via `memfd_create`+dual-`mmap` (Linux) or `MAP_JIT`+`pthread_jit_write_protect_np` (Apple Silicon) → overwrite the sled through the writable alias → fence → resume; W^X is never violated because the executable view is never made writable.
+- Guard IR patterns: type guards, null guards, and bounds guards emit conditional branches to `deopt_block` basic blocks; `unreachable` after the deopt call enables fast-path code-size reduction; guards can be patched away via patchpoints once observed to be always-passing (the V8 / HotSpot pattern).
 - Signal handler bodies must restrict themselves to async-signal-safe operations; LLVM provides no static enforcement, so the frontend must maintain this invariant.
 
 
