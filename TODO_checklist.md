@@ -297,9 +297,9 @@
 - [x] Ch207 — Reflective Code, Open Problems, and Build Roadmap
 
 ## Part XXXI — Frontier AI Evolution *(~132 pp, 11 ch)*
-- [ ] Ch208 — GPU Kernel DSLs: Triton, Helion, and Gluon
-- [ ] Ch209 — CUTLASS, Thrust, CuTe, and TileIR: GPU Parallel Primitives and Layout Algebra
-- [ ] Ch210 — The JAX Ecosystem: A Functional Neural Compilation Stack
+- [x] Ch208 — GPU Kernel DSLs: Triton, Helion, and Gluon
+- [x] Ch209 — CUTLASS, Thrust, CuTe, and TileIR: GPU Parallel Primitives and Layout Algebra
+- [x] Ch210 — The JAX Ecosystem: A Functional Neural Compilation Stack
 - [ ] Ch211 — Neural Programs as Compiled Artifacts: The Self-Aware Execution Stack (bridging)
 - [ ] Ch212 — Weights as a Programming Substrate
 - [ ] Ch213 — Mechanistic Interpretability Infrastructure
