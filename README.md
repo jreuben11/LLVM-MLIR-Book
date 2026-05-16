@@ -8,81 +8,15 @@
 
 ## About This Book
 
-~2,642 pages of expert-level material spanning 207 chapters and 8 appendices across 30 parts. The book is organised around **five structural arcs**:
+~2,774 pages of expert-level material spanning 218 chapters and 8 appendices across 31 parts. The book is organised around **five structural arcs**:
 
 1. **LLVM and Clang implementation** — the compiler infrastructure itself: LLVM IR, SelectionDAG, GlobalISel, the backend and target ports, LTO/ThinLTO, the linker (LLD), JIT (ORC/JITLink), sanitizers, BOLT, runtime libraries, and Clang's full internals from driver through Sema, CodeGen, AST, modules, and the C++ ABI.
 2. **Compiler theory** (Part II, ~120 pp) — lexical analysis, parsing theory, SSA construction, the lattice-based dataflow framework, and classical optimization theory. Anchored to Aho/Lam/Sethi/Ullman (*Dragon Book* 2e), Cooper & Torczon (*Engineering a Compiler* 3e), Appel (*Modern Compiler Implementation*), and Muchnick.
 3. **Type theory** (Part III, ~80 pp) — lambda calculus, System F, Hindley-Milner and Algorithm W, dependent types (Martin-Löf / CoC), linear and affine types, refinement types, and a capstone chapter mapping theory to LLVM and MLIR. Anchored to Pierce (*TAPL*, *ATTAPL*), Harper (*PFPL*), Mitchell, and Reynolds.
 4. **Polyhedral model and MLIR** — polyhedral theory from Presburger arithmetic through the Pluto scheduling algorithm and CLooG code generation (Part XI, ~80 pp, anchored to Bondhugula's PhD thesis, Feautrier's papers, Verdoolaege's ISL papers, and Grosser et al.); followed by Polly (Part XII) and the entire MLIR stack: foundations, in-tree dialects, transformations, XLA/OpenXLA, and production deployment (Parts XIX–XXIII, ~730 pp total).
-5. **Verified compilation and ecosystem frontiers** — formal semantics, CompCert, Vellvm, Alive2, and the undef/poison story (Part XXIV, ~110 pp, anchored to Leroy's CompCert papers, Zhao/Zdancewic/Nagarakatte on Vellvm, and Lopes/Lee/Hur on Alive2); plus Parts XXVI–XXX covering the ecosystem, mathematical foundations, language ecosystems, compiler tooling, and AI-first programming language design (see below).
+5. **Verified compilation and ecosystem frontiers** — formal semantics, CompCert, Vellvm, Alive2, and the undef/poison story (Part XXIV, ~110 pp, anchored to Leroy's CompCert papers, Zhao/Zdancewic/Nagarakatte on Vellvm, and Lopes/Lee/Hur on Alive2); plus Parts XXVI–XXXI covering the ecosystem, mathematical foundations, language ecosystems, compiler tooling, AI-first programming language design, and frontier AI evolution (GPU kernel DSLs, JAX, weight-space geometry, mechanistic interpretability, evolutionary architecture search, and formal self-improvement theory).
 
----
-
-## Parts XXVI–XXX — Ecosystem, Foundations, Tooling, and AI-First PLs *(added April–May 2026)*
-
-Twenty-six chapters added beyond the original 176, organised into four parts:
-
-### Part XXVI — Ecosystem and Frontiers *(Ch177–183)*
-
-| Ch | Title | Key topics |
-|----|-------|------------|
-| 177 | rustc: Architecture, MIR, and Codegen Backends | rustc pipeline, MIR, Miri, Polonius, a-mir-formality, rustc_codegen_llvm, Cranelift, GCC backend |
-| 178 | The Rust Compiler Ecosystem | llvm-sys, inkwell, melior, pliron, Calyxir, object, gimli, addr2line, ena, rust-cuda, Burn, CubeCL |
-| 179 | LLVM/MLIR for AI: The Full Stack | torch.export → StableHLO → MLIR → target ISA; key dialects, quantization, IREE, TFLite, TensorRT |
-| 180 | AI-Guided Compilation | MLGO RL inliner, Ansor/AutoTVM, IREE tile selection, Triton autotuner, LLM-assisted compiler dev |
-| 181 | Formal Verification in Practice | Dafny, Verus, F\*/HACL\*, Jasmin/libjade, CBMC, Kani, TLA+, Z3/CVC5/Bitwuzla/Kissat, α,β-CROWN, Marabou, Flux, Lean Copilot, LeanDojo, DeepSeek-Prover-V2, SV-COMP 2026 |
-| 182 | Language Tooling: Parsers, Lexers, and Syntax Trees | Logos, Pest, Winnow, Chumsky, LALRPOP, Rowan, ANTLR4, TreeSitter; decision guide by use case |
-| 183 | Modern C++ for Compiler Development: C++23, Contracts, and Reflection | LLVM coding standards; C++20 in LLVM today; C++23 `std::expected`/`mdspan`/deducing-`this`; C++26 Contracts (P2900); C++26 Static Reflection (P2996); pattern matching (P2688); C++/Rust boundary |
-
-All Rust code in Part XXVI targets **Edition 2024** (Rust 1.85+, `edition = "2024"` in every `Cargo.toml`).
-
-### Part XXVII — Mathematical Foundations and Verified Systems *(Ch184–189)* `[THEORETICAL]`
-
-| Ch | Title | Key topics |
-|----|-------|------------|
-| 184 | Proof Assistant Internals: Lean 4, Coq/Rocq, Isabelle/HOL, and Agda | Lean 4 LCNF + kernel; Coq pCIC + extraction; Isabelle LCF + Sledgehammer; Agda cubical type theory, `PathP`, `ua`, HITs, `agda2hs` |
-| 185 | Mathematical Logic and Model Theory for Compiler Engineers | Natural deduction, sequent calculus, Gödel incompleteness, DPLL(T), SMT theory stack, model theory |
-| 186 | Verified Hardware: CHERI Capabilities and the seL4 Microkernel | CHERI ISA, Morello, CHERI-LLVM, Sail, seL4 three-level refinement, AutoCorres, CAmkES |
-| 187 | Commutative Algebra and Its Applications in Compilation | Polynomial rings, Gröbner bases, integer programming, scheduling, loop transformations |
-| 188 | Category Theory for Compiler Engineers | Functors, natural transformations, adjunctions, monads, fibrations, categorical semantics |
-| 189 | Denotational Semantics and Domain Theory | Scott domains, CPOs, fixed points, continuation semantics, process algebras (CCS, CSP) |
-
-### Part XXVIII — Language Ecosystems and Engineering Practice *(Ch190–196)*
-
-| Ch | Title | Key topics |
-|----|-------|------------|
-| 190 | CIRCT: Circuit IR Compilers and Tools | FIRRTL, Calyx, ArcSim, DC/LEC workflows, LLHD dialect |
-| 191 | Quantum Compilation: QIR, QUIR, and MLIR Quantum Dialects | QIR (LLVM-based), QUIR (IBM), `quake`/`cc` dialects, optimization passes, Q# pipeline |
-| 192 | Swift SIL: Ownership, Optimization, and Influence on MLIR | SIL ownership SSA, SILGen, mandatory passes, SIL → LLVM, influence on MLIR bufferization |
-| 193 | Julia: Type-Inference-Driven LLVM Specialization | Method dispatch, AbstractInterpreter, `code_llvm`, world-age, Enzyme.jl, GPU offload |
-| 194 | Zig: Comptime Metaprogramming and LLVM IR Generation | `comptime`, stage1→stage2 bootstrap, self-hosted compiler, `@cImport`, async frames |
-| 195 | Safety-Critical Toolchain Qualification: DO-178C, ISO 26262, and Ferrocene | TÜV qualification, Ferrocene LS, MISRA-C, ASIL-D, kCFI, shadow-call-stack, CFI |
-| 196 | Cross-Language ABI Interoperability: Binding Generators and UniFFI | bindgen, cbindgen, UniFFI, Swift/Kotlin interop, cargo-component, WIT interface types |
-
-### Part XXIX — Compiler Tooling, Kernel Integration, and Binary Analysis *(Ch197–202)*
-
-| Ch | Title | Key topics |
-|----|-------|------------|
-| 197 | Clang Plugin System | `PluginASTAction`, `FrontendPluginRegistry`, `RecursiveASTVisitor`, custom diagnostics, IR-level hooks, `ParsedAttrInfo` |
-| 198 | Value Tracking Infrastructure | `KnownBits`, `ConstantRange`, `DemandedBits`, `LazyValueInfo`, `SimplifyQuery`, `AssumptionCache` |
-| 199 | llvm-mca: Static Performance Analysis | Pipeline/Stage/InstrBuilder, ProcResourceUnits, SummaryView, BottleneckAnalysis, CustomBehaviour plugin |
-| 200 | Linux Kernel Compilation with LLVM/Clang | ClangBuiltLinux, `CC=clang LLVM=1`, kCFI, ThinLTO, BPF+BTF+CO-RE, KASAN/KMSAN, objtool, Android GKI |
-| 201 | Binary Lifting to LLVM IR | Remill, McSema, RetDec, CFG recovery, `State` struct model, post-lifting optimisation, Alive2 validation |
-| 202 | Apache TVM: ML Operator Compiler | Relay, TIR/TVMScript, TE API, AutoTVM, Ansor/Meta-Schedule, BYOC, Relax/Unity, microTVM |
-
-### Part XXX — AI-First Programming Language Design *(Ch203–207)*
-
-| Ch | Title | Key topics |
-|----|-------|------------|
-| 203 | AI-First PL Principles and Landscape | 7 design pressures, capability maturity matrix, MoonBit/Pel/Dana, Dafny/Lean/Verus, Unison/Koka/LMQL/DSPy, Stan/Pyro/Gen PPL bridge |
-| 204 | Formal Language Specification for AI-First PLs | 6-layer spec (lexical, EBNF, type rules, operational semantics, metatheory, impl plan), effect rows, security labels, `Dist[A]`, `Code[T]` |
-| 205 | Transformer Model Development PLs | 10 design considerations, Mojo/Dex/Futhark/Exo 2/Burn survey, named tensor dims, first-class AD, MLIR backends, production serving |
-| 206 | Multi-Agent PLs, AI-First SDLC, Security, and Paradigm Failures | Choral/HasChor/EnCompass, Pijul/Nickel/Dagger/NixOS, Pony ref-caps, Jif IFT, 9-row paradigm failures table, Phase 0 sketches |
-| 207 | Reflective Code, Open Problems, and Build Roadmap | Lean 4 MetaM, AlphaProof/AlphaVerus, Maude META-LEVEL, G1–G7 open problems, Phase 0–5 build roadmap, unified synthesis |
-
----
-
-## Estimated Page Distribution
+### Estimated Page Distribution
 
 | Volume | Parts | Pages |
 |--------|-------|-------|
@@ -91,28 +25,33 @@ All Rust code in Part XXVI targets **Edition 2024** (Rust 1.85+, `edition = "202
 | Vol 3 — Clang and Runtimes | V–VIII, XVII–XVIII | ~870 pp |
 | Vol 4 — MLIR and ML Compilation | XIX–XXIII | ~730 pp |
 | Vol 5 — Verified Compilation + Operations + Ecosystem + Appendices | XXIV–XXVI + A–H | ~413 pp |
-| Vol 6 — Mathematical Foundations + Language Ecosystems + Tooling + AI-First PLs | XXVII–XXX | ~433 pp |
-| **Total** | **30 parts + 8 appendices** | **~4,006 pp target** |
+| Vol 6 — Mathematical Foundations + Language Ecosystems + Tooling + AI-First PLs + Frontier AI | XXVII–XXXI | ~565 pp |
+| **Total** | **31 parts + 8 appendices** | **~4,138 pp target** |
 
-The consolidated single-set total is **~2,642 pages** (theoretical chapters at ~20 pp each, practical chapters at ~12 pp each).
+| | |
+|-|-|
+| Parts | 31 |
+| Chapters | 218 |
+| Appendices | 8 |
+| Total items | 226 |
+| Estimated pages | ~2,774 |
+| LLVM version | 22.1.x |
+| Rust edition | 2024 (1.85+) |
+| License | [CC BY 4.0](LICENSE) |
 
 ---
 
-## Audience and Prerequisites
+## Target Audience
 
-Expert audience. Assumed: C++ proficiency, familiarity with compilers at the level of having used Clang/GCC and read assembly output. Not assumed: prior LLVM API experience, type theory, or formal methods. The theoretical parts (II, III, XI, XXIV) build from first principles while keeping an eye on how the theory maps to concrete LLVM and MLIR code.
+Expert audience. Assumed: C++ proficiency, familiarity with compilers at the level of having used Clang/GCC and read assembly output. Not assumed: prior LLVM API experience, type theory, or formal methods. The theoretical parts (II, III, XI, XXIV, XXVII) build from first principles while keeping an eye on how the theory maps to concrete LLVM and MLIR code.
 
 ---
 
 ## Verification Methodology
 
-**Practical chapters** (Parts I, IV–X, XII–XVIII, XIX–XXIII, XXV): all code verified against LLVM 22.1.x (`clang --version` → `22.x`; `llvm-config --version` → `22.x`). Source file cross-references use paths valid in the LLVM 22 monorepo. Code is emitted and checked with `clang -emit-llvm -S` or `mlir-opt` as appropriate.
+**Practical chapters** (Parts I, IV–X, XII–XVIII, XIX–XXIII, XXV–XXIX, XXXI): all code verified against the respective toolchain versions. LLVM code verified against LLVM 22.1.x (`clang --version` → `22.x`; `llvm-config --version` → `22.x`). Source file cross-references use paths valid in the LLVM 22 monorepo. Code is emitted and checked with `clang -emit-llvm -S` or `mlir-opt` as appropriate. Rust code (Part XXVI) targets Edition 2024 (Rust 1.85+, `edition = "2024"` in every `Cargo.toml`). Python/JAX code (Parts XXX–XXXI) verified against JAX 0.4.x, PyTorch 2.x, and TransformerLens.
 
-**Theoretical chapters** (Parts II, III, XI, XXIV): verified against the canonical literature cited per-chapter (Dragon Book, TAPL/PFPL, Bondhugula thesis, CompCert/Vellvm/Alive2 papers). No LLVM toolchain verification is applicable or attempted.
-
----
-
-**License:** [CC BY 4.0](LICENSE) · **Copyright:** © 2026 [jreuben11](https://github.com/jreuben11)
+**Theoretical chapters** (Parts II, III, XI, XXIV, XXVII): verified against the canonical literature cited per-chapter (Dragon Book, TAPL/PFPL, Bondhugula thesis, CompCert/Vellvm/Alive2 papers, Kolmogorov/Hutter/Schmidhuber for Part XXXI §216). No LLVM toolchain verification is applicable or attempted.
 
 ---
 
@@ -475,6 +414,22 @@ Expert audience. Assumed: C++ proficiency, familiarity with compilers at the lev
 | 206 | [Multi-Agent PLs, AI-First SDLC, Security, and Paradigm Failures](chapters/part-30-AI-first-PL-design/ch206-multi-agent-pls-sdlc-security.md) |
 | 207 | [Reflective Code, Open Problems, and Build Roadmap](chapters/part-30-AI-first-PL-design/ch207-reflective-code-open-problems-roadmap.md) |
 
+### Part XXXI — Frontier AI Evolution *(~132 pp)*
+
+| # | Chapter |
+|---|---------|
+| 208 | [GPU Kernel DSLs: Triton, Helion, and Gluon](chapters/part-31-frontier-ai-evolution/ch208-gpu-kernel-dsls-triton-helion-gluon.md) |
+| 209 | [CUTLASS, Thrust, CuTe, and TileIR: GPU Parallel Primitives and Layout Algebra](chapters/part-31-frontier-ai-evolution/ch209-cutlass-thrust-cute-tileir.md) |
+| 210 | [The JAX Ecosystem: A Functional Neural Compilation Stack](chapters/part-31-frontier-ai-evolution/ch210-jax-ecosystem-functional-neural-compilation-stack.md) |
+| 211 | [Neural Programs as Compiled Artifacts: The Self-Aware Execution Stack](chapters/part-31-frontier-ai-evolution/ch211-neural-programs-compiled-artifacts.md) |
+| 212 | [Weights as a Programming Substrate](chapters/part-31-frontier-ai-evolution/ch212-weights-as-programming-substrate.md) |
+| 213 | [Mechanistic Interpretability Infrastructure](chapters/part-31-frontier-ai-evolution/ch213-mechanistic-interpretability.md) |
+| 214 | [Gradient-Based Self-Modification: Model Editing, Meta-Learning, and Test-Time Adaptation](chapters/part-31-frontier-ai-evolution/ch214-gradient-based-self-modification.md) |
+| 215 | [Evolutionary Architecture Search](chapters/part-31-frontier-ai-evolution/ch215-evolutionary-architecture-search.md) |
+| 216 | [Formal Self-Improvement Theory](chapters/part-31-frontier-ai-evolution/ch216-formal-self-improvement-theory.md) |
+| 217 | [Self-Reflective Inference and Architecture Introspection](chapters/part-31-frontier-ai-evolution/ch217-self-reflective-inference.md) |
+| 218 | [Self-Improvement Fitness Functions and Capability Assessment](chapters/part-31-frontier-ai-evolution/ch218-self-improvement-fitness-functions.md) |
+
 ---
 
 ### Appendices *(~95 pp)*
@@ -492,19 +447,4 @@ Expert audience. Assumed: C++ proficiency, familiarity with compilers at the lev
 
 ---
 
-## Stats
-
-| | |
-|-|-|
-| Parts | 30 |
-| Chapters | 207 |
-| Appendices | 8 |
-| Total items | 215 |
-| Estimated pages | ~2,642 |
-| LLVM version | 22.1.x |
-| Rust edition | 2024 (1.85+) |
-| License | [CC BY 4.0](LICENSE) |
-
----
-
-@copyright jreuben11
+**License:** [CC BY 4.0](LICENSE) · **Copyright:** © 2026 [jreuben11](https://github.com/jreuben11)
