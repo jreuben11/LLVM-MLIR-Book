@@ -1,5 +1,5 @@
 # Book Progress Checklist
-*Last updated: 2026-05-16 (Parts XXVII–XXX written and complete; Part XXXI Frontier AI Evolution planned Ch208–Ch216). 218 / 227 items complete.*
+*Last updated: 2026-05-16 (Parts XXVII–XXX written and complete; Part XXXI Frontier AI Evolution in progress — Ch208–Ch216 written, Ch212 completed). 221 / 227 items complete.*
 
 ## Status Legend
 - `[ ]` Not started
@@ -301,11 +301,11 @@
 - [x] Ch209 — CUTLASS, Thrust, CuTe, and TileIR: GPU Parallel Primitives and Layout Algebra
 - [x] Ch210 — The JAX Ecosystem: A Functional Neural Compilation Stack
 - [x] Ch211 — Neural Programs as Compiled Artifacts: The Self-Aware Execution Stack (bridging)
-- [ ] Ch212 — Weights as a Programming Substrate
+- [x] Ch212 — Weights as a Programming Substrate
 - [x] Ch213 — Mechanistic Interpretability Infrastructure
-- [ ] Ch214 — Gradient-Based Self-Modification: Model Editing, Meta-Learning, and Test-Time Adaptation
-- [ ] Ch215 — Evolutionary Architecture Search
-- [ ] Ch216 — Formal Self-Improvement Theory
+- [x] Ch214 — Gradient-Based Self-Modification: Model Editing, Meta-Learning, and Test-Time Adaptation
+- [x] Ch215 — Evolutionary Architecture Search
+- [x] Ch216 — Formal Self-Improvement Theory
 - [ ] Ch217 — Self-Reflective Inference and Architecture Introspection
 - [ ] Ch218 — Self-Improvement Fitness Functions and Capability Assessment
 
