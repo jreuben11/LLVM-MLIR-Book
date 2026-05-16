@@ -1,5 +1,5 @@
 # Book Progress Checklist
-*Last updated: 2026-05-16 (Parts XXVII–XXX written and complete; Part XXXI Frontier AI Evolution in progress — Ch208–Ch216 written, Ch212 completed). 221 / 227 items complete.*
+*Last updated: 2026-05-16 (Parts XXVII–XXX written and complete; Part XXXI Frontier AI Evolution in progress — Ch208–Ch218 written). 227 / 227 items complete.*
 
 ## Status Legend
 - `[ ]` Not started
@@ -306,8 +306,8 @@
 - [x] Ch214 — Gradient-Based Self-Modification: Model Editing, Meta-Learning, and Test-Time Adaptation
 - [x] Ch215 — Evolutionary Architecture Search
 - [x] Ch216 — Formal Self-Improvement Theory
-- [ ] Ch217 — Self-Reflective Inference and Architecture Introspection
-- [ ] Ch218 — Self-Improvement Fitness Functions and Capability Assessment
+- [x] Ch217 — Self-Reflective Inference and Architecture Introspection
+- [x] Ch218 — Self-Improvement Fitness Functions and Capability Assessment
 
 ## Appendices
 - [x] Appendix A — LLVM IR Quick Reference
@@ -327,9 +327,10 @@
 ---
 
 ## Stats
-- Total chapters: 218 + 8 appendices = 226 items (+ 10 existing chapter expansions complete)
-- Completed: 218 / 229 (Part XXXI Ch208–Ch218 planned, not yet written)
-- Estimated pages written: ~2,900 (original) + ~108 (Part XXVI) + ~120 (Part XXVII) + ~86 (Part XXVIII) + ~72 (Part XXIX) + ~35 (7 ch expansions) + ~60 (Part XXX) = ~3,381 total written
+- Total chapters: 218 + 8 appendices = 226 items (+ 10 existing chapter expansions complete) = 227 tracked items
+- Completed: 227 / 227 (all chapters written)
+- Estimated pages written: ~2,900 (original) + ~108 (Part XXVI) + ~120 (Part XXVII) + ~86 (Part XXVIII) + ~72 (Part XXIX) + ~35 (7 ch expansions) + ~60 (Part XXX) + ~132 (Part XXXI Ch208–Ch218) = ~3,513 total written
 - Part XXX complete: Ch203–Ch207 all written (2026-05-03)
 - 2026-05-16: added 3 self-modifying-code expansion items (Ch58, Ch108, Ch200) covering OSR, ReOptimizeLayer, kernel live patching, W^X dual-mapping, homoiconic examples
-- 2026-05-16: added Part XXXI — Frontier AI Evolution (Ch208–Ch216, 9 chapters, ~108 pp) to plan and TODO
+- 2026-05-16: added Part XXXI — Frontier AI Evolution (Ch208–Ch218, 11 chapters, ~132 pp) to plan and TODO
+- 2026-05-16: Ch218 written — Self-Improvement Fitness Functions and Capability Assessment (oracle problem, linear probing, PRMs, self-eval loop, LiveBench, SAE interpretation-as-evaluation, regression testing, fitness landscape topology)
