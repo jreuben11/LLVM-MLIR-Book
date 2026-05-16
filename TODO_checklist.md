@@ -1,5 +1,5 @@
 # Book Progress Checklist
-*Last updated: 2026-05-16 (ALL PARTS COMPLETE — Parts XXVII–XXX written; Ch197–Ch207 all complete; 10 existing chapter expansions complete including Ch58/Ch108/Ch200 self-modifying-code). 218 / 218 items complete.*
+*Last updated: 2026-05-16 (Parts XXVII–XXX written and complete; Part XXXI Frontier AI Evolution planned Ch208–Ch216). 218 / 227 items complete.*
 
 ## Status Legend
 - `[ ]` Not started
@@ -296,6 +296,17 @@
 - [x] Ch206 — Multi-Agent PLs, AI-First SDLC, Security, and Paradigm Failures
 - [x] Ch207 — Reflective Code, Open Problems, and Build Roadmap
 
+## Part XXXI — Frontier AI Evolution *(~108 pp, 9 ch)*
+- [ ] Ch208 — GPU Kernel DSLs: Triton, Helion, and Gluon
+- [ ] Ch209 — CuTe and TileIR: Layout Algebra for Tiled Computation
+- [ ] Ch210 — JAX/Flax as a Functional Neural IR
+- [ ] Ch211 — Neural Programs as Compiled Artifacts: The Self-Aware Execution Stack (bridging)
+- [ ] Ch212 — Weights as a Programming Substrate
+- [ ] Ch213 — Mechanistic Interpretability Infrastructure
+- [ ] Ch214 — Meta-Learning and Gradient-Based Self-Modification
+- [ ] Ch215 — Evolutionary Architecture Search
+- [ ] Ch216 — Formal Self-Improvement Theory
+
 ## Appendices
 - [x] Appendix A — LLVM IR Quick Reference
 - [x] Appendix B — MLIR Dialect Quick Reference
@@ -314,8 +325,9 @@
 ---
 
 ## Stats
-- Total chapters: 207 + 8 appendices = 215 items (+ 7 existing chapter expansions complete + 3 new expansions planned)
-- Completed: 218 / 218 (all items complete including 3 self-modifying-code expansions)
+- Total chapters: 216 + 8 appendices = 224 items (+ 10 existing chapter expansions complete)
+- Completed: 218 / 227 (Part XXXI Ch208–Ch216 planned, not yet written)
 - Estimated pages written: ~2,900 (original) + ~108 (Part XXVI) + ~120 (Part XXVII) + ~86 (Part XXVIII) + ~72 (Part XXIX) + ~35 (7 ch expansions) + ~60 (Part XXX) = ~3,381 total written
 - Part XXX complete: Ch203–Ch207 all written (2026-05-03)
 - 2026-05-16: added 3 self-modifying-code expansion items (Ch58, Ch108, Ch200) covering OSR, ReOptimizeLayer, kernel live patching, W^X dual-mapping, homoiconic examples
+- 2026-05-16: added Part XXXI — Frontier AI Evolution (Ch208–Ch216, 9 chapters, ~108 pp) to plan and TODO
