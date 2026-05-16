@@ -296,7 +296,7 @@
 - [x] Ch206 — Multi-Agent PLs, AI-First SDLC, Security, and Paradigm Failures
 - [x] Ch207 — Reflective Code, Open Problems, and Build Roadmap
 
-## Part XXXI — Frontier AI Evolution *(~108 pp, 9 ch)*
+## Part XXXI — Frontier AI Evolution *(~132 pp, 11 ch)*
 - [ ] Ch208 — GPU Kernel DSLs: Triton, Helion, and Gluon
 - [ ] Ch209 — CuTe and TileIR: Layout Algebra for Tiled Computation
 - [ ] Ch210 — JAX/Flax as a Functional Neural IR
@@ -306,6 +306,8 @@
 - [ ] Ch214 — Meta-Learning and Gradient-Based Self-Modification
 - [ ] Ch215 — Evolutionary Architecture Search
 - [ ] Ch216 — Formal Self-Improvement Theory
+- [ ] Ch217 — Inference-Time Scaling and Chain-of-Thought Amplification
+- [ ] Ch218 — Evaluation Infrastructure and Capability Benchmarking
 
 ## Appendices
 - [x] Appendix A — LLVM IR Quick Reference
@@ -325,8 +327,8 @@
 ---
 
 ## Stats
-- Total chapters: 216 + 8 appendices = 224 items (+ 10 existing chapter expansions complete)
-- Completed: 218 / 227 (Part XXXI Ch208–Ch216 planned, not yet written)
+- Total chapters: 218 + 8 appendices = 226 items (+ 10 existing chapter expansions complete)
+- Completed: 218 / 229 (Part XXXI Ch208–Ch218 planned, not yet written)
 - Estimated pages written: ~2,900 (original) + ~108 (Part XXVI) + ~120 (Part XXVII) + ~86 (Part XXVIII) + ~72 (Part XXIX) + ~35 (7 ch expansions) + ~60 (Part XXX) = ~3,381 total written
 - Part XXX complete: Ch203–Ch207 all written (2026-05-03)
 - 2026-05-16: added 3 self-modifying-code expansion items (Ch58, Ch108, Ch200) covering OSR, ReOptimizeLayer, kernel live patching, W^X dual-mapping, homoiconic examples
