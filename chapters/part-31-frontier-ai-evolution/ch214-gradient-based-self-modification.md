@@ -650,6 +650,93 @@ def agem_step(
     return optax.apply_updates(params, updates), new_state
 ```
 
+### Self-Distillation Fine-Tuning (SDFT)
+
+EWC and GEM prevent forgetting through regularisation constraints. A structurally different approach asks: given that a model can already perform a task *in context* (ICL, §214.5), how can that transient in-context competence be converted into permanent weight-level competence without catastrophic forgetting? SDFT (Shenfeld et al. 2025, [arXiv 2601.19897](https://arxiv.org/abs/2601.19897)) answers this via **on-policy self-distillation**: the same model serves simultaneously as teacher (conditioned on a demonstration) and student (conditioned only on the input), and on-policy student rollouts drive a reverse-KL distillation loss that makes the student match the teacher without requiring explicit reward labels.
+
+The teacher is `π(·|x,c)` — the foundation model reading both the task input `x` *and* an expert demonstration `c`. The student is `πθ(·|x)` — the model being trained, which sees only `x`. The training objective is the reverse KL divergence from student-generated trajectories:
+
+```
+ℒ(θ) = D_KL(πθ(·|x) ∥ π(·|x,c))
+      = 𝔼_{y~πθ(·|x)} [ log πθ(y|x) / π(y|x,c) ]
+```
+
+The gradient is estimated on-policy — tokens `y` are sampled from the *current student* `πθ`, not from the demonstration distribution. This is the critical departure from standard supervised fine-tuning (SFT), which maximises `log π(y_demo|x)` on the fixed demonstration `y_demo` (off-policy). On-policy sampling means the gradient tracks the student's own current failure modes rather than averaging over the entire demonstration distribution.
+
+The token-level gradient estimator uses REINFORCE-style log-probability weighting:
+
+```
+∇θℒ = 𝔼_{y~πθ} [ Σ_t Σ_{yt∈V} log(πθ(yt|y<t,x) / π(yt|y<t,x,c)) · ∇θ log πθ(yt|y<t,x) ]
+```
+
+In practice this is computed per-token rather than summed over vocabulary; the inner expectation over `yt` collapses to a single sampled token per position.
+
+```python
+import torch
+import torch.nn.functional as F
+
+def sdft_loss(
+    student_logprobs: torch.Tensor,   # (batch, seq, vocab) — log πθ(y|x)
+    teacher_logprobs: torch.Tensor,   # (batch, seq, vocab) — log π(y|x,c)
+    student_samples: torch.Tensor,    # (batch, seq) — token ids sampled from πθ
+) -> torch.Tensor:
+    B, T, V = student_logprobs.shape
+    log_ratio = student_logprobs - teacher_logprobs   # (B, T, V)
+    sampled_log_ratio = log_ratio.gather(
+        2, student_samples.unsqueeze(-1)
+    ).squeeze(-1)                                      # (B, T)
+    sampled_log_student = student_logprobs.gather(
+        2, student_samples.unsqueeze(-1)
+    ).squeeze(-1)                                      # (B, T)
+    return (sampled_log_ratio * sampled_log_student.detach()).mean()
+
+def sdft_training_step(
+    model,
+    optimizer: torch.optim.Optimizer,
+    x_tokens: torch.Tensor,      # input without demonstration (B, L_x)
+    xc_tokens: torch.Tensor,     # input with demonstration (B, L_xc)
+    ema_decay: float = 0.999,
+    teacher_params=None,
+) -> float:
+    with torch.no_grad():
+        teacher_out = model(xc_tokens, params=teacher_params)
+        teacher_logprobs = F.log_softmax(teacher_out.logits[:, -x_tokens.size(1):], dim=-1)
+        samples = torch.multinomial(
+            teacher_logprobs.exp().view(-1, teacher_logprobs.size(-1)), 1
+        ).view(x_tokens.size(0), -1)
+
+    student_out = model(x_tokens)
+    student_logprobs = F.log_softmax(student_out.logits, dim=-1)
+
+    loss = sdft_loss(student_logprobs, teacher_logprobs, samples)
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+    return loss.item()
+```
+
+The teacher is maintained as an exponential moving average (EMA) of the student at rate `α`:
+
+```
+teacher_params ← α · teacher_params + (1-α) · student_params
+```
+
+This stabilises training — a frozen snapshot teacher would become stale; a co-updated teacher would collapse the KL to zero immediately. EMA gives the teacher a slowly-drifting target that the student progressively closes on.
+
+**Empirical results.** On a multi-skill continual learning benchmark, SDFT accumulates skills stably while SFT exhibits severe oscillation and interference. On knowledge acquisition (integrating post-training factual updates), SDFT achieves 89% strict accuracy and 98% out-of-distribution accuracy, versus SFT's 80% on both. On a medical reasoning benchmark (QwQ-32B), SDFT reaches 43.7% accuracy while SFT reaches 23.5% — gains that scale monotonically with model size, reflecting SDFT's reliance on the model's own ICL capability as the teacher signal.
+
+**The §214.5 connection.** SDFT is the *permanentization* mechanism for §214.5's transient ICL. Section 214.5 showed that ICL under linear attention is equivalent to a gradient descent step performed in activation space — stateless with respect to weights. SDFT converts that activation-space gradient into an actual weight-space gradient update: the teacher `π(·|x,c)` *is* the ICL-adapted model; the student learns to reproduce the teacher's output without `c` in its context window. After SDFT training, the model has learned to be its own better initialisation for the next ICL episode — exactly the MAML (§214.3) goal, but achieved via demonstration-conditioned distillation rather than explicit task-distribution meta-training.
+
+The contrast with EWC and GEM is architectural:
+
+| Method | Forgetting prevention | Adaptation signal | Weight modification |
+|---|---|---|---|
+| EWC | Fisher regularisation | Task data | Gradient + penalty |
+| GEM / A-GEM | Gradient projection | Episodic memory | Projected gradient |
+| SDFT | On-policy KL divergence | ICL demonstration | On-policy gradient |
+
+SDFT requires no episodic replay buffer and no importance estimate — it relies entirely on the model's own ICL capability to provide the training signal, which means its effectiveness scales with the quality of in-context learning.
+
 ### Connection to ORC JIT ReOptimizeLayer
 
 Chapter 108's ReOptimizeLayer implements tiered recompilation: a JIT-compiled function starts in a baseline tier (fast compilation, low-quality code) and is re-optimised at higher tiers as invocation counts accumulate. The tier transition preserves semantic correctness (the same input produces the same output) while improving efficiency. This is structurally identical to the continual learning contract: new information (invocation counts / new task data) triggers re-optimisation that improves the current capability while not regressing the baseline guarantee (semantic correctness / past task performance).
@@ -693,7 +780,7 @@ The techniques of this chapter do not operate in isolation — they interlock in
 4. **Meta-initialisation (§214.3):** MAML meta-training shapes the model's initialisation to make future TTT steps maximally effective.
 5. **Multi-objective gradient management (§214.4):** Gradient surgery maintains balance between the model's existing capabilities and new task objectives during meta-training.
 6. **Implicit in-context learning (§214.5):** The forward pass itself implements gradient descent in activation space, enabling rapid in-context adaptation without any parameter update.
-7. **Lifetime accumulation (§214.6):** EWC/GEM constraints prevent catastrophic forgetting as capabilities accumulate across the model's operational lifetime.
+7. **Lifetime accumulation (§214.6):** EWC/GEM constraints prevent catastrophic forgetting; SDFT converts ICL demonstrations into permanent weight updates via on-policy distillation, closing the loop from transient in-context adaptation (§214.5) back to durable weight-level capability.
 
 Each stage feeds the next. Causal tracing specifies the ROME target; the ROME update improves the meta-initialisation quality for MAML; the improved initialisation makes TTT more efficient; the TTT gradient is managed by PCGrad when combined with other adaptation signals; the entire loop operates within EWC/GEM constraints that guarantee backward transfer is non-negative. The result is a gradient-based self-improvement architecture that operates simultaneously at four time scales: microseconds (causal tracing), milliseconds (ROME update), seconds (TTT), and epochs (continual learning).
 
@@ -721,7 +808,7 @@ Chapter 217's self-reflective inference architecture closes the loop: by reading
 
 - **In-context learning as gradient descent** (Dai et al. 2022, arXiv 2212.10559) shows that under *linear* attention, a transformer forward pass implements gradient descent on the in-context training examples — each layer is one GD step. The ICL-GD revisit (arXiv 2311.07772) qualifies this to approximate preconditioned GD under softmax attention.
 
-- **Continual learning** — EWC (arXiv 1612.00796), GEM (arXiv 1706.08840), A-GEM (arXiv 1812.00420) — accumulates capabilities without regression using Fisher-diagonal regularisation, episodic memory gradient constraints, or approximate average-gradient projection. The ReOptimizeLayer in Chapter 108 is the compiler-domain isomorph: tiered recompilation that improves performance monotonically while guaranteeing semantic correctness preservation.
+- **Continual learning** — EWC (arXiv 1612.00796), GEM (arXiv 1706.08840), A-GEM (arXiv 1812.00420) — accumulates capabilities without regression using Fisher-diagonal regularisation, episodic memory gradient constraints, or approximate average-gradient projection. **SDFT** (arXiv 2601.19897) takes a complementary approach: it distills the model's own in-context learning capability into permanent weights via on-policy reverse-KL divergence, permanentising §214.5's transient ICL adaptation without replay buffers or importance estimates. The ReOptimizeLayer in Chapter 108 is the compiler-domain isomorph: tiered recompilation that improves performance monotonically while guaranteeing semantic correctness preservation.
 
 - **The self-modification spectrum** runs from fact-level (ROME, sub-millisecond, one layer) through example-level (TTT, seconds, all layers) through distribution-level (MAML, hours of meta-training, global initialisation) through lifetime-level (continual learning, indefinite, all tasks). Each level is a qualitatively different relationship between gradient computation and the model's operational time scale.
 
