@@ -241,10 +241,22 @@ Expert audience. Assumed: C++ proficiency, familiarity with compilers at the lev
 
 ### Part XVI — JIT, Sanitizers, and Diagnostic Tools *(~282 pp)*
 
+#### JIT and Dynamic Runtimes
+
 | # | Chapter |
 |---|---------|
 | 108 | [The ORC JIT](chapters/part-16-jit-sanitizers/ch108-the-orc-jit.md) |
 | 109 | [JITLink](chapters/part-16-jit-sanitizers/ch109-jitlink.md) |
+| 219 | [ORC JIT in Production: clang-repl, LLDB, PostgreSQL, Numba, and Halide](chapters/part-16-jit-sanitizers/ch219-orc-jit-in-production.md) |
+| 220 | [Runtime Self-Modification: Source Introspection, Incremental Recompilation, and ORC Hot-Loading](chapters/part-16-jit-sanitizers/ch220-runtime-self-modification.md) |
+| 221 | [Speculative Optimization, Inline Caches, and Deoptimization](chapters/part-16-jit-sanitizers/ch221-speculative-optimization-inline-caches.md) |
+| 222 | [Plugin Architecture, Dynamic Loading, and ABI Stability](chapters/part-16-jit-sanitizers/ch222-plugin-architecture-dynamic-loading.md) |
+| 228 | [Virtual Machine Design: Bytecode Interpreters, GC Strategies, and Object Models](chapters/part-16-jit-sanitizers/ch228-virtual-machine-design.md) |
+
+#### Sanitizers and Diagnostic Tools
+
+| # | Chapter |
+|---|---------|
 | 110 | [User-Space Sanitizers](chapters/part-16-jit-sanitizers/ch110-user-space-sanitizers.md) |
 | 111 | [HWASan and MTE](chapters/part-16-jit-sanitizers/ch111-hwasan-and-mte.md) |
 | 112 | [Production Allocators: Scudo and GWP-ASan](chapters/part-16-jit-sanitizers/ch112-production-allocators-scudo-gwp-asan.md) |
@@ -254,11 +266,6 @@ Expert audience. Assumed: C++ proficiency, familiarity with compilers at the lev
 | 116 | [LLDB Architecture](chapters/part-16-jit-sanitizers/ch116-lldb-architecture.md) |
 | 117 | [DWARF and Debug Info](chapters/part-16-jit-sanitizers/ch117-dwarf-and-debug-info.md) |
 | 118 | [BOLT and Post-Link Optimization](chapters/part-16-jit-sanitizers/ch118-bolt-and-post-link-optimization.md) |
-| 219 | [ORC JIT in Production: clang-repl, LLDB, PostgreSQL, Numba, and Halide](chapters/part-16-jit-sanitizers/ch219-orc-jit-in-production.md) |
-| 220 | [Runtime Self-Modification: Source Introspection, Incremental Recompilation, and ORC Hot-Loading](chapters/part-16-jit-sanitizers/ch220-runtime-self-modification.md) |
-| 221 | [Speculative Optimization, Inline Caches, and Deoptimization](chapters/part-16-jit-sanitizers/ch221-speculative-optimization-inline-caches.md) |
-| 222 | [Plugin Architecture, Dynamic Loading, and ABI Stability](chapters/part-16-jit-sanitizers/ch222-plugin-architecture-dynamic-loading.md) |
-| 228 | [Virtual Machine Design: Bytecode Interpreters, GC Strategies, and Object Models](chapters/part-16-jit-sanitizers/ch228-virtual-machine-design.md) |
 | 232 | [LLVM XRay: Low-Overhead Function Tracing](chapters/part-16-jit-sanitizers/ch232-llvm-xray-function-tracing.md) |
 
 ### Part XVII — Runtime Libraries *(~110 pp)*
@@ -391,23 +398,30 @@ Expert audience. Assumed: C++ proficiency, familiarity with compilers at the lev
 
 ### Part XXVIII — Language Ecosystems and Engineering Practice *(~180 pp)*
 
+#### Languages Using LLVM
+
+| # | Chapter |
+|---|---------|
+| 192 | [Swift SIL: Ownership, Optimization, and Influence on MLIR](chapters/part-28-language-ecosystems/ch192-swift-sil-ownership-mlir.md) |
+| 193 | [Julia: Type-Inference-Driven LLVM Specialization](chapters/part-28-language-ecosystems/ch193-julia-llvm-specialization.md) |
+| 194 | [Zig: Comptime Metaprogramming and LLVM IR Generation](chapters/part-28-language-ecosystems/ch194-zig-comptime-llvm.md) |
+| 235 | [GHC's LLVM Backend: Haskell to Native via LLVM](chapters/part-28-language-ecosystems/ch235-ghc-llvm-backend.md) |
+| 237 | [TinyGo: Compiling Go for Embedded Systems and WebAssembly via LLVM](chapters/part-28-language-ecosystems/ch237-tinygo-go-embedded-llvm.md) |
+| 238 | [Kotlin/Native: Compiling Kotlin to Native Code via LLVM](chapters/part-28-language-ecosystems/ch238-kotlin-native-llvm.md) |
+| 239 | [ISPC: An SPMD Compiler for CPU SIMD via LLVM](chapters/part-28-language-ecosystems/ch239-ispc-spmd-compiler.md) |
+
+#### Specialized Compilers and Engineering Practice
+
 | # | Chapter |
 |---|---------|
 | 190 | [CIRCT: Circuit IR Compilers and Tools](chapters/part-28-language-ecosystems/ch190-circt-hardware-compiler.md) |
 | 191 | [Quantum Compilation: QIR, QUIR, and MLIR Quantum Dialects](chapters/part-28-language-ecosystems/ch191-quantum-compilation-qir-quir.md) |
-| 192 | [Swift SIL: Ownership, Optimization, and Influence on MLIR](chapters/part-28-language-ecosystems/ch192-swift-sil-ownership-mlir.md) |
-| 193 | [Julia: Type-Inference-Driven LLVM Specialization](chapters/part-28-language-ecosystems/ch193-julia-llvm-specialization.md) |
-| 194 | [Zig: Comptime Metaprogramming and LLVM IR Generation](chapters/part-28-language-ecosystems/ch194-zig-comptime-llvm.md) |
 | 195 | [Safety-Critical Toolchain Qualification: DO-178C, ISO 26262, and Ferrocene](chapters/part-28-language-ecosystems/ch195-safety-critical-qualification.md) |
 | 196 | [Cross-Language ABI Interoperability: Binding Generators and UniFFI](chapters/part-28-language-ecosystems/ch196-cross-language-abi.md) |
 | 230 | [Cranelift: A Lightweight JIT for WebAssembly and Rust](chapters/part-28-language-ecosystems/ch230-cranelift-lightweight-jit.md) |
 | 231 | [GraalVM: Native Image, Truffle Interpreters, and Polyglot Runtimes](chapters/part-28-language-ecosystems/ch231-graalvm-native-image-truffle.md) |
 | 233 | [Emscripten: C/C++ to WebAssembly via LLVM](chapters/part-28-language-ecosystems/ch233-emscripten-c-cpp-to-webassembly.md) |
-| 235 | [GHC's LLVM Backend: Haskell to Native via LLVM](chapters/part-28-language-ecosystems/ch235-ghc-llvm-backend.md) |
 | 236 | [Android NDK: Cross-Compiling C/C++ for Android with LLVM](chapters/part-28-language-ecosystems/ch236-android-ndk-cross-compiling.md) |
-| 237 | [TinyGo: Compiling Go for Embedded Systems and WebAssembly via LLVM](chapters/part-28-language-ecosystems/ch237-tinygo-go-embedded-llvm.md) |
-| 238 | [Kotlin/Native: Compiling Kotlin to Native Code via LLVM](chapters/part-28-language-ecosystems/ch238-kotlin-native-llvm.md) |
-| 239 | [ISPC: An SPMD Compiler for CPU SIMD via LLVM](chapters/part-28-language-ecosystems/ch239-ispc-spmd-compiler.md) |
 
 ### Part XXIX — Compiler Tooling, Kernel Integration, and Binary Analysis *(~72 pp)*
 
