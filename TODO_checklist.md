@@ -154,7 +154,7 @@
 - [x] Ch106 — WebAssembly and BPF
 - [x] Ch107 — Embedded Targets
 
-## Part XVI — JIT, Sanitizers, and Diagnostic Tools *(~222 pp, 12 ch)*
+## Part XVI — JIT, Sanitizers, and Diagnostic Tools *(~258 pp, 15 ch)*
 - [x] Ch108 — The ORC JIT
 - [x] Ch109 — JITLink
 - [x] Ch110 — User-Space Sanitizers
@@ -167,6 +167,9 @@
 - [x] Ch117 — DWARF and Debug Info
 - [x] Ch118 — BOLT and Post-Link Optimization
 - [x] Ch219 — ORC JIT in Production: clang-repl, LLDB, PostgreSQL, Numba, and Halide (~12 pages; §219.1 ORC recipe, §219.2 clang-repl/Cling, §219.3 LLDB expression JIT, §219.4 PostgreSQL query JIT, §219.5 Numba, §219.6 Halide, §219.7 WAVM, §219.8 taxonomy table)
+- [x] Ch220 — Runtime Self-Modification: Source Introspection, Incremental Recompilation, and ORC Hot-Loading (~14 pages; §220.1–§220.9 self-modification loop through reference impls, §220.10 embedded bitcode self-analysis, §220.11 self-propagation to peer instances)
+- [x] Ch221 — Speculative Optimization, Inline Caches, and Deoptimization (~12 pages; §221.1 speculative model, §221.2 inline caches, §221.3 guard IR, §221.4 @llvm.deoptimize/deopt bundles, §221.5 stackmap frame reconstruction, §221.6 OSR deep-dive, §221.7 V8 tiering, §221.8 HotSpot tiering, §221.9 ORC ReOptimizeLayer connection)
+- [x] Ch222 — Plugin Architecture, Dynamic Loading, and ABI Stability (~12 pages; §222.1 POSIX dlopen, §222.2 ABI stability contract, §222.3 type-safe C++ interfaces, §222.4 plugin discovery, §222.5 Windows/macOS, §222.6 llvm::sys::DynamicLibrary, §222.7 real-world architectures, §222.8 security model, §222.9 ORC interaction)
 
 ## Part XVII — Runtime Libraries *(~110 pp, 6 ch)* ✓ COMPLETE
 - [x] Ch119 — compiler-rt Builtins
