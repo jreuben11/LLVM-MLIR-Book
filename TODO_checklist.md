@@ -154,7 +154,7 @@
 - [x] Ch106 — WebAssembly and BPF
 - [x] Ch107 — Embedded Targets
 
-## Part XVI — JIT, Sanitizers, and Diagnostic Tools *(~210 pp, 11 ch)* ✓ COMPLETE
+## Part XVI — JIT, Sanitizers, and Diagnostic Tools *(~222 pp, 12 ch)*
 - [x] Ch108 — The ORC JIT
 - [x] Ch109 — JITLink
 - [x] Ch110 — User-Space Sanitizers
@@ -166,6 +166,7 @@
 - [x] Ch116 — LLDB Architecture
 - [x] Ch117 — DWARF and Debug Info
 - [x] Ch118 — BOLT and Post-Link Optimization
+- [x] Ch219 — ORC JIT in Production: clang-repl, LLDB, PostgreSQL, Numba, and Halide (~12 pages; §219.1 ORC recipe, §219.2 clang-repl/Cling, §219.3 LLDB expression JIT, §219.4 PostgreSQL query JIT, §219.5 Numba, §219.6 Halide, §219.7 WAVM, §219.8 taxonomy table)
 
 ## Part XVII — Runtime Libraries *(~110 pp, 6 ch)* ✓ COMPLETE
 - [x] Ch119 — compiler-rt Builtins
