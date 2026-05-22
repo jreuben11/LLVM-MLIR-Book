@@ -154,7 +154,7 @@
 - [x] Ch106 — WebAssembly and BPF
 - [x] Ch107 — Embedded Targets
 
-## Part XVI — JIT, Sanitizers, and Diagnostic Tools *(~258 pp, 15 ch)*
+## Part XVI — JIT, Sanitizers, and Diagnostic Tools *(~282 pp, 17 ch)*
 - [x] Ch108 — The ORC JIT
 - [x] Ch109 — JITLink
 - [x] Ch110 — User-Space Sanitizers
@@ -170,6 +170,7 @@
 - [x] Ch220 — Runtime Self-Modification: Source Introspection, Incremental Recompilation, and ORC Hot-Loading (~14 pages; §220.1–§220.9 self-modification loop through reference impls, §220.10 embedded bitcode self-analysis, §220.11 self-propagation to peer instances)
 - [x] Ch221 — Speculative Optimization, Inline Caches, and Deoptimization (~12 pages; §221.1 speculative model, §221.2 inline caches, §221.3 guard IR, §221.4 @llvm.deoptimize/deopt bundles, §221.5 stackmap frame reconstruction, §221.6 OSR deep-dive, §221.7 V8 tiering, §221.8 HotSpot tiering, §221.9 ORC ReOptimizeLayer connection)
 - [x] Ch222 — Plugin Architecture, Dynamic Loading, and ABI Stability (~12 pages; §222.1 POSIX dlopen, §222.2 ABI stability contract, §222.3 type-safe C++ interfaces, §222.4 plugin discovery, §222.5 Windows/macOS, §222.6 llvm::sys::DynamicLibrary, §222.7 real-world architectures, §222.8 security model, §222.9 ORC interaction)
+- [ ] Ch228 — Virtual Machine Design: Bytecode Interpreters, GC Strategies, and Object Models (~14 pages; §228.1 stack vs register VM, §228.2 bytecode instruction set design, §228.3 dispatch strategies incl. copy-and-patch, §228.4 object representation/NaN-boxing/hidden classes, §228.5 GC strategies mark-sweep/generational/concurrent, §228.6 GC roots and precise vs conservative scanning, §228.7 method dispatch and PICs, §228.8 frame layout and calling conventions, §228.9 ORC JIT tiered compilation integration, §228.10 reference VM architectures CPython/Lua/YARV/HotSpot)
 
 ## Part XVII — Runtime Libraries *(~110 pp, 6 ch)* ✓ COMPLETE
 - [x] Ch119 — compiler-rt Builtins
@@ -328,6 +329,7 @@
 - [x] Appendix G — DWARF Debug Info Reference
 - [x] Appendix H — The C++ ABI: Itanium and Microsoft
 - [x] Appendix I — LLVM and GCC: A Structural Comparison (~25–30 pages; §I.1 design philosophy/licensing, §I.2 IR comparison GENERIC/GIMPLE/RTL vs LLVM IR/MachineIR, §I.3 pass infrastructure, §I.4 backend/target description TableGen vs .md files, §I.5 frontend/diagnostics, §I.6 toolchain ecosystem table, §I.7 optimization comparison, §I.8 language/target support matrix, §I.9 ABI interoperability)
+- [ ] Appendix J — Grammar Notation Reference: BNF, EBNF, PEG, and Modern Alternatives (~15 pages; §J.1 historical background BNF→EBNF→ISO 14977, §J.2 BNF constructs, §J.3 EBNF/W3C variants, §J.4 notation variants in practice comparison table, §J.5 PEG ordered choice/lookahead/packrat, §J.6 Ohm, §J.7 ANTLR4 .g4, §J.8 TreeSitter grammar.js, §J.9 railroad diagrams, §J.10 Earley/Marpa, §J.11 selection guide decision table, §J.12 converting between notations)
 
 ---
 
@@ -337,8 +339,8 @@
 ---
 
 ## Stats
-- Total chapters: 227 + 8 appendices = 235 items (+ 10 existing chapter expansions complete) = 245 tracked items
-- Completed: 245 / 245 (all chapters written)
+- Total chapters: 234 + 10 appendices = 244 items (+ 10 existing chapter expansions complete) = 254 tracked items
+- Completed: 252 / 254 (Ch228 and Appendix J not yet written)
 - Estimated pages written: ~2,900 (original) + ~108 (Part XXVI) + ~120 (Part XXVII) + ~86 (Part XXVIII) + ~72 (Part XXIX) + ~35 (7 ch expansions) + ~60 (Part XXX) + ~132 (Part XXXI Ch208–Ch218) + ~108 (Part XVI Ch219–Ch222) = ~3,621 total written; ~3,681 when ch223–ch227 complete
 - Part XXX complete: Ch203–Ch207 all written (2026-05-03)
 - 2026-05-16: added 3 self-modifying-code expansion items (Ch58, Ch108, Ch200) covering OSR, ReOptimizeLayer, kernel live patching, W^X dual-mapping, homoiconic examples
