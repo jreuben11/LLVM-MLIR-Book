@@ -318,6 +318,7 @@
 - [x] Appendix F — Object File Format Reference
 - [x] Appendix G — DWARF Debug Info Reference
 - [x] Appendix H — The C++ ABI: Itanium and Microsoft
+- [x] Appendix I — LLVM and GCC: A Structural Comparison (~25–30 pages; §I.1 design philosophy/licensing, §I.2 IR comparison GENERIC/GIMPLE/RTL vs LLVM IR/MachineIR, §I.3 pass infrastructure, §I.4 backend/target description TableGen vs .md files, §I.5 frontend/diagnostics, §I.6 toolchain ecosystem table, §I.7 optimization comparison, §I.8 language/target support matrix, §I.9 ABI interoperability)
 
 ---
 
