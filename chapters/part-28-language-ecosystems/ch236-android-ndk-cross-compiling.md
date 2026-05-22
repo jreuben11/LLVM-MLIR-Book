@@ -1,6 +1,6 @@
 # Chapter 236 — Android NDK: Cross-Compiling C/C++ for Android with LLVM
 
-*Part XV — Targets and Back-End Specialization*
+*Part XXVIII — Language Ecosystems and Engineering Practice*
 
 The Android NDK ships a complete LLVM/Clang toolchain that has been the sole supported native compiler since NDK r18 (2018). Every C/C++/assembly file in an Android native library passes through Clang, LLD, and a Bionic-linked sysroot maintained by Google's Android LLVM team. Understanding the NDK's toolchain layout, target-triple conventions, sysroot model, and Bionic divergences from glibc is essential for writing correct, performant native Android code and for debugging the subtle failures that arise when these details are overlooked.
 

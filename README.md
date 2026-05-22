@@ -221,7 +221,7 @@ Expert audience. Assumed: C++ proficiency, familiarity with compilers at the lev
 | 93 | [Post-RegAlloc and Pre-Emit](chapters/part-14-backend/ch93-post-regalloc-and-pre-emit.md) |
 | 94 | [The MC Layer and MIR Test Infrastructure](chapters/part-14-backend/ch94-the-mc-layer-and-mir-test-infrastructure.md) |
 
-### Part XV — Targets *(~274 pp)*
+### Part XV — Targets *(~250 pp)*
 
 | # | Chapter |
 |---|---------|
@@ -238,8 +238,6 @@ Expert audience. Assumed: C++ proficiency, familiarity with compilers at the lev
 | 105 | [DXIL and DirectX Shader Compilation](chapters/part-15-targets/ch105-dxil-and-directx-shader-compilation.md) |
 | 106 | [WebAssembly and BPF](chapters/part-15-targets/ch106-webassembly-and-bpf.md) |
 | 107 | [Embedded Targets](chapters/part-15-targets/ch107-embedded-targets.md) |
-| 233 | [Emscripten: C/C++ to WebAssembly via LLVM](chapters/part-15-targets/ch233-emscripten-c-cpp-to-webassembly.md) |
-| 236 | [Android NDK: Cross-Compiling C/C++ for Android with LLVM](chapters/part-15-targets/ch236-android-ndk-cross-compiling.md) |
 
 ### Part XVI — JIT, Sanitizers, and Diagnostic Tools *(~282 pp)*
 
@@ -333,7 +331,7 @@ Expert audience. Assumed: C++ proficiency, familiarity with compilers at the lev
 | 157 | [PJRT — The Plugin Runtime Interface](chapters/part-22-xla-openxla/ch157-pjrt-the-plugin-runtime-interface.md) |
 | 158 | [SPMD, GSPMD, and Auto-Sharding](chapters/part-22-xla-openxla/ch158-spmd-gspmd-and-auto-sharding.md) |
 
-### Part XXIII — MLIR and ML Compilation Frameworks *(~160 pp)*
+### Part XXIII — MLIR and ML Compilation Frameworks *(~208 pp)*
 
 | # | Chapter |
 |---|---------|
@@ -345,6 +343,8 @@ Expert audience. Assumed: C++ proficiency, familiarity with compilers at the lev
 | 164 | [CUDA Tile IR](chapters/part-23-mlir-production/ch164-cuda-tile-ir.md) |
 | 165 | [GPU Compilation Through MLIR](chapters/part-23-mlir-production/ch165-gpu-compilation-through-mlir.md) |
 | 166 | [Mojo, Polygeist, Enzyme-MLIR, and Beyond](chapters/part-23-mlir-production/ch166-mojo-polygeist-enzyme-mlir-and-beyond.md) |
+| 202 | [Apache TVM: ML Operator Compiler](chapters/part-23-mlir-production/ch202-apache-tvm-ml-operator-compiler.md) |
+| 229 | [torch.compile: TorchDynamo, AOTAutograd, and TorchInductor](chapters/part-23-mlir-production/ch229-torch-compile-torchdynamo-aotautograd-torchinductor.md) |
 
 ### Part XXIV — Verified Compilation *(~110 pp)* `[THEORETICAL]`
 
@@ -366,7 +366,7 @@ Expert audience. Assumed: C++ proficiency, familiarity with compilers at the lev
 | 175 | [Language Bindings](chapters/part-25-operations-contribution/ch175-language-bindings.md) |
 | 176 | [Contributing to LLVM](chapters/part-25-operations-contribution/ch176-contributing-to-llvm.md) |
 
-### Part XXVI — Adjacent Ecosystems *(~120 pp)*
+### Part XXVI — Adjacent Ecosystems *(~108 pp)*
 
 | # | Chapter |
 |---|---------|
@@ -377,7 +377,6 @@ Expert audience. Assumed: C++ proficiency, familiarity with compilers at the lev
 | 181 | [Formal Verification in Practice](chapters/part-26-ecosystem-frontiers/ch181-formal-verification-in-practice.md) |
 | 182 | [Language Tooling: Parsers, Lexers, and Syntax Trees](chapters/part-26-ecosystem-frontiers/ch182-language-tooling-parsers-lexers-syntax-trees.md) |
 | 183 | [Modern C++ for Compiler Development: C++23, Contracts, and Reflection](chapters/part-26-ecosystem-frontiers/ch183-modern-cpp-for-compiler-development.md) |
-| 229 | [torch.compile: TorchDynamo, AOTAutograd, and TorchInductor](chapters/part-26-ecosystem-frontiers/ch229-torch-compile-torchdynamo-aotautograd-torchinductor.md) |
 
 ### Part XXVII — Mathematical Foundations for Compiler Engineers *(~120 pp)* `[THEORETICAL]`
 
@@ -390,7 +389,7 @@ Expert audience. Assumed: C++ proficiency, familiarity with compilers at the lev
 | 188 | [Category Theory for Compiler Engineers](chapters/part-27-mathematical-foundations/ch188-category-theory-compiler-engineers.md) |
 | 189 | [Denotational Semantics and Domain Theory](chapters/part-27-mathematical-foundations/ch189-denotational-semantics-domain-theory.md) |
 
-### Part XXVIII — Language Ecosystems and Engineering Practice *(~156 pp)*
+### Part XXVIII — Language Ecosystems and Engineering Practice *(~180 pp)*
 
 | # | Chapter |
 |---|---------|
@@ -403,12 +402,14 @@ Expert audience. Assumed: C++ proficiency, familiarity with compilers at the lev
 | 196 | [Cross-Language ABI Interoperability: Binding Generators and UniFFI](chapters/part-28-language-ecosystems/ch196-cross-language-abi.md) |
 | 230 | [Cranelift: A Lightweight JIT for WebAssembly and Rust](chapters/part-28-language-ecosystems/ch230-cranelift-lightweight-jit.md) |
 | 231 | [GraalVM: Native Image, Truffle Interpreters, and Polyglot Runtimes](chapters/part-28-language-ecosystems/ch231-graalvm-native-image-truffle.md) |
+| 233 | [Emscripten: C/C++ to WebAssembly via LLVM](chapters/part-28-language-ecosystems/ch233-emscripten-c-cpp-to-webassembly.md) |
 | 235 | [GHC's LLVM Backend: Haskell to Native via LLVM](chapters/part-28-language-ecosystems/ch235-ghc-llvm-backend.md) |
+| 236 | [Android NDK: Cross-Compiling C/C++ for Android with LLVM](chapters/part-28-language-ecosystems/ch236-android-ndk-cross-compiling.md) |
 | 237 | [TinyGo: Compiling Go for Embedded Systems and WebAssembly via LLVM](chapters/part-28-language-ecosystems/ch237-tinygo-go-embedded-llvm.md) |
 | 238 | [Kotlin/Native: Compiling Kotlin to Native Code via LLVM](chapters/part-28-language-ecosystems/ch238-kotlin-native-llvm.md) |
 | 239 | [ISPC: An SPMD Compiler for CPU SIMD via LLVM](chapters/part-28-language-ecosystems/ch239-ispc-spmd-compiler.md) |
 
-### Part XXIX — Compiler Tooling, Kernel Integration, and Binary Analysis *(~84 pp)*
+### Part XXIX — Compiler Tooling, Kernel Integration, and Binary Analysis *(~72 pp)*
 
 | # | Chapter |
 |---|---------|
@@ -417,7 +418,6 @@ Expert audience. Assumed: C++ proficiency, familiarity with compilers at the lev
 | 199 | [llvm-mca: Static Performance Analysis](chapters/part-29-compiler-tooling/ch199-llvm-mca-static-performance-analysis.md) |
 | 200 | [Linux Kernel Compilation with LLVM/Clang](chapters/part-29-compiler-tooling/ch200-linux-kernel-compilation-llvm-clang.md) |
 | 201 | [Binary Lifting to LLVM IR](chapters/part-29-compiler-tooling/ch201-binary-lifting-to-llvm-ir.md) |
-| 202 | [Apache TVM: ML Operator Compiler](chapters/part-29-compiler-tooling/ch202-apache-tvm-ml-operator-compiler.md) |
 | 234 | [KLEE: Symbolic Execution of LLVM IR](chapters/part-29-compiler-tooling/ch234-klee-symbolic-execution.md) |
 
 ### Part XXX — AI-First Programming Language Design *(~60 pp)*

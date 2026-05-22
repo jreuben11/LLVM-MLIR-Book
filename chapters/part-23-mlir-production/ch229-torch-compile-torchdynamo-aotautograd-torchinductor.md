@@ -1,6 +1,6 @@
 # Chapter 229 — torch.compile: TorchDynamo, AOTAutograd, and TorchInductor
 
-*Part XXVI — Ecosystem and Frontiers*
+*Part XXIII — MLIR and ML Compilation Frameworks*
 
 PyTorch 2.0 introduced `torch.compile`, a compiler stack that accelerates PyTorch programs without requiring users to change their models. Where earlier approaches required explicit graph capture (TorchScript, `torch.fx` transforms) or migration to a separate compiler (torch-mlir, XLA), `torch.compile` intercepts Python execution directly, extracts computational graphs invisibly, and emits optimized GPU kernels or vectorized CPU code. Understanding how this works requires following the path from a Python frame hook through three distinct compilation layers — TorchDynamo, AOTAutograd, and TorchInductor — each solving a different part of the problem.
 

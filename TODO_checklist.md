@@ -135,7 +135,7 @@
 - [x] Ch93 — Post-RegAlloc and Pre-Emit
 - [x] Ch94 — The MC Layer and MIR Test Infrastructure
 
-## Part XV — Targets *(~274 pp, 15 ch)*
+## Part XV — Targets *(~250 pp, 13 ch)*
 - [x] Ch95 — The X86 Backend
 - [x] Ch96 — The AArch64 Backend
 - [x] Ch97 — The 32-bit ARM Backend
@@ -149,8 +149,6 @@
 - [x] Ch105 — DXIL and DirectX Shader Compilation
 - [x] Ch106 — WebAssembly and BPF
 - [x] Ch107 — Embedded Targets
-- [x] Ch236 — Android NDK: Cross-Compiling C/C++ for Android with LLVM (~12 pages; §236.1 NDK architecture/toolchain layout/LLD default, §236.2 target triples and API levels, §236.3 sysroot structure/stub libraries, §236.4 CMake integration/ANDROID_ABI/ANDROID_PLATFORM, §236.5 Bionic libc differences/x18 register/missing APIs, §236.6 multi-ABI APK layout, §236.7 sanitizers/HWASan/wrap.sh, §236.8 Android LLVM fork/GKI requirement)
-- [x] Ch233 — Emscripten: C/C++ to WebAssembly via LLVM (~12 pages; §233.1 architecture/target triple/system libs, §233.2 memory model/ALLOW_MEMORY_GROWTH, §233.3 JS interop EM_JS/EM_ASM/ccall, §233.4 Embind C++↔JS bindings, §233.5 Asyncify stack unwind/rewind, §233.6 ports/SDL2/WebGL/event loop, §233.7 Wasm threads/SharedArrayBuffer/pthreads, §233.8 output pipeline/wasm-opt/DWARF)
 
 ## Part XVI — JIT, Sanitizers, and Diagnostic Tools *(~294 pp, 18 ch)*
 - [x] Ch108 — The ORC JIT
@@ -223,7 +221,7 @@
 - [x] Ch157 — PJRT — The Plugin Runtime Interface
 - [x] Ch158 — SPMD, GSPMD, and Auto-Sharding
 
-## Part XXIII — MLIR and ML Compilation Frameworks *(~160 pp, 8 ch)*
+## Part XXIII — MLIR and ML Compilation Frameworks *(~208 pp, 10 ch)*
 - [x] Ch159 — Building a Domain-Specific Compiler
 - [x] Ch160 — MLIR Python Bindings
 - [x] Ch161 — torch-mlir, ONNX-MLIR, and JAX/TF Bridges
@@ -232,6 +230,8 @@
 - [x] Ch164 — CUDA Tile IR
 - [x] Ch165 — GPU Compilation Through MLIR
 - [x] Ch166 — Mojo, Polygeist, Enzyme-MLIR, and Beyond
+- [x] Ch202 — Apache TVM: An ML Operator Compiler
+- [x] Ch229 — torch.compile: TorchDynamo, AOTAutograd, and TorchInductor (~14 pages; §229.1 PyTorch 2.0 compilation model eager vs compiled, §229.2 TorchDynamo PEP-523 frame hook/proxy tensors/guards, §229.3 FX graph IR node types/passes, §229.4 AOTAutograd joint fwd-bwd tracing/decompositions, §229.5 TorchInductor GPU→Triton/CPU→C++, §229.6 torch.export/ExportedProgram/ExecuTorch, §229.7 guard system recompilation/dynamic shapes, §229.8 backends/stability PyTorch 2.4-2.6)
 
 ## Part XXIV — Verified Compilation *(~110 pp, 5 ch)* [THEORETICAL] ✓ COMPLETE
 - [x] Ch167 — Operational Semantics and Program Logics
@@ -247,7 +247,7 @@
 - [x] Ch175 — Language Bindings
 - [x] Ch176 — Contributing to LLVM
 
-## Part XXVI — Adjacent Ecosystems *(~122 pp, 8 ch)*
+## Part XXVI — Adjacent Ecosystems *(~108 pp, 7 ch)*
 - [x] Ch177 — rustc: Architecture, MIR, and Codegen Backends
 - [x] Ch178 — The Rust Compiler Ecosystem
 - [x] Ch179 — LLVM/MLIR for AI: The Full Stack
@@ -255,7 +255,6 @@
 - [x] Ch181 — Formal Verification in Practice
 - [x] Ch182 — Language Tooling: Parsers, Lexers, and Syntax Trees
 - [x] Ch183 — Modern C++ for Compiler Development: C++23, Contracts, and Reflection
-- [x] Ch229 — torch.compile: TorchDynamo, AOTAutograd, and TorchInductor (~14 pages; §229.1 PyTorch 2.0 compilation model eager vs compiled, §229.2 TorchDynamo PEP-523 frame hook/proxy tensors/guards, §229.3 FX graph IR node types/passes, §229.4 AOTAutograd joint fwd-bwd tracing/decompositions, §229.5 TorchInductor GPU→Triton/CPU→C++, §229.6 torch.export/ExportedProgram/ExecuTorch, §229.7 guard system recompilation/dynamic shapes, §229.8 backends/stability PyTorch 2.4-2.6)
 
 ## Part XXVII — Mathematical Foundations for Compiler Engineers *(~120 pp, 6 ch)* [THEORETICAL]
 - [x] Ch184 — Proof Assistant Internals: Lean 4, Coq/Rocq, and Isabelle/HOL
@@ -265,7 +264,7 @@
 - [x] Ch188 — Category Theory for Compiler Engineers
 - [x] Ch189 — Denotational Semantics and Domain Theory
 
-## Part XXVIII — Language Ecosystems, Emerging Targets, and Engineering Practice *(~148 pp, 12 ch)*
+## Part XXVIII — Language Ecosystems and Engineering Practice *(~180 pp, 15 ch)*
 - [x] Ch190 — CIRCT: Circuit IR Compilers and Tools
 - [x] Ch191 — Quantum Compilation: QIR, QUIR, and MLIR Quantum Dialects
 - [x] Ch192 — Swift SIL: Ownership, Optimization, and Influence on MLIR
@@ -273,6 +272,8 @@
 - [x] Ch194 — Zig: Comptime Metaprogramming and LLVM IR Generation
 - [x] Ch195 — Safety-Critical Toolchain Qualification: DO-178C, ISO 26262, and Ferrocene
 - [x] Ch196 — Cross-Language ABI Interoperability: Binding Generators and UniFFI
+- [x] Ch233 — Emscripten: C/C++ to WebAssembly via LLVM (~12 pages; §233.1 architecture/target triple/system libs, §233.2 memory model/ALLOW_MEMORY_GROWTH, §233.3 JS interop EM_JS/EM_ASM/ccall, §233.4 Embind C++↔JS bindings, §233.5 Asyncify stack unwind/rewind, §233.6 ports/SDL2/WebGL/event loop, §233.7 Wasm threads/SharedArrayBuffer/pthreads, §233.8 output pipeline/wasm-opt/DWARF)
+- [x] Ch236 — Android NDK: Cross-Compiling C/C++ for Android with LLVM (~12 pages; §236.1 NDK architecture/toolchain layout/LLD default, §236.2 target triples and API levels, §236.3 sysroot structure/stub libraries, §236.4 CMake integration/ANDROID_ABI/ANDROID_PLATFORM, §236.5 Bionic libc differences/x18 register/missing APIs, §236.6 multi-ABI APK layout, §236.7 sanitizers/HWASan/wrap.sh, §236.8 Android LLVM fork/GKI requirement)
 - [x] Ch230 — Cranelift: A Lightweight JIT for WebAssembly and Rust (~12 pages; §230.1 design philosophy/speed vs quality tradeoffs, §230.2 CLIF IR SSA/block-parameters/types, §230.3 FunctionBuilder frontend, §230.4 ISLE instruction selection DSL, §230.5 regalloc2 live-range splitting, §230.6 Wasmtime/Winch integration, §230.7 rustc_codegen_cranelift, §230.8 comparison table vs LLVM/QBE/Baseline)
 - [x] Ch231 — GraalVM: Native Image, Truffle Interpreters, and Polyglot Runtimes (~14 pages; §231.1 architecture JVM substrate/Graal JIT/Truffle/SubstrateVM, §231.2 Truffle @Specialization state machine, §231.3 partial evaluation/sea-of-nodes/JVMCI, §231.4 Native Image points-to analysis/closed-world/heap snapshot, §231.5 building a Truffle language, §231.6 GraalPy/TruffleRuby/GraalJS production languages, §231.7 polyglot API, §231.8 Sulong LLVM bitcode on Truffle)
 - [x] Ch235 — GHC's LLVM Backend: Haskell to Native via LLVM (~14 pages; §235.1 GHC pipeline Haskell→Core→STG→Cmm→LLVM IR, §235.2 GHC Core/System FC/coercion proofs/Core Lint, §235.3 STG Machine/thunks/closures/info tables/heap allocation, §235.4 Cmm GenCmmDecl/CmmProc/SRT/stack layout, §235.5 LlvmCodeGen/LlvmM monad/LlvmType, §235.6 ghccc CC10/R1-R10/Sp/Hp/alwaysLive registers, §235.7 GC integration/stgTBAA/info-table root discovery, §235.8 -fllvm vs NCG/supported LLVM 13-22/when LLVM wins)
@@ -280,13 +281,12 @@
 - [x] Ch238 — Kotlin/Native: Compiling Kotlin to Native via LLVM
 - [x] Ch239 — ISPC: An SPMD Compiler for CPU SIMD via LLVM (~12 pages; §239.1 SPMD model/gang width/programIndex/Embree-OSPRay usage, §239.2 Variability type system/uniform-varying-SOA/LLVM type mapping, §239.3 masking/predicated execution/foreach/foreach_active, §239.4 Module/ForeachStmt AST/BinaryExpr variability propagation, §239.5 FunctionEmitContext/mask alloca/gather-scatter emission, §239.6 ISPCTarget enum/multi-target CPUID dispatch, §239.7 task-launch-sync/ISPCAlloc-ISPCLaunch-ISPCSync/TBB-OMP runtimes, §239.8 C/C++ interop/SOA interleaving/production Embree-OSPRay) (~12 pages; §238.1 KonanBackend/K2 FIR→KIR→LLVM/KonanTarget enum, §238.2 InteropLowering/ModuleBitcodeOptimization/LTOBitcodeOptimization, §238.3 CodeGenerator.kt/custom LLVM fork/-Xsave-llvm-ir-after, §238.4 ARC/freeze→concurrent GC 1.7.20+, §238.5 safepoints/stack maps/Instruments integration, §238.6 cinterop tool/.def files/kotlinx.cinterop/CPointer, §238.7 ObjC/Swift interop/@ObjCName/@ExportObjCClass, §238.8 KonanTarget enum/framework/static/XCFramework/@CName)
 
-## Part XXIX — Compiler Tooling, Kernel Integration, and Binary Analysis *(~84 pp, 7 ch)*
+## Part XXIX — Compiler Tooling, Kernel Integration, and Binary Analysis *(~72 pp, 6 ch)*
 - [x] Ch197 — Clang Plugin System
 - [x] Ch198 — Value Tracking Infrastructure in LLVM
 - [x] Ch199 — llvm-mca: Static Performance Analysis
 - [x] Ch200 — Linux Kernel Compilation with LLVM/Clang
 - [x] Ch201 — Binary Lifting to LLVM IR
-- [x] Ch202 — Apache TVM: An ML Operator Compiler
 - [x] Ch234 — KLEE: Symbolic Execution of LLVM IR (~12 pages; §234.1 design goals/scope vs fuzzing/concolic, §234.2 KModule/KFunction/KInstruction shadow layer, §234.3 ExecutionState/pc/stack/addressSpace/ConstraintSet, §234.4 MemoryObject/ObjectState/concreteStore/knownSymbolics, §234.5 Searcher classes DFS/BFS/WeightedRandom/CoveringNew, §234.6 SolverChain/Query/Z3+STP+CVC5 backends/TimingSolver, §234.7 klee_make_symbolic/uclibc/POSIX model/KTest format, §234.8 clang -emit-llvm -g; klee --libc=uclibc --posix-runtime; extensions/seeding/SCKLEE)
 
 ## Existing Chapter Expansions (planned, not yet written)

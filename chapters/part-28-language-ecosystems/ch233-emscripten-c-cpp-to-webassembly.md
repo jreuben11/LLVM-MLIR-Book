@@ -1,6 +1,6 @@
 # Chapter 233 — Emscripten: C/C++ to WebAssembly via LLVM
 
-*Part XV — Target Architectures and Backend Specifics*
+*Part XXVIII — Language Ecosystems and Engineering Practice*
 
 Emscripten is the standard toolchain for compiling C and C++ to WebAssembly, built directly on LLVM's Clang frontend and Binaryen post-processor. Where Chapter 106 covered WebAssembly as a compilation target in the abstract, this chapter focuses on Emscripten's concrete implementation: how it maps C's memory model to a linear heap, how `EM_JS` and Embind cross the C++/JavaScript boundary, how Asyncify transforms synchronous code to work with JavaScript's event loop, and how Wasm threads integrate with the browser's SharedArrayBuffer model. Emscripten is the bridge that makes the C/C++ software ecosystem available to the Web without source-level changes.
 
