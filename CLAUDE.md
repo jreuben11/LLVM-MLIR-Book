@@ -5,7 +5,7 @@
 
 ## Project Overview
 
-This is a ~2200-page expert reference book covering the LLVM compiler ecosystem. It spans 176 chapters and 8 appendices across 25 parts. The book targets **LLVM 22.1.x / Clang 22 / MLIR in-tree / OpenXLA / ClangIR** as of April 2026.
+This is a ~3,050-page expert reference book covering the LLVM compiler ecosystem. It spans 239 chapters and 10 appendices across 31 parts. The book targets **LLVM 22.1.x / Clang 22 / MLIR in-tree / OpenXLA / ClangIR** as of April 2026.
 
 The full outline is in `LLVM-MLIR-programming-book-plan.md`. Progress is tracked in `TODO_checklist.md` — always update it after completing a chapter.
 
@@ -43,7 +43,13 @@ LLVM-MLIR-Book/
 │   ├── part-22-xla-openxla/
 │   ├── part-23-mlir-production/
 │   ├── part-24-verified-compilation/
-│   └── part-25-operations-contribution/
+│   ├── part-25-operations-contribution/
+│   ├── part-26-ecosystem-frontiers/
+│   ├── part-27-mathematical-foundations/
+│   ├── part-28-language-ecosystems/
+│   ├── part-29-compiler-tooling/
+│   ├── part-30-AI-first-PL-design/
+│   └── part-31-frontier-ai-evolution/
 └── appendices/
 ```
 
@@ -68,7 +74,7 @@ Chapter files are named: `chNN-kebab-case-title.md`
   - `llvm-config --version` → must show `22.x`
   - `clang -emit-llvm -S` to verify IR output
   - Source file references must use paths valid in the LLVM 22 monorepo
-- **Theoretical chapters** (Parts II, III, XI, XXIV): Verify against canonical literature cited per-chapter; no LLVM code verification required
+- **Theoretical chapters** (Parts II, III, XI, XXIV, XXVII): Verify against canonical literature cited per-chapter; no LLVM code verification required
 
 ### Page-length targets:
 - Practical chapters: ~12 pages each (in markdown, ~600 words/page → ~7200 words)
@@ -110,6 +116,8 @@ Chapter files are named: `chNN-kebab-case-title.md`
   - Group H: Parts XXII, XXIII — after Group G
   - Group I: Part XXIV — after all prior parts
   - Group J: Part XXV + Appendices — last
+  - Group K: Parts XXVI, XXVII, XXVIII, XXIX simultaneously — after Group I
+  - Group L: Parts XXX, XXXI — after Group K
 
 ---
 
@@ -148,3 +156,4 @@ After resuming from compaction:
 | III — Type Theory | Pierce (TAPL, ATTAPL), Harper (PFPL), Mitchell, Reynolds |
 | XI — Polyhedral Theory | Bondhugula PhD thesis, Feautrier scheduling papers, Verdoolaege ISL papers, Grosser et al. |
 | XXIV — Verified Compilation | Leroy (CompCert), Zhao/Zdancewic/Nagarakatte (Vellvm), Lopes/Lee/Hur (Alive2) |
+| XXVII — Mathematical Foundations for Compiler Engineers | Lean 4 / Coq / Isabelle/HOL / Agda reference manuals; Enderton (Mathematical Introduction to Logic); Klein et al. (seL4, SOSP 2009); Mac Lane (Categories for the Working Mathematician); Awodey (Category Theory); Winskel (Formal Semantics of Programming Languages) |
