@@ -8,6 +8,28 @@ The driver's historical role is to replicate the GCC driver interface precisely 
 
 ---
 
+## Table of Contents
+
+- [28.1 Architecture Overview: Driver vs. cc1](#281-architecture-overview-driver-vs-cc1)
+- [28.2 The Driver Class](#282-the-driver-class)
+- [28.3 Toolchains](#283-toolchains)
+- [28.4 Compilation and Jobs](#284-compilation-and-jobs)
+- [28.5 Phases and Actions](#285-phases-and-actions)
+- [28.6 Argument Parsing and Option Tables](#286-argument-parsing-and-option-tables)
+- [28.7 Response Files and Argument Expansion](#287-response-files-and-argument-expansion)
+- [28.8 Input File Processing and Language Detection](#288-input-file-processing-and-language-detection)
+- [28.9 Driver Modes](#289-driver-modes)
+- [28.10 The cc1 Interface](#2810-the-cc1-interface)
+- [28.11 Multilib and Sysroot](#2811-multilib-and-sysroot)
+- [28.12 Offloading](#2812-offloading)
+- [28.13 Driver Diagnostics](#2813-driver-diagnostics)
+- [28.14 Extending the Driver](#2814-extending-the-driver)
+- [Chapter Summary](#chapter-summary)
+- [Cross-References](#cross-references)
+- [Reference Links](#reference-links)
+
+---
+
 ## 28.1 Architecture Overview: Driver vs. cc1
 
 When a user executes `clang -O2 foo.c -o foo`, three separate processes typically run: the preprocessor+compiler (invoked as `clang -cc1`), the assembler (either the integrated assembler or an external `as`), and the linker. The `clang` binary that the user invokes is the *driver*; it orchestrates all of these subprocesses but performs none of the actual compilation work itself.

@@ -4,6 +4,29 @@
 
 Machine learning has entered the compiler's optimization decision loop. Where threshold-based heuristics use hand-tuned constants to guide inlining and register allocation, ML-trained policies learn from billions of actual compilation outcomes to make better decisions. This chapter covers LLVM's two production ML components: the reinforcement-learning-trained inline advisor (`MLInlineAdvisor`) and the ML-guided register-allocation eviction policy.
 
+## Table of Contents
+
+- [66.1 Background: Optimization as Decision Making](#661-background-optimization-as-decision-making)
+- [66.2 The ML Inline Advisor](#662-the-ml-inline-advisor)
+  - [66.2.1 Architecture](#6621-architecture)
+  - [66.2.2 Feature Extraction](#6622-feature-extraction)
+  - [66.2.3 TFLite Runtime Dependency](#6623-tflite-runtime-dependency)
+  - [66.2.4 Offline Training Pipeline](#6624-offline-training-pipeline)
+  - [66.2.5 Using the ML Advisor](#6625-using-the-ml-advisor)
+- [66.3 ML Register Allocation Eviction Policy](#663-ml-register-allocation-eviction-policy)
+  - [66.3.1 The Eviction Problem](#6631-the-eviction-problem)
+  - [66.3.2 The ML Eviction Model](#6632-the-ml-eviction-model)
+  - [66.3.3 Training](#6633-training)
+  - [66.3.4 Using the ML Eviction Advisor](#6634-using-the-ml-eviction-advisor)
+- [66.4 Model Compilation: AOT vs Runtime](#664-model-compilation-aot-vs-runtime)
+  - [66.4.1 AOT (Ahead-of-Time) Compilation](#6641-aot-ahead-of-time-compilation)
+  - [66.4.2 Runtime TFLite](#6642-runtime-tflite)
+- [66.5 Interplay with Traditional Heuristics](#665-interplay-with-traditional-heuristics)
+- [66.6 Performance Results](#666-performance-results)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 66.1 Background: Optimization as Decision Making
 
 Both inlining and register allocation are decision problems:

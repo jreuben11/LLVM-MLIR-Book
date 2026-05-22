@@ -6,6 +6,38 @@ Performance engineering for a compiler has two distinct targets: the compiler's 
 
 ---
 
+## Table of Contents
+
+- [174.1 Measuring Compiler Performance](#1741-measuring-compiler-performance)
+  - [Wall-Clock Benchmarking](#wall-clock-benchmarking)
+  - [Hardware Performance Counters with perf stat](#hardware-performance-counters-with-perf-stat)
+  - [LLVM's -ftime-report](#llvms-ftime-report)
+- [174.2 Compile-Time Profiling](#1742-compile-time-profiling)
+  - [-ftime-trace (Chrome Trace)](#ftime-trace-chrome-trace)
+  - [Flamegraph from perf](#flamegraph-from-perf)
+  - [Analyzing Specific Pass Hot Paths](#analyzing-specific-pass-hot-paths)
+- [174.3 LLVM Build Performance](#1743-llvm-build-performance)
+  - [Reducing Build Time for Development](#reducing-build-time-for-development)
+  - [ccache and sccache](#ccache-and-sccache)
+  - [Precompiled Headers (PCH)](#precompiled-headers-pch)
+  - [Build Configuration Presets](#build-configuration-presets)
+  - [Avoiding Full Rebuilds](#avoiding-full-rebuilds)
+- [174.4 IR Optimization Performance](#1744-ir-optimization-performance)
+  - [Benchmarking the Optimization Pipeline](#benchmarking-the-optimization-pipeline)
+  - [Identifying Quadratic Behavior](#identifying-quadratic-behavior)
+  - [Analysis Caching](#analysis-caching)
+  - [Memory Usage of Passes](#memory-usage-of-passes)
+- [174.5 Runtime Performance of Generated Code](#1745-runtime-performance-of-generated-code)
+  - [Benchmarking Generated Code](#benchmarking-generated-code)
+  - [Analyzing Generated Code Quality](#analyzing-generated-code-quality)
+  - [perf for Generated Code](#perf-for-generated-code)
+  - [Profile-Guided Optimization (PGO)](#profile-guided-optimization-pgo)
+  - [BOLT: Post-Link Optimization](#bolt-post-link-optimization)
+  - [Benchmark Infrastructure](#benchmark-infrastructure)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 174.1 Measuring Compiler Performance
 
 ### Wall-Clock Benchmarking

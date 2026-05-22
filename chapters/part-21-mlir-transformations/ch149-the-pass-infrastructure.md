@@ -6,6 +6,44 @@ MLIR's pass infrastructure is the organizational backbone of every compiler buil
 
 ---
 
+## Table of Contents
+
+- [149.1 Pass Types](#1491-pass-types)
+  - [OperationPass\<OpTy\>](#operationpassopty)
+  - [InterfacePass\<IfTy\>](#interfacepassifty)
+  - [Pass (unparameterized)](#pass-unparameterized)
+  - [Required declarations](#required-declarations)
+- [149.2 Writing a Pass](#1492-writing-a-pass)
+  - [MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID](#mlirdefineexplicitinternalinlinetypeid)
+  - [signalPassFailure](#signalpassfailure)
+- [149.3 Pass Manager and Nesting](#1493-pass-manager-and-nesting)
+  - [Flat pipeline](#flat-pipeline)
+  - [Nested pipeline](#nested-pipeline)
+  - [Pipeline string syntax](#pipeline-string-syntax)
+  - [Programmatic pipeline construction from string](#programmatic-pipeline-construction-from-string)
+- [149.4 Parallelism](#1494-parallelism)
+  - [Enabling threading](#enabling-threading)
+  - [Safety requirements](#safety-requirements)
+  - [ThreadLocalCache](#threadlocalcache)
+- [149.5 Pass Statistics and Instrumentation](#1495-pass-statistics-and-instrumentation)
+  - [Pass statistics](#pass-statistics)
+  - [PassInstrumentation](#passinstrumentation)
+  - [IR printing instrumentation](#ir-printing-instrumentation)
+- [149.6 Pass Options](#1496-pass-options)
+  - [CloneOptions](#cloneoptions)
+- [149.7 Analysis Infrastructure](#1497-analysis-infrastructure)
+  - [Requesting an analysis](#requesting-an-analysis)
+  - [Preserving analyses](#preserving-analyses)
+  - [Built-in analyses](#built-in-analyses)
+  - [Defining a custom analysis](#defining-a-custom-analysis)
+- [149.8 Pass Pipelines and Registration](#1498-pass-pipelines-and-registration)
+  - [Registering a pipeline](#registering-a-pipeline)
+  - [Dynamic pass loading](#dynamic-pass-loading)
+- [149.9 Crash Reproduction](#1499-crash-reproduction)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 149.1 Pass Types
 
 MLIR provides three pass base classes, each expressing a different constraint on the operations the pass may inspect and modify.

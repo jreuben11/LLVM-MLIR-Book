@@ -6,6 +6,42 @@ MLIR has catalyzed a generation of specialized compilers and language systems th
 
 ---
 
+## Table of Contents
+
+- [166.1 Mojo: Python Superset via MLIR](#1661-mojo-python-superset-via-mlir)
+  - [166.1.1 Mojo's Design Philosophy](#16611-mojos-design-philosophy)
+  - [166.1.2 Mojo's MLIR Compilation](#16612-mojos-mlir-compilation)
+  - [166.1.3 GPU Kernels in Mojo](#16613-gpu-kernels-in-mojo)
+  - [166.1.4 Python Interoperability](#16614-python-interoperability)
+  - [166.1.5 Mojo's MLIR Foundation](#16615-mojos-mlir-foundation)
+- [166.2 Polygeist: C/C++ Polyhedral Lifting](#1662-polygeist-cc-polyhedral-lifting)
+  - [166.2.1 The Problem Polygeist Solves](#16621-the-problem-polygeist-solves)
+  - [166.2.2 Example: Matrix Multiply](#16622-example-matrix-multiply)
+  - [166.2.3 Polygeist Pipeline](#16623-polygeist-pipeline)
+  - [166.2.4 Limitations and Scope](#16624-limitations-and-scope)
+- [166.3 Enzyme-MLIR: Automatic Differentiation](#1663-enzyme-mlir-automatic-differentiation)
+  - [166.3.1 The enzyme.autodiff Op](#16631-the-enzymeautodiff-op)
+  - [166.3.2 Forward Mode AD](#16632-forward-mode-ad)
+  - [166.3.3 Reverse Mode AD](#16633-reverse-mode-ad)
+  - [166.3.4 Working on Arbitrary MLIR Dialects](#16634-working-on-arbitrary-mlir-dialects)
+  - [166.3.5 JAX-Enzyme Integration](#16635-jax-enzyme-integration)
+- [166.4 HEIR: Homomorphic Encryption IR](#1664-heir-homomorphic-encryption-ir)
+  - [166.4.1 FHE Circuits as MLIR](#16641-fhe-circuits-as-mlir)
+  - [166.4.2 Program Optimization for FHE](#16642-program-optimization-for-fhe)
+  - [166.4.3 Target Backend](#16643-target-backend)
+- [166.5 CIRCT: Circuit IR Compilers and Tools](#1665-circt-circuit-ir-compilers-and-tools)
+  - [166.5.1 CIRCT Dialects](#16651-circt-dialects)
+  - [166.5.2 Example: HW Dialect](#16652-example-hw-dialect)
+- [166.6 VAST: C/C++ AST Analysis](#1666-vast-cc-ast-analysis)
+  - [166.6.1 VAST's HL Dialect](#16661-vasts-hl-dialect)
+- [166.7 Trends and Convergence](#1667-trends-and-convergence)
+  - [166.7.1 MLIR as Universal Compiler IR](#16671-mlir-as-universal-compiler-ir)
+  - [166.7.2 Domain Specialization vs. Reuse](#16672-domain-specialization-vs-reuse)
+  - [166.7.3 The Emerging Landscape (2026)](#16673-the-emerging-landscape-2026)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 166.1 Mojo: Python Superset via MLIR
 
 Mojo ([modular.com/mojo](https://www.modular.com/mojo)) is a Python-compatible programming language designed for high-performance ML systems work. It is compiled via MLIR, with extensions for GPU/SIMD programming that map directly to MLIR dialects.

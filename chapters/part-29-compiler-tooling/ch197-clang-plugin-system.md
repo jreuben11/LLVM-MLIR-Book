@@ -6,6 +6,52 @@ Clang's plugin system lets you extend the compiler itself without forking the so
 
 ---
 
+## Table of Contents
+
+- [1. The Plugin Loading Mechanism](#1-the-plugin-loading-mechanism)
+  - [1.1 `-fplugin` versus `-Xclang -load`](#11-fplugin-versus-xclang-load)
+  - [1.2 Multiple Plugins and Ordering](#12-multiple-plugins-and-ordering)
+- [2. `PluginASTAction` and the Action Type System](#2-pluginastaction-and-the-action-type-system)
+  - [2.1 Class Hierarchy](#21-class-hierarchy)
+  - [2.2 `ActionType` Enum](#22-actiontype-enum)
+  - [2.3 `CompilerInstance` Access](#23-compilerinstance-access)
+- [3. `ASTConsumer` Callbacks](#3-astconsumer-callbacks)
+  - [3.1 Callback Lifecycle](#31-callback-lifecycle)
+  - [3.2 `RecursiveASTVisitor` Inside a Plugin](#32-recursiveastvisitor-inside-a-plugin)
+- [4. Self-Registration: `FrontendPluginRegistry::Add<>`](#4-self-registration-frontendpluginregistryadd)
+- [5. Custom Diagnostics](#5-custom-diagnostics)
+  - [5.1 `getCustomDiagID` and `Report`](#51-getcustomdiagid-and-report)
+  - [5.2 `FixItHint`](#52-fixithint)
+  - [5.3 `DiagnosticConsumer` Replacement](#53-diagnosticconsumer-replacement)
+- [6. `PragmaHandler` for Custom Pragmas](#6-pragmahandler-for-custom-pragmas)
+  - [6.1 Registering a Handler](#61-registering-a-handler)
+  - [6.2 Token Consumption in `HandlePragma`](#62-token-consumption-in-handlepragma)
+- [7. IR-Level Hooks: Accessing the `llvm::Module`](#7-ir-level-hooks-accessing-the-llvmmodule)
+  - [7.1 The `CodeGenerator` and Post-Codegen Processing](#71-the-codegenerator-and-post-codegen-processing)
+  - [7.2 Walking and Modifying the Module](#72-walking-and-modifying-the-module)
+  - [7.3 Using `BackendConsumer` and the Emit Hook](#73-using-backendconsumer-and-the-emit-hook)
+- [8. Custom Attribute Plugins](#8-custom-attribute-plugins)
+  - [8.1 The `annotate` Attribute as a Simple Alternative](#81-the-annotate-attribute-as-a-simple-alternative)
+  - [8.2 `ParsedAttr` and Plugin Attribute Registration](#82-parsedattr-and-plugin-attribute-registration)
+- [9. PCH and Modules Interaction](#9-pch-and-modules-interaction)
+  - [9.1 Caveats with Precompiled Headers](#91-caveats-with-precompiled-headers)
+  - [9.2 Caveats with C++ Modules](#92-caveats-with-c-modules)
+  - [9.3 The `hasPCHSupport` Override](#93-the-haspchsupport-override)
+- [10. Out-of-Tree CMake Setup](#10-out-of-tree-cmake-setup)
+  - [10.1 `find_package(Clang)` Configuration](#101-findpackageclang-configuration)
+  - [10.2 Build and Test Invocation](#102-build-and-test-invocation)
+- [11. Testing Plugin Diagnostics with FileCheck](#11-testing-plugin-diagnostics-with-filecheck)
+- [12. Plugins versus libtooling: When to Use Each](#12-plugins-versus-libtooling-when-to-use-each)
+- [13. Worked Example 1 — Nonnull Argument Checker](#13-worked-example-1-nonnull-argument-checker)
+  - [13.1 Plugin Source](#131-plugin-source)
+  - [13.2 Test](#132-test)
+- [14. Worked Example 2 — IR-Level Function Entry Instrumentation](#14-worked-example-2-ir-level-function-entry-instrumentation)
+  - [14.1 Plugin Source](#141-plugin-source)
+  - [14.2 Runtime Stub and Test](#142-runtime-stub-and-test)
+- [15. Chapter Summary](#15-chapter-summary)
+
+---
+
 ## 1. The Plugin Loading Mechanism
 
 ### 1.1 `-fplugin` versus `-Xclang -load`

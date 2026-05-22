@@ -6,6 +6,51 @@ AMD's Heterogeneous-compute Interface for Portability (HIP) is the primary progr
 
 ---
 
+## Table of Contents
+
+- [49.1 HIP Overview and the ROCm Stack](#491-hip-overview-and-the-rocm-stack)
+  - [49.1.1 Design Goals and CUDA Compatibility](#4911-design-goals-and-cuda-compatibility)
+  - [49.1.2 HIPification: CUDA to HIP Migration](#4912-hipification-cuda-to-hip-migration)
+  - [49.1.3 The ROCm Software Stack](#4913-the-rocm-software-stack)
+  - [49.1.4 Compilation Pipeline Overview](#4914-compilation-pipeline-overview)
+- [49.2 HIP Language Support in Clang](#492-hip-language-support-in-clang)
+  - [49.2.1 Shared CUDA/HIP Sema Infrastructure](#4921-shared-cudahip-sema-infrastructure)
+  - [49.2.2 Predefined Macros and Feature Detection](#4922-predefined-macros-and-feature-detection)
+  - [49.2.3 Atomic and Synchronisation Builtins](#4923-atomic-and-synchronisation-builtins)
+  - [49.2.4 Vector Types and Device Libraries](#4924-vector-types-and-device-libraries)
+- [49.3 AMDGPU IR and the AMDGPU Backend](#493-amdgpu-ir-and-the-amdgpu-backend)
+  - [49.3.1 Target Triple and Data Layout](#4931-target-triple-and-data-layout)
+  - [49.3.2 AMDGPU Address Spaces](#4932-amdgpu-address-spaces)
+  - [49.3.3 SGPR vs VGPR: Divergence-Driven Register Assignment](#4933-sgpr-vs-vgpr-divergence-driven-register-assignment)
+  - [49.3.4 Key AMDGPU Intrinsics in LLVM IR](#4934-key-amdgpu-intrinsics-in-llvm-ir)
+  - [49.3.5 HSA Kernel Metadata](#4935-hsa-kernel-metadata)
+  - [49.3.6 AMDGPUTargetMachine and the Backend Pass Pipeline](#4936-amdgputargetmachine-and-the-backend-pass-pipeline)
+- [49.4 Fat Binary and Device Linking for HIP](#494-fat-binary-and-device-linking-for-hip)
+  - [49.4.1 The Compilation Model](#4941-the-compilation-model)
+  - [49.4.2 clang-offload-bundler](#4942-clang-offload-bundler)
+  - [49.4.3 Device Linker and LLD](#4943-device-linker-and-lld)
+  - [49.4.4 Relocatable Device Code (-fgpu-rdc)](#4944-relocatable-device-code-fgpu-rdc)
+  - [49.4.5 Runtime Registration](#4945-runtime-registration)
+  - [49.4.6 hipcc vs Raw Clang](#4946-hipcc-vs-raw-clang)
+- [49.5 ROCm and HIP Ecosystem](#495-rocm-and-hip-ecosystem)
+  - [49.5.1 Compute Libraries](#4951-compute-libraries)
+  - [49.5.2 HIP Graphs and Stream Capture](#4952-hip-graphs-and-stream-capture)
+  - [49.5.3 Managed Memory and Unified Virtual Addressing](#4953-managed-memory-and-unified-virtual-addressing)
+  - [49.5.4 rocm-smi and GPU Monitoring](#4954-rocm-smi-and-gpu-monitoring)
+- [49.6 HIP vs CUDA Portability](#496-hip-vs-cuda-portability)
+  - [49.6.1 The Mapping Layer](#4961-the-mapping-layer)
+  - [49.6.2 Warp Size Divergence](#4962-warp-size-divergence)
+  - [49.6.3 Async Memory Allocation](#4963-async-memory-allocation)
+- [49.7 Profiling and Debugging HIP](#497-profiling-and-debugging-hip)
+  - [49.7.1 rocprof — The AMD Profiler](#4971-rocprof-the-amd-profiler)
+  - [49.7.2 omniperf — Roofline and Microarchitecture Analysis](#4972-omniperf-roofline-and-microarchitecture-analysis)
+  - [49.7.3 rocgdb — Device Debugging](#4973-rocgdb-device-debugging)
+  - [49.7.4 roctx and Application Tracing](#4974-roctx-and-application-tracing)
+  - [49.7.5 Address Sanitizer for HIP](#4975-address-sanitizer-for-hip)
+- [49.8 Summary](#498-summary)
+
+---
+
 ## 49.1 HIP Overview and the ROCm Stack
 
 ### 49.1.1 Design Goals and CUDA Compatibility

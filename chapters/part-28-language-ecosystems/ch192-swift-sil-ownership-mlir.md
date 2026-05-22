@@ -6,6 +6,59 @@ Swift occupies a peculiar position in the LLVM ecosystem: it uses LLVM as its na
 
 ---
 
+## Table of Contents
+
+- [192.1 Why LLVM IR Is Insufficient for ARC](#1921-why-llvm-ir-is-insufficient-for-arc)
+  - [The ARC Problem](#the-arc-problem)
+  - [Why LLVM IR Cannot Solve It Alone](#why-llvm-ir-cannot-solve-it-alone)
+  - [A Brief History: Pre-OSSA vs. OSSA SIL](#a-brief-history-pre-ossa-vs-ossa-sil)
+- [192.2 The SIL Type System and Ownership Qualifiers](#1922-the-sil-type-system-and-ownership-qualifiers)
+  - [The Four Ownership Qualifiers](#the-four-ownership-qualifiers)
+  - [Function Type Syntax](#function-type-syntax)
+  - [Ownership vs. Rust's Borrow Semantics](#ownership-vs-rusts-borrow-semantics)
+- [192.3 The SIL Instruction Set](#1923-the-sil-instruction-set)
+  - [Allocation Instructions](#allocation-instructions)
+  - [Ownership Operations](#ownership-operations)
+  - [Access Instructions (Exclusivity Enforcement)](#access-instructions-exclusivity-enforcement)
+  - [Function Application](#function-application)
+  - [Enum Dispatch and Existentials](#enum-dispatch-and-existentials)
+  - [Witness Tables and Protocol Dispatch](#witness-tables-and-protocol-dispatch)
+  - [Comparing Raw SIL and Optimized SIL](#comparing-raw-sil-and-optimized-sil)
+- [192.4 The SIL Pipeline](#1924-the-sil-pipeline)
+  - [Stage 1: SILGen (Raw SIL)](#stage-1-silgen-raw-sil)
+  - [Stage 2: Mandatory Passes (Canonical SIL)](#stage-2-mandatory-passes-canonical-sil)
+  - [Stage 3: Performance Optimization Passes (Optimized SIL)](#stage-3-performance-optimization-passes-optimized-sil)
+  - [Stage 4: Lowered SIL and IRGen](#stage-4-lowered-sil-and-irgen)
+- [192.5 Existentials, Generics, and the Resilience Model](#1925-existentials-generics-and-the-resilience-model)
+  - [Protocol Witness Tables](#protocol-witness-tables)
+  - [Value Witness Tables](#value-witness-tables)
+  - [Resilient Types and Library Evolution](#resilient-types-and-library-evolution)
+- [192.6 Move-Only Types: Swift's `~Copyable`](#1926-move-only-types-swifts-copyable)
+  - [`~Copyable` at the Type Level](#copyable-at-the-type-level)
+  - [`~Escapable` and `mark_dependence`](#escapable-and-markdependence)
+- [192.7 SIL's Influence on MLIR](#1927-sils-influence-on-mlir)
+  - [Bufferization as Ownership Transfer](#bufferization-as-ownership-transfer)
+  - [The `linalg` Dialect's Destination-Passing Style](#the-linalg-dialects-destination-passing-style)
+  - [The Buffer Deallocation Pass](#the-buffer-deallocation-pass)
+  - [Region-Based Ownership for Nested Regions](#region-based-ownership-for-nested-regions)
+  - [The Influence on MLIR's Value Semantics Design](#the-influence-on-mlirs-value-semantics-design)
+- [192.8 IRGen: SIL to LLVM IR](#1928-irgen-sil-to-llvm-ir)
+  - [Heap Allocation and the Swift Object Header](#heap-allocation-and-the-swift-object-header)
+  - [ARC Calls in LLVM IR](#arc-calls-in-llvm-ir)
+  - [Witness Table Dispatch in LLVM IR](#witness-table-dispatch-in-llvm-ir)
+  - [Boxing Value Types for Existentials](#boxing-value-types-for-existentials)
+  - [LLVM IR for a Simple Method Call](#llvm-ir-for-a-simple-method-call)
+- [192.9 Cross-Cutting Themes and Practical Guidance](#1929-cross-cutting-themes-and-practical-guidance)
+  - [Debugging SIL](#debugging-sil)
+  - [Relationship to ABI Stability](#relationship-to-abi-stability)
+  - [Whole-Module Optimization](#whole-module-optimization)
+  - [LLVM IR for `makeChain` — The Full Picture](#llvm-ir-for-makechain-the-full-picture)
+  - [The ARC Reference Count Word](#the-arc-reference-count-word)
+  - [Interaction with LLVM IPO Passes](#interaction-with-llvm-ipo-passes)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 192.1 Why LLVM IR Is Insufficient for ARC
 
 ### The ARC Problem

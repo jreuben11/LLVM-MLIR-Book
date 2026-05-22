@@ -8,6 +8,59 @@ This chapter explains how to do that linking correctly. It covers two integratio
 
 ---
 
+## Table of Contents
+
+- [5.1 `llvm-config`: The Quick and Dirty Way](#51-llvm-config-the-quick-and-dirty-way)
+  - [What `llvm-config` provides](#what-llvm-config-provides)
+  - [A minimal command-line build](#a-minimal-command-line-build)
+  - [Using `llvm-config` in Makefiles](#using-llvm-config-in-makefiles)
+  - [Static versus shared: the `--link-static` and `--link-shared` flags](#static-versus-shared-the-link-static-and-link-shared-flags)
+  - [The `--components` flag and what each component contains](#the-components-flag-and-what-each-component-contains)
+- [5.2 CMake Integration with `find_package(LLVM)`](#52-cmake-integration-with-findpackagellvm)
+  - [The `LLVMConfig.cmake` file](#the-llvmconfigcmake-file)
+  - [Pointing CMake at the right LLVM](#pointing-cmake-at-the-right-llvm)
+  - [A complete, minimal `CMakeLists.txt`](#a-complete-minimal-cmakeliststxt)
+  - [Walking through each directive](#walking-through-each-directive)
+  - [`add_llvm_executable()` versus `add_executable()`](#addllvmexecutable-versus-addexecutable)
+  - [Matching compiler flags to the LLVM installation](#matching-compiler-flags-to-the-llvm-installation)
+- [5.3 The Component Model](#53-the-component-model)
+  - [The physical organization](#the-physical-organization)
+  - [The dependency graph](#the-dependency-graph)
+  - [Minimizing binary size](#minimizing-binary-size)
+  - [`LLVMBitReader` and `LLVMBitWriter`](#llvmbitreader-and-llvmbitwriter)
+  - [Why you need `--system-libs`](#why-you-need-system-libs)
+- [5.4 The C API: Stable ABI, Portable Bindings](#54-the-c-api-stable-abi-portable-bindings)
+  - [Why the C API exists](#why-the-c-api-exists)
+  - [Core handle types](#core-handle-types)
+  - [Building IR with the C API](#building-ir-with-the-c-api)
+  - [Limitations compared to the C++ API](#limitations-compared-to-the-c-api)
+  - [Using the C API from Python via ctypes](#using-the-c-api-from-python-via-ctypes)
+  - [llvmlite and llvm-sys](#llvmlite-and-llvm-sys)
+- [5.5 Writing an Out-of-Tree Pass Plugin](#55-writing-an-out-of-tree-pass-plugin)
+  - [The plugin entry point](#the-plugin-entry-point)
+  - [The CMakeLists.txt for the plugin](#the-cmakeliststxt-for-the-plugin)
+  - [Building and loading](#building-and-loading)
+  - [Inserting the plugin pass into a pipeline position](#inserting-the-plugin-pass-into-a-pipeline-position)
+- [5.6 Out-of-Tree Backend Skeleton](#56-out-of-tree-backend-skeleton)
+  - [Why backends are almost always in-tree](#why-backends-are-almost-always-in-tree)
+  - [Target registration](#target-registration)
+  - [The `LLVM_EXPERIMENTAL_TARGETS_TO_BUILD` variable](#the-llvmexperimentaltargetstobuild-variable)
+  - [A minimal skeleton `CMakeLists.txt` for an experimental in-tree backend](#a-minimal-skeleton-cmakeliststxt-for-an-experimental-in-tree-backend)
+  - [Out-of-tree backend linkage (the research-project case)](#out-of-tree-backend-linkage-the-research-project-case)
+- [5.7 Troubleshooting: Common Linking and Integration Errors](#57-troubleshooting-common-linking-and-integration-errors)
+  - [Undefined reference to `LLVMInitializeX86Target` (and variants)](#undefined-reference-to-llvminitializex86target-and-variants)
+  - [Multiple definition of `LLVMInitializeX86Target`](#multiple-definition-of-llvminitializex86target)
+  - [`error: unknown argument: '-fno-rtti'` when compiling against LLVM](#error-unknown-argument-fno-rtti-when-compiling-against-llvm)
+  - [`LLVM_ENABLE_RTTI` mismatch: strange `dynamic_cast` failures or linker errors involving typeinfo](#llvmenablertti-mismatch-strange-dynamiccast-failures-or-linker-errors-involving-typeinfo)
+  - [Plugin load failure: `Plugin API version mismatch`](#plugin-load-failure-plugin-api-version-mismatch)
+  - [Plugin loads but passes are not available: `-passes=hello-world` gives `unknown pass name`](#plugin-loads-but-passes-are-not-available-passeshello-world-gives-unknown-pass-name)
+  - [Linker error: `cannot find -lLLVMCore` (static build not found)](#linker-error-cannot-find-lllvmcore-static-build-not-found)
+  - [`LLVMContext` initialized multiple times: crashes in `ManagedStatic`](#llvmcontext-initialized-multiple-times-crashes-in-managedstatic)
+  - [`opt: error: '--load' is not supported with the new pass manager`](#opt-error-load-is-not-supported-with-the-new-pass-manager)
+- [5.8 Chapter Summary](#58-chapter-summary)
+
+---
+
 ## 5.1 `llvm-config`: The Quick and Dirty Way
 
 The `llvm-config` binary is the original integration mechanism and remains the fastest way to compile a standalone tool against LLVM. It ships with every LLVM installation, knows the exact compilation flags and library lists for the installed tree, and requires no CMake knowledge.

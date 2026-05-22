@@ -4,6 +4,47 @@
 
 Emscripten is the standard toolchain for compiling C and C++ to WebAssembly, built directly on LLVM's Clang frontend and Binaryen post-processor. Where Chapter 106 covered WebAssembly as a compilation target in the abstract, this chapter focuses on Emscripten's concrete implementation: how it maps C's memory model to a linear heap, how `EM_JS` and Embind cross the C++/JavaScript boundary, how Asyncify transforms synchronous code to work with JavaScript's event loop, and how Wasm threads integrate with the browser's SharedArrayBuffer model. Emscripten is the bridge that makes the C/C++ software ecosystem available to the Web without source-level changes.
 
+## Table of Contents
+
+- [233.1 Architecture: emcc, Target Triple, and System Libraries](#2331-architecture-emcc-target-triple-and-system-libraries)
+  - [Compilation Pipeline](#compilation-pipeline)
+  - [Target Triple](#target-triple)
+  - [System Libraries](#system-libraries)
+  - [Basic Usage](#basic-usage)
+- [233.2 Memory Model: Linear Heap and Growth](#2332-memory-model-linear-heap-and-growth)
+  - [Memory Layout](#memory-layout)
+  - [Memory Growth](#memory-growth)
+  - [Pointer Representation](#pointer-representation)
+- [233.3 JavaScript Interop: EM_JS and EM_ASM](#2333-javascript-interop-emjs-and-emasm)
+  - [EM_ASM: Inline JavaScript](#emasm-inline-javascript)
+  - [EM_JS: Named JavaScript Functions](#emjs-named-javascript-functions)
+  - [Calling C from JavaScript](#calling-c-from-javascript)
+- [233.4 Embind: C++ Object Bindings](#2334-embind-c-object-bindings)
+  - [Binding Declarations](#binding-declarations)
+  - [JavaScript Usage](#javascript-usage)
+  - [Value Types vs. Class Types](#value-types-vs-class-types)
+- [233.5 Asyncify: Synchronous Semantics over an Async Event Loop](#2335-asyncify-synchronous-semantics-over-an-async-event-loop)
+  - [How Asyncify Works](#how-asyncify-works)
+  - [Asyncify Overhead and Optimization](#asyncify-overhead-and-optimization)
+  - [JSPI: JavaScript Promise Integration (Alternative)](#jspi-javascript-promise-integration-alternative)
+- [233.6 Ports, SDL2, WebGL, and the Event Loop](#2336-ports-sdl2-webgl-and-the-event-loop)
+  - [Emscripten Ports](#emscripten-ports)
+  - [Main Loop Adaptation](#main-loop-adaptation)
+  - [OpenGL → WebGL Mapping](#opengl-webgl-mapping)
+- [233.7 Wasm Threads: SharedArrayBuffer and pthreads](#2337-wasm-threads-sharedarraybuffer-and-pthreads)
+  - [Requirements](#requirements)
+  - [Compilation](#compilation)
+  - [pthread Implementation](#pthread-implementation)
+  - [Limitations](#limitations)
+- [233.8 Output Pipeline: wasm-opt, Closure Compiler, DWARF, and Source Maps](#2338-output-pipeline-wasm-opt-closure-compiler-dwarf-and-source-maps)
+  - [Binaryen wasm-opt](#binaryen-wasm-opt)
+  - [Closure Compiler](#closure-compiler)
+  - [DWARF Debug Info and Source Maps](#dwarf-debug-info-and-source-maps)
+  - [Size Optimization](#size-optimization)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 233.1 Architecture: emcc, Target Triple, and System Libraries
 
 Emscripten wraps `clang` and `lld` with environment configuration, provides browser-compatible system libraries, and orchestrates Binaryen post-processing into a pipeline that produces `.wasm` + `.js` glue code pairs.

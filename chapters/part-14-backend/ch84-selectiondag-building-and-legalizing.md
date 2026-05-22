@@ -4,6 +4,49 @@
 
 SelectionDAG is LLVM's classical instruction selection framework. Before a single target instruction is chosen, the backend must translate LLVM IR into a target-independent directed acyclic graph of typed operations, make that graph legal on the target's type system, and then make it legal with respect to the operations the target can actually perform. This chapter covers the first two of those three stages in depth: building the initial SelectionDAG from LLVM IR via `SelectionDAGBuilder`, and legalizing both types and operations so that subsequent pattern matching can proceed without encountering constructs the target does not support.
 
+## Table of Contents
+
+- [84.1 The SelectionDAG Representation](#841-the-selectiondag-representation)
+  - [84.1.1 Nodes, Values, and Uses](#8411-nodes-values-and-uses)
+  - [84.1.2 ISD Opcode Catalog](#8412-isd-opcode-catalog)
+- [84.2 SelectionDAGBuilder: IR to DAG Translation](#842-selectiondagbuilder-ir-to-dag-translation)
+  - [84.2.1 Architecture](#8421-architecture)
+  - [84.2.2 Visiting Arithmetic Instructions](#8422-visiting-arithmetic-instructions)
+  - [84.2.3 Visiting Load and Store](#8423-visiting-load-and-store)
+  - [84.2.4 Visiting Call Instructions](#8424-visiting-call-instructions)
+  - [84.2.5 Visiting Branches and PHI Nodes](#8425-visiting-branches-and-phi-nodes)
+  - [84.2.6 Intrinsic Lowering](#8426-intrinsic-lowering)
+- [84.3 Type Legalization](#843-type-legalization)
+  - [84.3.1 Why Types Must Be Legalized](#8431-why-types-must-be-legalized)
+  - [84.3.2 Integer Type Actions](#8432-integer-type-actions)
+  - [84.3.3 Concrete Example: i64 MUL on a 32-bit Target](#8433-concrete-example-i64-mul-on-a-32-bit-target)
+  - [84.4 Float Type Legalization](#844-float-type-legalization)
+  - [84.4.1 Softening](#8441-softening)
+  - [84.4.2 Float Expansion](#8442-float-expansion)
+- [84.5 Vector Type Legalization](#845-vector-type-legalization)
+  - [84.5.1 Vector Splitting](#8451-vector-splitting)
+  - [84.5.2 Vector Widening](#8452-vector-widening)
+  - [84.5.3 Vector Scalarization](#8453-vector-scalarization)
+  - [84.5.4 Concrete Example: v8i16 MUL Scalarization](#8454-concrete-example-v8i16-mul-scalarization)
+- [84.6 Operation Legalization](#846-operation-legalization)
+  - [84.6.1 SelectionDAGLegalize](#8461-selectiondaglegalize)
+  - [84.6.2 Expanding Complex Operations](#8462-expanding-complex-operations)
+  - [84.6.3 Custom Lowering](#8463-custom-lowering)
+  - [84.6.4 Vector Operation Legalization](#8464-vector-operation-legalization)
+- [84.7 Memory Legalization and Address Modes](#847-memory-legalization-and-address-modes)
+  - [84.7.1 Load and Store Legalization](#8471-load-and-store-legalization)
+  - [84.7.2 Atomic Operations](#8472-atomic-operations)
+- [84.8 Debugging Type and Operation Legalization](#848-debugging-type-and-operation-legalization)
+  - [84.8.1 Diagnostic Flags](#8481-diagnostic-flags)
+  - [84.8.2 Understanding Dump Output](#8482-understanding-dump-output)
+  - [84.8.3 The MachineVerifier](#8483-the-machineverifier)
+- [84.9 Integration with SelectionDAGISel](#849-integration-with-selectiondagisel)
+  - [84.9.1 The Full Pipeline](#8491-the-full-pipeline)
+  - [84.9.2 LegalizeTypes Driver](#8492-legalizetypes-driver)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 84.1 The SelectionDAG Representation
 
 ### 84.1.1 Nodes, Values, and Uses

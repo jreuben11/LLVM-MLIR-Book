@@ -6,6 +6,49 @@ Debugging a compiler is fundamentally different from debugging application code.
 
 ---
 
+## Table of Contents
+
+- [173.1 Debugging LLVM Passes](#1731-debugging-llvm-passes)
+  - [IR Dumping Flags](#ir-dumping-flags)
+  - [LLVM_DEBUG and dbgs()](#llvmdebug-and-dbgs)
+  - [Pass Statistics](#pass-statistics)
+  - [Time Passes](#time-passes)
+- [173.2 Crash Debugging](#1732-crash-debugging)
+  - [Reading LLVM Crash Messages](#reading-llvm-crash-messages)
+  - [llvm-extract: Isolating a Function](#llvm-extract-isolating-a-function)
+  - [llvm-reduce: Automated Minimization](#llvm-reduce-automated-minimization)
+  - [Clang Crash Reproducers](#clang-crash-reproducers)
+  - [bugpoint (Legacy)](#bugpoint-legacy)
+- [173.3 Bisecting Regressions](#1733-bisecting-regressions)
+  - [git bisect for Compiler Regressions](#git-bisect-for-compiler-regressions)
+  - [Pass-Level Bisection](#pass-level-bisection)
+  - [Narrowing to a Function](#narrowing-to-a-function)
+- [173.4 Debugging MLIR](#1734-debugging-mlir)
+  - [MLIR Debug Flags](#mlir-debug-flags)
+  - [Pattern Rewriting Debug](#pattern-rewriting-debug)
+  - [mlir-opt with GDB](#mlir-opt-with-gdb)
+  - [dump() in Debug Builds](#dump-in-debug-builds)
+  - [Verifying MLIR Invariants](#verifying-mlir-invariants)
+- [173.5 Profile-Guided Compiler Debugging](#1735-profile-guided-compiler-debugging)
+  - [Profiling a Slow Compilation](#profiling-a-slow-compilation)
+  - [Clang's -ftime-trace](#clangs-ftime-trace)
+  - [AddressSanitizer for Pass Development](#addresssanitizer-for-pass-development)
+  - [UBSan for Pass Development](#ubsan-for-pass-development)
+  - [Valgrind and Memory Debugging](#valgrind-and-memory-debugging)
+- [MLIR IDE Support: mlir-lsp-server and mlir-query](#mlir-ide-support-mlir-lsp-server-and-mlir-query)
+  - [mlir-lsp-server](#mlir-lsp-server)
+  - [Architecture](#architecture)
+  - [Building and Running](#building-and-running)
+  - [VS Code Integration: mlir-vscode](#vs-code-integration-mlir-vscode)
+  - [Custom Dialect Registration](#custom-dialect-registration)
+  - [mlir-pdll-lsp-server](#mlir-pdll-lsp-server)
+  - [tblgen-lsp-server](#tblgen-lsp-server)
+  - [mlir-query: Command-Line IR Pattern Search](#mlir-query-command-line-ir-pattern-search)
+  - [Practical Workflow](#practical-workflow)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 173.1 Debugging LLVM Passes
 
 ### IR Dumping Flags

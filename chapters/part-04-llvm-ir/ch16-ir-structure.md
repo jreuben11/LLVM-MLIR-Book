@@ -10,6 +10,46 @@ If you have read Chapter 9's treatment of SSA theory, you already understand why
 
 ---
 
+## Table of Contents
+
+- [1. The Module Hierarchy: Module → Function → BasicBlock → Instruction](#1-the-module-hierarchy-module-function-basicblock-instruction)
+  - [1.1 `Module`: The Top-Level Container](#11-module-the-top-level-container)
+  - [1.2 `Function`: A List of Basic Blocks](#12-function-a-list-of-basic-blocks)
+  - [1.3 `BasicBlock`: A Linear Sequence with Exactly One Terminator](#13-basicblock-a-linear-sequence-with-exactly-one-terminator)
+  - [1.4 `Instruction`: An SSA Value](#14-instruction-an-ssa-value)
+- [2. The Value/User/Use Triad](#2-the-valueuseruse-triad)
+  - [2.1 Class Roles](#21-class-roles)
+  - [2.2 The Use-List as an Intrusive Linked List](#22-the-use-list-as-an-intrusive-linked-list)
+  - [2.3 `replaceAllUsesWith`](#23-replacealluseswith)
+  - [2.4 `Value` Subclass Hierarchy](#24-value-subclass-hierarchy)
+- [3. Textual `.ll` Format: Syntax and Round-Tripping](#3-textual-ll-format-syntax-and-round-tripping)
+  - [3.1 Syntax Conventions](#31-syntax-conventions)
+  - [3.2 Parsing `.ll` Files](#32-parsing-ll-files)
+  - [3.3 The Round-Trip Invariant](#33-the-round-trip-invariant)
+  - [3.4 The IR Verifier](#34-the-ir-verifier)
+- [4. Bitcode `.bc`: Format and Trade-offs](#4-bitcode-bc-format-and-trade-offs)
+  - [4.1 The Bitstream Container](#41-the-bitstream-container)
+  - [4.2 The `use-list` Order Block](#42-the-use-list-order-block)
+  - [4.3 Performance Trade-offs](#43-performance-trade-offs)
+- [5. `llvm-as`, `llvm-dis`, and `llvm-link`](#5-llvm-as-llvm-dis-and-llvm-link)
+  - [5.1 `llvm-as`: Assembling `.ll` to `.bc`](#51-llvm-as-assembling-ll-to-bc)
+  - [5.2 `llvm-dis`: Disassembling `.bc` to `.ll`](#52-llvm-dis-disassembling-bc-to-ll)
+  - [5.3 Practical Workflow: Examining Optimized IR](#53-practical-workflow-examining-optimized-ir)
+  - [5.4 `llvm-link`: Linking Multiple Modules](#54-llvm-link-linking-multiple-modules)
+- [6. Module-Level Inline Assembly](#6-module-level-inline-assembly)
+  - [6.1 Syntax](#61-syntax)
+  - [6.2 C++ API](#62-c-api)
+  - [6.3 Use Cases](#63-use-cases)
+- [7. Module Flags](#7-module-flags)
+  - [7.1 The `!llvm.module.flags` Named Metadata Node](#71-the-llvmmoduleflags-named-metadata-node)
+  - [7.2 A Complete Example](#72-a-complete-example)
+  - [7.3 Common Module Flags](#73-common-module-flags)
+  - [7.4 The C++ API for Module Flags](#74-the-c-api-for-module-flags)
+- [8. Putting It Together: A Fully Annotated Module](#8-putting-it-together-a-fully-annotated-module)
+- [9. Chapter Summary](#9-chapter-summary)
+
+---
+
 ## 1. The Module Hierarchy: Module → Function → BasicBlock → Instruction
 
 LLVM IR is organized as a strict four-level containment hierarchy. Every object in a compiled program belongs to exactly one level, and each level is an iterable container for the level below it. The design is not accidental: the hierarchy maps cleanly onto the unit-of-compilation abstraction (module), the unit-of-linkage abstraction (function), the unit-of-control-flow abstraction (basic block), and the unit-of-computation abstraction (instruction). Understanding which level owns which state is the prerequisite for working with the C++ API.

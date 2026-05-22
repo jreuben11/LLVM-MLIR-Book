@@ -6,6 +6,57 @@ LLVM was born in C++98. Its current codebase is a monument to careful incrementa
 
 ---
 
+## Table of Contents
+
+- [183.1 LLVM's C++ Baseline and Coding Standards](#1831-llvms-c-baseline-and-coding-standards)
+  - [183.1.1 What the Standards Mandate and Ban](#18311-what-the-standards-mandate-and-ban)
+  - [183.1.2 LLVM's Vocabulary Types](#18312-llvms-vocabulary-types)
+  - [183.1.3 The C++ Standard Upgrade Trajectory](#18313-the-c-standard-upgrade-trajectory)
+- [183.2 C++20 in LLVM Today](#1832-c20-in-llvm-today)
+  - [183.2.1 Concepts Replacing SFINAE](#18321-concepts-replacing-sfinae)
+  - [183.2.2 `std::span` vs `ArrayRef<T>`](#18322-stdspan-vs-arrayreft)
+  - [183.2.3 `[[likely]]` and `[[unlikely]]` on Hot Paths](#18323-likely-and-unlikely-on-hot-paths)
+  - [183.2.4 `constinit`, `consteval`, and Compile-Time Globals](#18324-constinit-consteval-and-compile-time-globals)
+  - [183.2.5 `std::bit_cast` Replacing `memcpy`-Based Type Punning](#18325-stdbitcast-replacing-memcpy-based-type-punning)
+  - [183.2.6 Designated Initialisers for Aggregate Initialisation](#18326-designated-initialisers-for-aggregate-initialisation)
+- [183.3 C++23 for Compiler Infrastructure](#1833-c23-for-compiler-infrastructure)
+  - [183.3.1 `std::expected<T,E>` vs `llvm::Expected<T>`](#18331-stdexpectedte-vs-llvmexpectedt)
+  - [183.3.2 `std::mdspan`: Multi-Dimensional Views and MLIR MemRef](#18332-stdmdspan-multi-dimensional-views-and-mlir-memref)
+  - [183.3.3 `std::flat_map` and `std::flat_set`](#18333-stdflatmap-and-stdflatset)
+  - [183.3.4 Deducing `this` (P0847) and the End of CRTP](#18334-deducing-this-p0847-and-the-end-of-crtp)
+  - [183.3.5 `std::ranges` Views for IR Iteration](#18335-stdranges-views-for-ir-iteration)
+- [183.4 C++26 Contracts (P2900)](#1834-c26-contracts-p2900)
+  - [183.4.1 Syntax and Placement](#18341-syntax-and-placement)
+  - [183.4.2 Applying Contracts to LLVM Pass APIs](#18342-applying-contracts-to-llvm-pass-apis)
+  - [183.4.3 Contracts on MLIR PatternRewriter](#18343-contracts-on-mlir-patternrewriter)
+  - [183.4.4 WG21 Design History](#18344-wg21-design-history)
+  - [183.4.5 Relationship to Verification in Ch181](#18345-relationship-to-verification-in-ch181)
+- [183.5 C++26 Static Reflection (P2996)](#1835-c26-static-reflection-p2996)
+  - [183.5.1 Core Mechanism](#18351-core-mechanism)
+  - [183.5.2 Application 1: Replacing X-Macro Dialect Registration](#18352-application-1-replacing-x-macro-dialect-registration)
+  - [183.5.3 Application 2: TableGen-Like ODS Boilerplate from C++ Structs](#18353-application-2-tablegen-like-ods-boilerplate-from-c-structs)
+  - [183.5.4 Application 3: Replacing `isa<>` / `dyn_cast<>` Chains](#18354-application-3-replacing-isa-dyncast-chains)
+  - [183.5.5 Comparison with Rust Proc-Macros](#18355-comparison-with-rust-proc-macros)
+  - [183.5.6 Current Status](#18356-current-status)
+- [183.6 C++26 Pattern Matching (P2688 / P1371)](#1836-c26-pattern-matching-p2688-p1371)
+  - [183.6.1 Syntax](#18361-syntax)
+  - [183.6.2 Replacing `dyn_cast` Chains in LLVM](#18362-replacing-dyncast-chains-in-llvm)
+  - [183.6.3 Replacing `llvm::TypeSwitch` in MLIR](#18363-replacing-llvmtypeswitch-in-mlir)
+  - [183.6.4 Current WG21 Status](#18364-current-wg21-status)
+- [183.7 Template Metaprogramming Modernisation in LLVM](#1837-template-metaprogramming-modernisation-in-llvm)
+  - [183.7.1 CRTP Today and Its Costs](#18371-crtp-today-and-its-costs)
+  - [183.7.2 `if constexpr` Replacing Template Specialisations](#18372-if-constexpr-replacing-template-specialisations)
+  - [183.7.3 Variadic Fold Expressions](#18373-variadic-fold-expressions)
+  - [183.7.4 The Future: Reflection Superseding TMP](#18374-the-future-reflection-superseding-tmp)
+- [183.8 The C++/Rust Boundary](#1838-the-crust-boundary)
+  - [183.8.1 Why LLVM Will Not Switch to Rust](#18381-why-llvm-will-not-switch-to-rust)
+  - [183.8.2 What Contracts + Reflection Would Concretely Improve](#18382-what-contracts-reflection-would-concretely-improve)
+  - [183.8.3 Rust `unsafe` vs C++ Contracts](#18383-rust-unsafe-vs-c-contracts)
+  - [183.8.4 The Co-Evolution Path](#18384-the-co-evolution-path)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 183.1 LLVM's C++ Baseline and Coding Standards
 
 ### 183.1.1 What the Standards Mandate and Ban

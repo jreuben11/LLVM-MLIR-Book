@@ -6,6 +6,23 @@ Writing high-performance SIMD code with platform intrinsics is notoriously tedio
 
 ---
 
+## Table of Contents
+
+- [239.1 The SPMD Execution Model](#2391-the-spmd-execution-model)
+- [239.2 The Type System: Variability](#2392-the-type-system-variability)
+- [239.3 Control Flow and Masking](#2393-control-flow-and-masking)
+- [239.4 The ISPC Frontend: Module and AST](#2394-the-ispc-frontend-module-and-ast)
+- [239.5 FunctionEmitContext and IR Emission](#2395-functionemitcontext-and-ir-emission)
+- [239.6 Target Widths and the ISPCTarget Enum](#2396-target-widths-and-the-ispctarget-enum)
+  - [Runtime dispatch](#runtime-dispatch)
+- [239.7 The Task Parallelism Layer](#2397-the-task-parallelism-layer)
+- [239.8 C/C++ Interoperability and Production Integration](#2398-cc-interoperability-and-production-integration)
+  - [Performance characteristics](#performance-characteristics)
+  - [Building and linking](#building-and-linking)
+- [Summary](#summary)
+
+---
+
 ## 239.1 The SPMD Execution Model
 
 ISPC's central abstraction is the **gang**: a fixed set of program instances that execute together. The gang width equals the SIMD width of the target (8 for AVX2 `float`, 16 for AVX-512 `float`). The programmer writes a scalar-looking function, but every statement executes across all active instances simultaneously.

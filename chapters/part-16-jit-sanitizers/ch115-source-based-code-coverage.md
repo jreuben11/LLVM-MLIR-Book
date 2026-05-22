@@ -6,6 +6,51 @@ Code coverage — measuring which lines, branches, and conditions a test suite e
 
 ---
 
+## Table of Contents
+
+- [115.1 Coverage Approaches in LLVM](#1151-coverage-approaches-in-llvm)
+  - [1. gcov-Compatible Coverage](#1-gcov-compatible-coverage)
+  - [2. Source-Based Coverage (This Chapter)](#2-source-based-coverage-this-chapter)
+  - [3. SanitizerCoverage](#3-sanitizercoverage)
+  - [Choosing Between Formats](#choosing-between-formats)
+- [115.2 Instrumentation: How It Works](#1152-instrumentation-how-it-works)
+  - [Compilation Flags](#compilation-flags)
+  - [What Gets Instrumented](#what-gets-instrumented)
+  - [The Coverage Mapping Format](#the-coverage-mapping-format)
+  - [Optimization and Coverage](#optimization-and-coverage)
+- [115.3 The Profile Runtime](#1153-the-profile-runtime)
+  - [Runtime Library Location](#runtime-library-location)
+  - [Counter Storage](#counter-storage)
+  - [Writing the Profile](#writing-the-profile)
+  - [Continuous Coverage Mode](#continuous-coverage-mode)
+  - [Multi-Process and Parallel Test Coverage](#multi-process-and-parallel-test-coverage)
+- [115.4 llvm-profdata](#1154-llvm-profdata)
+  - [Merging Profiles](#merging-profiles)
+  - [Inspecting Profile Contents](#inspecting-profile-contents)
+  - [Profile Overlap Analysis](#profile-overlap-analysis)
+  - [Profile Formats](#profile-formats)
+- [115.5 llvm-cov](#1155-llvm-cov)
+  - [Source Annotation: `llvm-cov show`](#source-annotation-llvm-cov-show)
+  - [Summary Report: `llvm-cov report`](#summary-report-llvm-cov-report)
+  - [JSON Export: `llvm-cov export`](#json-export-llvm-cov-export)
+  - [Filtering and Object Files](#filtering-and-object-files)
+- [115.6 Branch Coverage and MC/DC](#1156-branch-coverage-and-mcdc)
+  - [Branch Coverage](#branch-coverage)
+  - [MC/DC — Modified Condition/Decision Coverage](#mcdc-modified-conditiondecision-coverage)
+- [115.7 Integration with Build Systems and CI](#1157-integration-with-build-systems-and-ci)
+  - [CMake Integration](#cmake-integration)
+  - [Bazel Integration](#bazel-integration)
+  - [GitHub Actions Integration](#github-actions-integration)
+  - [Parallel Test Sharding](#parallel-test-sharding)
+- [115.8 Coverage for Fuzzing Feedback](#1158-coverage-for-fuzzing-feedback)
+  - [Measuring Fuzzer Effectiveness](#measuring-fuzzer-effectiveness)
+  - [Identifying Uncovered Code](#identifying-uncovered-code)
+  - [Differential Coverage](#differential-coverage)
+  - [Coverage-Guided CI Gates](#coverage-guided-ci-gates)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 115.1 Coverage Approaches in LLVM
 
 LLVM and Clang support three distinct coverage mechanisms, each designed for a different use case:

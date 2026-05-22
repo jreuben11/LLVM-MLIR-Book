@@ -4,6 +4,42 @@
 
 Machine learning is no longer at the periphery of compiler development. From reinforcement-learned inlining policies already deployed in LLVM mainline, to neural superoptimizers that propose verified peephole rewrites, to LLM-assisted TableGen authoring, the boundary between compiler engineering and machine learning has dissolved. This chapter maps the full landscape — examining deployed production systems, research-grade techniques with active upstreaming efforts, and speculative horizons that will define the compiler work of the next decade. The common thread running through every technique described here is that the compiler's decision problem is the ML problem: given features extracted from program structure, predict the action that leads to the best outcome. Readers should be comfortable with C++ and have passing familiarity with how neural networks are trained; deep ML expertise is not required.
 
+## Table of Contents
+
+- [180.1 MLGO: ML-Guided Optimization in LLVM](#1801-mlgo-ml-guided-optimization-in-llvm)
+  - [180.1.1 The `MLModelRunner` Abstraction](#18011-the-mlmodelrunner-abstraction)
+  - [180.1.2 Switching Modes: CMake and the `create()` Factory](#18012-switching-modes-cmake-and-the-create-factory)
+  - [180.1.3 The RL-Trained Inliner: Features and Training Loop](#18013-the-rl-trained-inliner-features-and-training-loop)
+  - [180.1.4 ML-Based Register Allocator Eviction](#18014-ml-based-register-allocator-eviction)
+- [180.2 ML-Based Cost Models for Scheduling and Tiling](#1802-ml-based-cost-models-for-scheduling-and-tiling)
+  - [180.2.1 The Limits of Static Latency Tables](#18021-the-limits-of-static-latency-tables)
+  - [180.2.2 Ithemal: LSTM Over Instruction Sequences](#18022-ithemal-lstm-over-instruction-sequences)
+  - [180.2.3 Ansor and TVM Meta-Schedule](#18023-ansor-and-tvm-meta-schedule)
+  - [180.2.4 IREE's External Tuning Spec](#18024-irees-external-tuning-spec)
+- [180.3 Triton's Autotuner](#1803-tritons-autotuner)
+  - [180.3.1 The `@triton.autotune` Decorator](#18031-the-tritonautotune-decorator)
+  - [180.3.2 The Benchmark Loop and Config Space](#18032-the-benchmark-loop-and-config-space)
+  - [180.3.3 Triton's JIT Pipeline Internals](#18033-tritons-jit-pipeline-internals)
+- [180.4 Profile Inference with ML](#1804-profile-inference-with-ml)
+  - [180.4.1 The PGO Gap](#18041-the-pgo-gap)
+  - [180.4.2 ML-Based Profile Inference](#18042-ml-based-profile-inference)
+  - [180.4.3 Practical Status](#18043-practical-status)
+- [180.5 LLM-Assisted Compiler Development](#1805-llm-assisted-compiler-development)
+  - [180.5.1 TableGen Authoring](#18051-tablegen-authoring)
+  - [180.5.2 LLM-Guided Fuzzing](#18052-llm-guided-fuzzing)
+  - [180.5.3 LLVM IR as Training Data](#18053-llvm-ir-as-training-data)
+- [180.6 Neural Superoptimization and Learned Peephole Rules](#1806-neural-superoptimization-and-learned-peephole-rules)
+  - [180.6.1 Classical Superoptimization](#18061-classical-superoptimization)
+  - [180.6.2 Neural Superoptimization](#18062-neural-superoptimization)
+  - [180.6.3 Feeding Learned Rules Back to InstCombine](#18063-feeding-learned-rules-back-to-instcombine)
+- [180.7 The Future: Learned Optimization Policies](#1807-the-future-learned-optimization-policies)
+  - [180.7.1 End-to-End Pass Ordering via RL](#18071-end-to-end-pass-ordering-via-rl)
+  - [180.7.2 The Realistic Near-Term: ML Over Validated Configurations](#18072-the-realistic-near-term-ml-over-validated-configurations)
+  - [180.7.3 Convergence of ML and Formal Methods](#18073-convergence-of-ml-and-formal-methods)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 180.1 MLGO: ML-Guided Optimization in LLVM
 
 [Chapter 66 — The ML Inliner and ML Register Allocation](../part-10-analysis-middle-end/ch66-ml-inliner-and-regalloc.md) introduced MLGO's two deployed components — the `MLInlineAdvisor` and the ML eviction advisor — covering their feature vectors, TFLite runtime modes, and published performance results. This section focuses on the infrastructure layer that both components share: the `MLModelRunner` abstraction, the mechanics of switching between training and deployment, and the precise C++ API that advisor authors use when integrating a new ML policy.

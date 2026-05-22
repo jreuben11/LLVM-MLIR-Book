@@ -4,6 +4,36 @@
 
 Polly's value lies in the transformations it applies after the SCoP is detected and represented. Loop tiling for cache reuse, loop fusion for data locality, loop parallelization for multi-core, and vectorization for SIMD — these transformations are all expressed as modifications to the polyhedral schedule. This chapter covers how Polly maps the theoretical schedule transformations of Part XI to concrete LLVM IR changes, how tile sizes are selected, loop fusion in practice, the JSON schedule format for manual schedule inspection and injection, and the pattern-based matrix multiplication optimization.
 
+## Table of Contents
+
+- [75.1 Tiling in Polly](#751-tiling-in-polly)
+  - [75.1.1 Default Tiling](#7511-default-tiling)
+  - [75.1.2 Tile Size Selection](#7512-tile-size-selection)
+  - [75.1.3 Auto-Tiling via ISL](#7513-auto-tiling-via-isl)
+- [75.2 Loop Fusion and Distribution in Polly](#752-loop-fusion-and-distribution-in-polly)
+  - [75.2.1 Fusion via Schedule](#7521-fusion-via-schedule)
+  - [75.2.2 Fusion Legality](#7522-fusion-legality)
+  - [75.2.3 The MaxFuse Scheduler](#7523-the-maxfuse-scheduler)
+- [75.3 Parallelization](#753-parallelization)
+  - [75.3.1 OpenMP Generation](#7531-openmp-generation)
+  - [75.3.2 Reduction Parallelization](#7532-reduction-parallelization)
+- [75.4 Vectorization in Polly](#754-vectorization-in-polly)
+  - [75.4.1 Inner-Loop Vectorization](#7541-inner-loop-vectorization)
+  - [75.4.2 Polly Vectorizer (Polly-LLVM)](#7542-polly-vectorizer-polly-llvm)
+- [75.5 Pattern-Based Matrix Multiplication](#755-pattern-based-matrix-multiplication)
+  - [75.5.1 Detection](#7551-detection)
+  - [75.5.2 The Matmul Schedule](#7552-the-matmul-schedule)
+- [75.6 The JSON Schedule Format](#756-the-json-schedule-format)
+  - [75.6.1 Schedule Inspection and Export](#7561-schedule-inspection-and-export)
+  - [75.6.2 Manual Schedule Injection](#7562-manual-schedule-injection)
+  - [75.6.3 Access Function Modification](#7563-access-function-modification)
+- [75.7 Alias Analysis Integration](#757-alias-analysis-integration)
+  - [75.7.1 LLVM AA Integration](#7571-llvm-aa-integration)
+  - [75.7.2 The `__restrict__` Annotation](#7572-the-restrict-annotation)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 75.1 Tiling in Polly
 
 ### 75.1.1 Default Tiling

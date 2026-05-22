@@ -6,6 +6,54 @@ One of RISC-V's most distinctive design choices is its extension composability: 
 
 ---
 
+## Table of Contents
+
+- [100.1 Zba: Address Generation Instructions](#1001-zba-address-generation-instructions)
+  - [100.1.1 Instruction Summary](#10011-instruction-summary)
+  - [100.1.2 LLVM Patterns](#10012-llvm-patterns)
+  - [100.1.3 Impact on Real Code](#10013-impact-on-real-code)
+- [100.2 Zbb: Basic Bit Manipulation](#1002-zbb-basic-bit-manipulation)
+  - [100.2.1 Count and Population Operations](#10021-count-and-population-operations)
+  - [100.2.2 Min/Max Operations](#10022-minmax-operations)
+  - [100.2.3 Byte and Bit Operations](#10023-byte-and-bit-operations)
+  - [100.2.4 Zero and Sign Extension](#10024-zero-and-sign-extension)
+  - [100.2.5 Additional Zbb Operations](#10025-additional-zbb-operations)
+- [100.3 Zbc: Carry-Less Multiply](#1003-zbc-carry-less-multiply)
+  - [100.3.1 Instructions](#10031-instructions)
+  - [100.3.2 CRC Implementation](#10032-crc-implementation)
+- [100.4 Zbs: Single-Bit Operations](#1004-zbs-single-bit-operations)
+  - [100.4.1 Instructions](#10041-instructions)
+  - [100.4.2 TableGen Patterns](#10042-tablegen-patterns)
+- [100.5 Zk Cryptography Extensions](#1005-zk-cryptography-extensions)
+  - [100.5.1 Zkn: NIST Algorithms (AES and SHA-2)](#10051-zkn-nist-algorithms-aes-and-sha-2)
+  - [100.5.2 Zkr: Entropy Source](#10052-zkr-entropy-source)
+  - [100.5.3 Zksh: SM3/SM4 (Chinese Standards)](#10053-zksh-sm3sm4-chinese-standards)
+- [100.6 Zfh and Zfa: Extended Floating-Point](#1006-zfh-and-zfa-extended-floating-point)
+  - [100.6.1 Zfh: Half-Precision Floating-Point](#10061-zfh-half-precision-floating-point)
+  - [100.6.2 Zfa: Additional FP Operations](#10062-zfa-additional-fp-operations)
+  - [100.6.3 FLI: Floating-Point Load Immediate](#10063-fli-floating-point-load-immediate)
+- [100.7 Zicfilp and Zicfiss: Control-Flow Integrity](#1007-zicfilp-and-zicfiss-control-flow-integrity)
+  - [100.7.1 Zicfilp: Landing Pad](#10071-zicfilp-landing-pad)
+  - [100.7.2 Zicfiss: Shadow Stack](#10072-zicfiss-shadow-stack)
+- [100.8 Zc* Compressed Extensions](#1008-zc-compressed-extensions)
+  - [100.8.1 Zcb: Basic Additional 16-bit Instructions](#10081-zcb-basic-additional-16-bit-instructions)
+  - [100.8.2 Zcmp: Compressed Push/Pop](#10082-zcmp-compressed-pushpop)
+  - [100.8.3 Zcmb: Move A0/A1 ↔ S Registers](#10083-zcmb-move-a0a1-s-registers)
+- [100.9 Vendor Extensions](#1009-vendor-extensions)
+  - [100.9.1 XTHeadVector (T-Head C906/C910/C920)](#10091-xtheadvector-t-head-c906c910c920)
+  - [100.9.2 XSiFiveF14/F31 (SiFive DSP Cores)](#10092-xsifivef14f31-sifive-dsp-cores)
+  - [100.9.3 Ventana Micro (XVentanaCondOps)](#10093-ventana-micro-xventanacondops)
+- [100.10 Adding a Custom Extension to LLVM](#10010-adding-a-custom-extension-to-llvm)
+  - [100.10.1 Step 1: SubtargetFeature Definition](#100101-step-1-subtargetfeature-definition)
+  - [100.10.2 Step 2: Instruction TableGen Definition](#100102-step-2-instruction-tablegen-definition)
+  - [100.10.3 Step 3: LLVM Intrinsic (Optional)](#100103-step-3-llvm-intrinsic-optional)
+  - [100.10.4 Step 4: Clang Driver Integration](#100104-step-4-clang-driver-integration)
+  - [100.10.5 Step 5: C Header with Intrinsic](#100105-step-5-c-header-with-intrinsic)
+  - [100.10.6 Step 6: Test Infrastructure](#100106-step-6-test-infrastructure)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 100.1 Zba: Address Generation Instructions
 
 Zba adds three scaled-add instructions targeting pointer arithmetic with strides of 2, 4, or 8 bytes. These eliminate the shift+add sequences that appear in every array indexed by an integer index on 64-bit systems.

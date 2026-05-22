@@ -6,6 +6,53 @@ LLDB is LLVM's debugger: a modern, modular, library-first replacement for GDB th
 
 ---
 
+## Table of Contents
+
+- [116.1 LLDB Overview](#1161-lldb-overview)
+  - [Design Philosophy](#design-philosophy)
+  - [Platform Support](#platform-support)
+  - [Source Tree Organization](#source-tree-organization)
+- [116.2 Core Abstractions](#1162-core-abstractions)
+  - [Debugger](#debugger)
+  - [Target](#target)
+  - [Process](#process)
+  - [Thread and StackFrame](#thread-and-stackframe)
+- [116.3 Plugin Architecture](#1163-plugin-architecture)
+  - [Plugin Categories](#plugin-categories)
+  - [Selecting a Plugin](#selecting-a-plugin)
+- [116.4 Expression Evaluation](#1164-expression-evaluation)
+  - [The Compilation Pipeline](#the-compilation-pipeline)
+  - [Persistent Variables](#persistent-variables)
+  - [JIT Execution via ORC](#jit-execution-via-orc)
+- [116.5 LLDB's Use of LLVM MC](#1165-lldbs-use-of-llvm-mc)
+  - [Disassembler Plugin](#disassembler-plugin)
+  - [Intel and AT&T Syntax](#intel-and-att-syntax)
+  - [Mixed Source/Disassembly](#mixed-sourcedisassembly)
+- [116.6 Symbol Resolution and DWARF](#1166-symbol-resolution-and-dwarf)
+  - [SymbolFileDWARF](#symbolfiledwarf)
+  - [DIE Caching and Lazy Loading](#die-caching-and-lazy-loading)
+  - [TypeSystemClang](#typesystemclang)
+  - [Variable Location Evaluation](#variable-location-evaluation)
+- [116.7 Breakpoints and Watchpoints](#1167-breakpoints-and-watchpoints)
+  - [Breakpoint Resolution](#breakpoint-resolution)
+  - [Software Breakpoints](#software-breakpoints)
+  - [Hardware Breakpoints and Watchpoints](#hardware-breakpoints-and-watchpoints)
+  - [Conditional Breakpoints](#conditional-breakpoints)
+- [116.8 Remote Debugging and lldb-server](#1168-remote-debugging-and-lldb-server)
+  - [GDB Remote Serial Protocol](#gdb-remote-serial-protocol)
+  - [lldb-server Modes](#lldb-server-modes)
+  - [LLDB Protocol Extensions](#lldb-protocol-extensions)
+  - [ProcessGDBRemote](#processgdbremote)
+  - [QEMU Integration](#qemu-integration)
+- [116.9 Python Scripting Interface](#1169-python-scripting-interface)
+  - [The SB API](#the-sb-api)
+  - [Scripted Breakpoint Commands](#scripted-breakpoint-commands)
+  - [Data Formatters](#data-formatters)
+  - [Scripted Process](#scripted-process)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 116.1 LLDB Overview
 
 ### Design Philosophy

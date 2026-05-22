@@ -8,6 +8,53 @@ This chapter covers the complete lifecycle of inline assembly in LLVM: the IR re
 
 ---
 
+## Table of Contents
+
+- [25.1 Motivation: When Inline Assembly Is Necessary](#251-motivation-when-inline-assembly-is-necessary)
+- [25.2 The IR Representation: `InlineAsm` Value Type](#252-the-ir-representation-inlineasm-value-type)
+- [25.3 AT&T Dialect Syntax](#253-att-dialect-syntax)
+- [25.4 Intel Dialect Syntax](#254-intel-dialect-syntax)
+- [25.5 Constraint Strings](#255-constraint-strings)
+  - [25.5.1 Output Constraints](#2551-output-constraints)
+  - [25.5.2 Input Constraints](#2552-input-constraints)
+  - [25.5.3 Register-Class Letters: x86](#2553-register-class-letters-x86)
+  - [25.5.4 Register-Class Letters: AArch64](#2554-register-class-letters-aarch64)
+  - [25.5.5 Register-Class Letters: RISC-V](#2555-register-class-letters-risc-v)
+  - [25.5.6 Tied Operands](#2556-tied-operands)
+  - [25.5.7 Multiple Alternative Constraints](#2557-multiple-alternative-constraints)
+  - [25.5.8 Named Operands](#2558-named-operands)
+- [25.6 Clobber Lists](#256-clobber-lists)
+  - [25.6.1 Register Clobbers](#2561-register-clobbers)
+  - [25.6.2 The `memory` Clobber](#2562-the-memory-clobber)
+  - [25.6.3 Condition Code Clobbers](#2563-condition-code-clobbers)
+- [25.7 The `volatile` Qualifier and `sideeffect`](#257-the-volatile-qualifier-and-sideeffect)
+- [25.8 GCC-Compatible Extended Asm in Clang](#258-gcc-compatible-extended-asm-in-clang)
+  - [25.8.1 Operand Modifiers](#2581-operand-modifiers)
+  - [25.8.2 `asm goto` — Label Outputs](#2582-asm-goto-label-outputs)
+  - [25.8.3 `__attribute__((naked))` Functions](#2583-attributenaked-functions)
+  - [25.8.4 Basic Constraints Example: RDTSC](#2584-basic-constraints-example-rdtsc)
+- [25.9 MSVC-Style Inline Assembly](#259-msvc-style-inline-assembly)
+- [25.10 Module-Level Assembly](#2510-module-level-assembly)
+- [25.11 Lowering Inline Assembly in LLVM](#2511-lowering-inline-assembly-in-llvm)
+  - [25.11.1 `SelectionDAGBuilder::visitInlineAsm`](#25111-selectiondagbuildervisitinlineasm)
+  - [25.11.2 From SelectionDAG to MachineInstr](#25112-from-selectiondag-to-machineinstr)
+  - [25.11.3 `InlineAsmMemConstraint` and Indirect Operands](#25113-inlineasmmemconstraint-and-indirect-operands)
+- [25.12 Verification and Diagnostics](#2512-verification-and-diagnostics)
+- [25.13 Interaction with the Optimizer](#2513-interaction-with-the-optimizer)
+  - [25.13.1 Memory Effects of Inline Asm](#25131-memory-effects-of-inline-asm)
+  - [25.13.2 Ordering Relative to Other Operations](#25132-ordering-relative-to-other-operations)
+  - [25.13.3 Non-Volatile Asm and the Optimizer](#25133-non-volatile-asm-and-the-optimizer)
+- [25.14 Portable and Safe Patterns](#2514-portable-and-safe-patterns)
+  - [25.14.1 Memory Barriers](#25141-memory-barriers)
+  - [25.14.2 `READ_ONCE` and `WRITE_ONCE`](#25142-readonce-and-writeonce)
+  - [25.14.3 The CPUID Idiom](#25143-the-cpuid-idiom)
+  - [25.14.4 Stack Canary Access](#25144-stack-canary-access)
+  - [25.14.5 Returning Multiple Values via Tied Operands](#25145-returning-multiple-values-via-tied-operands)
+  - [25.14.6 Alternatives to Inline Assembly](#25146-alternatives-to-inline-assembly)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 25.1 Motivation: When Inline Assembly Is Necessary
 
 The optimizer transforms source code according to the semantics of the language. C and C++ are defined in terms of an abstract machine; the compiler is free to reorder, combine, and eliminate operations provided the observable behavior of the abstract machine is preserved. This freedom is exactly what you want for general-purpose code, and exactly wrong for operations that require a specific interaction with the hardware.

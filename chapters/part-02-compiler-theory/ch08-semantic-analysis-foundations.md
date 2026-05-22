@@ -10,6 +10,52 @@ Chapter 9 continues from where this chapter ends: once the AST has been name-res
 
 ---
 
+## Table of Contents
+
+- [8.1 Symbol Tables: Chained, Hash-Based, and Persistent](#81-symbol-tables-chained-hash-based-and-persistent)
+  - [The purpose of a symbol table](#the-purpose-of-a-symbol-table)
+  - [8.1.1 Chained (linked-list) symbol tables](#811-chained-linked-list-symbol-tables)
+  - [8.1.2 Hash-based symbol tables](#812-hash-based-symbol-tables)
+  - [8.1.3 Persistent (functional) symbol tables](#813-persistent-functional-symbol-tables)
+  - [8.1.4 Implementation in production compilers](#814-implementation-in-production-compilers)
+- [8.2 Scoping Models: Lexical, Dynamic, and Hierarchical](#82-scoping-models-lexical-dynamic-and-hierarchical)
+  - [8.2.1 Lexical (static) scoping](#821-lexical-static-scoping)
+  - [8.2.2 Dynamic scoping](#822-dynamic-scoping)
+  - [8.2.3 Hierarchical scoping in C++](#823-hierarchical-scoping-in-c)
+- [8.3 Attribute Grammars: Synthesised and Inherited](#83-attribute-grammars-synthesised-and-inherited)
+  - [8.3.1 Knuth's formalism](#831-knuths-formalism)
+  - [8.3.2 Synthesised attributes](#832-synthesised-attributes)
+  - [8.3.3 Inherited attributes](#833-inherited-attributes)
+  - [8.3.4 Well-definedness and the dependency graph](#834-well-definedness-and-the-dependency-graph)
+  - [8.3.5 Limitations of literal attribute grammars](#835-limitations-of-literal-attribute-grammars)
+- [8.4 Syntax-Directed Translation Schemes](#84-syntax-directed-translation-schemes)
+  - [8.4.1 SDTs: extending CFGs with embedded actions](#841-sdts-extending-cfgs-with-embedded-actions)
+  - [8.4.2 Postfix SDTs](#842-postfix-sdts)
+  - [8.4.3 L-attributed SDTs](#843-l-attributed-sdts)
+  - [8.4.4 Backpatching: `if-else` translation](#844-backpatching-if-else-translation)
+  - [8.4.5 Connection to yacc/bison](#845-connection-to-yaccbison)
+- [8.5 Type-Checking as a Tree Walk](#85-type-checking-as-a-tree-walk)
+  - [8.5.1 The typing judgment](#851-the-typing-judgment)
+  - [8.5.2 Recursive tree walk for monomorphic type checking](#852-recursive-tree-walk-for-monomorphic-type-checking)
+  - [8.5.3 Polymorphic type checking and interaction with type inference](#853-polymorphic-type-checking-and-interaction-with-type-inference)
+  - [8.5.4 Coercions and implicit conversions](#854-coercions-and-implicit-conversions)
+  - [8.5.5 Overload resolution as type-directed disambiguation](#855-overload-resolution-as-type-directed-disambiguation)
+- [8.6 Name Resolution and Argument-Dependent Lookup](#86-name-resolution-and-argument-dependent-lookup)
+  - [8.6.1 The name resolution problem](#861-the-name-resolution-problem)
+  - [8.6.2 Unqualified name lookup](#862-unqualified-name-lookup)
+  - [8.6.3 Qualified name lookup](#863-qualified-name-lookup)
+  - [8.6.4 Two-phase name lookup in C++ templates](#864-two-phase-name-lookup-in-c-templates)
+  - [8.6.5 Argument-Dependent Lookup (ADL / Koenig lookup)](#865-argument-dependent-lookup-adl-koenig-lookup)
+- [8.7 The Visitor Pattern as a Compiled Attribute Grammar](#87-the-visitor-pattern-as-a-compiled-attribute-grammar)
+  - [8.7.1 The Gang of Four Visitor pattern](#871-the-gang-of-four-visitor-pattern)
+  - [8.7.2 How a visitor implements attribute computation](#872-how-a-visitor-implements-attribute-computation)
+  - [8.7.3 S-attributed and L-attributed grammars in visitor form](#873-s-attributed-and-l-attributed-grammars-in-visitor-form)
+  - [8.7.4 LLVM and Clang realisations](#874-llvm-and-clang-realisations)
+  - [8.7.5 Limitations: the expression problem](#875-limitations-the-expression-problem)
+- [8.8 Chapter Summary](#88-chapter-summary)
+
+---
+
 ## 8.1 Symbol Tables: Chained, Hash-Based, and Persistent
 
 ### The purpose of a symbol table

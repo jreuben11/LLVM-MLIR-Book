@@ -6,6 +6,45 @@ Beyond the dominant x86, AArch64, and RISC-V targets, LLVM maintains production-
 
 ---
 
+## Table of Contents
+
+- [101.1 PowerPC: Register Model, VSX, and ELFv2 ABI](#1011-powerpc-register-model-vsx-and-elfv2-abi)
+  - [101.1.1 Register Architecture](#10111-register-architecture)
+  - [101.1.2 AltiVec/VMX/VSX SIMD](#10112-altivecvmxvsx-simd)
+  - [101.1.3 ELFv2 ABI (OpenPOWER)](#10113-elfv2-abi-openpower)
+  - [101.1.4 GNU/IBM Extended-Precision FP](#10114-gnuibm-extended-precision-fp)
+  - [101.1.5 LLVM Pipeliner on Power10 MMA](#10115-llvm-pipeliner-on-power10-mma)
+- [101.2 SystemZ: IBM Z Architecture](#1012-systemz-ibm-z-architecture)
+  - [101.2.1 Register Architecture](#10121-register-architecture)
+  - [101.2.2 z/Architecture Vector Instruction Set](#10122-zarchitecture-vector-instruction-set)
+  - [101.2.3 S/390 Linux ABI](#10123-s390-linux-abi)
+  - [101.2.4 Packed Decimal and EXECUTE](#10124-packed-decimal-and-execute)
+  - [101.2.5 Hardware Transactional Memory (HTM)](#10125-hardware-transactional-memory-htm)
+- [101.3 MIPS and MIPS64](#1013-mips-and-mips64)
+  - [101.3.1 Register Architecture](#10131-register-architecture)
+  - [101.3.2 o32, n32, n64 ABIs](#10132-o32-n32-n64-abis)
+  - [101.3.3 MIPS16 and microMIPS](#10133-mips16-and-micromips)
+  - [101.3.4 MSA SIMD (MIPS SIMD Architecture)](#10134-msa-simd-mips-simd-architecture)
+  - [101.3.5 MIPS R6 Breaking Changes](#10135-mips-r6-breaking-changes)
+- [101.4 SPARC and SPARC64](#1014-sparc-and-sparc64)
+  - [101.4.1 Register Windows](#10141-register-windows)
+  - [101.4.2 SPARC V9 / SPARC64](#10142-sparc-v9-sparc64)
+  - [101.4.3 LEON Embedded SPARC](#10143-leon-embedded-sparc)
+- [101.5 LoongArch](#1015-loongarch)
+  - [101.5.1 Architecture Overview](#10151-architecture-overview)
+  - [101.5.2 Register Architecture](#10152-register-architecture)
+  - [101.5.3 LP64D ABI](#10153-lp64d-abi)
+  - [101.5.4 LoongArch SIMD: LSX and LASX](#10154-loongarch-simd-lsx-and-lasx)
+  - [101.5.5 LBT: Binary Translation Helpers](#10155-lbt-binary-translation-helpers)
+  - [101.5.6 LLVM LoongArch Maturity](#10156-llvm-loongarch-maturity)
+- [101.6 Cross-Compilation Reference](#1016-cross-compilation-reference)
+  - [101.6.1 Compilation Flags](#10161-compilation-flags)
+  - [101.6.2 Target-Specific IR Inspection](#10162-target-specific-ir-inspection)
+- [101.7 Comparative Architecture Summary](#1017-comparative-architecture-summary)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 101.1 PowerPC: Register Model, VSX, and ELFv2 ABI
 
 ### 101.1.1 Register Architecture

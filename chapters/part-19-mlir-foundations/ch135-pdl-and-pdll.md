@@ -6,6 +6,54 @@ Pattern rewriting is the core transformation mechanism in MLIR, and the C++ `Rew
 
 ---
 
+## Table of Contents
+
+- [135.1 The Pattern Rewriting Problem](#1351-the-pattern-rewriting-problem)
+  - [The C++ RewritePattern Baseline](#the-c-rewritepattern-baseline)
+  - [What Declarative Systems Provide](#what-declarative-systems-provide)
+  - [Two Declarative Systems](#two-declarative-systems)
+- [135.2 The PDL Dialect](#1352-the-pdl-dialect)
+  - [PDL as MLIR IR](#pdl-as-mlir-ir)
+  - [Core PDL Operations](#core-pdl-operations)
+  - [A Complete PDL Pattern](#a-complete-pdl-pattern)
+  - [Constraints in PDL](#constraints-in-pdl)
+- [135.3 ODS-Based PDL Patterns — The `Pat<>` Class](#1353-ods-based-pdl-patterns-the-pat-class)
+  - [PatternBase.td and the `Pat<>` Class](#patternbasetd-and-the-pat-class)
+  - [Source and Result DAG Syntax](#source-and-result-dag-syntax)
+  - [NativeCodeCall](#nativecodecall)
+  - [Constraint Predicates](#constraint-predicates)
+  - [Generated Output](#generated-output)
+- [135.4 PDLL — The Standalone Pattern Language](#1354-pdll-the-standalone-pattern-language)
+  - [PDLL Overview](#pdll-overview)
+  - [Basic PDLL Syntax](#basic-pdll-syntax)
+  - [PDLL Type System](#pdll-type-system)
+  - [Named Rewrite Functions](#named-rewrite-functions)
+  - [Erase, Replace, and Insert](#erase-replace-and-insert)
+- [135.5 The PDLL Compilation Pipeline](#1355-the-pdll-compilation-pipeline)
+  - [mlir-pdll: The PDLL Compiler](#mlir-pdll-the-pdll-compiler)
+  - [Generated C++ Header](#generated-c-header)
+  - [CMake Integration](#cmake-integration)
+  - [Integration with a Pass](#integration-with-a-pass)
+- [135.6 The PDL Bytecode Interpreter](#1356-the-pdl-bytecode-interpreter)
+  - [Architecture](#architecture)
+  - [Loading and Applying PDL Patterns at Runtime](#loading-and-applying-pdl-patterns-at-runtime)
+  - [PDL-to-PDLInterp Lowering](#pdl-to-pdlinterp-lowering)
+- [135.7 Constraints and Native Code Blocks](#1357-constraints-and-native-code-blocks)
+  - [Constraint Declaration Forms](#constraint-declaration-forms)
+  - [Rewrite Return Types](#rewrite-return-types)
+  - [Multi-Pattern Files](#multi-pattern-files)
+- [135.8 PDL vs C++ RewritePattern — Decision Guide](#1358-pdl-vs-c-rewritepattern-decision-guide)
+  - [When to Use PDL/PDLL](#when-to-use-pdlpdll)
+  - [When to Write C++ RewritePattern](#when-to-write-c-rewritepattern)
+  - [Combining Both Systems](#combining-both-systems)
+- [135.9 Integration with mlir-opt and Passes](#1359-integration-with-mlir-opt-and-passes)
+  - [Canonicalization Pattern Registration](#canonicalization-pattern-registration)
+  - [Debugging PDL Pattern Matching](#debugging-pdl-pattern-matching)
+  - [The PDLL LSP Server](#the-pdll-lsp-server)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 135.1 The Pattern Rewriting Problem
 
 ### The C++ RewritePattern Baseline

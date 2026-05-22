@@ -6,6 +6,40 @@ A compiler that cannot be tested cannot be trusted. LLVM's test infrastructure r
 
 ---
 
+## Table of Contents
+
+- [172.1 Test Infrastructure Overview](#1721-test-infrastructure-overview)
+- [172.2 lit (LLVM Integrated Tester)](#1722-lit-llvm-integrated-tester)
+  - [What lit Is](#what-lit-is)
+  - [Running Tests](#running-tests)
+  - [Test File Structure](#test-file-structure)
+  - [lit Configuration Files](#lit-configuration-files)
+  - [XFAIL and UNSUPPORTED](#xfail-and-unsupported)
+- [172.3 FileCheck](#1723-filecheck)
+  - [Basic Directives](#basic-directives)
+  - [CHECK-LABEL for Functions](#check-label-for-functions)
+  - [Variable Capture and Reuse](#variable-capture-and-reuse)
+  - [CHECK-DAG: Order-Independent Matching](#check-dag-order-independent-matching)
+  - [Multiple Check Prefixes](#multiple-check-prefixes)
+  - [update_test_checks.py](#updatetestcheckspy)
+- [172.4 Unit Tests](#1724-unit-tests)
+  - [Google Test Structure](#google-test-structure)
+  - [Running Unit Tests](#running-unit-tests)
+  - [Writing a New Unit Test](#writing-a-new-unit-test)
+- [172.5 MLIR-Specific Testing](#1725-mlir-specific-testing)
+  - [mlir-opt as Test Driver](#mlir-opt-as-test-driver)
+  - [Testing Dialect Conversions](#testing-dialect-conversions)
+  - [Testing with mlir-cpu-runner](#testing-with-mlir-cpu-runner)
+  - [MLIR FileCheck Patterns](#mlir-filecheck-patterns)
+- [172.6 Fuzzing the Compiler](#1726-fuzzing-the-compiler)
+  - [llvm-stress: Random IR Generation](#llvm-stress-random-ir-generation)
+  - [llvm-reduce and mlir-reduce](#llvm-reduce-and-mlir-reduce)
+  - [clang-fuzzer and llvm-opt-fuzzer](#clang-fuzzer-and-llvm-opt-fuzzer)
+  - [creduce/cvise for C Source Reduction](#creducecvise-for-c-source-reduction)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 172.1 Test Infrastructure Overview
 
 LLVM uses two complementary test frameworks:

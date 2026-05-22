@@ -6,6 +6,28 @@ Compact reference for all major in-tree MLIR dialects. For full dialect document
 
 ---
 
+## Table of Contents
+
+- [B.1 Dialect Index](#b1-dialect-index)
+- [B.2 Builtin Types](#b2-builtin-types)
+  - [Integer and Float](#integer-and-float)
+  - [Composite Types](#composite-types)
+- [B.3 `arith` Dialect Operations](#b3-arith-dialect-operations)
+- [B.4 `affine` Dialect Operations](#b4-affine-dialect-operations)
+- [B.5 `linalg` Dialect Operations](#b5-linalg-dialect-operations)
+  - [Named Ops](#named-ops)
+  - [`linalg.generic`](#linalggeneric)
+- [B.6 `scf` Dialect Operations](#b6-scf-dialect-operations)
+- [B.7 `vector` Dialect Operations](#b7-vector-dialect-operations)
+- [B.8 `memref` Dialect Operations](#b8-memref-dialect-operations)
+- [B.9 `func` and `cf` Dialects](#b9-func-and-cf-dialects)
+  - [`func` Dialect](#func-dialect)
+  - [`cf` Dialect](#cf-dialect)
+- [B.10 `gpu` Dialect Operations](#b10-gpu-dialect-operations)
+- [B.11 Common Lowering Paths](#b11-common-lowering-paths)
+
+---
+
 ## B.1 Dialect Index
 
 | Dialect | Namespace | Primary Use | Key Ops |

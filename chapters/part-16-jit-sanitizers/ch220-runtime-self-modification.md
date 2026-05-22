@@ -6,6 +6,56 @@ A conventional JIT compiler is a one-way pipeline: a program is given to the com
 
 ---
 
+## Table of Contents
+
+- [220.1 The Self-Modification Loop](#2201-the-self-modification-loop)
+  - [Why Running-Process-as-Compiler is Hard](#why-running-process-as-compiler-is-hard)
+- [220.2 Source Access at Runtime](#2202-source-access-at-runtime)
+  - [Build-Time Source Embedding](#build-time-source-embedding)
+  - [Source-Path Registry](#source-path-registry)
+  - [Serialized AST (PCH/Module Cache)](#serialized-ast-pchmodule-cache)
+- [220.3 Runtime AST Introspection via LibTooling](#2203-runtime-ast-introspection-via-libtooling)
+  - [Setting Up an In-Process ClangTool](#setting-up-an-in-process-clangtool)
+  - [What AST Can and Cannot Tell You](#what-ast-can-and-cannot-tell-you)
+  - [Extracting Call Graphs at Runtime](#extracting-call-graphs-at-runtime)
+- [220.4 Reasoning: Static Analysis and LLM Integration](#2204-reasoning-static-analysis-and-llm-integration)
+  - [Static Analysis Path](#static-analysis-path)
+  - [LLM Integration Path](#llm-integration-path)
+- [220.5 Incremental Compilation Inside the Process](#2205-incremental-compilation-inside-the-process)
+  - [Via IncrementalCompiler (Source-Level)](#via-incrementalcompiler-source-level)
+  - [Via IRBuilder / IR Transformation (IR-Level)](#via-irbuilder-ir-transformation-ir-level)
+- [220.6 Verification Before Hot-Swap](#2206-verification-before-hot-swap)
+  - [ResourceTracker Rollback Pattern](#resourcetracker-rollback-pattern)
+  - [Alive2-Style Bounded SMT Equivalence](#alive2-style-bounded-smt-equivalence)
+- [220.7 ORC Hot-Loading and Call-Site Redirection](#2207-orc-hot-loading-and-call-site-redirection)
+  - [RedirectableSymbolManager](#redirectablesymbolmanager)
+  - [ABI Constraints on Hot-Swap](#abi-constraints-on-hot-swap)
+- [220.8 Safety Constraints and Failure Modes](#2208-safety-constraints-and-failure-modes)
+  - [ABI Drift](#abi-drift)
+  - [Global State Corruption](#global-state-corruption)
+  - [Compiler Re-Entrancy](#compiler-re-entrancy)
+  - [Security: Source and Patch Injection](#security-source-and-patch-injection)
+- [220.9 Reference Implementations](#2209-reference-implementations)
+  - [SICA (Self-Improving Coding Agent, 2025)](#sica-self-improving-coding-agent-2025)
+  - [Pharo Smalltalk](#pharo-smalltalk)
+  - [Julia Revise.jl](#julia-revisejl)
+  - [Brown et al. Speculative ORC Layers](#brown-et-al-speculative-orc-layers)
+- [220.10 IR Self-Analysis via Embedded Bitcode](#22010-ir-self-analysis-via-embedded-bitcode)
+  - [Embedding Bitcode at Build Time](#embedding-bitcode-at-build-time)
+  - [Reading the Own Binary's Bitcode at Runtime](#reading-the-own-binarys-bitcode-at-runtime)
+  - [Running Analysis Passes on Self-Contained IR](#running-analysis-passes-on-self-contained-ir)
+  - [Limitations and Security Implications](#limitations-and-security-implications)
+- [220.11 Self-Propagation: Distributing Improvements to Peer Instances](#22011-self-propagation-distributing-improvements-to-peer-instances)
+  - [The Propagation Protocol](#the-propagation-protocol)
+  - [Serialization](#serialization)
+  - [Remote Verification and Consistency Protocol](#remote-verification-and-consistency-protocol)
+  - [Consistency Protocol Across a Fleet](#consistency-protocol-across-a-fleet)
+  - [Reference: Julia Distributed.jl](#reference-julia-distributedjl)
+  - [Security: Network-Delivered Bitcode is Arbitrary Code Execution](#security-network-delivered-bitcode-is-arbitrary-code-execution)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 220.1 The Self-Modification Loop
 
 Self-modification is not a single operation; it is a closed-loop control system with five phases:

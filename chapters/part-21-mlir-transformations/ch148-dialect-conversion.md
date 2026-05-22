@@ -6,6 +6,30 @@ Pattern rewriting (Chapter 147) handles within-dialect simplifications where typ
 
 ---
 
+## Table of Contents
+
+- [148.1 Why a Separate Framework](#1481-why-a-separate-framework)
+- [148.2 ConversionTarget](#1482-conversiontarget)
+  - [Legality states](#legality-states)
+- [148.3 TypeConverter](#1483-typeconverter)
+  - [Materializations](#materializations)
+- [148.4 Conversion Patterns](#1484-conversion-patterns)
+  - [OpConversionPattern](#opconversionpattern)
+  - [ConversionPatternRewriter vs PatternRewriter](#conversionpatternrewriter-vs-patternrewriter)
+  - [Registering patterns](#registering-patterns)
+- [148.5 Running Conversion](#1485-running-conversion)
+- [148.6 Block Argument Conversion](#1486-block-argument-conversion)
+  - [Signature conversion for functions](#signature-conversion-for-functions)
+  - [One-to-many argument expansion](#one-to-many-argument-expansion)
+- [148.7 Materialization and Casts](#1487-materialization-and-casts)
+  - [ConversionConfig](#conversionconfig)
+- [148.8 One-Shot Conversion Strategy](#1488-one-shot-conversion-strategy)
+  - [Multi-step lowering](#multi-step-lowering)
+- [148.9 Worked Example: arith → LLVM](#1489-worked-example-arith-llvm)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 148.1 Why a Separate Framework
 
 Greedy pattern rewriting cannot express type changes. When you replace a `tensor.extract` with a `memref.load`, the operand type changes from `tensor<4xf32>` to `memref<4xf32>`. If other ops still use the old `tensor<4xf32>` SSA value, the IR becomes invalid mid-transformation.

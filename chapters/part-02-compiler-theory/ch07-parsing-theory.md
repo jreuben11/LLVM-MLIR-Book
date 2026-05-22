@@ -10,6 +10,57 @@ Chapter 8 takes up where this chapter ends, covering semantic analysis: name res
 
 ---
 
+## Table of Contents
+
+- [7.1 Context-Free Grammars: Formal Definition and Ambiguity](#71-context-free-grammars-formal-definition-and-ambiguity)
+  - [Formal definition](#formal-definition)
+  - [Derivations and the language L(G)](#derivations-and-the-language-lg)
+  - [Ambiguity](#ambiguity)
+  - [Normal forms](#normal-forms)
+- [7.2 Top-Down Parsing: Recursive Descent, FIRST/FOLLOW, LL(1)](#72-top-down-parsing-recursive-descent-firstfollow-ll1)
+  - [Recursive descent: the mutual recursion of nonterminals](#recursive-descent-the-mutual-recursion-of-nonterminals)
+  - [FIRST and FOLLOW sets](#first-and-follow-sets)
+  - [The LL(1) condition and parse table construction](#the-ll1-condition-and-parse-table-construction)
+  - [The stack-based LL(1) parsing algorithm](#the-stack-based-ll1-parsing-algorithm)
+  - [Eliminating left recursion](#eliminating-left-recursion)
+  - [Left factoring](#left-factoring)
+  - [LL(k) for k > 1 and LL(*)](#llk-for-k-1-and-ll)
+- [7.3 Bottom-Up Parsing: LR(0), SLR, LALR, LR(1), GLR](#73-bottom-up-parsing-lr0-slr-lalr-lr1-glr)
+  - [Handles and the shift-reduce paradigm](#handles-and-the-shift-reduce-paradigm)
+  - [LR(0) items and the canonical collection](#lr0-items-and-the-canonical-collection)
+  - [SLR(1): FOLLOW-set disambiguation](#slr1-follow-set-disambiguation)
+  - [LALR(1): merging LR(1) states with identical cores](#lalr1-merging-lr1-states-with-identical-cores)
+  - [LR(1): when LALR fails](#lr1-when-lalr-fails)
+  - [GLR: Generalized LR and Tomita's algorithm](#glr-generalized-lr-and-tomitas-algorithm)
+- [7.4 Operator-Precedence and Pratt Parsing](#74-operator-precedence-and-pratt-parsing)
+  - [Pratt's top-down operator precedence](#pratts-top-down-operator-precedence)
+- [7.5 Earley Parsing and CYK](#75-earley-parsing-and-cyk)
+  - [Earley's algorithm](#earleys-algorithm)
+  - [CYK (Cocke-Younger-Kasami)](#cyk-cocke-younger-kasami)
+- [7.6 PEG and Packrat Parsing](#76-peg-and-packrat-parsing)
+  - [Parsing Expression Grammars](#parsing-expression-grammars)
+  - [Packrat parsing](#packrat-parsing)
+- [7.7 Parser Combinators](#77-parser-combinators)
+- [7.8 Error Recovery Strategies](#78-error-recovery-strategies)
+  - [Panic mode](#panic-mode)
+  - [Phrase-level recovery](#phrase-level-recovery)
+  - [Error productions](#error-productions)
+  - [Global correction](#global-correction)
+  - [Synchronization in recursive descent](#synchronization-in-recursive-descent)
+- [7.9 Incremental Parsing for IDEs](#79-incremental-parsing-for-ides)
+  - [The requirement](#the-requirement)
+  - [Tree-sitter's approach](#tree-sitters-approach)
+  - [The challenges](#the-challenges)
+  - [clangd's incremental architecture](#clangds-incremental-architecture)
+- [7.10 Why Production Compilers Use Hand-Written Recursive Descent](#710-why-production-compilers-use-hand-written-recursive-descent)
+  - [C++ is not LL(1) or LR(k) for any k](#c-is-not-ll1-or-lrk-for-any-k)
+  - [The grammar-action interleaving](#the-grammar-action-interleaving)
+  - [Error message quality](#error-message-quality)
+  - [When parser generators are appropriate](#when-parser-generators-are-appropriate)
+- [7.11 Chapter Summary](#711-chapter-summary)
+
+---
+
 ## 7.1 Context-Free Grammars: Formal Definition and Ambiguity
 
 ### Formal definition

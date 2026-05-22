@@ -6,6 +6,58 @@ The Linux kernel presents a uniquely hostile environment for runtime bug detecti
 
 ---
 
+## Table of Contents
+
+- [113.1 Kernel Sanitizer Overview](#1131-kernel-sanitizer-overview)
+  - [Why Kernel Sanitizers Are Harder](#why-kernel-sanitizers-are-harder)
+  - [Sanitizer History in the Linux Kernel](#sanitizer-history-in-the-linux-kernel)
+  - [Common Kernel Infrastructure](#common-kernel-infrastructure)
+  - [Build Configuration](#build-configuration)
+- [113.2 KASAN — Kernel AddressSanitizer](#1132-kasan-kernel-addresssanitizer)
+  - [Design Overview](#design-overview)
+  - [Three Operating Modes](#three-operating-modes)
+  - [Shadow Memory Initialization](#shadow-memory-initialization)
+  - [Compiler Instrumentation](#compiler-instrumentation)
+  - [Slab Integration](#slab-integration)
+  - [KASAN Reports](#kasan-reports)
+  - [Stack Instrumentation](#stack-instrumentation)
+- [113.3 KFENCE — Kernel Electric Fence](#1133-kfence-kernel-electric-fence)
+  - [Design Philosophy](#design-philosophy)
+  - [The Fenced Pool](#the-fenced-pool)
+  - [Sampling Mechanism](#sampling-mechanism)
+  - [Use-After-Free Detection](#use-after-free-detection)
+  - [Boot Parameter](#boot-parameter)
+- [113.4 KCSAN — Kernel Concurrency Sanitizer](#1134-kcsan-kernel-concurrency-sanitizer)
+  - [The Data Race Problem in the Kernel](#the-data-race-problem-in-the-kernel)
+  - [KCSAN's Watchpoint Algorithm](#kcsans-watchpoint-algorithm)
+  - [Instrumentation](#instrumentation)
+  - [Benign Races and Annotations](#benign-races-and-annotations)
+  - [KCSAN Report](#kcsan-report)
+- [113.5 KMSAN — Kernel MemorySanitizer](#1135-kmsan-kernel-memorysanitizer)
+  - [Overview](#overview)
+  - [Shadow and Origin Tracking](#shadow-and-origin-tracking)
+  - [Instrumentation Interface](#instrumentation-interface)
+  - [Userspace Leak Detection](#userspace-leak-detection)
+  - [Practical Use](#practical-use)
+- [113.6 Kernel UBSan](#1136-kernel-ubsan)
+  - [Overview](#overview)
+  - [Enabled Checks](#enabled-checks)
+  - [The Kernel UBSan Runtime](#the-kernel-ubsan-runtime)
+  - [Trap Mode](#trap-mode)
+- [113.7 CFI in the Kernel](#1137-cfi-in-the-kernel)
+  - [Control Flow Integrity Overview](#control-flow-integrity-overview)
+  - [KCFI vs Userspace CFI](#kcfi-vs-userspace-cfi)
+  - [Shadow Call Stack](#shadow-call-stack)
+  - [Kernel Module CFI](#kernel-module-cfi)
+- [113.8 Workflow: Finding Bugs with Kernel Sanitizers](#1138-workflow-finding-bugs-with-kernel-sanitizers)
+  - [syzkaller: Coverage-Guided Kernel Fuzzing](#syzkaller-coverage-guided-kernel-fuzzing)
+  - [syzbot: Continuous Fuzzing](#syzbot-continuous-fuzzing)
+  - [Typical Development Workflow](#typical-development-workflow)
+  - [Report to Fix Pipeline](#report-to-fix-pipeline)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 113.1 Kernel Sanitizer Overview
 
 ### Why Kernel Sanitizers Are Harder

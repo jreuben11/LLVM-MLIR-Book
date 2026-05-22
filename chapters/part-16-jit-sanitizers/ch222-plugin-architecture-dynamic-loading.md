@@ -6,6 +6,53 @@ Every major software system eventually needs to load code it did not contain at 
 
 ---
 
+## Table of Contents
+
+- [222.1 POSIX Dynamic Loading Fundamentals](#2221-posix-dynamic-loading-fundamentals)
+  - [dlopen: Loading a Shared Library](#dlopen-loading-a-shared-library)
+  - [dlsym: Looking Up a Symbol](#dlsym-looking-up-a-symbol)
+  - [dlclose and Reference Counting](#dlclose-and-reference-counting)
+  - [Runtime Linker Search Order](#runtime-linker-search-order)
+  - [dladdr and dl_iterate_phdr](#dladdr-and-dliteratephdr)
+- [222.2 ABI Stability as a Contract](#2222-abi-stability-as-a-contract)
+  - [Why C Linkage is the Plugin Lingua Franca](#why-c-linkage-is-the-plugin-lingua-franca)
+  - [Soname Versioning](#soname-versioning)
+  - [Symbol Versioning with Linker Scripts](#symbol-versioning-with-linker-scripts)
+  - [The Add-Only Compatibility Rule](#the-add-only-compatibility-rule)
+- [222.3 Type-Safe C++ Plugin Interface Patterns](#2223-type-safe-c-plugin-interface-patterns)
+  - [Abstract Factory Pattern](#abstract-factory-pattern)
+  - [NVI Version Negotiation](#nvi-version-negotiation)
+  - [What Cannot Cross Plugin Boundaries](#what-cannot-cross-plugin-boundaries)
+- [222.4 Plugin Discovery and Registration](#2224-plugin-discovery-and-registration)
+  - [Compile-Time Registration via Constructors](#compile-time-registration-via-constructors)
+  - [Runtime Discovery via Directory Scan](#runtime-discovery-via-directory-scan)
+  - [Manifest-Based Discovery](#manifest-based-discovery)
+- [222.5 Windows and macOS Equivalents](#2225-windows-and-macos-equivalents)
+  - [Windows: LoadLibrary/GetProcAddress](#windows-loadlibrarygetprocaddress)
+  - [Windows vs POSIX Comparison](#windows-vs-posix-comparison)
+  - [macOS: dlopen with Gatekeeper Constraints](#macos-dlopen-with-gatekeeper-constraints)
+- [222.6 llvm::sys::DynamicLibrary](#2226-llvmsysdynamiclibrary)
+  - [getPermanentLibrary](#getpermanentlibrary)
+  - [DynamicLibrarySearchGenerator](#dynamiclibrarysearchgenerator)
+  - [Cross-Platform Notes](#cross-platform-notes)
+- [222.7 Real-World Plugin Architectures](#2227-real-world-plugin-architectures)
+  - [GCC Plugin API](#gcc-plugin-api)
+  - [LLVM's Own Backend Plugins](#llvms-own-backend-plugins)
+  - [VST3 Audio Plugin Interface](#vst3-audio-plugin-interface)
+  - [LV2 Audio Plugins](#lv2-audio-plugins)
+  - [Game Mod Systems](#game-mod-systems)
+- [222.8 Security Model and Mitigations](#2228-security-model-and-mitigations)
+  - [dlopen as Arbitrary Code Execution](#dlopen-as-arbitrary-code-execution)
+  - [Attack Vectors](#attack-vectors)
+  - [Mitigations](#mitigations)
+  - [Cryptographic Signature Verification](#cryptographic-signature-verification)
+- [222.9 Interaction with ORC JIT and Self-Modification](#2229-interaction-with-orc-jit-and-self-modification)
+  - [Combined Architecture: Stable ABI + Mutable Implementation](#combined-architecture-stable-abi-mutable-implementation)
+  - [DynamicLibrarySearchGenerator in the Combined Model](#dynamiclibrarysearchgenerator-in-the-combined-model)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 222.1 POSIX Dynamic Loading Fundamentals
 
 The POSIX dynamic loading API consists of four functions declared in `<dlfcn.h>`:

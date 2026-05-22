@@ -6,6 +6,40 @@ LLVM is a C++ library, but the languages that use it as a compilation target or 
 
 ---
 
+## Table of Contents
+
+- [175.1 The LLVM C API](#1751-the-llvm-c-api)
+  - [Why a Stable C API](#why-a-stable-c-api)
+  - [Core Types](#core-types)
+  - [Building a Module in C](#building-a-module-in-c)
+  - [Key C API Functions](#key-c-api-functions)
+- [175.2 Python Bindings (llvmlite)](#1752-python-bindings-llvmlite)
+  - [What llvmlite Is](#what-llvmlite-is)
+  - [Building IR with llvmlite.ir](#building-ir-with-llvmliteir)
+  - [JIT Execution with llvmlite.binding](#jit-execution-with-llvmlitebinding)
+  - [Optimization](#optimization)
+  - [Users of llvmlite](#users-of-llvmlite)
+- [175.3 Rust Bindings (inkwell)](#1753-rust-bindings-inkwell)
+  - [inkwell: Safe Rust Bindings](#inkwell-safe-rust-bindings)
+  - [Safety Model](#safety-model)
+  - [Users of inkwell](#users-of-inkwell)
+- [175.4 Go Bindings (tinygo)](#1754-go-bindings-tinygo)
+  - [go-llvm: cgo Wrapping the C API](#go-llvm-cgo-wrapping-the-c-api)
+- [175.5 MLIR Python Bindings](#1755-mlir-python-bindings)
+  - [Installation](#installation)
+  - [Core API: mlir.ir](#core-api-mlirir)
+  - [Working with Dialects](#working-with-dialects)
+  - [Pass Manager in Python](#pass-manager-in-python)
+  - [Users of MLIR Python Bindings](#users-of-mlir-python-bindings)
+- [175.6 Julia](#1756-julia)
+  - [Julia's Relationship with LLVM](#julias-relationship-with-llvm)
+  - [JIT Architecture](#jit-architecture)
+  - [GPU Compilation in Julia](#gpu-compilation-in-julia)
+  - [ORC JIT Transition](#orc-jit-transition)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 175.1 The LLVM C API
 
 ### Why a Stable C API

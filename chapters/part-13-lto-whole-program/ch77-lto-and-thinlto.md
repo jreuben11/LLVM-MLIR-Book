@@ -4,6 +4,36 @@
 
 Link-time optimization (LTO) defers optimization until all translation units are combined at link time, enabling the compiler to inline across module boundaries, eliminate dead code that the linker would otherwise preserve, propagate constants through call graphs that span files, and devirtualize virtual calls whose implementations live in other translation units. LLVM provides two LTO modes: monolithic LTO (full IR merge) and ThinLTO (a scalable alternative using a summary index). This chapter covers both modes in depth, including the ThinLTO summary index format, cross-module inlining and type propagation, integration with LLD and the gold plugin, and Distributed ThinLTO for large-scale builds.
 
+## Table of Contents
+
+- [77.1 Monolithic LTO (Full LTO)](#771-monolithic-lto-full-lto)
+  - [77.1.1 Overview](#7711-overview)
+  - [77.1.2 The LTO Plugin Interface](#7712-the-lto-plugin-interface)
+  - [77.1.3 LTO-Specific Optimizations](#7713-lto-specific-optimizations)
+  - [77.1.4 Limitations of Monolithic LTO](#7714-limitations-of-monolithic-lto)
+- [77.2 ThinLTO](#772-thinlto)
+  - [77.2.1 Architecture](#7721-architecture)
+  - [77.2.2 The Module Summary Index](#7722-the-module-summary-index)
+  - [77.2.3 Cross-Module Inlining (Importing)](#7723-cross-module-inlining-importing)
+  - [77.2.4 Type Propagation Across Modules](#7724-type-propagation-across-modules)
+  - [77.2.5 ThinLTO and PGO](#7725-thinlto-and-pgo)
+- [77.3 LLD and Gold Plugin Integration](#773-lld-and-gold-plugin-integration)
+  - [77.3.1 LLD's Native ThinLTO](#7731-llds-native-thinlto)
+  - [77.3.2 The Gold Plugin](#7732-the-gold-plugin)
+- [77.4 Distributed ThinLTO](#774-distributed-thinlto)
+  - [77.4.1 The Build System Problem](#7741-the-build-system-problem)
+  - [77.4.2 The Two-Phase Design](#7742-the-two-phase-design)
+  - [77.4.3 Caching](#7743-caching)
+- [77.5 LTO API](#775-lto-api)
+  - [77.5.1 The `llvm::lto::LTO` Class](#7751-the-llvmltolto-class)
+  - [77.5.2 The `llvm-lto` Tool](#7752-the-llvm-lto-tool)
+- [77.6 LTO Performance](#776-lto-performance)
+  - [77.6.1 Typical Gains](#7761-typical-gains)
+  - [77.6.2 Build Time Impact](#7762-build-time-impact)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 77.1 Monolithic LTO (Full LTO)
 
 ### 77.1.1 Overview

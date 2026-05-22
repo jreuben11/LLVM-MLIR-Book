@@ -8,6 +8,44 @@ Cross-references: [Chapter 207 — Reflective Code, Open Problems, and Build Roa
 
 ---
 
+## Table of Contents
+
+- [215.1 Motivation: Beyond Gradient Descent](#2151-motivation-beyond-gradient-descent)
+  - [The Local-Optima Problem](#the-local-optima-problem)
+  - [Self-Modification as Search](#self-modification-as-search)
+  - [Search Space Geometry](#search-space-geometry)
+- [215.2 Darwin Gödel Machine](#2152-darwin-gdel-machine)
+  - [215.2.1 System Architecture](#21521-system-architecture)
+  - [215.2.2 Reported Empirical Results](#21522-reported-empirical-results)
+  - [215.2.3 Mutation Loop Pseudocode](#21523-mutation-loop-pseudocode)
+  - [215.2.4 Triton Kernel Variants as Fitness Landscape](#21524-triton-kernel-variants-as-fitness-landscape)
+- [215.3 NEAT: Topology-and-Weight Co-Evolution](#2153-neat-topology-and-weight-co-evolution)
+  - [215.3.1 Historical Markings](#21531-historical-markings)
+  - [215.3.2 Speciation](#21532-speciation)
+  - [215.3.3 Connection to Neural Architecture Search](#21533-connection-to-neural-architecture-search)
+- [215.4 Quality-Diversity Search](#2154-quality-diversity-search)
+  - [215.4.1 MAP-Elites: Illumination Algorithm](#21541-map-elites-illumination-algorithm)
+  - [215.4.2 `qdax.core.map_elites` in JAX](#21542-qdaxcoremapelites-in-jax)
+  - [215.4.3 AURORA: Unsupervised Behaviour Characterisation](#21543-aurora-unsupervised-behaviour-characterisation)
+  - [215.4.4 Descriptor-Conditioned Gradients](#21544-descriptor-conditioned-gradients)
+- [215.5 Program Synthesis for Architecture Construction](#2155-program-synthesis-for-architecture-construction)
+  - [215.5.1 DreamCoder: Bayesian Program Induction](#21551-dreamcoder-bayesian-program-induction)
+  - [215.5.2 FunSearch: LLM Mutation with Evaluator](#21552-funsearch-llm-mutation-with-evaluator)
+  - [215.5.3 FunSearch-Style Search over MLIR Lowering Strategies](#21553-funsearch-style-search-over-mlir-lowering-strategies)
+- [215.6 Kernel and Architecture Co-Design](#2156-kernel-and-architecture-co-design)
+  - [215.6.1 The Co-Design Fitness Landscape](#21561-the-co-design-fitness-landscape)
+  - [215.6.2 Population Representation](#21562-population-representation)
+  - [215.6.3 Integration with Triton Autotune](#21563-integration-with-triton-autotune)
+- [215.7 Cognitive Angle: Evolution as the Complement to Gradient Descent](#2157-cognitive-angle-evolution-as-the-complement-to-gradient-descent)
+  - [215.7.1 Two Modes of Self-Improvement](#21571-two-modes-of-self-improvement)
+  - [215.7.2 Open-Ended Search and Archive Diversity](#21572-open-ended-search-and-archive-diversity)
+  - [215.7.3 Self-Improvement as SICA](#21573-self-improvement-as-sica)
+  - [215.7.4 Gödel-Completeness and the Halting Problem](#21574-gdel-completeness-and-the-halting-problem)
+  - [215.7.5 Comparing Evolutionary and Gradient-Based Search Efficiency](#21575-comparing-evolutionary-and-gradient-based-search-efficiency)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 215.1 Motivation: Beyond Gradient Descent
 
 ### The Local-Optima Problem

@@ -6,6 +6,40 @@ SPIR-V is the intermediate language standardized by Khronos for shader and compu
 
 ---
 
+## Table of Contents
+
+- [143.1 SPIR-V Dialect Overview](#1431-spir-v-dialect-overview)
+  - [143.1.1 Design Philosophy](#14311-design-philosophy)
+  - [143.1.2 `spirv.module`](#14312-spirvmodule)
+- [143.2 SPIR-V Types](#1432-spir-v-types)
+  - [143.2.1 Scalar Types](#14321-scalar-types)
+  - [143.2.2 Pointer Types](#14322-pointer-types)
+  - [143.2.3 Composite Types](#14323-composite-types)
+  - [143.2.4 Function Type](#14324-function-type)
+- [143.3 SPIR-V Operations](#1433-spir-v-operations)
+  - [143.3.1 Arithmetic](#14331-arithmetic)
+  - [143.3.2 Memory Operations](#14332-memory-operations)
+  - [143.3.3 Control Flow](#14333-control-flow)
+  - [143.3.4 GLSL Extended Instruction Set](#14334-glsl-extended-instruction-set)
+  - [143.3.5 Atomic Operations](#14335-atomic-operations)
+  - [143.3.6 Cooperative Matrix (NVIDIA / KHR)](#14336-cooperative-matrix-nvidia-khr)
+- [143.4 The GPU-to-SPIR-V Lowering](#1434-the-gpu-to-spir-v-lowering)
+  - [143.4.1 `--convert-gpu-to-spirv`](#14341-convert-gpu-to-spirv)
+  - [143.4.2 Additional Conversion Passes](#14342-additional-conversion-passes)
+  - [143.4.3 Interface Variables and Bindings](#14343-interface-variables-and-bindings)
+  - [143.4.4 Entry Points and Execution Modes](#14344-entry-points-and-execution-modes)
+  - [143.4.5 Specialization Constants](#14345-specialization-constants)
+- [143.5 SPIR-V Capabilities and Extensions](#1435-spir-v-capabilities-and-extensions)
+  - [143.5.1 Capability System](#14351-capability-system)
+  - [143.5.2 Target Environment](#14352-target-environment)
+- [143.6 Serialization and Deserialization](#1436-serialization-and-deserialization)
+  - [143.6.1 Serializing to Binary SPIR-V](#14361-serializing-to-binary-spir-v)
+  - [143.6.2 Using with Vulkan](#14362-using-with-vulkan)
+  - [143.6.3 `mlir-translate` Integration](#14363-mlir-translate-integration)
+- [Chapter 143 Summary](#chapter-143-summary)
+
+---
+
 ## 143.1 SPIR-V Dialect Overview
 
 ### 143.1.1 Design Philosophy

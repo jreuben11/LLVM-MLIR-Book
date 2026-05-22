@@ -6,6 +6,36 @@ Compiler heuristics are everywhere: the inliner decides whether each call site s
 
 ---
 
+## Table of Contents
+
+- [224.1 Why Reinforcement Learning is Hard for Compiler Tasks](#2241-why-reinforcement-learning-is-hard-for-compiler-tasks)
+  - [The Sparse Reward Problem](#the-sparse-reward-problem)
+  - [What Imitation Learning Avoids](#what-imitation-learning-avoids)
+- [224.2 Inlining as a Prototypical Heuristic Decision Problem](#2242-inlining-as-a-prototypical-heuristic-decision-problem)
+- [224.3 The BC-Max Framework (Google, NeurIPS 2024 ML4Sys)](#2243-the-bc-max-framework-google-neurips-2024-ml4sys)
+  - [Behavioral Cloning and Its Limitation](#behavioral-cloning-and-its-limitation)
+  - [BC-Max: Learning from Multiple Baselines](#bc-max-learning-from-multiple-baselines)
+  - [Theoretical Justification: Regret Decomposition](#theoretical-justification-regret-decomposition)
+  - [Empirical Results (Google Production, 2024)](#empirical-results-google-production-2024)
+- [224.4 Feature Engineering and MLGO Architecture](#2244-feature-engineering-and-mlgo-architecture)
+  - [Feature Extraction](#feature-extraction)
+  - [Model Architecture](#model-architecture)
+  - [TFLite Deployment in LLVM](#tflite-deployment-in-llvm)
+- [224.5 Register Allocator Eviction Advisor](#2245-register-allocator-eviction-advisor)
+  - [The Eviction Decision](#the-eviction-decision)
+  - [BC-Max for Eviction](#bc-max-for-eviction)
+- [224.6 Offline vs Online Imitation: Deployment Tradeoffs](#2246-offline-vs-online-imitation-deployment-tradeoffs)
+  - [Offline Imitation](#offline-imitation)
+  - [Online Imitation: DAgger](#online-imitation-dagger)
+- [224.7 Comparison with Reinforcement Learning](#2247-comparison-with-reinforcement-learning)
+- [224.8 Generalizing to Other Heuristics](#2248-generalizing-to-other-heuristics)
+  - [Loop Unrolling Factor](#loop-unrolling-factor)
+  - [Vectorization Decision](#vectorization-decision)
+  - [Instruction Scheduling](#instruction-scheduling)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 224.1 Why Reinforcement Learning is Hard for Compiler Tasks
 
 ### The Sparse Reward Problem

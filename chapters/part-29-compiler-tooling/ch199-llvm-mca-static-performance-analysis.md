@@ -8,6 +8,57 @@ You are reviewing a vectorized matrix-multiply kernel before committing it to a 
 
 ---
 
+## Table of Contents
+
+- [199.1 What llvm-mca Is — and Is Not](#1991-what-llvm-mca-is-and-is-not)
+  - [199.1.1 Scope of the Simulation](#19911-scope-of-the-simulation)
+  - [199.1.2 When to Use llvm-mca](#19912-when-to-use-llvm-mca)
+  - [199.1.3 Comparison with Other Tools](#19913-comparison-with-other-tools)
+- [199.2 Architecture of llvm-mca](#1992-architecture-of-llvm-mca)
+  - [199.2.1 Source Layout](#19921-source-layout)
+  - [199.2.2 mca::Pipeline and Stages](#19922-mcapipeline-and-stages)
+  - [199.2.3 mca::InstrBuilder](#19923-mcainstrbuilder)
+  - [199.2.4 ResourceManager](#19924-resourcemanager)
+  - [199.2.5 Other Hardware Units](#19925-other-hardware-units)
+  - [199.2.6 HWEventListener](#19926-hweventlistener)
+  - [199.2.7 Bootstrap: From Assembly Text to MCInst](#19927-bootstrap-from-assembly-text-to-mcinst)
+- [199.3 The Processor Resource Model](#1993-the-processor-resource-model)
+  - [199.3.1 TableGen Scheduling Primitives](#19931-tablegen-scheduling-primitives)
+  - [199.3.2 Skylake Resource Example](#19932-skylake-resource-example)
+- [199.4 Running llvm-mca](#1994-running-llvm-mca)
+  - [199.4.1 Basic Invocation](#19941-basic-invocation)
+  - [199.4.2 Region Markers](#19942-region-markers)
+  - [199.4.3 Using with Compiler Output](#19943-using-with-compiler-output)
+- [199.5 Reading the Output: SummaryView](#1995-reading-the-output-summaryview)
+- [199.6 TimelineView](#1996-timelineview)
+- [199.7 ResourcePressureView](#1997-resourcepressureview)
+- [199.8 Instruction Tables View](#1998-instruction-tables-view)
+- [199.9 BottleneckAnalysis](#1999-bottleneckanalysis)
+  - [199.9.1 Interpreting Mixed Bottlenecks](#19991-interpreting-mixed-bottlenecks)
+  - [199.9.2 The Probability Annotation](#19992-the-probability-annotation)
+- [199.10 The CustomBehaviour Plugin API](#19910-the-custombehaviour-plugin-api)
+- [199.11 Validating TableGen Scheduling Models](#19911-validating-tablegen-scheduling-models)
+  - [199.11.1 The Validation Workflow](#199111-the-validation-workflow)
+  - [199.11.2 A Concrete Discrepancy and Fix](#199112-a-concrete-discrepancy-and-fix)
+  - [199.11.3 Comparing Latency](#199113-comparing-latency)
+- [199.12 Performance Case Studies](#19912-performance-case-studies)
+  - [199.12.1 AVX-512 Horizontal Reduction — Port 5 Shuffle Pressure](#199121-avx-512-horizontal-reduction-port-5-shuffle-pressure)
+  - [199.12.2 Memory-Bound Scatter Kernel — AGU Bottleneck](#199122-memory-bound-scatter-kernel-agu-bottleneck)
+  - [199.12.3 AArch64 NEON Dot-Product Loop](#199123-aarch64-neon-dot-product-loop)
+- [199.13 CI Integration](#19913-ci-integration)
+  - [199.13.1 Extracting Metrics from JSON Output](#199131-extracting-metrics-from-json-output)
+  - [199.13.2 CMake Integration](#199132-cmake-integration)
+  - [199.13.3 Regression Detection Pattern](#199133-regression-detection-pattern)
+- [199.14 Comparison with Measurement Tools](#19914-comparison-with-measurement-tools)
+  - [199.14.1 perf stat](#199141-perf-stat)
+  - [199.14.2 IACA (Intel Architecture Code Analyzer)](#199142-iaca-intel-architecture-code-analyzer)
+  - [199.14.3 uiCA](#199143-uica)
+  - [199.14.4 llvm-exegesis](#199144-llvm-exegesis)
+  - [199.14.5 gem5](#199145-gem5)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 199.1 What llvm-mca Is — and Is Not
 
 ### 199.1.1 Scope of the Simulation

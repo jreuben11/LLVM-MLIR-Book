@@ -6,6 +6,37 @@ Managing memory explicitly is unavoidable in any production compiler. MLIR addre
 
 ---
 
+## Table of Contents
+
+- [138.1 The `memref` Dialect](#1381-the-memref-dialect)
+  - [138.1.1 MemRefType: MLIR's Memory Type](#13811-memreftype-mlirs-memory-type)
+  - [138.1.2 Allocation Operations](#13812-allocation-operations)
+  - [138.1.3 Load and Store](#13813-load-and-store)
+  - [138.1.4 `memref.subview` — Slicing Without Copies](#13814-memrefsubview-slicing-without-copies)
+  - [138.1.5 Shape Manipulation](#13815-shape-manipulation)
+  - [138.1.6 Global and Symbolic Memory](#13816-global-and-symbolic-memory)
+  - [138.1.7 Explicit Copying](#13817-explicit-copying)
+- [138.2 MemRef Layout Maps](#1382-memref-layout-maps)
+  - [138.2.1 The Strided Layout Model](#13821-the-strided-layout-model)
+  - [138.2.2 Layout Maps as Affine Maps](#13822-layout-maps-as-affine-maps)
+  - [138.2.3 Subview Layout Composition](#13823-subview-layout-composition)
+- [138.3 The `bufferization` Dialect](#1383-the-bufferization-dialect)
+  - [138.3.1 The Tensor-to-MemRef Bridge](#13831-the-tensor-to-memref-bridge)
+  - [138.3.2 `bufferization.to_memref`](#13832-bufferizationtomemref)
+  - [138.3.3 `bufferization.alloc_tensor`](#13833-bufferizationalloctensor)
+- [138.4 One-Shot Bufferization](#1384-one-shot-bufferization)
+  - [138.4.1 Overview](#13841-overview)
+  - [138.4.2 Algorithm](#13842-algorithm)
+  - [138.4.3 `OneShotBufferizationOptions`](#13843-oneshotbufferizationoptions)
+  - [138.4.4 Running the Pipeline](#13844-running-the-pipeline)
+  - [138.4.5 `BufferizableOpInterface`](#13845-bufferizableopinterface)
+  - [138.4.6 Ownership-Based Buffer Deallocation](#13846-ownership-based-buffer-deallocation)
+  - [138.4.7 Debugging Bufferization](#13847-debugging-bufferization)
+- [138.5 Complete Bufferization Example](#1385-complete-bufferization-example)
+- [Chapter 138 Summary](#chapter-138-summary)
+
+---
+
 ## 138.1 The `memref` Dialect
 
 ### 138.1.1 MemRefType: MLIR's Memory Type

@@ -6,6 +6,48 @@ The RISC-V Vector Extension (RVV 1.0, ratified November 2021) represents a funda
 
 ---
 
+## Table of Contents
+
+- [99.1 V Extension Architecture](#991-v-extension-architecture)
+  - [99.1.1 Vector Registers and VLENB](#9911-vector-registers-and-vlenb)
+  - [99.1.2 The `vtype` CSR](#9912-the-vtype-csr)
+  - [99.1.3 LMUL: Fractions and Multiples](#9913-lmul-fractions-and-multiples)
+  - [99.1.4 SEW × LMUL Combinations and Element Count](#9914-sew-lmul-combinations-and-element-count)
+  - [99.1.5 Tail and Mask Policies](#9915-tail-and-mask-policies)
+- [99.2 LLVM's Scalable-Vector Type Model](#992-llvms-scalable-vector-type-model)
+  - [99.2.1 `<vscale x N x T>` Types](#9921-vscale-x-n-x-t-types)
+  - [99.2.2 `vscale` Intrinsic](#9922-vscale-intrinsic)
+  - [99.2.3 Scalable Types in Memory](#9923-scalable-types-in-memory)
+- [99.3 VLS Optimizer: Fixed-Length Optimization](#993-vls-optimizer-fixed-length-optimization)
+  - [99.3.1 When VLEN Is Known](#9931-when-vlen-is-known)
+  - [99.3.2 VLS Register Classes](#9932-vls-register-classes)
+- [99.4 Loop Vectorizer Integration](#994-loop-vectorizer-integration)
+  - [99.4.1 VP Intrinsics and EVL Tail Folding](#9941-vp-intrinsics-and-evl-tail-folding)
+  - [99.4.2 RISCVInsertVSETVLI Optimization](#9942-riscvinsertvsetvli-optimization)
+  - [99.4.3 Vectorization Flags for RVV](#9943-vectorization-flags-for-rvv)
+- [99.5 RVV Intrinsic Families](#995-rvv-intrinsic-families)
+  - [99.5.1 Load/Store Families](#9951-loadstore-families)
+  - [99.5.2 Arithmetic Operations](#9952-arithmetic-operations)
+  - [99.5.3 Permute and Data-Reorganization](#9953-permute-and-data-reorganization)
+  - [99.5.4 Mask Operations](#9954-mask-operations)
+- [99.6 LLVM Intrinsic Lowering for RVV](#996-llvm-intrinsic-lowering-for-rvv)
+  - [99.6.1 IntrinsicsRISCV.td](#9961-intrinsicsriscvtd)
+  - [99.6.2 Lowering Chain](#9962-lowering-chain)
+- [99.7 Masking and Predication](#997-masking-and-predication)
+  - [99.7.1 Mask Register Architecture](#9971-mask-register-architecture)
+  - [99.7.2 Masking Policy Combinations](#9972-masking-policy-combinations)
+  - [99.7.3 Mask Encoding in Instructions](#9973-mask-encoding-in-instructions)
+- [99.8 Tuple Types and Segmented Memory](#998-tuple-types-and-segmented-memory)
+  - [99.8.1 Segmented Load/Store Architecture](#9981-segmented-loadstore-architecture)
+  - [99.8.2 Tuple Types in LLVM](#9982-tuple-types-in-llvm)
+- [99.9 Complete Vectorized Loop Examples](#999-complete-vectorized-loop-examples)
+  - [99.9.1 SAXPY (Single-Precision A·X + Y)](#9991-saxpy-single-precision-ax-y)
+  - [99.9.2 Int8 Matrix-Vector Product](#9992-int8-matrix-vector-product)
+  - [99.9.3 Compilation and Verification](#9993-compilation-and-verification)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 99.1 V Extension Architecture
 
 ### 99.1.1 Vector Registers and VLENB

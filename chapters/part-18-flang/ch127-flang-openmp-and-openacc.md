@@ -6,6 +6,46 @@ Parallel and accelerator programming are first-class concerns in modern Fortran.
 
 ---
 
+## Table of Contents
+
+- [127.1 OpenMP in Flang](#1271-openmp-in-flang)
+  - [Architecture Overview](#architecture-overview)
+  - [Semantic Analysis of OpenMP](#semantic-analysis-of-openmp)
+  - [Lowering Entry Point](#lowering-entry-point)
+- [127.2 The OpenMP MLIR Dialect](#1272-the-openmp-mlir-dialect)
+  - [Parallel and Work-Sharing](#parallel-and-work-sharing)
+  - [Synchronization](#synchronization)
+  - [Reductions](#reductions)
+  - [Atomic Operations](#atomic-operations)
+- [127.3 OpenMP GPU Offload via Flang](#1273-openmp-gpu-offload-via-flang)
+  - [Target Region Mapping](#target-region-mapping)
+  - [Map Clauses](#map-clauses)
+  - [OpenMP to LLVM Lowering](#openmp-to-llvm-lowering)
+  - [Whole-Device Compilation](#whole-device-compilation)
+- [127.4 OpenACC in Flang](#1274-openacc-in-flang)
+  - [OpenACC Dialect Overview](#openacc-dialect-overview)
+  - [Lowering Entry Point](#lowering-entry-point)
+  - [acc Dialect Operations](#acc-dialect-operations)
+  - [Data Directives](#data-directives)
+  - [Kernels Construct](#kernels-construct)
+  - [acc.routine](#accroutine)
+  - [OpenACC to LLVM Lowering](#openacc-to-llvm-lowering)
+- [127.5 DO CONCURRENT and Parallelism](#1275-do-concurrent-and-parallelism)
+  - [Fortran 2008 DO CONCURRENT](#fortran-2008-do-concurrent)
+  - [Flang Lowering of DO CONCURRENT](#flang-lowering-of-do-concurrent)
+  - [DO CONCURRENT → OpenMP](#do-concurrent-openmp)
+  - [DO CONCURRENT → GPU](#do-concurrent-gpu)
+  - [LOCALITY Clauses](#locality-clauses)
+- [127.6 OpenMP Runtime Integration](#1276-openmp-runtime-integration)
+  - [libomp and liboffload](#libomp-and-liboffload)
+  - [Thread-Private Variables](#thread-private-variables)
+- [127.7 Practical Examples](#1277-practical-examples)
+  - [Parallel Reduction](#parallel-reduction)
+  - [GPU Target Offload](#gpu-target-offload)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 127.1 OpenMP in Flang
 
 ### Architecture Overview

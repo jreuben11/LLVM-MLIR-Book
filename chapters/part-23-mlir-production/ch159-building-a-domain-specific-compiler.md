@@ -6,6 +6,40 @@ MLIR's real power emerges when you build a complete domain-specific compiler: a 
 
 ---
 
+## Table of Contents
+
+- [159.1 Why Build a Domain-Specific Compiler?](#1591-why-build-a-domain-specific-compiler)
+- [159.2 Project Structure](#1592-project-structure)
+  - [159.2.1 CMakeLists.txt](#15921-cmakeliststxt)
+- [159.3 Defining the Dialect with ODS](#1593-defining-the-dialect-with-ods)
+  - [159.3.1 Dialect Definition](#15931-dialect-definition)
+  - [159.3.2 Type Definition](#15932-type-definition)
+  - [159.3.3 Op Definition](#15933-op-definition)
+  - [159.3.4 CMake TableGen Integration](#15934-cmake-tablegen-integration)
+- [159.4 Implementing the Dialect in C++](#1594-implementing-the-dialect-in-c)
+  - [159.4.1 Dialect Registration](#15941-dialect-registration)
+  - [159.4.2 Op Verifier](#15942-op-verifier)
+  - [159.4.3 Canonicalization](#15943-canonicalization)
+- [159.5 Writing the Lowering Pipeline](#1595-writing-the-lowering-pipeline)
+  - [159.5.1 Pass Definition with ODS](#15951-pass-definition-with-ods)
+  - [159.5.2 MatAlg → Linalg Lowering](#15952-matalg-linalg-lowering)
+  - [159.5.3 Type Converter](#15953-type-converter)
+  - [159.5.4 Registering the Conversion Pass](#15954-registering-the-conversion-pass)
+- [159.6 The matalg-opt Driver](#1596-the-matalg-opt-driver)
+- [159.7 Testing with FileCheck](#1597-testing-with-filecheck)
+  - [159.7.1 Unit Test Structure](#15971-unit-test-structure)
+  - [159.7.2 Negative Tests](#15972-negative-tests)
+  - [159.7.3 Integration Tests](#15973-integration-tests)
+- [159.8 Debugging Infrastructure](#1598-debugging-infrastructure)
+  - [159.8.1 IR Printing Hooks](#15981-ir-printing-hooks)
+  - [159.8.2 Crash Reproducers](#15982-crash-reproducers)
+  - [159.8.3 Verifier Integration](#15983-verifier-integration)
+- [159.9 Integrating the Full LLVM Pipeline](#1599-integrating-the-full-llvm-pipeline)
+- [159.10 Dialect Design Principles](#15910-dialect-design-principles)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 159.1 Why Build a Domain-Specific Compiler?
 
 General-purpose compilers optimize well for general programs. Domain-specific compilers can exploit invariants that a general compiler cannot assume. For a matrix algebra DSL:

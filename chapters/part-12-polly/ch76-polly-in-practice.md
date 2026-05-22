@@ -4,6 +4,35 @@
 
 Understanding when Polly helps, when it does not, and how to diagnose failures is essential for using it effectively. Polly's power comes from its strict affine restriction: the same property that enables exact analysis and sound transformation also limits which programs it can transform. This chapter covers what makes a loop SCoP-eligible, the most common reasons SCoP detection fails, how to read Polly's diagnostic output, the experimental GPU codegen path, maintenance status, and a comparison with MLIR's Affine dialect — the modern successor to Polly's design philosophy.
 
+## Table of Contents
+
+- [76.1 When Polly Helps](#761-when-polly-helps)
+  - [76.1.1 High Arithmetic Intensity Loops](#7611-high-arithmetic-intensity-loops)
+  - [76.1.2 Stencil Computations](#7612-stencil-computations)
+  - [76.1.3 Loop Nests with Parallelism Hidden by Non-Affine Intervening Code](#7613-loop-nests-with-parallelism-hidden-by-non-affine-intervening-code)
+- [76.2 When Polly Does Not Help](#762-when-polly-does-not-help)
+  - [76.2.1 Non-Affine Loop Bounds or Accesses](#7621-non-affine-loop-bounds-or-accesses)
+  - [76.2.2 Function Calls with Unknown Effects](#7622-function-calls-with-unknown-effects)
+  - [76.2.3 Short or Simple Loops](#7623-short-or-simple-loops)
+  - [76.2.4 Aliasing Memory Accesses](#7624-aliasing-memory-accesses)
+- [76.3 Diagnostic Output](#763-diagnostic-output)
+  - [76.3.1 SCoP Report](#7631-scop-report)
+  - [76.3.2 Detection Failures](#7632-detection-failures)
+  - [76.3.3 Optimization Remarks](#7633-optimization-remarks)
+  - [76.3.4 ISL AST Visualization](#7634-isl-ast-visualization)
+- [76.4 Performance Measurement](#764-performance-measurement)
+  - [76.4.1 With vs. Without Polly](#7641-with-vs-without-polly)
+  - [76.4.2 PolyBench Benchmarks](#7642-polybench-benchmarks)
+- [76.5 Experimental GPU Codegen: Polly-ACC](#765-experimental-gpu-codegen-polly-acc)
+  - [76.5.1 Overview](#7651-overview)
+  - [76.5.2 Limitations](#7652-limitations)
+- [76.6 Polly Maintenance Status](#766-polly-maintenance-status)
+- [76.7 Polly vs. MLIR Affine Dialect](#767-polly-vs-mlir-affine-dialect)
+  - [76.7.1 Migration Path](#7671-migration-path)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 76.1 When Polly Helps
 
 Polly provides the most benefit for programs matching the following profile:

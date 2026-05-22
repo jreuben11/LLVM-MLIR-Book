@@ -6,6 +6,46 @@ MLIR's type and attribute systems are the backbone of its extensibility. Where L
 
 ---
 
+## Table of Contents
+
+- [131.1 Type System Overview](#1311-type-system-overview)
+  - [Type as a Handle](#type-as-a-handle)
+  - [The TypeID Dispatch System](#the-typeid-dispatch-system)
+- [131.2 Builtin Types in Depth](#1312-builtin-types-in-depth)
+  - [Integer Types](#integer-types)
+  - [Float Types](#float-types)
+  - [MemRef Type](#memref-type)
+  - [Tensor Type](#tensor-type)
+  - [Vector Type](#vector-type)
+- [131.3 Defining Custom Types with ODS](#1313-defining-custom-types-with-ods)
+  - [Minimal Type Definition](#minimal-type-definition)
+  - [Type with Verification](#type-with-verification)
+  - [Type Parameters](#type-parameters)
+- [131.4 Attribute System](#1314-attribute-system)
+  - [Attribute as a Handle](#attribute-as-a-handle)
+  - [Dense Element Attributes](#dense-element-attributes)
+  - [DenseResourceElementsAttr](#denseresourceelementsattr)
+  - [AffineMapAttr](#affinemapattr)
+  - [SymbolRefAttr](#symbolrefattr)
+  - [Defining Custom Attributes with ODS](#defining-custom-attributes-with-ods)
+- [131.5 Properties (MLIR 17+)](#1315-properties-mlir-17)
+  - [Motivation](#motivation)
+  - [ODS Properties Declaration](#ods-properties-declaration)
+  - [Serialization of Properties](#serialization-of-properties)
+- [131.6 Type Constraints and Interfaces](#1316-type-constraints-and-interfaces)
+  - [ShapedType Interface](#shapedtype-interface)
+  - [SubElementTypeInterface](#subelementtypeinterface)
+  - [ODS Type Constraints](#ods-type-constraints)
+  - [TypesMatchWith Constraint](#typesmatchwith-constraint)
+- [131.7 Type Converter](#1317-type-converter)
+- [131.8 Practical Type System Usage](#1318-practical-type-system-usage)
+  - [Checking and Casting Types](#checking-and-casting-types)
+  - [Building Types](#building-types)
+  - [Building Attributes](#building-attributes)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 131.1 Type System Overview
 
 ### Type as a Handle

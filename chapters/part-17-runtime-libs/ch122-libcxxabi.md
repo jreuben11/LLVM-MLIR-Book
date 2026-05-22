@@ -6,6 +6,45 @@ libc++abi is LLVM's implementation of the Itanium C++ ABI runtime: the layer bet
 
 ---
 
+## Table of Contents
+
+- [22.1 Repository Layout](#221-repository-layout)
+- [22.2 The __cxa_* Exception ABI](#222-the-cxa-exception-abi)
+  - [22.2.1 Exception Object Layout](#2221-exception-object-layout)
+  - [22.2.2 __cxa_throw](#2222-cxathrow)
+  - [22.2.3 __cxa_begin_catch / __cxa_end_catch](#2223-cxabegincatch-cxaendcatch)
+  - [22.2.4 __cxa_rethrow](#2224-cxarethrow)
+- [22.3 The Personality Function: __gxx_personality_v0](#223-the-personality-function-gxxpersonalityv0)
+  - [22.3.1 Language-Specific Data Area (LSDA)](#2231-language-specific-data-area-lsda)
+  - [22.3.2 Personality Function Flow](#2232-personality-function-flow)
+  - [22.3.3 Type Matching](#2233-type-matching)
+- [22.4 RTTI: Type Info Hierarchy](#224-rtti-type-info-hierarchy)
+  - [22.4.1 std::type_info and Derived Classes](#2241-stdtypeinfo-and-derived-classes)
+  - [22.4.2 Emitted RTTI](#2242-emitted-rtti)
+- [22.5 Thread-Safe Static Initialization](#225-thread-safe-static-initialization)
+  - [22.5.1 __cxa_guard_acquire / __cxa_guard_release](#2251-cxaguardacquire-cxaguardrelease)
+  - [22.5.2 Guard Variable Size](#2252-guard-variable-size)
+- [22.6 Demangling](#226-demangling)
+  - [22.6.1 __cxa_demangle](#2261-cxademangle)
+  - [22.6.2 Itanium Mangling Grammar Reference](#2262-itanium-mangling-grammar-reference)
+- [22.7 __dynamic_cast](#227-dynamiccast)
+- [22.8 Array new/delete: __cxa_vec_new / __cxa_vec_delete](#228-array-newdelete-cxavecnew-cxavecdelete)
+- [22.9 Foreign Exception Interoperability](#229-foreign-exception-interoperability)
+  - [22.9.1 __cxa_get_exception_ptr](#2291-cxagetexceptionptr)
+  - [22.9.2 Mixing with Objective-C Exceptions](#2292-mixing-with-objective-c-exceptions)
+- [22.10 __cxa_thread_atexit](#2210-cxathreadatexit)
+- [22.11 Virtual Table Special Entries](#2211-virtual-table-special-entries)
+  - [22.11.1 __cxa_pure_virtual](#22111-cxapurevirtual)
+  - [22.11.2 __cxa_deleted_virtual](#22112-cxadeletedvirtual)
+  - [22.11.3 offset_to_top and Virtual Base Adjustment](#22113-offsettotop-and-virtual-base-adjustment)
+- [22.12 Interaction with libunwind](#2212-interaction-with-libunwind)
+- [22.13 Building libc++abi](#2213-building-libcabi)
+  - [22.10.1 Standard Build](#22101-standard-build)
+  - [22.10.2 Standalone Testing](#22102-standalone-testing)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 22.1 Repository Layout
 
 ```

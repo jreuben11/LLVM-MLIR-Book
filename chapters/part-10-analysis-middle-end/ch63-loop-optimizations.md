@@ -4,6 +4,25 @@
 
 Loops dominate program execution time in numeric and systems code. The LLVM loop optimization pipeline transforms loop structure to improve instruction-level parallelism, cache behavior, and vectorization opportunities. This chapter covers the key loop passes: LICM, LoopRotate, LoopUnroll, IndVarSimplify, LoopUnswitch, LoopIdiom, LoopDeletion, LoopFusion, LoopDistribute, LoopInterchange, LoopFlatten, and LoopVersioning.
 
+## Table of Contents
+
+- [63.1 Loop Preprocessing: Simplify Form](#631-loop-preprocessing-simplify-form)
+- [63.2 LICM — Loop-Invariant Code Motion](#632-licm-loop-invariant-code-motion)
+- [63.3 LoopRotate](#633-looprotate)
+- [63.4 IndVarSimplify](#634-indvarsimplify)
+- [63.5 LoopUnroll](#635-loopunroll)
+- [63.6 LoopUnswitch](#636-loopunswitch)
+- [63.7 LoopIdiomRecognize](#637-loopidiomrecognize)
+- [63.8 LoopDeletion](#638-loopdeletion)
+- [63.9 LoopFusion](#639-loopfusion)
+- [63.10 LoopDistribute](#6310-loopdistribute)
+- [63.11 LoopInterchange](#6311-loopinterchange)
+- [63.12 LoopFlatten](#6312-loopflatten)
+- [63.13 LoopVersioning and LoopVersioningLICM](#6313-loopversioning-and-loopversioninglicm)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 63.1 Loop Preprocessing: Simplify Form
 
 Before most loop optimization passes run, loops must be in *simplify form*:

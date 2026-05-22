@@ -4,6 +4,32 @@
 
 Understanding the pass manager architecture (Chapter 59) is a prerequisite, but writing a pass is the hands-on complement. This chapter builds four passes from scratch — a `FunctionPass`, a `LoopPass`, a `ModulePass`, and a `CGSCCPass` — showing the full lifecycle from implementation through registration, plugin loading, and analysis preservation. The code in this chapter compiles against the LLVM 22.1.x headers installed at `/usr/lib/llvm-22`.
 
+## Table of Contents
+
+- [60.1 A Function Pass: Counting Instructions](#601-a-function-pass-counting-instructions)
+  - [60.1.1 Pass Implementation](#6011-pass-implementation)
+  - [60.1.2 Registering the Pass](#6012-registering-the-pass)
+- [60.2 A Function Pass that Uses Analyses](#602-a-function-pass-that-uses-analyses)
+- [60.3 A Loop Pass](#603-a-loop-pass)
+  - [60.3.1 Implementation](#6031-implementation)
+  - [60.3.2 Inserting into a Pipeline](#6032-inserting-into-a-pipeline)
+- [60.4 A Module Pass: Dead Global Removal](#604-a-module-pass-dead-global-removal)
+- [60.5 A CGSCC Pass](#605-a-cgscc-pass)
+  - [60.5.1 Adding a CGSCC Pass to a Pipeline](#6051-adding-a-cgscc-pass-to-a-pipeline)
+- [60.6 Out-of-Tree Pass Plugins](#606-out-of-tree-pass-plugins)
+  - [60.6.1 CMake Build](#6061-cmake-build)
+  - [60.6.2 Loading the Plugin](#6062-loading-the-plugin)
+- [60.7 Preserving Analyses: Detailed Rules](#607-preserving-analyses-detailed-rules)
+  - [60.7.1 What to Preserve](#6071-what-to-preserve)
+  - [60.7.2 Analysis Updaters](#6072-analysis-updaters)
+- [60.8 Debugging a Pass](#608-debugging-a-pass)
+  - [60.8.1 Print-Before/After](#6081-print-beforeafter)
+  - [60.8.2 Opt-Bisect](#6082-opt-bisect)
+  - [60.8.3 `verifyFunction` After Each Pass](#6083-verifyfunction-after-each-pass)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 60.1 A Function Pass: Counting Instructions
 
 The simplest useful pass iterates over a function's instructions. This example counts by opcode and prints a histogram.

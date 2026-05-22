@@ -6,6 +6,48 @@ Chapter 108 covered the ORC JIT machinery: JITDylibs, the layered compilation st
 
 ---
 
+## Table of Contents
+
+- [219.1 The ORC Production Recipe](#2191-the-orc-production-recipe)
+- [219.2 clang-repl and Cling: Interactive C++ over ORC](#2192-clang-repl-and-cling-interactive-c-over-orc)
+  - [Background](#background)
+  - [Incremental Compilation via `IncrementalCompiler`](#incremental-compilation-via-incrementalcompiler)
+  - [Redefinition and Layer Shadowing](#redefinition-and-layer-shadowing)
+  - [Value Printing](#value-printing)
+- [219.3 LLDB: JIT-Compiling Debugger Expressions](#2193-lldb-jit-compiling-debugger-expressions)
+  - [The Expression Evaluator Pipeline](#the-expression-evaluator-pipeline)
+  - [Module Synthesis](#module-synthesis)
+  - [Symbol Resolution Against the Inferior](#symbol-resolution-against-the-inferior)
+  - [DynamicCheckerFunctions](#dynamiccheckerfunctions)
+  - [Ephemeral Lifetime](#ephemeral-lifetime)
+- [219.4 PostgreSQL: Plan-Time Query JIT](#2194-postgresql-plan-time-query-jit)
+  - [Why PostgreSQL JITs](#why-postgresql-jits)
+  - [Cost Thresholds](#cost-thresholds)
+  - [IR Construction via the C API](#ir-construction-via-the-c-api)
+  - [JIT Compilation and Lookup](#jit-compilation-and-lookup)
+  - [Performance Characteristics](#performance-characteristics)
+- [219.5 Numba: Type-Specialised Python via LLVM](#2195-numba-type-specialised-python-via-llvm)
+  - [The JIT Decorator](#the-jit-decorator)
+  - [llvmlite: LLVM IR from Python](#llvmlite-llvm-ir-from-python)
+  - [Type Specialization Cache](#type-specialization-cache)
+  - [CUDA Target](#cuda-target)
+- [219.6 Halide: Schedule-Driven Pipeline JIT](#2196-halide-schedule-driven-pipeline-jit)
+  - [Algorithm and Schedule Separation](#algorithm-and-schedule-separation)
+  - [JIT Compilation](#jit-compilation)
+  - [AOT Mode: Same IR, Different Emission](#aot-mode-same-ir-different-emission)
+  - [Target and CPU Feature Detection](#target-and-cpu-feature-detection)
+- [219.7 WAVM: WebAssembly via LLVM ORC](#2197-wavm-webassembly-via-llvm-orc)
+  - [The Translation Pipeline](#the-translation-pipeline)
+  - [JITDylib Layout](#jitdylib-layout)
+  - [Linear Memory Model](#linear-memory-model)
+  - [WAVM versus Wasmtime/Cranelift](#wavm-versus-wasmtimecranelift)
+- [219.8 Taxonomy: Six Systems, One Pattern](#2198-taxonomy-six-systems-one-pattern)
+  - [Two Axes](#two-axes)
+  - [The Self-Modification Loop](#the-self-modification-loop)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 219.1 The ORC Production Recipe
 
 Every production use of ORC JIT follows a variant of the same sequence. Naming it first makes the per-system sections easier to read.

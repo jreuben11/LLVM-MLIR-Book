@@ -6,6 +6,39 @@ The practical value of MLIR for machine learning emerges most clearly in the bri
 
 ---
 
+## Table of Contents
+
+- [161.1 torch-mlir: PyTorch → MLIR](#1611-torch-mlir-pytorch-mlir)
+  - [161.1.1 Architecture](#16111-architecture)
+  - [161.1.2 The Torch Dialect](#16112-the-torch-dialect)
+  - [161.1.3 Python API](#16113-python-api)
+  - [161.1.4 Lowering Torch to StableHLO](#16114-lowering-torch-to-stablehlo)
+  - [161.1.5 Symbolic Shape Handling](#16115-symbolic-shape-handling)
+- [161.2 ONNX-MLIR: ONNX → Native Code](#1612-onnx-mlir-onnx-native-code)
+  - [161.2.1 Architecture](#16121-architecture)
+  - [161.2.2 The ONNX Dialect](#16122-the-onnx-dialect)
+  - [161.2.3 The Krnl Dialect](#16123-the-krnl-dialect)
+  - [161.2.4 Compilation and Usage](#16124-compilation-and-usage)
+  - [161.2.5 ONNX-MLIR Optimization Passes](#16125-onnx-mlir-optimization-passes)
+- [161.3 JAX/MLIR Bridge](#1613-jaxmlir-bridge)
+  - [161.3.1 JAX's MLIR Lowering Stack](#16131-jaxs-mlir-lowering-stack)
+  - [161.3.2 jax.export: Model Serialization](#16132-jaxexport-model-serialization)
+  - [161.3.3 Accessing MLIR from JAX for Custom Lowerings](#16133-accessing-mlir-from-jax-for-custom-lowerings)
+- [161.4 TensorFlow → MLIR](#1614-tensorflow-mlir)
+  - [161.4.1 TF SavedModel to MLIR](#16141-tf-savedmodel-to-mlir)
+  - [161.4.2 TF Graph to MLIR](#16142-tf-graph-to-mlir)
+  - [161.4.3 TF Dialect](#16143-tf-dialect)
+- [161.5 TOSA: Tensor Operator Set Architecture](#1615-tosa-tensor-operator-set-architecture)
+  - [161.5.1 TOSA Design Goals](#16151-tosa-design-goals)
+  - [161.5.2 TOSA Op Set Sample](#16152-tosa-op-set-sample)
+  - [161.5.3 Lowering TOSA](#16153-lowering-tosa)
+  - [161.5.4 Framework TOSA Outputs](#16154-framework-tosa-outputs)
+- [161.6 Comparing the Framework Bridges](#1616-comparing-the-framework-bridges)
+- [161.7 End-to-End Example: PyTorch → IREE](#1617-end-to-end-example-pytorch-iree)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 161.1 torch-mlir: PyTorch → MLIR
 
 torch-mlir ([github.com/llvm/torch-mlir](https://github.com/llvm/torch-mlir)) is the official MLIR-based compilation path for PyTorch models. It converts `torch.export`-traced models to MLIR dialects suitable for downstream compilers (IREE, XLA, ONNX-MLIR, or direct LLVM).

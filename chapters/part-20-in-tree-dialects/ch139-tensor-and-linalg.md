@@ -6,6 +6,46 @@ The `tensor` and `linalg` dialects form the computational heart of MLIR for arra
 
 ---
 
+## Table of Contents
+
+- [139.1 The `tensor` Dialect](#1391-the-tensor-dialect)
+  - [139.1.1 Value Semantics and Immutability](#13911-value-semantics-and-immutability)
+  - [139.1.2 `tensor.empty` and `tensor.splat`](#13912-tensorempty-and-tensorsplat)
+  - [139.1.3 Element Access](#13913-element-access)
+  - [139.1.4 Slice Operations](#13914-slice-operations)
+  - [139.1.5 Construction Operations](#13915-construction-operations)
+  - [139.1.6 Shape Operations](#13916-shape-operations)
+- [139.2 `linalg.generic`](#1392-linalggeneric)
+  - [139.2.1 The Universal Structured Computation Op](#13921-the-universal-structured-computation-op)
+  - [139.2.2 Anatomy of `linalg.generic`](#13922-anatomy-of-linalggeneric)
+  - [139.2.3 Iteration Space Semantics](#13923-iteration-space-semantics)
+  - [139.2.4 Projections and Complex Index Maps](#13924-projections-and-complex-index-maps)
+  - [139.2.5 `linalg.index`](#13925-linalgindex)
+- [139.3 Named Linalg Ops](#1393-named-linalg-ops)
+  - [139.3.1 Operation Generator](#13931-operation-generator)
+  - [139.3.2 Matrix and Vector Operations](#13932-matrix-and-vector-operations)
+  - [139.3.3 Convolution Operations](#13933-convolution-operations)
+  - [139.3.4 Elementwise Operations](#13934-elementwise-operations)
+- [139.4 Linalg Transformations](#1394-linalg-transformations)
+  - [139.4.1 `TilingInterface`](#13941-tilinginterface)
+  - [139.4.2 Tiling Example](#13942-tiling-example)
+  - [139.4.3 Producer-Consumer Fusion](#13943-producer-consumer-fusion)
+  - [139.4.4 `linalg.pack` and `linalg.unpack`](#13944-linalgpack-and-linalgunpack)
+  - [139.4.5 Vectorization](#13945-vectorization)
+  - [139.4.6 Lowering Paths](#13946-lowering-paths)
+- [139.5 Mixed Tensor/MemRef Linalg](#1395-mixed-tensormemref-linalg)
+- [139.6 The Structured Computation Invariants](#1396-the-structured-computation-invariants)
+- [139.7 The TOSA Dialect](#1397-the-tosa-dialect)
+  - [139.7.1 Design Goals and Position in the ML Stack](#13971-design-goals-and-position-in-the-ml-stack)
+  - [139.7.2 Type System](#13972-type-system)
+  - [139.7.3 Operator Taxonomy](#13973-operator-taxonomy)
+  - [139.7.4 The tosa-to-linalg Lowering](#13974-the-tosa-to-linalg-lowering)
+  - [139.7.5 Validation and Conformance](#13975-validation-and-conformance)
+  - [139.7.6 Production Usage](#13976-production-usage)
+- [Chapter 139 Summary](#chapter-139-summary)
+
+---
+
 ## 139.1 The `tensor` Dialect
 
 ### 139.1.1 Value Semantics and Immutability

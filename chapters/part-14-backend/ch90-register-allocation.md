@@ -4,6 +4,27 @@
 
 Register allocation is the central challenge of code generation: given a function with arbitrarily many virtual registers and a finite set of physical registers, assign a physical register to each virtual register's live range, inserting spill and restore code when no register is available. The quality of register allocation determines instruction count, data cache pressure, and the effectiveness of subsequent scheduling passes. This chapter covers LLVM's allocation infrastructure in depth — the greedy, basic, fast, and PBQP allocators — with particular emphasis on the greedy allocator's live range splitting strategy, which is LLVM's primary mechanism for reducing spilling on register-constrained code.
 
+## Table of Contents
+
+- [90.1 The Register Allocation Problem](#901-the-register-allocation-problem)
+- [90.2 The Greedy Allocator](#902-the-greedy-allocator)
+  - [90.2.1 Priority Queue](#9021-priority-queue)
+  - [90.2.2 AllocationOrder](#9022-allocationorder)
+- [90.3 Spill Weights](#903-spill-weights)
+- [90.4 Eviction](#904-eviction)
+  - [90.4.1 Cascade Eviction Prevention](#9041-cascade-eviction-prevention)
+- [90.5 Live Range Splitting](#905-live-range-splitting)
+  - [90.5.1 SplitAnalysis](#9051-splitanalysis)
+  - [90.5.2 SplitKit](#9052-splitkit)
+- [90.6 The Basic Allocator](#906-the-basic-allocator)
+- [90.7 The Fast Allocator](#907-the-fast-allocator)
+- [90.8 PBQP Allocator](#908-pbqp-allocator)
+- [90.9 Spill Placement Optimisation](#909-spill-placement-optimisation)
+- [90.10 Register Bank Allocation in GlobalISel](#9010-register-bank-allocation-in-globalisel)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 90.1 The Register Allocation Problem
 
 Formally, register allocation is a graph colouring problem: construct an interference graph where each virtual register is a node and each pair of simultaneously live virtual registers is connected by an edge; colour the graph with K colours (physical registers) such that no two adjacent nodes share a colour. When K colours are insufficient, some nodes must be "spilled" — their values are stored to memory and reloaded before each use.

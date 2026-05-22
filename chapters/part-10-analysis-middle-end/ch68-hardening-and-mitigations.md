@@ -4,6 +4,26 @@
 
 Security hardening transforms program code and data layout to raise the cost of exploitation. LLVM provides a comprehensive suite of mitigations: control-flow integrity (CFI), safe and shadow call stacks, speculative load hardening, stack clash protection, stack protectors, pointer authentication (PAuth/BTI), Intel CET/IBT, and FORTIFY_SOURCE-style bounds checking. This chapter covers each mitigation — what attack it defends against, how it is implemented in LLVM, and its performance cost.
 
+## Table of Contents
+
+- [68.1 Control-Flow Integrity (CFI)](#681-control-flow-integrity-cfi)
+  - [68.1.1 The Attack: ROP/JOP](#6811-the-attack-ropjop)
+  - [68.1.2 Clang CFI Variants](#6812-clang-cfi-variants)
+  - [68.1.3 Implementation: Type Test and Type Checked Load](#6813-implementation-type-test-and-type-checked-load)
+  - [68.1.4 KCFI (Kernel CFI)](#6814-kcfi-kernel-cfi)
+- [68.2 SafeStack](#682-safestack)
+- [68.3 ShadowCallStack](#683-shadowcallstack)
+- [68.4 Speculative Load Hardening (SLH)](#684-speculative-load-hardening-slh)
+- [68.5 Stack Protector (Canary)](#685-stack-protector-canary)
+- [68.6 Stack Clash Protection](#686-stack-clash-protection)
+- [68.7 PAuth and BTI (AArch64)](#687-pauth-and-bti-aarch64)
+- [68.8 Intel CET/IBT](#688-intel-cetibt)
+- [68.9 FORTIFY_SOURCE](#689-fortifysource)
+- [68.10 Hot/Cold Splitting](#6810-hotcold-splitting)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 68.1 Control-Flow Integrity (CFI)
 
 ### 68.1.1 The Attack: ROP/JOP

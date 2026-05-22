@@ -6,6 +6,44 @@ Training modern large language models requires distributing computation across h
 
 ---
 
+## Table of Contents
+
+- [158.1 The Distribution Problem](#1581-the-distribution-problem)
+- [158.2 HloSharding: Tensor Distribution Annotations](#1582-hlosharding-tensor-distribution-annotations)
+  - [158.2.1 Replicated Sharding](#15821-replicated-sharding)
+  - [158.2.2 Tiled Sharding](#15822-tiled-sharding)
+  - [158.2.3 Partial Replication (Hybrid)](#15823-partial-replication-hybrid)
+  - [158.2.4 Manual Sharding](#15824-manual-sharding)
+- [158.3 The SPMD Partitioner Pass](#1583-the-spmd-partitioner-pass)
+  - [158.3.1 Sharding Propagation](#15831-sharding-propagation)
+  - [158.3.2 Dot Partitioning](#15832-dot-partitioning)
+  - [158.3.3 Reduce Partitioning](#15833-reduce-partitioning)
+- [158.4 GSPMD: Generalized SPMD](#1584-gspmd-generalized-spmd)
+  - [158.4.1 Multi-Axis Meshes](#15841-multi-axis-meshes)
+  - [158.4.2 Sharding Propagation Through Complex Ops](#15842-sharding-propagation-through-complex-ops)
+  - [158.4.3 The `use_spmd_partitioning` Flag](#15843-the-usespmdpartitioning-flag)
+- [158.5 Collective Communication Operations](#1585-collective-communication-operations)
+  - [158.5.1 AllReduce](#15851-allreduce)
+  - [158.5.2 AllGather](#15852-allgather)
+  - [158.5.3 ReduceScatter](#15853-reducescatter)
+  - [158.5.4 AllToAll](#15854-alltoall)
+- [158.6 Auto-Sharding: ILP-Based Optimal Distribution](#1586-auto-sharding-ilp-based-optimal-distribution)
+  - [158.6.1 Problem Formulation](#15861-problem-formulation)
+  - [158.6.2 ILP Solver Integration](#15862-ilp-solver-integration)
+  - [158.6.3 Strategy Enumeration](#15863-strategy-enumeration)
+  - [158.6.4 Limitations and Practical Use](#15864-limitations-and-practical-use)
+- [158.7 JAX Sharding APIs](#1587-jax-sharding-apis)
+  - [158.7.1 PartitionSpec and NamedSharding](#15871-partitionspec-and-namedsharding)
+  - [158.7.2 jax.jit with Sharding Constraints](#15872-jaxjit-with-sharding-constraints)
+  - [158.7.3 shard_map for Manual Control](#15873-shardmap-for-manual-control)
+- [158.8 Collective Performance Optimization](#1588-collective-performance-optimization)
+  - [158.8.1 Topology-Aware Replica Groups](#15881-topology-aware-replica-groups)
+  - [158.8.2 Async Collectives](#15882-async-collectives)
+  - [158.8.3 NCCL Communication Groups](#15883-nccl-communication-groups)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 158.1 The Distribution Problem
 
 A typical transformer model with 70 billion parameters cannot fit in the 80 GB memory of a single A100 GPU. Distributed training strategies address this:

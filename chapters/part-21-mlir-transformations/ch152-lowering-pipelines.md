@@ -6,6 +6,41 @@ No single MLIR pass transforms a high-level tensor computation into machine code
 
 ---
 
+## Table of Contents
+
+- [152.1 Pipeline Architecture](#1521-pipeline-architecture)
+  - [The composition model](#the-composition-model)
+  - [Standard intermediate dialects](#standard-intermediate-dialects)
+- [152.2 Linalg-to-LLVM CPU Pipeline](#1522-linalg-to-llvm-cpu-pipeline)
+  - [Why each step is ordered as it is](#why-each-step-is-ordered-as-it-is)
+- [152.3 Linalg Vectorization Pipeline](#1523-linalg-vectorization-pipeline)
+  - [Vectorization ordering](#vectorization-ordering)
+  - [Masking and out-of-bounds handling](#masking-and-out-of-bounds-handling)
+- [152.4 GPU Kernel Pipeline (CUDA/NVPTX)](#1524-gpu-kernel-pipeline-cudanvptx)
+  - [GPU module extraction and lowering](#gpu-module-extraction-and-lowering)
+  - [NVGPU intrinsics (Tensor Core)](#nvgpu-intrinsics-tensor-core)
+  - [Host-side pipeline](#host-side-pipeline)
+- [152.5 The Affine Polyhedral Pipeline](#1525-the-affine-polyhedral-pipeline)
+  - [Affine loop fusion](#affine-loop-fusion)
+- [152.6 The IREE Pipeline Overview](#1526-the-iree-pipeline-overview)
+  - [Input dialects](#input-dialects)
+  - [IREE pipeline stages](#iree-pipeline-stages)
+  - [CPU backend (IREE-codegen)](#cpu-backend-iree-codegen)
+- [152.7 Canonicalization Between Passes](#1527-canonicalization-between-passes)
+  - [Why canonicalize between phases](#why-canonicalize-between-phases)
+  - [Loop invariant code motion](#loop-invariant-code-motion)
+  - [Folding order example](#folding-order-example)
+- [152.8 Debugging a Lowering Pipeline](#1528-debugging-a-lowering-pipeline)
+  - [IR printing flags](#ir-printing-flags)
+  - [mlir-reduce: delta debugging](#mlir-reduce-delta-debugging)
+  - [Isolating a failing pass](#isolating-a-failing-pass)
+  - [Verifying IR between passes](#verifying-ir-between-passes)
+  - [Common pipeline errors and fixes](#common-pipeline-errors-and-fixes)
+- [152.9 Building a Pipeline in C++](#1529-building-a-pipeline-in-c)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 152.1 Pipeline Architecture
 
 ### The composition model

@@ -6,6 +6,56 @@ Fuzzing has become one of the most productive bug-finding techniques in software
 
 ---
 
+## Table of Contents
+
+- [114.1 Fuzzing Fundamentals](#1141-fuzzing-fundamentals)
+  - [What Fuzzing Is](#what-fuzzing-is)
+  - [Coverage-Guided Fuzzing](#coverage-guided-fuzzing)
+  - [In-Process vs Fork-Server Models](#in-process-vs-fork-server-models)
+  - [libFuzzer vs AFL-Style Fuzzers](#libfuzzer-vs-afl-style-fuzzers)
+- [114.2 Writing a Fuzz Target](#1142-writing-a-fuzz-target)
+  - [The Fuzz Entry Point](#the-fuzz-entry-point)
+  - [Statelessness Requirement](#statelessness-requirement)
+  - [A Complete Working Example](#a-complete-working-example)
+  - [Compilation and Invocation](#compilation-and-invocation)
+- [114.3 SanitizerCoverage Instrumentation](#1143-sanitizercoverage-instrumentation)
+  - [How SanitizerCoverage Works](#how-sanitizercoverage-works)
+  - [Coverage Granularities](#coverage-granularities)
+  - [Comparison Coverage (`trace-cmp`)](#comparison-coverage-trace-cmp)
+  - [PC Table](#pc-table)
+  - [Inline 8-bit Counters](#inline-8-bit-counters)
+- [114.4 The libFuzzer Engine](#1144-the-libfuzzer-engine)
+  - [Source Organization](#source-organization)
+  - [The Fuzzing Loop](#the-fuzzing-loop)
+  - [The Mutation Engine](#the-mutation-engine)
+  - [Corpus Fitness](#corpus-fitness)
+  - [Important Runtime Options](#important-runtime-options)
+- [114.5 Sanitizer Integration](#1145-sanitizer-integration)
+  - [ASan + libFuzzer](#asan-libfuzzer)
+  - [UBSan + libFuzzer](#ubsan-libfuzzer)
+  - [MSan + libFuzzer](#msan-libfuzzer)
+  - [OOM and Timeout Detection](#oom-and-timeout-detection)
+  - [Signal Handling](#signal-handling)
+- [114.6 Structured and Grammar-Based Fuzzing](#1146-structured-and-grammar-based-fuzzing)
+  - [FuzzedDataProvider](#fuzzeddataprovider)
+  - [LLVMFuzzerInitialize](#llvmfuzzerinitialize)
+  - [LLVMFuzzerCustomMutator](#llvmfuzzercustommutator)
+  - [libprotobuf-mutator](#libprotobuf-mutator)
+  - [Dictionary Files](#dictionary-files)
+- [114.7 OSS-Fuzz Integration](#1147-oss-fuzz-integration)
+  - [What is OSS-Fuzz?](#what-is-oss-fuzz)
+  - [Integration Structure](#integration-structure)
+  - [LLVM's Own Fuzz Targets on OSS-Fuzz](#llvms-own-fuzz-targets-on-oss-fuzz)
+- [114.8 Corpus Management and Triage](#1148-corpus-management-and-triage)
+  - [Crash Reproduction](#crash-reproduction)
+  - [Crash Minimization](#crash-minimization)
+  - [Corpus Minimization](#corpus-minimization)
+  - [Coverage Reporting](#coverage-reporting)
+  - [Triage and Deduplication](#triage-and-deduplication)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 114.1 Fuzzing Fundamentals
 
 ### What Fuzzing Is

@@ -6,6 +6,22 @@ The pseudo-code blocks in Chapters 205–207 invoke a common notation — effect
 
 ---
 
+## Table of Contents
+
+- [204.1 Specification Architecture](#2041-specification-architecture)
+- [204.2 Layer 1 — Lexical Structure](#2042-layer-1-lexical-structure)
+- [204.3 Layer 2 — Concrete Syntax (EBNF)](#2043-layer-2-concrete-syntax-ebnf)
+- [204.4 Layer 3 — Abstract Syntax (AST)](#2044-layer-3-abstract-syntax-ast)
+- [204.5 Layer 4 — Type Rules](#2045-layer-4-type-rules)
+- [204.6 Layer 5 — Semantics](#2046-layer-5-semantics)
+  - [204.6.1 Operational Semantics (Small-Step)](#20461-operational-semantics-small-step)
+  - [204.6.2 Denotational Semantics for `{Stochastic}` and `{Gradient}`](#20462-denotational-semantics-for-stochastic-and-gradient)
+  - [204.6.3 Type Soundness](#20463-type-soundness)
+- [204.7 Layer 6 — Implementation Plan](#2047-layer-6-implementation-plan)
+- [Chapter 204 Summary](#chapter-204-summary)
+
+---
+
 ## 204.1 Specification Architecture
 
 A six-layer stack is needed because the AI-first design pressures from Chapter 203 §203.1 impose requirements at every level of a language implementation:

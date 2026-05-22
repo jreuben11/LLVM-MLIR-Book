@@ -8,6 +8,37 @@ Cross-references: [Chapter 211 — Neural Programs as Compiled Artifacts](ch211-
 
 ---
 
+## Table of Contents
+
+- [212.1 Weight Checkpoints as Compiled Binaries](#2121-weight-checkpoints-as-compiled-binaries)
+  - [SafeTensors Format](#safetensors-format)
+  - [GGUF Format](#gguf-format)
+  - [Format Comparison](#format-comparison)
+- [212.2 Weight-Space Geometry](#2122-weight-space-geometry)
+  - [Linear Mode Connectivity](#linear-mode-connectivity)
+  - [Neural Collapse](#neural-collapse)
+  - [Loss Landscape Topology](#loss-landscape-topology)
+- [212.3 Capability Arithmetic](#2123-capability-arithmetic)
+  - [Task Vectors](#task-vectors)
+  - [TIES Merging](#ties-merging)
+  - [DARE: Drop-and-Rescale Delta Parameters](#dare-drop-and-rescale-delta-parameters)
+  - [SLERP: Spherical Linear Interpolation](#slerp-spherical-linear-interpolation)
+- [212.4 MLIR/TOSA and XLA HLO as Weight IR](#2124-mlirtosa-and-xla-hlo-as-weight-ir)
+  - [TOSA: Tensor Operator Set Architecture](#tosa-tensor-operator-set-architecture)
+  - [XLA HLO as a Homoiconic Forward-Pass Graph](#xla-hlo-as-a-homoiconic-forward-pass-graph)
+- [212.5 Programmatic Weight-Space Operations via JAX](#2125-programmatic-weight-space-operations-via-jax)
+  - [`jax.tree_util.tree_map` for Element-Wise PyTree Operations](#jaxtreeutiltreemap-for-element-wise-pytree-operations)
+  - [`flax.traverse_util` for Parameter Path Filtering](#flaxtraverseutil-for-parameter-path-filtering)
+  - [`tree_map_with_path` for Layer-Wise Operations](#treemapwithpath-for-layer-wise-operations)
+  - [Practical Example: Applying an Arithmetic Task Vector to Attention Only](#practical-example-applying-an-arithmetic-task-vector-to-attention-only)
+- [212.6 Cognitive Angle: The Algebra of Capability](#2126-cognitive-angle-the-algebra-of-capability)
+  - [The Linearity Assumption and Its Limits](#the-linearity-assumption-and-its-limits)
+  - [Capability Arithmetic as the Dual of Mechanistic Interpretability](#capability-arithmetic-as-the-dual-of-mechanistic-interpretability)
+  - [Self-Modification as Weight-Space Navigation](#self-modification-as-weight-space-navigation)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 212.1 Weight Checkpoints as Compiled Binaries
 
 An ELF file begins with a magic header, a program header table describing segment layout, and the segment data itself. A SafeTensors file has an analogous anatomy: an 8-byte little-endian uint64 giving the byte length of a UTF-8 JSON header, followed by that JSON header, followed by the raw tensor data. A GGUF file opens with a 4-byte magic identifier (`GGUF`, 0x47475546), a version field, and a versioned key-value metadata store before the tensor descriptors. Both formats are designed for memory-mapped loading — the data section can be mapped directly without deserialization, exactly as an ELF loader maps `.data` into the process address space with a single `mmap(2)` call.

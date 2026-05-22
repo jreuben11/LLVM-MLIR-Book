@@ -6,6 +6,61 @@ Building LLVM from source is not optional knowledge for a compiler engineer work
 
 ---
 
+## Table of Contents
+
+- [1. Prerequisites and Dependencies](#1-prerequisites-and-dependencies)
+  - [Host compiler requirements](#host-compiler-requirements)
+  - [Build system](#build-system)
+  - [Required system libraries](#required-system-libraries)
+  - [Disk space and RAM](#disk-space-and-ram)
+  - [Python and the test infrastructure](#python-and-the-test-infrastructure)
+- [2. Cloning the Repository](#2-cloning-the-repository)
+  - [Keeping up with upstream](#keeping-up-with-upstream)
+- [3. CMake Configuration In Depth](#3-cmake-configuration-in-depth)
+  - [The minimal developer invocation](#the-minimal-developer-invocation)
+  - [Build types](#build-types)
+  - [The CMake variable table](#the-cmake-variable-table)
+  - [Split DWARF and link-time acceleration](#split-dwarf-and-link-time-acceleration)
+  - [LLVM_TARGETS_TO_BUILD](#llvmtargetstobuild)
+- [4. Build Systems: Ninja and Make](#4-build-systems-ninja-and-make)
+  - [Why Ninja is the standard for LLVM](#why-ninja-is-the-standard-for-llvm)
+  - [Invoking Ninja](#invoking-ninja)
+  - [Build artifacts layout](#build-artifacts-layout)
+- [5. LLVM_ENABLE_PROJECTS vs LLVM_ENABLE_RUNTIMES](#5-llvmenableprojects-vs-llvmenableruntimes)
+  - [Projects: built with the host compiler](#projects-built-with-the-host-compiler)
+  - [Runtimes: built with the just-built compiler](#runtimes-built-with-the-just-built-compiler)
+  - [When to use which](#when-to-use-which)
+- [6. Stage Builds: From 1-Stage to 3-Stage Bootstrap](#6-stage-builds-from-1-stage-to-3-stage-bootstrap)
+  - [Why stage builds exist](#why-stage-builds-exist)
+  - [1-Stage build](#1-stage-build)
+  - [2-Stage bootstrap build](#2-stage-bootstrap-build)
+  - [The `stage2` Ninja target and the bootstrap directory](#the-stage2-ninja-target-and-the-bootstrap-directory)
+  - [3-Stage bootstrap: PGO-guided](#3-stage-bootstrap-pgo-guided)
+  - [Verifying bootstrap correctness: the stage-2 vs stage-3 bit-for-bit test](#verifying-bootstrap-correctness-the-stage-2-vs-stage-3-bit-for-bit-test)
+  - [When to use each stage count](#when-to-use-each-stage-count)
+- [7. Build Acceleration: ccache, sccache, distcc, and llvm-cas](#7-build-acceleration-ccache-sccache-distcc-and-llvm-cas)
+  - [ccache](#ccache)
+  - [sccache](#sccache)
+  - [distcc](#distcc)
+  - [Choosing between the accelerators](#choosing-between-the-accelerators)
+  - [llvm-cas: Content-Addressable Storage for hermetic builds](#llvm-cas-content-addressable-storage-for-hermetic-builds)
+  - [Enabling CAS in a Clang build](#enabling-cas-in-a-clang-build)
+- [8. Cross-Compilation](#8-cross-compilation)
+  - [The cross-compilation model](#the-cross-compilation-model)
+  - [Key CMake variables for cross-compilation](#key-cmake-variables-for-cross-compilation)
+  - [Building a cross-compiler targeting AArch64 Linux](#building-a-cross-compiler-targeting-aarch64-linux)
+  - [Cross-compiling LLVM itself for AArch64](#cross-compiling-llvm-itself-for-aarch64)
+  - [Bare-metal cross-compilation (arm-none-eabi)](#bare-metal-cross-compilation-arm-none-eabi)
+- [9. Recommended Build Configurations](#9-recommended-build-configurations)
+  - [Developer build (fast iteration)](#developer-build-fast-iteration)
+  - [Release build (for shipping)](#release-build-for-shipping)
+  - [Sanitizer build (ASAN + UBSan)](#sanitizer-build-asan-ubsan)
+  - [Coverage build](#coverage-build)
+  - [Running specific tests](#running-specific-tests)
+- [10. Chapter Summary](#10-chapter-summary)
+
+---
+
 ## 1. Prerequisites and Dependencies
 
 ### Host compiler requirements

@@ -6,6 +6,38 @@ IREE (Intermediate Representation Execution Environment) is a full-stack ML depl
 
 ---
 
+## Table of Contents
+
+- [162.1 IREE Architecture Overview](#1621-iree-architecture-overview)
+- [162.2 The Flow Dialect](#1622-the-flow-dialect)
+  - [162.2.1 flow.dispatch.region](#16221-flowdispatchregion)
+  - [162.2.2 Dispatch Formation Heuristics](#16222-dispatch-formation-heuristics)
+  - [162.2.3 flow.dispatch.tensor Protocol](#16223-flowdispatchtensor-protocol)
+- [162.3 The Stream Dialect](#1623-the-stream-dialect)
+  - [162.3.1 stream.cmd.execute](#16231-streamcmdexecute)
+  - [162.3.2 Resource Types](#16232-resource-types)
+  - [162.3.3 Async Dependency Tracking](#16233-async-dependency-tracking)
+- [162.4 The HAL Dialect](#1624-the-hal-dialect)
+  - [162.4.1 hal.executable](#16241-halexecutable)
+  - [162.4.2 hal.command_buffer](#16242-halcommandbuffer)
+- [162.5 Target Backends](#1625-target-backends)
+  - [162.5.1 llvm-cpu Backend](#16251-llvm-cpu-backend)
+  - [162.5.2 cuda Backend](#16252-cuda-backend)
+  - [162.5.3 vulkan-spirv Backend](#16253-vulkan-spirv-backend)
+- [162.6 The VMFB Format](#1626-the-vmfb-format)
+- [162.7 Python API](#1627-python-api)
+  - [162.7.1 Compilation](#16271-compilation)
+  - [162.7.2 Runtime Execution](#16272-runtime-execution)
+  - [162.7.3 Compiler from MLIR Python Bindings](#16273-compiler-from-mlir-python-bindings)
+- [162.8 Performance Engineering in IREE](#1628-performance-engineering-in-iree)
+  - [162.8.1 Tuning Dispatch Tiling](#16281-tuning-dispatch-tiling)
+  - [162.8.2 Weight Bundling](#16282-weight-bundling)
+  - [162.8.3 Benchmarking](#16283-benchmarking)
+- [162.9 Comparing IREE with Alternatives](#1629-comparing-iree-with-alternatives)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 162.1 IREE Architecture Overview
 
 IREE's compilation pipeline transforms ML computations through a sequence of MLIR dialects, each representing a different level of the execution model:

@@ -4,6 +4,27 @@
 
 Optimization passes do not operate blind. Before transforming IR they query a set of foundational analyses: the dominator tree, loop structure, alias relationships, memory access SSA, scalar evolution of induction variables, demanded bits, branch probabilities, and block frequencies. These analyses are the pre-computable facts that make transformations correct and profitable. This chapter covers each analysis — what it computes, how to request it, and the key API surface — with reference to Chapter 10's theoretical lattice foundations where applicable.
 
+## Table of Contents
+
+- [61.1 Dominator Tree and Post-Dominator Tree](#611-dominator-tree-and-post-dominator-tree)
+  - [61.1.1 DominatorTree](#6111-dominatortree)
+  - [61.1.2 PostDominatorTree](#6112-postdominatortree)
+- [61.2 LoopInfo](#612-loopinfo)
+- [61.3 Alias Analysis](#613-alias-analysis)
+  - [61.3.1 AliasResult and AAResults](#6131-aliasresult-and-aaresults)
+  - [61.3.2 Alias Analysis Variants](#6132-alias-analysis-variants)
+  - [61.3.3 Emitting TBAA Metadata](#6133-emitting-tbaa-metadata)
+- [61.4 MemorySSA](#614-memoryssa)
+- [61.5 ScalarEvolution](#615-scalarevolution)
+- [61.6 DemandedBits](#616-demandedbits)
+- [61.7 LazyValueInfo](#617-lazyvalueinfo)
+- [61.8 BranchProbabilityInfo](#618-branchprobabilityinfo)
+- [61.9 BlockFrequencyInfo](#619-blockfrequencyinfo)
+- [61.10 Analysis Interdependencies](#6110-analysis-interdependencies)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 61.1 Dominator Tree and Post-Dominator Tree
 
 ### 61.1.1 DominatorTree

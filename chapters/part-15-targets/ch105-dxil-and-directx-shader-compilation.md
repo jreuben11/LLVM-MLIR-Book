@@ -6,6 +6,63 @@ The DirectX shader pipeline occupies a unique position in the LLVM ecosystem: it
 
 ---
 
+## Table of Contents
+
+- [105.1 DXIL Overview](#1051-dxil-overview)
+  - [105.1.1 DXIL as Restricted LLVM IR](#10511-dxil-as-restricted-llvm-ir)
+  - [105.1.2 Shader Model Versions and DXIL Versions](#10512-shader-model-versions-and-dxil-versions)
+  - [105.1.3 DXIL Container Format](#10513-dxil-container-format)
+  - [105.1.4 DXIL vs SPIR-V](#10514-dxil-vs-spir-v)
+- [105.2 The DirectX Backend in LLVM](#1052-the-directx-backend-in-llvm)
+  - [105.2.1 Backend Structure](#10521-backend-structure)
+  - [105.2.2 Target-Specific Pass Pipeline](#10522-target-specific-pass-pipeline)
+  - [105.2.3 DXILPrepareModule Pass Details](#10523-dxilpreparemodule-pass-details)
+  - [105.2.4 DXIL Metadata Format](#10524-dxil-metadata-format)
+  - [105.2.5 Relationship to Standalone DXC](#10525-relationship-to-standalone-dxc)
+- [105.3 HLSL as a Source Language](#1053-hlsl-as-a-source-language)
+  - [105.3.1 HLSL Language Fundamentals](#10531-hlsl-language-fundamentals)
+  - [105.3.2 HLSL Type System](#10532-hlsl-type-system)
+  - [105.3.3 Semantic Annotations and System Values](#10533-semantic-annotations-and-system-values)
+- [105.4 DXIL Operations](#1054-dxil-operations)
+  - [105.4.0 Vertex and Pixel Shader Operation Patterns](#10540-vertex-and-pixel-shader-operation-patterns)
+  - [105.4.1 The dx.op Calling Convention](#10541-the-dxop-calling-convention)
+  - [105.4.2 Selected DXIL Opcode Table](#10542-selected-dxil-opcode-table)
+  - [105.4.3 DXILOpLowering Pass](#10543-dxiloplowering-pass)
+- [105.5 Resource Handling](#1055-resource-handling)
+  - [105.5.1 The DXIL Resource Model](#10551-the-dxil-resource-model)
+  - [105.5.2 Handle Creation and Usage](#10552-handle-creation-and-usage)
+  - [105.5.2b Annotate Handle (SM 6.6)](#10552b-annotate-handle-sm-66)
+  - [105.5.3 Root Signatures](#10553-root-signatures)
+- [105.6 DXIL Validation and the DXC Toolchain](#1056-dxil-validation-and-the-dxc-toolchain)
+  - [105.6.0 PSV0 Chunk: Pipeline State Validation Data](#10560-psv0-chunk-pipeline-state-validation-data)
+  - [105.6.1 Structural Validation Requirements](#10561-structural-validation-requirements)
+  - [105.6.2 DXC Toolchain Overview](#10562-dxc-toolchain-overview)
+  - [105.6.3 DXIL Signing](#10563-dxil-signing)
+- [105.7 Shader Model 6.x Features](#1057-shader-model-6x-features)
+  - [105.7.0 DXR Ray Tracing (SM 6.3 / 6.5)](#10570-dxr-ray-tracing-sm-63-65)
+  - [105.7.1 Wave Intrinsics (SM 6.0)](#10571-wave-intrinsics-sm-60)
+  - [105.7.2 Integer Dot Products (SM 6.4)](#10572-integer-dot-products-sm-64)
+  - [105.7.3 Mesh and Amplification Shaders (SM 6.5)](#10573-mesh-and-amplification-shaders-sm-65)
+  - [105.7.3b Bindless Resources (SM 6.6)](#10573b-bindless-resources-sm-66)
+  - [105.7.4 Work Graphs (SM 6.8)](#10574-work-graphs-sm-68)
+- [105.8 Debugging DXIL](#1058-debugging-dxil)
+  - [105.8.1 DXIL Debug Info](#10581-dxil-debug-info)
+  - [105.8.2 Disassembling DXIL](#10582-disassembling-dxil)
+  - [105.8.2a SFI0 Shader Feature Flags](#10582a-sfi0-shader-feature-flags)
+  - [105.8.2b Shader Hot Reload and Runtime Recompilation](#10582b-shader-hot-reload-and-runtime-recompilation)
+  - [105.8.3 PIX and RenderDoc](#10583-pix-and-renderdoc)
+- [105.9 DXIL Library Targets and Linking](#1059-dxil-library-targets-and-linking)
+  - [105.9.1 DXIL Library Shaders](#10591-dxil-library-shaders)
+  - [105.9.2 Specialization Constants and DXC Defines](#10592-specialization-constants-and-dxc-defines)
+- [105.10 Invoking the In-Tree Backend via llc](#10510-invoking-the-in-tree-backend-via-llc)
+- [105.11 HLSL Namespaces, Overloads, and the Clang HLSL Frontend](#10511-hlsl-namespaces-overloads-and-the-clang-hlsl-frontend)
+  - [105.11.1 HLSL as a Clang Language Mode](#105111-hlsl-as-a-clang-language-mode)
+  - [105.11.2 Vector Type Swizzling](#105112-vector-type-swizzling)
+  - [105.11.3 HLSL Built-in Function Lowering](#105113-hlsl-built-in-function-lowering)
+- [Chapter 105 Summary](#chapter-105-summary)
+
+---
+
 ## 105.1 DXIL Overview
 
 ### 105.1.1 DXIL as Restricted LLVM IR

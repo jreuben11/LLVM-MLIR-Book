@@ -4,6 +4,30 @@
 
 Polly is LLVM's polyhedral loop optimizer. It takes an LLVM IR function, extracts the largest affine loop nests (SCoPs) it can find, applies the scheduling and code generation algorithms developed in Part XI, and replaces the original loop code with the optimized version. This chapter covers Polly's architecture: how it detects and represents SCoPs from LLVM IR, how it integrates into the LLVM pass pipeline, the role of ISL inside Polly, and how Polly's design compares to standalone polyhedral tools like Pluto.
 
+## Table of Contents
+
+- [74.1 Overview](#741-overview)
+- [74.2 The Polly Pass Pipeline](#742-the-polly-pass-pipeline)
+- [74.3 ScopDetection](#743-scopdetection)
+  - [74.3.1 Detection Conditions](#7431-detection-conditions)
+  - [74.3.2 ScalarEvolution Integration](#7432-scalarevolution-integration)
+  - [74.3.3 Non-Affine Extensions](#7433-non-affine-extensions)
+- [74.4 ScopInfo: The Polyhedral Representation](#744-scopinfo-the-polyhedral-representation)
+  - [74.4.1 The Scop Class](#7441-the-scop-class)
+  - [74.4.2 ScopStmt: Statement Representation](#7442-scopstmt-statement-representation)
+  - [74.4.3 MemoryAccess: Access Functions](#7443-memoryaccess-access-functions)
+  - [74.4.4 Modeling Array Layout](#7444-modeling-array-layout)
+- [74.5 Dependence Analysis](#745-dependence-analysis)
+  - [74.5.1 Validity vs Proximity Constraints](#7451-validity-vs-proximity-constraints)
+- [74.6 Schedule Optimization](#746-schedule-optimization)
+  - [74.6.1 Polly-Specific Optimizations](#7461-polly-specific-optimizations)
+- [74.7 Code Generation](#747-code-generation)
+  - [74.7.1 Value Substitution](#7471-value-substitution)
+- [74.8 Comparison to Pluto](#748-comparison-to-pluto)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 74.1 Overview
 
 Polly is an out-of-tree pass that ships as part of the LLVM monorepo under `polly/`. It is enabled with `LLVM_ENABLE_POLLY=ON` at cmake time and accessed via:

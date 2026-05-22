@@ -4,6 +4,27 @@
 
 Software pipelining is one of the most powerful loop optimisations available at the machine instruction level. By overlapping the execution of multiple loop iterations, a pipeliner can fill every functional unit slot in an in-order or VLIW processor, achieving throughput limited only by the resources of the machine. LLVM's `MachinePipeliner` implements Swing Modulo Scheduling (SMS), a well-studied algorithm that combines modulo scheduling with a careful node ordering to produce compact, schedule-efficient loop kernels. This chapter explains the mathematical foundations of modulo scheduling, traces through the SMS algorithm as implemented in LLVM, describes the rotating register file model used for kernels, and documents which targets currently benefit from software pipelining.
 
+## Table of Contents
+
+- [91.1 Software Pipelining: Concepts](#911-software-pipelining-concepts)
+  - [91.1.1 Loop Overlap and the Kernel](#9111-loop-overlap-and-the-kernel)
+  - [91.1.2 Initiation Interval Bounds](#9112-initiation-interval-bounds)
+- [91.2 Modulo Scheduling](#912-modulo-scheduling)
+  - [91.2.1 The Stage Vector](#9121-the-stage-vector)
+- [91.3 Swing Modulo Scheduling in LLVM](#913-swing-modulo-scheduling-in-llvm)
+  - [91.3.1 Stage 1: Node Ordering](#9131-stage-1-node-ordering)
+  - [91.3.2 Stage 2: Scheduling](#9132-stage-2-scheduling)
+  - [91.3.3 Stage 3: Kernel Construction](#9133-stage-3-kernel-construction)
+- [91.4 The Rotating Register File](#914-the-rotating-register-file)
+  - [91.4.1 Hexagon Rotating Registers](#9141-hexagon-rotating-registers)
+  - [91.4.2 Software Register Renaming](#9142-software-register-renaming)
+- [91.5 VLIW Instruction Bundling](#915-vliw-instruction-bundling)
+- [91.6 Target Uptake](#916-target-uptake)
+- [91.7 Profitability Analysis](#917-profitability-analysis)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 91.1 Software Pipelining: Concepts
 
 ### 91.1.1 Loop Overlap and the Kernel

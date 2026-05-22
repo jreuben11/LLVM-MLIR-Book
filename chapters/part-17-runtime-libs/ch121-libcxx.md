@@ -6,6 +6,46 @@ libc++ is LLVM's implementation of the ISO C++ standard library. It targets the 
 
 ---
 
+## Table of Contents
+
+- [21.1 Repository Layout](#211-repository-layout)
+- [21.2 ABI Versioning and the Inline-Namespace Trick](#212-abi-versioning-and-the-inline-namespace-trick)
+  - [21.2.1 The Problem](#2121-the-problem)
+  - [21.2.2 Inline Namespaces for ABI Version](#2122-inline-namespaces-for-abi-version)
+  - [21.2.3 ABI Stability Policy](#2123-abi-stability-policy)
+- [21.3 Configuration Macros](#213-configuration-macros)
+- [21.4 Hardening Modes](#214-hardening-modes)
+  - [21.4.1 The Four Hardening Levels](#2141-the-four-hardening-levels)
+  - [21.4.2 Custom Violation Handler](#2142-custom-violation-handler)
+- [21.5 C++ Modules Support](#215-c-modules-support)
+  - [21.5.1 Module Files](#2151-module-files)
+  - [21.5.2 Building with Modules](#2152-building-with-modules)
+- [21.6 PSTL: Parallel Algorithms](#216-pstl-parallel-algorithms)
+  - [21.6.1 Backend Architecture](#2161-backend-architecture)
+  - [21.6.2 Available Backends](#2162-available-backends)
+  - [21.6.3 Work Granularity](#2163-work-granularity)
+- [21.7 Key Implementation Details](#217-key-implementation-details)
+  - [21.7.1 std::string Small-Buffer Optimization](#2171-stdstring-small-buffer-optimization)
+  - [21.7.2 std::vector Growth Policy](#2172-stdvector-growth-policy)
+  - [21.7.3 std::shared_ptr Control Block](#2173-stdsharedptr-control-block)
+- [21.8 C++23 and C++26 Additions in LLVM 22](#218-c23-and-c26-additions-in-llvm-22)
+  - [21.8.1 std::format and std::print](#2181-stdformat-and-stdprint)
+  - [21.8.2 std::expected](#2182-stdexpected)
+  - [21.8.3 std::generator (C++23)](#2183-stdgenerator-c23)
+  - [21.8.4 std::chrono Time Zone Database](#2184-stdchrono-time-zone-database)
+- [21.9 C++23 Flat Containers and mdspan](#219-c23-flat-containers-and-mdspan)
+  - [21.9.1 std::mdspan](#2191-stdmdspan)
+  - [21.9.2 std::flat_map and std::flat_set](#2192-stdflatmap-and-stdflatset)
+- [21.10 Availability Annotations (Apple Platforms)](#2110-availability-annotations-apple-platforms)
+- [21.11 Building and Deploying libc++](#2111-building-and-deploying-libc)
+  - [21.9.1 Standard Build](#2191-standard-build)
+  - [21.9.2 Standalone (Hermetic) Deployment](#2192-standalone-hermetic-deployment)
+  - [21.9.3 Embedded / No-OS Deployment](#2193-embedded-no-os-deployment)
+- [21.12 Testing Infrastructure](#2112-testing-infrastructure)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 21.1 Repository Layout
 
 libc++ lives under `libcxx/` in the LLVM monorepo:

@@ -6,6 +6,30 @@ The Rust community has built a remarkably productive layer of compiler infrastru
 
 ---
 
+## Table of Contents
+
+- [178.1 LLVM Bindings: llvm-sys and inkwell](#1781-llvm-bindings-llvm-sys-and-inkwell)
+  - [llvm-sys: Raw Bindings to the LLVM C API](#llvm-sys-raw-bindings-to-the-llvm-c-api)
+  - [inkwell: Safe, Idiomatic LLVM Bindings](#inkwell-safe-idiomatic-llvm-bindings)
+  - [iron-kaleidoscope: A Tutorial Compiler in Rust](#iron-kaleidoscope-a-tutorial-compiler-in-rust)
+- [178.2 MLIR Bindings: melior and pliron](#1782-mlir-bindings-melior-and-pliron)
+  - [melior: MLIR via the C API](#melior-mlir-via-the-c-api)
+  - [pliron: A Native Rust IR Framework](#pliron-a-native-rust-ir-framework)
+  - [Calyxir: Hardware Compiler IR](#calyxir-hardware-compiler-ir)
+- [178.3 Object-File and Debug-Info Crates](#1783-object-file-and-debug-info-crates)
+  - [object: Portable Binary Parsing and Writing](#object-portable-binary-parsing-and-writing)
+  - [gimli: Zero-Copy DWARF 5 Reader and Writer](#gimli-zero-copy-dwarf-5-reader-and-writer)
+  - [addr2line: Address-to-Symbol Resolution](#addr2line-address-to-symbol-resolution)
+- [178.4 Compiler Infrastructure Crates](#1784-compiler-infrastructure-crates)
+  - [ena: Union-Find for Type Inference](#ena-union-find-for-type-inference)
+- [178.5 GPU and ML from Rust](#1785-gpu-and-ml-from-rust)
+  - [rust-cuda: Device-Side Rust for NVIDIA GPUs](#rust-cuda-device-side-rust-for-nvidia-gpus)
+  - [Burn: A Pluggable Deep Learning Framework](#burn-a-pluggable-deep-learning-framework)
+  - [CubeCL: GPU Kernel DSL via Proc-Macros](#cubecl-gpu-kernel-dsl-via-proc-macros)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 178.1 LLVM Bindings: llvm-sys and inkwell
 
 ### llvm-sys: Raw Bindings to the LLVM C API

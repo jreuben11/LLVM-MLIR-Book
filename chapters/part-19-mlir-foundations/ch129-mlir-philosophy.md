@@ -6,6 +6,38 @@ By 2019, the compiler infrastructure landscape had splintered. TensorFlow had XL
 
 ---
 
+## Table of Contents
+
+- [129.1 The Problem MLIR Solves](#1291-the-problem-mlir-solves)
+  - [Fragmentation](#fragmentation)
+  - [The Abstraction Gap](#the-abstraction-gap)
+  - [MLIR's Approach](#mlirs-approach)
+- [129.2 The Dialect System](#1292-the-dialect-system)
+  - [Dialect Comparison with LLVM IR](#dialect-comparison-with-llvm-ir)
+  - [In-Tree Dialects](#in-tree-dialects)
+- [129.3 Progressive Lowering](#1293-progressive-lowering)
+  - [A Concrete Lowering Path](#a-concrete-lowering-path)
+  - [Comparison with LLVM IR Lowering](#comparison-with-llvm-ir-lowering)
+- [129.4 Key Design Decisions](#1294-key-design-decisions)
+  - [Ops Are Extensible, But Verification Is Mandatory](#ops-are-extensible-but-verification-is-mandatory)
+  - [No Implicit Captures](#no-implicit-captures)
+  - [Value Semantics for Data](#value-semantics-for-data)
+  - [Regions Replace Flat CFGs](#regions-replace-flat-cfgs)
+- [129.5 Key Papers and History](#1295-key-papers-and-history)
+  - [Origin](#origin)
+  - [Timeline](#timeline)
+  - [The CGO 2021 Paper](#the-cgo-2021-paper)
+- [129.6 The MLIR Ecosystem in 2026](#1296-the-mlir-ecosystem-in-2026)
+  - [In-Tree Toolchain](#in-tree-toolchain)
+  - [Out-of-Tree Projects](#out-of-tree-projects)
+  - [Relationship to XLA / StableHLO](#relationship-to-xla-stablehlo)
+- [129.7 Getting Started](#1297-getting-started)
+  - [Running mlir-opt](#running-mlir-opt)
+  - [A Minimal MLIR Program](#a-minimal-mlir-program)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 129.1 The Problem MLIR Solves
 
 ### Fragmentation

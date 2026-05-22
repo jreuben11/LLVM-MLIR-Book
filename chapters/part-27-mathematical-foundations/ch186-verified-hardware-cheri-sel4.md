@@ -6,6 +6,52 @@ Formal compiler verification, as embodied by CompCert ([Chapter 168 — CompCert
 
 ---
 
+## Table of Contents
+
+- [186.1 The Hardware-Software Co-Verification Problem](#1861-the-hardware-software-co-verification-problem)
+  - [186.1.1 What CompCert Leaves Open](#18611-what-compcert-leaves-open)
+  - [186.1.2 Two Complementary Approaches](#18612-two-complementary-approaches)
+- [186.2 CHERI Capabilities](#1862-cheri-capabilities)
+  - [186.2.1 The Capability Format](#18621-the-capability-format)
+  - [186.2.2 The Monotonicity Guarantee](#18622-the-monotonicity-guarantee)
+  - [186.2.3 Memory Safety Semantics](#18623-memory-safety-semantics)
+- [186.3 CHERI ISA Variants](#1863-cheri-isa-variants)
+  - [186.3.1 CHERI-RISC-V](#18631-cheri-risc-v)
+  - [186.3.2 Morello (Arm AArch64 + CHERI)](#18632-morello-arm-aarch64-cheri)
+  - [186.3.3 CherIoT](#18633-cheriot)
+- [186.4 CHERI in LLVM](#1864-cheri-in-llvm)
+  - [186.4.1 Address Space 200 and Non-Integral Pointers](#18641-address-space-200-and-non-integral-pointers)
+  - [186.4.2 CHERI Intrinsics](#18642-cheri-intrinsics)
+  - [186.4.3 The CheriABI / PCuABI Calling Convention](#18643-the-cheriabi-pcuabi-calling-convention)
+  - [186.4.4 Capability-Aware memcpy and memmove](#18644-capability-aware-memcpy-and-memmove)
+- [186.5 The Sail ISA Specification Language](#1865-the-sail-isa-specification-language)
+  - [186.5.1 Sail as a Typed DSL](#18651-sail-as-a-typed-dsl)
+  - [186.5.2 The Official RISC-V Sail Model](#18652-the-official-risc-v-sail-model)
+  - [186.5.3 Sail Extraction Targets and Their Uses](#18653-sail-extraction-targets-and-their-uses)
+  - [186.5.4 Sail and the LLVM RISC-V Backend](#18654-sail-and-the-llvm-risc-v-backend)
+- [186.6 seL4 Architecture](#1866-sel4-architecture)
+  - [186.6.1 L4 Microkernel Principles](#18661-l4-microkernel-principles)
+  - [186.6.2 Kernel Objects](#18662-kernel-objects)
+  - [186.6.3 The Capability Derivation Tree](#18663-the-capability-derivation-tree)
+- [186.7 The Three-Level Refinement Proof](#1867-the-three-level-refinement-proof)
+  - [186.7.1 Proof Architecture](#18671-proof-architecture)
+  - [186.7.2 The Abstract Specification](#18672-the-abstract-specification)
+  - [186.7.3 The Executable Specification](#18673-the-executable-specification)
+  - [186.7.4 The C Implementation and AutoCorres](#18674-the-c-implementation-and-autocorres)
+  - [186.7.5 What the Proofs Guarantee](#18675-what-the-proofs-guarantee)
+  - [186.7.6 What the Proofs Do NOT Cover](#18676-what-the-proofs-do-not-cover)
+- [186.8 AutoCorres, l4v, Deployments, and Multicore](#1868-autocorres-l4v-deployments-and-multicore)
+  - [186.8.1 The l4v Proof Repository](#18681-the-l4v-proof-repository)
+  - [186.8.2 CAmkES and System Composition](#18682-camkes-and-system-composition)
+  - [186.8.3 Verified Deployments](#18683-verified-deployments)
+  - [186.8.4 Multicore seL4 and the CLH Lock Proof](#18684-multicore-sel4-and-the-clh-lock-proof)
+  - [186.8.5 seL4 and Rust](#18685-sel4-and-rust)
+  - [186.8.6 CherIoT: Hardware + Software Capabilities Combined](#18686-cheriot-hardware-software-capabilities-combined)
+- [186.9 Summary](#1869-summary)
+- [References](#references)
+
+---
+
 ## 186.1 The Hardware-Software Co-Verification Problem
 
 ### 186.1.1 What CompCert Leaves Open

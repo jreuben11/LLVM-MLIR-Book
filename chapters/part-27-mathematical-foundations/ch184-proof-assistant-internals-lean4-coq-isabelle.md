@@ -6,6 +6,58 @@ Proof assistants are the last line of defence when testing, static analysis, and
 
 ---
 
+## Table of Contents
+
+- [184.1 Lean 4 Architecture](#1841-lean-4-architecture)
+  - [184.1.1 The Kernel: The Sole Trusted Base](#18411-the-kernel-the-sole-trusted-base)
+  - [184.1.2 Core Dependent Type Theory](#18412-core-dependent-type-theory)
+  - [184.1.3 The `Lean.Expr` AST](#18413-the-leanexpr-ast)
+  - [184.1.4 Universe Levels](#18414-universe-levels)
+  - [184.1.5 Elaboration Pipeline](#18415-elaboration-pipeline)
+  - [184.1.6 The `Lean.Meta.M` Monad: Unification and Reduction](#18416-the-leanmetam-monad-unification-and-reduction)
+  - [184.1.7 Tactic Framework](#18417-tactic-framework)
+  - [184.1.8 Compilation Pipeline: LCNF to C and LLVM](#18418-compilation-pipeline-lcnf-to-c-and-llvm)
+  - [184.1.9 Bootstrapping and Lake](#18419-bootstrapping-and-lake)
+  - [184.1.10 Lean4Lean and Proof of the Kernel](#184110-lean4lean-and-proof-of-the-kernel)
+  - [184.1.10b Mathlib4: Scale as a Correctness Argument](#184110b-mathlib4-scale-as-a-correctness-argument)
+  - [184.1.11 LeanDojo and Proof Search](#184111-leandojo-and-proof-search)
+- [184.2 Coq/Rocq Architecture](#1842-coqrocq-architecture)
+  - [184.2.1 The Calculus of Inductive Constructions](#18421-the-calculus-of-inductive-constructions)
+  - [184.2.2 The Kernel](#18422-the-kernel)
+  - [184.2.3 Guard Checker for Fixpoints](#18423-guard-checker-for-fixpoints)
+  - [184.2.4 Metaprogramming: Ltac, Ltac2, and SSReflect](#18424-metaprogramming-ltac-ltac2-and-ssreflect)
+  - [184.2.5 The Extraction Mechanism](#18425-the-extraction-mechanism)
+  - [184.2.6 `native_compute` and the `Equations` Plugin](#18426-nativecompute-and-the-equations-plugin)
+  - [184.2.7 The Coq/Rocq Renaming](#18427-the-coqrocq-renaming)
+- [184.3 Isabelle/HOL Architecture](#1843-isabellehol-architecture)
+  - [184.3.1 The Metalogic Pure](#18431-the-metalogic-pure)
+  - [184.3.2 The `Thm.t` Type: LCF Architecture](#18432-the-thmt-type-lcf-architecture)
+  - [184.3.3 Isar: Structured Proof Language](#18433-isar-structured-proof-language)
+  - [184.3.4 Sledgehammer: ATP Integration](#18434-sledgehammer-atp-integration)
+  - [184.3.5 Nitpick: Model Finding and Counterexample Search](#18435-nitpick-model-finding-and-counterexample-search)
+  - [184.3.6 The seL4 Verification: l4v and AutoCorres](#18436-the-sel4-verification-l4v-and-autocorres)
+  - [184.3.6b Definitional Mechanisms and Consistency](#18436b-definitional-mechanisms-and-consistency)
+  - [184.3.7 AFP and Code Generation](#18437-afp-and-code-generation)
+- [184.4 Agda and Cubical Type Theory](#1844-agda-and-cubical-type-theory)
+  - [184.4.1 Language Core: Dependent Pattern Matching](#18441-language-core-dependent-pattern-matching)
+  - [184.4.2 The Totality Checker](#18442-the-totality-checker)
+  - [184.4.3 Universe Levels](#18443-universe-levels)
+  - [184.4.4 Cubical Agda: HoTT as Computation](#18444-cubical-agda-hott-as-computation)
+  - [184.4.5 `agda2hs`: Verified Haskell via Extraction](#18445-agda2hs-verified-haskell-via-extraction)
+  - [184.4.6 When to Choose Agda](#18446-when-to-choose-agda)
+- [184.5 Comparison and Connections](#1845-comparison-and-connections)
+  - [184.5.1 The de Bruijn Criterion](#18451-the-de-bruijn-criterion)
+  - [184.5.2 The Three Kernels Compared](#18452-the-three-kernels-compared)
+  - [184.5.3 Why Each Project Made Its Choice](#18453-why-each-project-made-its-choice)
+  - [184.5.3b The HOL Family and Minimal Kernels](#18453b-the-hol-family-and-minimal-kernels)
+  - [184.5.4 Extracted and Compiled Code in the LLVM Pipeline](#18454-extracted-and-compiled-code-in-the-llvm-pipeline)
+  - [184.5.5 Connection to Type Theory (Chapters 12–15)](#18455-connection-to-type-theory-chapters-1215)
+  - [184.5.5b Proof Terms vs. Proof Certificates: Practical Performance Implications](#18455b-proof-terms-vs-proof-certificates-practical-performance-implications)
+  - [184.5.6 Connection to Alive2 (Chapter 170) and LLM Provers (Chapter 181)](#18456-connection-to-alive2-chapter-170-and-llm-provers-chapter-181)
+- [184.6 Chapter Summary](#1846-chapter-summary)
+
+---
+
 ## 184.1 Lean 4 Architecture
 
 Lean 4 is a dependently-typed functional programming language and proof assistant developed by Leonardo de Moura and Sebastian Ullrich at Microsoft Research and later Amazon Web Services. Unlike its predecessor Lean 3, which separated the programming and proving aspects through an awkward two-namespace design, Lean 4 is a unified system: every mathematical proof is a program, and every program can serve as a computational substrate for proof automation. It is written in Lean 4 itself after bootstrapping — the first substantial language in this class where the entire implementation, including the build system and standard library, is verified or at least type-checked by the system itself. The source lives at [https://github.com/leanprover/lean4](https://github.com/leanprover/lean4); the core of what follows refers to files under `src/Lean/`.

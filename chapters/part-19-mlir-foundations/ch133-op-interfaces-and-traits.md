@@ -6,6 +6,48 @@ MLIR's extensibility creates a challenge: how can generic compiler passes work w
 
 ---
 
+## Table of Contents
+
+- [133.1 Interface Overview](#1331-interface-overview)
+  - [The Interface Pattern](#the-interface-pattern)
+  - [Why Not Virtual Dispatch on Operation?](#why-not-virtual-dispatch-on-operation)
+- [133.2 Defining Interfaces in TableGen](#1332-defining-interfaces-in-tablegen)
+- [133.3 Key Built-in Interfaces](#1333-key-built-in-interfaces)
+  - [MemoryEffectOpInterface / SideEffectOpInterface](#memoryeffectopinterface-sideeffectopinterface)
+  - [CallOpInterface](#callopinterface)
+  - [CallableOpInterface](#callableopinterface)
+  - [RegionBranchOpInterface](#regionbranchopinterface)
+  - [LoopLikeOpInterface](#looplikeopinterface)
+  - [InferTypeOpInterface](#infertypeopinterface)
+  - [DestinationStyleOpInterface](#destinationstyleopinterface)
+  - [VectorTransferOpInterface](#vectortransferopinterface)
+  - [ShapeHelperOpInterface and InferShapedTypeOpInterface](#shapehelperopinterface-and-infershapedtypeopinterface)
+- [133.4 Using Interfaces in Passes](#1334-using-interfaces-in-passes)
+  - [Pattern: Generic CSE](#pattern-generic-cse)
+  - [Pattern: Walk + Interface Dispatch](#pattern-walk-interface-dispatch)
+  - [Pattern: Type Converter with Interface](#pattern-type-converter-with-interface)
+- [133.5 Traits in Depth](#1335-traits-in-depth)
+  - [How Traits Work Internally](#how-traits-work-internally)
+  - [Important Traits Reference](#important-traits-reference)
+  - [AttrSizedOperandSegments Example](#attrsizedoperandsegments-example)
+- [133.6 Implementing Custom Interfaces](#1336-implementing-custom-interfaces)
+  - [Step 1: Declare the Interface in TableGen](#step-1-declare-the-interface-in-tablegen)
+  - [Step 2: Implement on an Op](#step-2-implement-on-an-op)
+  - [Step 3: Use the Interface in a Pass](#step-3-use-the-interface-in-a-pass)
+- [133.7 External Interface Model](#1337-external-interface-model)
+- [133.8 Trait Verification](#1338-trait-verification)
+- [External Models: Retroactive Interface Attachment](#external-models-retroactive-interface-attachment)
+  - [The Problem: Cross-Dialect Interface Attachment](#the-problem-cross-dialect-interface-attachment)
+  - [The External Model API](#the-external-model-api)
+  - [DialectRegistry Extensions](#dialectregistry-extensions)
+  - [The DLTI Dialect as a Canonical Example](#the-dlti-dialect-as-a-canonical-example)
+  - [Fallback Models](#fallback-models)
+  - [When to Use External Models vs. ODS Inheritance](#when-to-use-external-models-vs-ods-inheritance)
+  - [Downstream Project Pattern](#downstream-project-pattern)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 133.1 Interface Overview
 
 ### The Interface Pattern

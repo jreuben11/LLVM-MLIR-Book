@@ -8,6 +8,55 @@ This chapter works through every category of LLVM type in turn: primitive intege
 
 ---
 
+## Table of Contents
+
+- [17.1 Primitive Integer Types: `iN`](#171-primitive-integer-types-in)
+  - [17.1.1 The `iN` design](#1711-the-in-design)
+  - [17.1.2 Unusual widths](#1712-unusual-widths)
+  - [17.1.3 Widening, narrowing, and bitwise operations](#1713-widening-narrowing-and-bitwise-operations)
+  - [17.1.4 Type legalization and backend behavior](#1714-type-legalization-and-backend-behavior)
+  - [17.1.5 Integer types in the C++ API](#1715-integer-types-in-the-c-api)
+- [17.2 Floating-Point Types](#172-floating-point-types)
+  - [17.2.1 The standard types](#1721-the-standard-types)
+  - [17.2.2 `bfloat`: the Machine-Learning type](#1722-bfloat-the-machine-learning-type)
+  - [17.2.3 `fp128`: Quad Precision](#1723-fp128-quad-precision)
+  - [17.2.4 `x86_fp80`: The x87 Extended-Precision Format](#1724-x86fp80-the-x87-extended-precision-format)
+  - [17.2.5 `ppc_fp128`: IBM Double-Double](#1725-ppcfp128-ibm-double-double)
+  - [17.2.6 Floating-point semantics flags](#1726-floating-point-semantics-flags)
+  - [17.2.7 Special first-class types: `void`, `label`, `token`, `metadata`](#1727-special-first-class-types-void-label-token-metadata)
+- [17.3 Vectors: Fixed-Length and Scalable](#173-vectors-fixed-length-and-scalable)
+  - [17.3.1 Fixed-length vectors](#1731-fixed-length-vectors)
+  - [17.3.2 Scalable vectors](#1732-scalable-vectors)
+  - [17.3.3 Predicated vector operations](#1733-predicated-vector-operations)
+- [17.4 Arrays and Structs](#174-arrays-and-structs)
+  - [17.4.1 Arrays](#1741-arrays)
+  - [17.4.2 Named and anonymous structs](#1742-named-and-anonymous-structs)
+  - [17.4.3 Packed structs](#1743-packed-structs)
+  - [17.4.4 Opaque structs](#1744-opaque-structs)
+  - [17.4.5 Struct types in the C++ API](#1745-struct-types-in-the-c-api)
+- [17.5 Opaque Pointers: The Migration and the New Model](#175-opaque-pointers-the-migration-and-the-new-model)
+  - [17.5.1 The old world: typed pointers](#1751-the-old-world-typed-pointers)
+  - [17.5.2 The new world: opaque `ptr`](#1752-the-new-world-opaque-ptr)
+  - [17.5.3 Benefits of opaque pointers](#1753-benefits-of-opaque-pointers)
+  - [17.5.4 Implications for reading existing documentation and code](#1754-implications-for-reading-existing-documentation-and-code)
+  - [17.5.5 Migrating existing IR and passes](#1755-migrating-existing-ir-and-passes)
+- [17.6 Address Spaces](#176-address-spaces)
+  - [17.6.1 Motivation](#1761-motivation)
+  - [17.6.2 Syntax](#1762-syntax)
+  - [17.6.3 Target address space conventions](#1763-target-address-space-conventions)
+- [17.7 Target Extension Types](#177-target-extension-types)
+  - [17.7.1 Motivation](#1771-motivation)
+  - [17.7.2 Examples](#1772-examples)
+- [17.8 The `DataLayout` String](#178-the-datalayout-string)
+  - [17.8.1 Purpose and location](#1781-purpose-and-location)
+  - [17.8.2 Specifier reference](#1782-specifier-reference)
+  - [17.8.3 Annotated real examples](#1783-annotated-real-examples)
+  - [17.8.4 The `DataLayout` C++ API](#1784-the-datalayout-c-api)
+  - [17.8.5 ABI alignment vs. preferred alignment](#1785-abi-alignment-vs-preferred-alignment)
+- [17.9 Chapter Summary](#179-chapter-summary)
+
+---
+
 ## 17.1 Primitive Integer Types: `iN`
 
 ### 17.1.1 The `iN` design

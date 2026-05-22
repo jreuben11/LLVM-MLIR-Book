@@ -4,6 +4,44 @@
 
 The polyhedral model characterizes all legal loop transformations as schedules in a feasibility polyhedron. The scheduling problem is to find the *best* legal schedule according to a given objective: maximum parallelism, minimum communication, maximum tileability, or best cache behavior. This chapter derives three foundational scheduling algorithms from first principles — Feautrier's multidimensional scheduling, Lim-Lam's affine partitioning, and the Pluto algorithm — and then covers the ISL scheduler, iterative compilation, and the relationship between schedules and concrete loop transformations.
 
+## Table of Contents
+
+- [72.1 The Scheduling Framework](#721-the-scheduling-framework)
+  - [72.1.1 Problem Statement](#7211-problem-statement)
+  - [72.1.2 The Legality Constraint (Farkas Application)](#7212-the-legality-constraint-farkas-application)
+- [72.2 Feautrier's Multidimensional Scheduling](#722-feautriers-multidimensional-scheduling)
+  - [72.2.1 Historical Context](#7221-historical-context)
+  - [72.2.2 The Algorithm](#7222-the-algorithm)
+  - [72.2.3 Example: Linear Recurrence](#7223-example-linear-recurrence)
+  - [72.2.4 Example: Matrix Multiplication](#7224-example-matrix-multiplication)
+  - [72.2.5 Feautrier's Properties](#7225-feautriers-properties)
+- [72.3 Lim-Lam Affine Partitioning](#723-lim-lam-affine-partitioning)
+  - [72.3.1 Affine Partitioning for Parallelism](#7231-affine-partitioning-for-parallelism)
+  - [72.3.2 The Lim-Lam Schedule](#7232-the-lim-lam-schedule)
+  - [72.3.3 Affine Partitions and Wavefront Parallelism](#7233-affine-partitions-and-wavefront-parallelism)
+- [72.4 The Pluto Algorithm](#724-the-pluto-algorithm)
+  - [72.4.1 Motivation](#7241-motivation)
+  - [72.4.2 Tileability as a Constraint](#7242-tileability-as-a-constraint)
+  - [72.4.3 The Pluto Cost Function](#7243-the-pluto-cost-function)
+  - [72.4.4 Derivation of Pluto's LP](#7244-derivation-of-plutos-lp)
+  - [72.4.5 The Pluto++ Extensions](#7245-the-pluto-extensions)
+  - [72.4.6 Example: Matrix-Vector Multiplication](#7246-example-matrix-vector-multiplication)
+  - [72.4.7 Example: Jacobi 2D Stencil](#7247-example-jacobi-2d-stencil)
+- [72.5 Affine Transformations as Schedules](#725-affine-transformations-as-schedules)
+  - [72.5.1 Catalogue of Transformations](#7251-catalogue-of-transformations)
+  - [72.5.2 Skewing for Tileability](#7252-skewing-for-tileability)
+- [72.6 The ISL Scheduler](#726-the-isl-scheduler)
+  - [72.6.1 Architecture](#7261-architecture)
+  - [72.6.2 Band Trees](#7262-band-trees)
+  - [72.6.3 Options and Heuristics](#7263-options-and-heuristics)
+- [72.7 Iterative Compilation and Autotuning](#727-iterative-compilation-and-autotuning)
+  - [72.7.1 Limitations of Static Scheduling](#7271-limitations-of-static-scheduling)
+  - [72.7.2 Iterative Compilation](#7272-iterative-compilation)
+  - [72.7.3 Autotuning with Polyhedral Models](#7273-autotuning-with-polyhedral-models)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 72.1 The Scheduling Framework
 
 ### 72.1.1 Problem Statement

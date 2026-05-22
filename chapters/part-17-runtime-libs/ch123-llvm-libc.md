@@ -6,6 +6,47 @@ LLVM-libc is the LLVM project's implementation of the C standard library. Unlike
 
 ---
 
+## Table of Contents
+
+- [23.1 Design Philosophy](#231-design-philosophy)
+  - [23.1.1 Goals Contrasted with glibc/musl](#2311-goals-contrasted-with-glibcmusl)
+  - [23.1.2 The Public-Only-Headers Approach](#2312-the-public-only-headers-approach)
+- [23.2 Repository Layout](#232-repository-layout)
+- [23.3 TableGen Entrypoints](#233-tablegen-entrypoints)
+- [23.4 The TableGen-to-Header Pipeline](#234-the-tablegen-to-header-pipeline)
+  - [23.4.1 Step 1: Entrypoint .td Declaration](#2341-step-1-entrypoint-td-declaration)
+  - [23.4.2 Step 2: .h.def Header Template](#2342-step-2-hdef-header-template)
+  - [23.4.3 Step 3: Implementation and LIBC_NAMESPACE](#2343-step-3-implementation-and-libcnamespace)
+  - [23.4.4 Step 4: Alias to the Public Name](#2344-step-4-alias-to-the-public-name)
+- [23.5 Deployment Modes](#235-deployment-modes)
+  - [23.4.1 Full Build Mode](#2341-full-build-mode)
+  - [23.4.2 Overlay Mode](#2342-overlay-mode)
+  - [23.4.3 Choosing Build Mode](#2343-choosing-build-mode)
+- [23.6 Mathematics: Correctly Rounded Functions](#236-mathematics-correctly-rounded-functions)
+  - [23.5.1 Correctly Rounded sin/cos/exp/log](#2351-correctly-rounded-sincosexplog)
+  - [23.5.2 FEnv and Rounding Mode Support](#2352-fenv-and-rounding-mode-support)
+- [23.7 String Functions](#237-string-functions)
+  - [23.6.1 memcpy / memset Strategy](#2361-memcpy-memset-strategy)
+  - [23.6.2 The LIBC_INLINE_ASM Approach](#2362-the-libcinlineasm-approach)
+- [23.8 GPU Support](#238-gpu-support)
+  - [23.7.1 GPU Build Configuration](#2371-gpu-build-configuration)
+  - [23.7.2 Available GPU Functions](#2372-available-gpu-functions)
+  - [23.7.3 RPC: Remote Procedure Calls for I/O](#2373-rpc-remote-procedure-calls-for-io)
+- [23.9 Testing Infrastructure](#239-testing-infrastructure)
+  - [23.8.1 Per-Function Hermetic Tests](#2381-per-function-hermetic-tests)
+  - [23.8.2 Differential Fuzzing](#2382-differential-fuzzing)
+  - [23.8.3 ULP Testing for Math](#2383-ulp-testing-for-math)
+- [23.10 Embedded and Freestanding Support](#2310-embedded-and-freestanding-support)
+  - [23.9.1 Baremetal Configuration](#2391-baremetal-configuration)
+  - [23.9.2 Scudo Integration](#2392-scudo-integration)
+- [23.11 printf Dispatch and Linux Syscall Wrappers](#2311-printf-dispatch-and-linux-syscall-wrappers)
+  - [23.11.1 printf Format Dispatch](#23111-printf-format-dispatch)
+  - [23.11.2 Linux Syscall Wrappers](#23112-linux-syscall-wrappers)
+- [23.12 LLVM 22 Status](#2312-llvm-22-status)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 23.1 Design Philosophy
 
 ### 23.1.1 Goals Contrasted with glibc/musl

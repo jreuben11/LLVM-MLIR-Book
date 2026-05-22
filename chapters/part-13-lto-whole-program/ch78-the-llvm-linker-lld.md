@@ -4,6 +4,37 @@
 
 LLD is LLVM's production linker, supporting ELF (Linux, BSD, embedded), COFF (Windows), Mach-O (macOS/iOS), and WebAssembly object formats. It was written from scratch to overcome the scalability and maintainability limitations of GNU ld and gold. LLD is the default linker for Android, Chrome, Fuchsia, and many other large software projects. This chapter covers LLD's architecture, the per-format driver design, symbol resolution, relocation and relaxation, linker scripts, ICF (identical code folding), and partial linking.
 
+## Table of Contents
+
+- [78.1 Architecture Overview](#781-architecture-overview)
+  - [78.1.1 Format-Specific Drivers](#7811-format-specific-drivers)
+  - [78.1.2 Single-Pass Execution Model](#7812-single-pass-execution-model)
+- [78.2 Symbol Resolution](#782-symbol-resolution)
+  - [78.2.1 The Symbol Table](#7821-the-symbol-table)
+  - [78.2.2 Archive Handling](#7822-archive-handling)
+  - [78.2.3 Version Scripts](#7823-version-scripts)
+  - [78.2.4 Symbol Wrapping](#7824-symbol-wrapping)
+- [78.3 Relocations and Relaxations](#783-relocations-and-relaxations)
+  - [78.3.1 Relocation Types](#7831-relocation-types)
+  - [78.3.2 Relaxations](#7832-relaxations)
+  - [78.3.3 RISC-V Relaxations](#7833-risc-v-relaxations)
+- [78.4 Section Layout and Output](#784-section-layout-and-output)
+  - [78.4.1 Output Section Assignment](#7841-output-section-assignment)
+  - [78.4.2 PHDR and Segment Layout](#7842-phdr-and-segment-layout)
+  - [78.4.3 COMDAT Section Deduplication](#7843-comdat-section-deduplication)
+- [78.5 Identical Code Folding (ICF)](#785-identical-code-folding-icf)
+  - [78.5.1 Overview](#7851-overview)
+  - [78.5.2 Algorithm](#7852-algorithm)
+  - [78.5.3 Safe vs. All ICF](#7853-safe-vs-all-icf)
+- [78.6 Linker Scripts](#786-linker-scripts)
+  - [78.6.1 Overview](#7861-overview)
+  - [78.6.2 INSERT BEFORE/AFTER](#7862-insert-beforeafter)
+- [78.7 Partial Linking](#787-partial-linking)
+- [78.8 LLD Performance](#788-lld-performance)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 78.1 Architecture Overview
 
 ### 78.1.1 Format-Specific Drivers

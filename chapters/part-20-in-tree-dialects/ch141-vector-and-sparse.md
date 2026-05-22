@@ -6,6 +6,35 @@ Two dialects in MLIR address the challenge of efficient computation on structure
 
 ---
 
+## Table of Contents
+
+- [141.1 The `vector` Dialect Overview](#1411-the-vector-dialect-overview)
+  - [141.1.1 Design Goals](#14111-design-goals)
+  - [141.1.2 VectorType](#14112-vectortype)
+- [141.2 Core Vector Ops](#1412-core-vector-ops)
+  - [141.2.1 `vector.transfer_read` and `vector.transfer_write`](#14121-vectortransferread-and-vectortransferwrite)
+  - [141.2.2 `vector.load` and `vector.store`](#14122-vectorload-and-vectorstore)
+  - [141.2.3 `vector.gather` and `vector.scatter`](#14123-vectorgather-and-vectorscatter)
+  - [141.2.4 `vector.contract`](#14124-vectorcontract)
+  - [141.2.5 `vector.multi_reduction` and `vector.reduction`](#14125-vectormultireduction-and-vectorreduction)
+  - [141.2.6 Elementwise and Extraction Ops](#14126-elementwise-and-extraction-ops)
+  - [141.2.7 FMA and Masked Operations](#14127-fma-and-masked-operations)
+- [141.3 Vector Unrolling and Target Lowering](#1413-vector-unrolling-and-target-lowering)
+  - [141.3.1 Unrolling to Target Width](#14131-unrolling-to-target-width)
+  - [141.3.2 `--vector-to-scf`](#14132-vector-to-scf)
+  - [141.3.3 `--lower-vector-to-llvm`](#14133-lower-vector-to-llvm)
+  - [141.3.4 Scalable Vectors](#14134-scalable-vectors)
+- [141.4 The `sparse_tensor` Dialect](#1414-the-sparsetensor-dialect)
+  - [141.4.1 Sparse Tensor Encoding](#14141-sparse-tensor-encoding)
+  - [141.4.2 Sparse Tensor Operations](#14142-sparse-tensor-operations)
+  - [141.4.3 Sparse Compilation with `--sparsification`](#14143-sparse-compilation-with-sparsification)
+  - [141.4.4 Sparsification Algorithm](#14144-sparsification-algorithm)
+  - [141.4.5 Format Conversion and Storage](#14145-format-conversion-and-storage)
+  - [141.4.6 Lowering Pipeline Summary](#14146-lowering-pipeline-summary)
+- [Chapter 141 Summary](#chapter-141-summary)
+
+---
+
 ## 141.1 The `vector` Dialect Overview
 
 ### 141.1.1 Design Goals

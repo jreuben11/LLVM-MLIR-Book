@@ -6,6 +6,58 @@ Sanitizers are the most impactful debugging tools in the modern C++ developer's 
 
 ---
 
+## Table of Contents
+
+- [110.1 Sanitizer Architecture](#1101-sanitizer-architecture)
+  - [110.1.1 Compile-Time and Runtime Halves](#11011-compile-time-and-runtime-halves)
+  - [110.1.2 Shadow Memory](#11012-shadow-memory)
+  - [110.1.3 Sanitizer Common Allocator](#11013-sanitizer-common-allocator)
+- [110.2 AddressSanitizer (ASan)](#1102-addresssanitizer-asan)
+  - [110.2.1 Shadow Memory Encoding](#11021-shadow-memory-encoding)
+  - [110.2.2 Heap Allocation and Red Zones](#11022-heap-allocation-and-red-zones)
+  - [110.2.3 Stack Instrumentation](#11023-stack-instrumentation)
+  - [110.2.4 Global Instrumentation](#11024-global-instrumentation)
+  - [110.2.5 Using ASan and Error Reports](#11025-using-asan-and-error-reports)
+- [110.3 MemorySanitizer (MSan)](#1103-memorysanitizer-msan)
+  - [110.3.1 Shadow Model](#11031-shadow-model)
+  - [110.3.2 Taint Propagation](#11032-taint-propagation)
+  - [110.3.3 Origin Tracking](#11033-origin-tracking)
+  - [110.3.4 Interceptors and Third-Party Libraries](#11034-interceptors-and-third-party-libraries)
+- [110.4 ThreadSanitizer (TSan)](#1104-threadsanitizer-tsan)
+  - [110.4.1 Data Race Detection](#11041-data-race-detection)
+  - [110.4.2 TSan v3](#11042-tsan-v3)
+  - [110.4.3 Synchronization Interceptors](#11043-synchronization-interceptors)
+  - [110.4.4 Using TSan](#11044-using-tsan)
+- [110.5 UndefinedBehaviorSanitizer (UBSan)](#1105-undefinedbehaviorsanitizer-ubsan)
+  - [110.5.1 Instrumented Checks](#11051-instrumented-checks)
+  - [110.5.2 Instrumentation Pattern](#11052-instrumentation-pattern)
+  - [110.5.3 Trap Mode and Minimal Runtime](#11053-trap-mode-and-minimal-runtime)
+  - [110.5.4 CFI — Control Flow Integrity](#11054-cfi-control-flow-integrity)
+- [110.6 LeakSanitizer (LSan)](#1106-leaksanitizer-lsan)
+  - [110.6.1 Algorithm: Conservative GC Scan](#11061-algorithm-conservative-gc-scan)
+  - [110.6.2 Integration with ASan](#11062-integration-with-asan)
+  - [110.6.3 Standalone LSan](#11063-standalone-lsan)
+  - [110.6.4 LSan API](#11064-lsan-api)
+- [110.7 Sanitizer Blocklists and Suppressions](#1107-sanitizer-blocklists-and-suppressions)
+  - [110.7.1 Compile-Time Ignorelists](#11071-compile-time-ignorelists)
+  - [110.7.2 Per-Function Source Attributes](#11072-per-function-source-attributes)
+- [110.8 Combining Sanitizers and Performance Overview](#1108-combining-sanitizers-and-performance-overview)
+  - [110.8.1 Compatibility Matrix](#11081-compatibility-matrix)
+  - [110.8.2 Performance Overhead](#11082-performance-overhead)
+  - [110.8.3 Recommended Workflows](#11083-recommended-workflows)
+- [DataFlowSanitizer (DFSan)](#dataflowsanitizer-dfsan)
+  - [How Taint Tracking Works](#how-taint-tracking-works)
+  - [Shadow Memory Architecture](#shadow-memory-architecture)
+  - [Building with DFSan](#building-with-dfsan)
+  - [The DFSan API](#the-dfsan-api)
+  - [Origin Tracking](#origin-tracking)
+  - [Use Cases](#use-cases)
+  - [Integration with ASan](#integration-with-asan)
+  - [Limitations](#limitations)
+- [Chapter 110 Summary](#chapter-110-summary)
+
+---
+
 ## 110.1 Sanitizer Architecture
 
 ### 110.1.1 Compile-Time and Runtime Halves

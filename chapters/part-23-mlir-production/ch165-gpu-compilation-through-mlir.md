@@ -6,6 +6,39 @@ MLIR provides a complete, modular infrastructure for GPU kernel compilation — 
 
 ---
 
+## Table of Contents
+
+- [165.1 The End-to-End GPU Compilation Path](#1651-the-end-to-end-gpu-compilation-path)
+- [165.2 Step 1: Tiling for the GPU Memory Hierarchy](#1652-step-1-tiling-for-the-gpu-memory-hierarchy)
+  - [165.2.1 Two-Level Tiling](#16521-two-level-tiling)
+  - [165.2.2 Packing into Shared Memory](#16522-packing-into-shared-memory)
+- [165.3 Step 2: Vectorization](#1653-step-2-vectorization)
+- [165.4 Step 3: Mapping to the GPU Thread Hierarchy](#1654-step-3-mapping-to-the-gpu-thread-hierarchy)
+  - [165.4.1 gpu.launch](#16541-gpulaunch)
+  - [165.4.2 Thread Indexing for Vectorized Ops](#16542-thread-indexing-for-vectorized-ops)
+  - [165.4.3 gpu.barrier (Synchronization)](#16543-gpubarrier-synchronization)
+- [165.5 Step 4: Lowering to NVVM and ROCDL](#1655-step-4-lowering-to-nvvm-and-rocdl)
+  - [165.5.1 NVVM Dialect](#16551-nvvm-dialect)
+  - [165.5.2 ROCDL Dialect](#16552-rocdl-dialect)
+  - [165.5.3 Lowering vector.contract](#16553-lowering-vectorcontract)
+- [165.6 Async Copy Patterns](#1656-async-copy-patterns)
+  - [165.6.1 Ampere cp.async](#16561-ampere-cpasync)
+  - [165.6.2 Pipelining Pattern](#16562-pipelining-pattern)
+- [165.7 Warp-Level Reductions](#1657-warp-level-reductions)
+  - [165.7.1 gpu.shuffle](#16571-gpushuffle)
+  - [165.7.2 vector.multi_reduction](#16572-vectormultireduction)
+- [165.8 Step 5-6: LLVM IR Translation and PTX Emission](#1658-step-5-6-llvm-ir-translation-and-ptx-emission)
+  - [165.8.1 PTX Feature Requirements](#16581-ptx-feature-requirements)
+- [165.9 Occupancy and Register Pressure](#1659-occupancy-and-register-pressure)
+  - [165.9.1 Occupancy Definition](#16591-occupancy-definition)
+  - [165.9.2 Register Pressure](#16592-register-pressure)
+  - [165.9.3 Shared Memory vs. Registers Trade-off](#16593-shared-memory-vs-registers-trade-off)
+- [165.10 A Complete Example: linalg.matmul → cubin](#16510-a-complete-example-linalgmatmul-cubin)
+- [165.11 Embedding in a Host Program](#16511-embedding-in-a-host-program)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 165.1 The End-to-End GPU Compilation Path
 
 The complete pipeline, starting from Linalg:

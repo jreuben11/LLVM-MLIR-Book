@@ -6,6 +6,46 @@ The MLIR dialect ecosystem contains dozens of in-tree dialects, but a handful fo
 
 ---
 
+## Table of Contents
+
+- [137.1 The `builtin` Dialect](#1371-the-builtin-dialect)
+  - [137.1.1 Always-Loaded Status](#13711-always-loaded-status)
+  - [137.1.2 `builtin.module`](#13712-builtinmodule)
+  - [137.1.3 Builtin Types](#13713-builtin-types)
+  - [137.1.4 Builtin Attributes](#13714-builtin-attributes)
+  - [137.1.5 `UnrealizedConversionCastOp`](#13715-unrealizedconversioncastop)
+- [137.2 The `func` Dialect](#1372-the-func-dialect)
+  - [137.2.1 Core Operations](#13721-core-operations)
+  - [137.2.2 `FunctionOpInterface`](#13722-functionopinterface)
+  - [137.2.3 Symbol Visibility and Linkage](#13723-symbol-visibility-and-linkage)
+  - [137.2.4 Inlining Pipeline](#13724-inlining-pipeline)
+- [137.3 The `arith` Dialect](#1373-the-arith-dialect)
+  - [137.3.1 Integer Arithmetic](#13731-integer-arithmetic)
+  - [137.3.2 Overflow Flags](#13732-overflow-flags)
+  - [137.3.3 Floating-Point Arithmetic](#13733-floating-point-arithmetic)
+  - [137.3.4 Comparison Operations](#13734-comparison-operations)
+  - [137.3.5 Type Casts](#13735-type-casts)
+  - [137.3.6 Constants and Vectorization](#13736-constants-and-vectorization)
+- [137.4 The `math` Dialect](#1374-the-math-dialect)
+  - [137.4.1 Transcendental Functions](#13741-transcendental-functions)
+  - [137.4.2 Lowering Paths](#13742-lowering-paths)
+  - [137.4.3 Vector Math](#13743-vector-math)
+- [137.5 The `index` Dialect](#1375-the-index-dialect)
+  - [137.5.1 Purpose](#13751-purpose)
+  - [137.5.2 Operations](#13752-operations)
+  - [137.5.3 Type Conversion](#13753-type-conversion)
+  - [137.5.4 Special Ops](#13754-special-ops)
+  - [137.5.5 Lowering](#13755-lowering)
+- [137.6 The `cf` Dialect (Control Flow)](#1376-the-cf-dialect-control-flow)
+  - [137.6.1 Purpose and Position](#13761-purpose-and-position)
+  - [137.6.2 Branch Operations](#13762-branch-operations)
+  - [137.6.3 `cf.assert`](#13763-cfassert)
+  - [137.6.4 Lowering Chain](#13764-lowering-chain)
+  - [137.6.5 `cf` in Practice: The Block Argument Pattern](#13765-cf-in-practice-the-block-argument-pattern)
+- [Chapter 137 Summary](#chapter-137-summary)
+
+---
+
 ## 137.1 The `builtin` Dialect
 
 ### 137.1.1 Always-Loaded Status

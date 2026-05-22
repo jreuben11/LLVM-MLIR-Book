@@ -12,6 +12,41 @@ Chapter 163 ([Triton: A Compiler for GPU Kernels](../part-23-mlir-production/ch1
 
 ---
 
+## Table of Contents
+
+- [208.1 Why Kernel DSLs Matter for Cognitive Self-Improvement](#2081-why-kernel-dsls-matter-for-cognitive-self-improvement)
+- [208.2 Triton: Tile-Level GPU Programming](#2082-triton-tile-level-gpu-programming)
+  - [208.2.1 The Tile Programming Model](#20821-the-tile-programming-model)
+  - [208.2.2 Core Language Primitives](#20822-core-language-primitives)
+  - [208.2.3 Autotuning](#20823-autotuning)
+  - [208.2.4 Complete Example: Fused Softmax](#20824-complete-example-fused-softmax)
+  - [208.2.5 Performance Considerations](#20825-performance-considerations)
+- [208.3 Helion: Autotunable Tile Programs](#2083-helion-autotunable-tile-programs)
+  - [208.3.1 The `@helion.kernel` Decorator](#20831-the-helionkernel-decorator)
+  - [208.3.2 Ahead-of-Time Tile-Size Search](#20832-ahead-of-time-tile-size-search)
+  - [208.3.3 Persistent Kernel Support](#20833-persistent-kernel-support)
+  - [208.3.4 Helion's Compilation Path](#20834-helions-compilation-path)
+- [208.4 Gluon: Warp-Level Control for Custom Operations](#2084-gluon-warp-level-control-for-custom-operations)
+  - [208.4.1 The Warp-Group Abstraction](#20841-the-warp-group-abstraction)
+  - [208.4.2 Shared Memory Management](#20842-shared-memory-management)
+  - [208.4.3 Synchronisation Primitives](#20843-synchronisation-primitives)
+  - [208.4.4 When to Use Gluon vs Triton](#20844-when-to-use-gluon-vs-triton)
+  - [208.4.5 Related Work: Iris and Triton-Level Multi-GPU](#20845-related-work-iris-and-triton-level-multi-gpu)
+- [208.5 The MLIR Compilation Stack for All Three](#2085-the-mlir-compilation-stack-for-all-three)
+  - [208.5.1 Unified Lowering Path](#20851-unified-lowering-path)
+  - [208.5.2 TritonGPU Dialect](#20852-tritongpu-dialect)
+  - [208.5.3 Key MLIR Passes](#20853-key-mlir-passes)
+  - [208.5.4 Inspecting TritonGPU IR](#20854-inspecting-tritongpu-ir)
+- [208.6 Programmatic Kernel Generation: The Cognitive Angle](#2086-programmatic-kernel-generation-the-cognitive-angle)
+  - [208.6.1 Kernels as the Machine Code of Cognition](#20861-kernels-as-the-machine-code-of-cognition)
+  - [208.6.2 Generating Triton Kernels Programmatically](#20862-generating-triton-kernels-programmatically)
+  - [208.6.3 The Infer-Profile-Identify-Generate-Deploy Loop](#20863-the-infer-profile-identify-generate-deploy-loop)
+  - [208.6.4 Safety, Fallback, and Kernel Versioning](#20864-safety-fallback-and-kernel-versioning)
+  - [208.6.5 Connection to Layout Algebra](#20865-connection-to-layout-algebra)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 208.1 Why Kernel DSLs Matter for Cognitive Self-Improvement
 
 The abstraction gap between "an AI system adjusts its own behaviour" and "a computational process modifies its own execution substrate" is wider than it might appear. Weight updates are the high-level form of self-modification: they change the parameter values that determine which kernel inputs produce which outputs. But the kernels themselves — the code that runs on the GPU — are normally fixed artifacts compiled once and shipped. A system whose self-modification repertoire is limited to weight updates is like a programmer who can edit data but not code.

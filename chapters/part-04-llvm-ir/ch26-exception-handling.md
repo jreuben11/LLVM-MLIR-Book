@@ -10,6 +10,55 @@ All IR examples in this chapter are verified against LLVM 22.1.3 using `/usr/lib
 
 ---
 
+## Table of Contents
+
+- [26.1 EH Models: A Taxonomy](#261-eh-models-a-taxonomy)
+- [26.2 The Itanium Model: Two-Phase Unwinding](#262-the-itanium-model-two-phase-unwinding)
+  - [26.2.1 Two-Phase Unwinding](#2621-two-phase-unwinding)
+  - [26.2.2 Runtime Data Structures](#2622-runtime-data-structures)
+  - [26.2.3 Type Matching](#2623-type-matching)
+- [26.3 Itanium EH in LLVM IR](#263-itanium-eh-in-llvm-ir)
+  - [26.3.1 The `invoke` Instruction](#2631-the-invoke-instruction)
+  - [26.3.2 The `landingpad` Instruction](#2632-the-landingpad-instruction)
+  - [26.3.3 `llvm.eh.typeid.for` and Type Dispatch](#2633-llvmehtypeidfor-and-type-dispatch)
+  - [26.3.4 The `resume` Instruction](#2634-the-resume-instruction)
+  - [26.3.5 Complete try/catch Walkthrough](#2635-complete-trycatch-walkthrough)
+- [26.4 Cleanup and Destructor Patterns](#264-cleanup-and-destructor-patterns)
+- [26.5 The Windows Funclet Model](#265-the-windows-funclet-model)
+  - [26.5.1 Why Funclets Exist](#2651-why-funclets-exist)
+  - [26.5.2 IR Constructs: `catchswitch`, `catchpad`, `catchret`, `cleanuppad`, `cleanupret`](#2652-ir-constructs-catchswitch-catchpad-catchret-cleanuppad-cleanupret)
+  - [26.5.3 `__C_specific_handler` and Windows SEH](#2653-cspecifichandler-and-windows-seh)
+- [26.6 WinEH C++ Model](#266-wineh-c-model)
+- [26.7 SJLJ Exception Handling](#267-sjlj-exception-handling)
+  - [26.7.1 Mechanism](#2671-mechanism)
+  - [26.7.2 SJLJ Intrinsics](#2672-sjlj-intrinsics)
+  - [26.7.3 Overhead vs Table-Based EH](#2673-overhead-vs-table-based-eh)
+- [26.8 WebAssembly Exception Handling](#268-webassembly-exception-handling)
+  - [26.8.1 Scoped Wasm EH](#2681-scoped-wasm-eh)
+  - [26.8.2 Native Wasm EH Intrinsics](#2682-native-wasm-eh-intrinsics)
+- [26.9 EH and the Pass Manager](#269-eh-and-the-pass-manager)
+  - [26.9.1 Unwind Edges in the CFG](#2691-unwind-edges-in-the-cfg)
+  - [26.9.2 WinEHPrepare and DwarfEHPrepare](#2692-winehprepare-and-dwarfehprepare)
+  - [26.9.3 LSDA Emission: `EHStreamer`](#2693-lsda-emission-ehstreamer)
+  - [26.9.4 Impact on Analysis Passes](#2694-impact-on-analysis-passes)
+- [26.10 `nounwind` and EH Elimination](#2610-nounwind-and-eh-elimination)
+  - [26.10.1 `nounwind` Attribute](#26101-nounwind-attribute)
+  - [26.10.2 `invoke` to `call` Conversion](#26102-invoke-to-call-conversion)
+  - [26.10.3 Dead Landing Pad Elimination and `-fno-exceptions`](#26103-dead-landing-pad-elimination-and-fno-exceptions)
+- [26.11 Practical Patterns](#2611-practical-patterns)
+  - [26.11.1 Constructing Itanium EH IR by Hand](#26111-constructing-itanium-eh-ir-by-hand)
+  - [26.11.2 Compiling to Machine Code and Reading Tables](#26112-compiling-to-machine-code-and-reading-tables)
+  - [26.11.3 Asynchronous Unwind Tables](#26113-asynchronous-unwind-tables)
+  - [26.11.4 POSIX Thread Cancellation](#26114-posix-thread-cancellation)
+- [26.12 EH in Non-C++ Languages](#2612-eh-in-non-c-languages)
+  - [26.12.1 Objective-C](#26121-objective-c)
+  - [26.12.2 Swift](#26122-swift)
+  - [26.12.3 Go](#26123-go)
+  - [26.12.4 Rust](#26124-rust)
+- [Summary](#summary)
+
+---
+
 ## 26.1 EH Models: A Taxonomy
 
 LLVM 22 supports five distinct EH models, selected by target triple and compiler flags. The canonical enumeration lives in [`llvm/include/llvm/IR/EHPersonalities.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/llvm/include/llvm/IR/EHPersonalities.h) as `enum class EHPersonality`:

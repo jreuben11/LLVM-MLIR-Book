@@ -6,6 +6,55 @@ The x86-64 backend is LLVM's most battle-tested target, shipping billions of bin
 
 ---
 
+## Table of Contents
+
+- [95.1 Register Classes and the Register Hierarchy](#951-register-classes-and-the-register-hierarchy)
+  - [95.1.1 General-Purpose Registers](#9511-general-purpose-registers)
+  - [95.1.2 The Vector Register Hierarchy](#9512-the-vector-register-hierarchy)
+- [95.2 Calling Conventions](#952-calling-conventions)
+  - [95.2.1 System V AMD64 ABI](#9521-system-v-amd64-abi)
+  - [95.2.2 Windows x64 ABI](#9522-windows-x64-abi)
+- [95.3 SSE/AVX/AVX-512 Instruction Selection](#953-sseavxavx-512-instruction-selection)
+  - [95.3.1 SSE2 and SSE4 Lowering](#9531-sse2-and-sse4-lowering)
+  - [95.3.2 AVX and AVX2](#9532-avx-and-avx2)
+  - [95.3.3 AVX-512](#9533-avx-512)
+- [95.4 APX — Advanced Performance Extensions](#954-apx-advanced-performance-extensions)
+  - [95.4.1 Extended General-Purpose Registers (EGPRs)](#9541-extended-general-purpose-registers-egprs)
+  - [95.4.2 New Data Destination (NDD) Form](#9542-new-data-destination-ndd-form)
+  - [95.4.3 Conditional Instructions (CFCMOV, CFCMOV32)](#9543-conditional-instructions-cfcmov-cfcmov32)
+- [95.5 Intel Control-Flow Enforcement Technology (CET)](#955-intel-control-flow-enforcement-technology-cet)
+  - [95.5.1 Shadow Stack (SHSTK)](#9551-shadow-stack-shstk)
+  - [95.5.2 Indirect Branch Tracking (IBT)](#9552-indirect-branch-tracking-ibt)
+- [95.6 Complex Addressing Modes](#956-complex-addressing-modes)
+- [95.7 Function Multiversioning and IFUNC](#957-function-multiversioning-and-ifunc)
+  - [95.7.1 `__attribute__((target(...)))` Clones](#9571-attributetarget-clones)
+  - [95.7.2 IFUNC Resolver Pattern](#9572-ifunc-resolver-pattern)
+- [95.8 x86-Specific Lowering](#958-x86-specific-lowering)
+  - [95.8.1 SETCC and CMOV](#9581-setcc-and-cmov)
+  - [95.8.2 Division and Shift Counts](#9582-division-and-shift-counts)
+  - [95.8.3 x87 Legacy FPU](#9583-x87-legacy-fpu)
+- [95.9 EFLAGS Modelling and Liveness](#959-eflags-modelling-and-liveness)
+- [95.10 The X86 DAG Combining Infrastructure](#9510-the-x86-dag-combining-infrastructure)
+  - [95.10.1 Load-Op-Store Folding](#95101-load-op-store-folding)
+  - [95.10.2 LEA Synthesis](#95102-lea-synthesis)
+  - [95.10.3 Shuffle Lowering](#95103-shuffle-lowering)
+- [95.11 X86 Scheduling Models and Target Microarchitectures](#9511-x86-scheduling-models-and-target-microarchitectures)
+- [95.12 X86 ABI Lowering Details](#9512-x86-abi-lowering-details)
+  - [95.12.1 Stack Frame Layout](#95121-stack-frame-layout)
+  - [95.12.2 Exception Handling and .eh_frame](#95122-exception-handling-and-ehframe)
+  - [95.12.3 TLS Implementation](#95123-tls-implementation)
+- [95.13 X86 Vector Lowering Pipeline](#9513-x86-vector-lowering-pipeline)
+  - [95.13.1 Type Legalization for Vectors](#95131-type-legalization-for-vectors)
+  - [95.13.2 AVX-512 Mask Legalization](#95132-avx-512-mask-legalization)
+  - [95.13.3 Auto-Vectorization for x86](#95133-auto-vectorization-for-x86)
+- [95.14 X86 Instruction Encoding and the MC Layer](#9514-x86-instruction-encoding-and-the-mc-layer)
+  - [95.14.1 Instruction Prefix Anatomy](#95141-instruction-prefix-anatomy)
+  - [95.14.2 ModRM and SIB Encoding](#95142-modrm-and-sib-encoding)
+- [95.15 Using llc for X86 Code Generation](#9515-using-llc-for-x86-code-generation)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 95.1 Register Classes and the Register Hierarchy
 
 ### 95.1.1 General-Purpose Registers

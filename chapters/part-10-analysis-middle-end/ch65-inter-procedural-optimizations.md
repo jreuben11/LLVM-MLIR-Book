@@ -4,6 +4,27 @@
 
 Scalar and loop optimizations operate within a single function. Inter-procedural (IP) optimizations see across function boundaries, enabling transformations that no single-function pass can perform: inlining callee bodies, eliminating unused arguments, inferring function attributes, merging identical functions, and globally removing dead definitions. This chapter covers the key IPO passes in LLVM 22.1: the inliner, GlobalOpt, ArgPromotion, FunctionAttrs inference, DeadArgElim, MergeFunctions, PartialInlining, OpenMPOpt, and the Attributor framework.
 
+## Table of Contents
+
+- [65.1 The Inliner](#651-the-inliner)
+  - [65.1.1 Design](#6511-design)
+  - [65.1.2 Inline Cost](#6512-inline-cost)
+  - [65.1.3 Inlining Mechanics](#6513-inlining-mechanics)
+- [65.2 GlobalOpt](#652-globalopt)
+- [65.3 ArgPromotion](#653-argpromotion)
+- [65.4 FunctionAttrs Inference](#654-functionattrs-inference)
+- [65.5 DeadArgumentElimination](#655-deadargumentelimination)
+- [65.6 MergeFunctions](#656-mergefunctions)
+- [65.7 PartialInlining](#657-partialinlining)
+- [65.8 OpenMPOpt](#658-openmpopt)
+- [65.9 The Attributor Framework](#659-the-attributor-framework)
+  - [65.9.1 Abstract Attributes](#6591-abstract-attributes)
+  - [65.9.2 Fixpoint Iteration](#6592-fixpoint-iteration)
+  - [65.9.3 Example: Inlining with Attributor Guidance](#6593-example-inlining-with-attributor-guidance)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 65.1 The Inliner
 
 ### 65.1.1 Design

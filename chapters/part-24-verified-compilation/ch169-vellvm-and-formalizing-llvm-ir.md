@@ -6,6 +6,38 @@ LLVM IR is the pivot point of a compiler ecosystem used by billions of devices d
 
 ---
 
+## Table of Contents
+
+- [169.1 The Need for LLVM IR Semantics](#1691-the-need-for-llvm-ir-semantics)
+  - [The Specification Gap](#the-specification-gap)
+  - [The Cost of Ambiguity](#the-cost-of-ambiguity)
+- [169.2 Vellvm Architecture](#1692-vellvm-architecture)
+  - [Repository Structure](#repository-structure)
+  - [LLVM IR AST in Coq](#llvm-ir-ast-in-coq)
+  - [The Interpreter](#the-interpreter)
+- [169.3 Interaction Trees](#1693-interaction-trees)
+  - [The ITree Type](#the-itree-type)
+  - [Interpretation](#interpretation)
+  - [Refinement via Bisimulation](#refinement-via-bisimulation)
+- [169.4 The Vellvm Memory Model](#1694-the-vellvm-memory-model)
+  - [Dynamic Values](#dynamic-values)
+  - [Block-Based Memory](#block-based-memory)
+  - [`sizeof` and Alignment](#sizeof-and-alignment)
+- [169.5 Verified Transformations in Vellvm](#1695-verified-transformations-in-vellvm)
+  - [Dead Code Elimination](#dead-code-elimination)
+  - [Constant Propagation](#constant-propagation)
+  - [The Challenge of Memory Aliasing](#the-challenge-of-memory-aliasing)
+- [169.6 Other LLVM IR Formalization Efforts](#1696-other-llvm-ir-formalization-efforts)
+  - [Crellvm (Seoul National University)](#crellvm-seoul-national-university)
+  - [K-Framework Semantics for LLVM IR](#k-framework-semantics-for-llvm-ir)
+  - [LLVM Memory Model (Kang et al., PLDI 2015)](#llvm-memory-model-kang-et-al-pldi-2015)
+  - [Alive2 as an Empirical Semantics Reference](#alive2-as-an-empirical-semantics-reference)
+  - [Vellvm's Current Status (2024)](#vellvms-current-status-2024)
+- [Chapter Summary](#chapter-summary)
+  - [References](#references)
+
+---
+
 ## 169.1 The Need for LLVM IR Semantics
 
 ### The Specification Gap

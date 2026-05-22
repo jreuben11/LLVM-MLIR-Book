@@ -4,6 +4,31 @@
 
 Register allocation demands a specific pre-condition: every instruction must be in two-address form, PHI nodes must be eliminated, and the live ranges of virtual registers must be precisely known. A series of preparatory passes transforms the MIR from the three-address SSA form produced by instruction selection into the form that register allocators expect. This chapter traces each preparatory pass in pipeline order: two-address conversion, PHI elimination, slot index assignment, live interval computation, register coalescing, the machine combiner, and pre-RA scheduling. Together these passes both simplify the allocation problem and improve the quality of the code fed to the allocator.
 
+## Table of Contents
+
+- [89.1 TwoAddressInstructionPass](#891-twoaddressinstructionpass)
+  - [89.1.1 Commutativity Optimisation](#8911-commutativity-optimisation)
+  - [89.1.2 Sink/Hoist Optimisation](#8912-sinkhoist-optimisation)
+- [89.2 PHI Elimination](#892-phi-elimination)
+  - [89.2.1 Critical Edge Splitting](#8921-critical-edge-splitting)
+- [89.3 SlotIndexes](#893-slotindexes)
+- [89.4 LiveIntervals](#894-liveintervals)
+  - [89.4.1 LiveInterval and LiveRange](#8941-liveinterval-and-liverange)
+  - [89.4.2 Computing Live Intervals](#8942-computing-live-intervals)
+  - [89.4.3 Interference](#8943-interference)
+- [89.5 RegisterCoalescer](#895-registercoalescer)
+  - [89.5.1 Coalescing Algorithm](#8951-coalescing-algorithm)
+  - [89.5.2 Interference Check and Aggressive Coalescing](#8952-interference-check-and-aggressive-coalescing)
+  - [89.5.3 Sub-Register Coalescing](#8953-sub-register-coalescing)
+- [89.6 MachineCombiner](#896-machinecombiner)
+- [89.7 MachineScheduler (Pre-RA)](#897-machinescheduler-pre-ra)
+  - [89.7.1 The Scheduling DAG](#8971-the-scheduling-dag)
+  - [89.7.2 SchedMachineModel](#8972-schedmachinemodel)
+  - [89.7.3 GenericScheduler](#8973-genericscheduler)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 89.1 TwoAddressInstructionPass
 
 The most immediate gap between instruction selection output and register allocator input is instruction address count. SelectionDAG and GlobalISel both produce three-address instructions of the form `dst = op src1, src2` where `dst`, `src1`, and `src2` are independent virtual registers. Most x86 instructions require `dst = src1` (the destination aliases the first source); ARM THUMB-2 has similar constraints for certain instructions; many CISC architectures have at least a subset of two-address instructions.

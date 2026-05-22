@@ -6,6 +6,28 @@ LLVM IR must represent two seemingly unrelated but architecturally analogous pro
 
 ---
 
+## Table of Contents
+
+- [Part A — Coroutines](#part-a-coroutines)
+  - [27.1 Why Coroutines Require Compiler Support](#271-why-coroutines-require-compiler-support)
+  - [27.2 The LLVM Coroutine Intrinsics](#272-the-llvm-coroutine-intrinsics)
+  - [27.3 The Coroutine Frame](#273-the-coroutine-frame)
+  - [27.4 The Coroutine Transformation Passes](#274-the-coroutine-transformation-passes)
+  - [27.5 C++20 `co_await`, `co_yield`, and `co_return` Lowering](#275-c20-coawait-coyield-and-coreturn-lowering)
+  - [27.6 Swift Async Functions and `llvm.coro.id.async`](#276-swift-async-functions-and-llvmcoroidasync)
+- [Part B — Atomics](#part-b-atomics)
+  - [27.7 The C11/C++11 Memory Model in LLVM IR](#277-the-c11c11-memory-model-in-llvm-ir)
+  - [27.8 `load atomic` and `store atomic`](#278-load-atomic-and-store-atomic)
+  - [27.9 `cmpxchg`](#279-cmpxchg)
+  - [27.10 `atomicrmw`](#2710-atomicrmw)
+  - [27.11 Fences](#2711-fences)
+  - [27.12 SyncScope: Extending Memory Model Scopes](#2712-syncscope-extending-memory-model-scopes)
+  - [27.13 AtomicExpandPass](#2713-atomicexpandpass)
+  - [27.14 `freeze` and Undefined Behaviour in Atomic Contexts](#2714-freeze-and-undefined-behaviour-in-atomic-contexts)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## Part A — Coroutines
 
 ### 27.1 Why Coroutines Require Compiler Support

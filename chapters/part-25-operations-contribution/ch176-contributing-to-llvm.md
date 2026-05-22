@@ -6,6 +6,43 @@ LLVM is one of the most actively developed open-source compiler projects in the 
 
 ---
 
+## Table of Contents
+
+- [176.1 The LLVM Community](#1761-the-llvm-community)
+  - [Governance Structure](#governance-structure)
+  - [Communication Channels](#communication-channels)
+- [176.2 Getting Started](#1762-getting-started)
+  - [Finding Work](#finding-work)
+  - [Development Environment Setup](#development-environment-setup)
+  - [Branch Workflow](#branch-workflow)
+- [176.3 Code Style and Standards](#1763-code-style-and-standards)
+  - [The LLVM Coding Standards](#the-llvm-coding-standards)
+  - [clang-format](#clang-format)
+  - [clang-tidy](#clang-tidy)
+- [176.4 The Review Process](#1764-the-review-process)
+  - [Opening a Pull Request](#opening-a-pull-request)
+  - [CI System](#ci-system)
+  - [Review Expectations](#review-expectations)
+  - [Commit Access](#commit-access)
+- [176.5 Writing an RFC](#1765-writing-an-rfc)
+  - [When to Write an RFC](#when-to-write-an-rfc)
+  - [RFC Format](#rfc-format)
+- [Motivation](#motivation)
+- [Proposed Design](#proposed-design)
+- [Alternatives Considered](#alternatives-considered)
+- [Impact on Existing Users](#impact-on-existing-users)
+- [Implementation Plan](#implementation-plan)
+  - [RFC for New MLIR Dialects](#rfc-for-new-mlir-dialects)
+- [176.6 Release Process](#1766-release-process)
+  - [Release Cycle](#release-cycle)
+  - [Branching and the Branch Lifecycle](#branching-and-the-branch-lifecycle)
+  - [Release Management](#release-management)
+  - [What "Release" Means](#what-release-means)
+  - [Deprecation Policy](#deprecation-policy)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 176.1 The LLVM Community
 
 ### Governance Structure

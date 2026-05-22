@@ -4,6 +4,57 @@ Grammar notations are the language in which programming languages describe thems
 
 ---
 
+## Table of Contents
+
+- [J.1 Historical Background](#j1-historical-background)
+  - [BNF (Backus-Naur Form)](#bnf-backus-naur-form)
+  - [EBNF (Extended BNF)](#ebnf-extended-bnf)
+  - [ISO/IEC 14977:1996](#isoiec-149771996)
+- [J.2 BNF Core Constructs](#j2-bnf-core-constructs)
+  - [Left vs Right Recursion](#left-vs-right-recursion)
+- [J.3 EBNF Constructs and ISO 14977](#j3-ebnf-constructs-and-iso-14977)
+  - [Wirth-Style EBNF (Pascal, Oberon, Modula)](#wirth-style-ebnf-pascal-oberon-modula)
+  - [ISO 14977 Extensions](#iso-14977-extensions)
+  - [W3C EBNF (XML, XPath, SPARQL)](#w3c-ebnf-xml-xpath-sparql)
+- [J.4 Notation Variants in Practice](#j4-notation-variants-in-practice)
+- [J.5 PEG — Parsing Expression Grammars](#j5-peg-parsing-expression-grammars)
+  - [PEG Operators](#peg-operators)
+  - [Packrat Parsing](#packrat-parsing)
+  - [What PEG Cannot Express](#what-peg-cannot-express)
+  - [PEG Tools](#peg-tools)
+- [J.6 Ohm](#j6-ohm)
+  - [Grammar Definition](#grammar-definition)
+  - [Semantics Objects](#semantics-objects)
+  - [Lexical vs Syntactic Rules](#lexical-vs-syntactic-rules)
+  - [Rule Inheritance](#rule-inheritance)
+- [J.7 ANTLR4 `.g4` Format](#j7-antlr4-g4-format)
+  - [Grammar Structure](#grammar-structure)
+  - [Key Features](#key-features)
+- [J.8 TreeSitter `grammar.js`](#j8-treesitter-grammarjs)
+  - [Grammar Definition](#grammar-definition)
+  - [Key Constructs](#key-constructs)
+  - [External Scanners](#external-scanners)
+  - [Query Language](#query-language)
+- [J.9 Railroad / Syntax Diagrams](#j9-railroad-syntax-diagrams)
+  - [Structure](#structure)
+  - [Generation Tools](#generation-tools)
+- [J.10 Earley Parsing and Marpa](#j10-earley-parsing-and-marpa)
+  - [Earley's Algorithm](#earleys-algorithm)
+  - [Marpa](#marpa)
+- [J.11 Notation Selection Guide](#j11-notation-selection-guide)
+  - [Decision Table](#decision-table)
+  - [Decision Flowchart](#decision-flowchart)
+- [J.12 Converting Between Notations](#j12-converting-between-notations)
+  - [EBNF → BNF](#ebnf-bnf)
+  - [BNF → EBNF](#bnf-ebnf)
+  - [EBNF → PEG](#ebnf-peg)
+  - [Left-Recursion Elimination (for PEG and LL)](#left-recursion-elimination-for-peg-and-ll)
+  - [Right-Factoring (for LL)](#right-factoring-for-ll)
+  - [Common Pitfalls](#common-pitfalls)
+- [Quick Reference: Notation Symbols](#quick-reference-notation-symbols)
+
+---
+
 ## J.1 Historical Background
 
 ### BNF (Backus-Naur Form)

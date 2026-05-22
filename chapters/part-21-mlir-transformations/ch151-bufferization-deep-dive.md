@@ -6,6 +6,43 @@ Bufferization is the process of converting tensor semantics—where each operati
 
 ---
 
+## Table of Contents
+
+- [151.1 The Tensor-Buffer Problem](#1511-the-tensor-buffer-problem)
+  - [Value semantics vs. buffer semantics](#value-semantics-vs-buffer-semantics)
+  - [Why not naive bufferization?](#why-not-naive-bufferization)
+  - [Relevant sources](#relevant-sources)
+- [151.2 One-Shot Bufferization Overview](#1512-one-shot-bufferization-overview)
+  - [Two-phase algorithm](#two-phase-algorithm)
+  - [Running One-Shot Bufferization](#running-one-shot-bufferization)
+  - [OneShotBufferizationOptions](#oneshotbufferizationoptions)
+- [151.3 BufferizableOpInterface](#1513-bufferizableopinterface)
+  - [Interface declaration (ODS)](#interface-declaration-ods)
+  - [C++ implementation](#c-implementation)
+- [151.4 Copy Elision Analysis](#1514-copy-elision-analysis)
+  - [The core question](#the-core-question)
+  - [Read-after-write analysis](#read-after-write-analysis)
+  - [Alias sets](#alias-sets)
+  - [`AnalysisState::isInPlace`](#analysisstateisinplace)
+- [151.5 Function Boundary Bufferization](#1515-function-boundary-bufferization)
+  - [The challenge](#the-challenge)
+  - [Layout map options](#layout-map-options)
+  - [Function argument handling](#function-argument-handling)
+- [151.6 Buffer Deallocation](#1516-buffer-deallocation)
+  - [The buffer deallocation pipeline](#the-buffer-deallocation-pipeline)
+  - [Ownership-based buffer deallocation](#ownership-based-buffer-deallocation)
+  - [BufferDeallocationOpInterface](#bufferdeallocationopinterface)
+  - [`-buffer-results-to-out-params`](#buffer-results-to-out-params)
+- [151.7 Debugging Bufferization](#1517-debugging-bufferization)
+  - [Test mode](#test-mode)
+  - [Alias set dumping](#alias-set-dumping)
+  - [Common issues](#common-issues)
+  - [Visualizing the analysis](#visualizing-the-analysis)
+- [151.8 Partial Bufferization and OpFilter](#1518-partial-bufferization-and-opfilter)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 151.1 The Tensor-Buffer Problem
 
 ### Value semantics vs. buffer semantics

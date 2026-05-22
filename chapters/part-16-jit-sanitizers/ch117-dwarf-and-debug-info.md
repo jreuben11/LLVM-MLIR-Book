@@ -6,6 +6,53 @@ DWARF (Debugging With Attributed Record Formats) is the dominant debug informati
 
 ---
 
+## Table of Contents
+
+- [117.1 DWARF Overview](#1171-dwarf-overview)
+  - [The Standard](#the-standard)
+  - [ELF Sections](#elf-sections)
+  - [macOS dSYM Bundles](#macos-dsym-bundles)
+- [117.2 DIE Structure](#1172-die-structure)
+  - [Compilation Units](#compilation-units)
+  - [Common DIE Tags](#common-die-tags)
+  - [An Annotated Example](#an-annotated-example)
+  - [The Abbreviation Table](#the-abbreviation-table)
+  - [DWARF Forms](#dwarf-forms)
+- [117.3 Location Expressions](#1173-location-expressions)
+  - [Purpose](#purpose)
+  - [The Location Expression Machine](#the-location-expression-machine)
+  - [Examples](#examples)
+  - [Location Lists](#location-lists)
+- [117.4 Line Tables](#1174-line-tables)
+  - [Purpose](#purpose)
+  - [The State Machine](#the-state-machine)
+  - [DWARF 5 Line Table Improvements](#dwarf-5-line-table-improvements)
+- [117.5 Call Frame Information (CFI)](#1175-call-frame-information-cfi)
+  - [Purpose](#purpose)
+  - [CIE and FDE](#cie-and-fde)
+  - [CFA Instructions](#cfa-instructions)
+  - [Example: x86-64 Function Prologue](#example-x86-64-function-prologue)
+  - [`.eh_frame` vs `.debug_frame`](#ehframe-vs-debugframe)
+- [117.6 LLVM's Debug Info Generation](#1176-llvms-debug-info-generation)
+  - [The DIBuilder API](#the-dibuilder-api)
+  - [DwarfDebug: The Emission Driver](#dwarfdebug-the-emission-driver)
+  - [Salvaging Debug Info](#salvaging-debug-info)
+- [117.7 llvm-dwarfdump and Debug Tools](#1177-llvm-dwarfdump-and-debug-tools)
+  - [llvm-dwarfdump](#llvm-dwarfdump)
+  - [addr2line](#addr2line)
+  - [llvm-symbolizer](#llvm-symbolizer)
+  - [pahole](#pahole)
+- [117.8 Split DWARF and DWP](#1178-split-dwarf-and-dwp)
+  - [The Link-Time DWARF Problem](#the-link-time-dwarf-problem)
+  - [Split DWARF: The Skeleton Approach](#split-dwarf-the-skeleton-approach)
+  - [Skeleton vs Full CU](#skeleton-vs-full-cu)
+  - [DW_AT_dwo_id and Staleness Detection](#dwatdwoid-and-staleness-detection)
+  - [DWP Format](#dwp-format)
+  - [Index Sections for Fast Lookup](#index-sections-for-fast-lookup)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 117.1 DWARF Overview
 
 ### The Standard

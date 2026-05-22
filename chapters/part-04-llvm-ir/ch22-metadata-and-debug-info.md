@@ -8,6 +8,52 @@ This chapter covers the entire metadata system: the node hierarchy and attachmen
 
 ---
 
+## Table of Contents
+
+- [22.1 Metadata Fundamentals: MDNode, MDString, ValueAsMetadata](#221-metadata-fundamentals-mdnode-mdstring-valueasmetadata)
+  - [22.1.1 What Metadata Is (and Is Not)](#2211-what-metadata-is-and-is-not)
+  - [22.1.2 The MDNode Class Hierarchy](#2212-the-mdnode-class-hierarchy)
+  - [22.1.3 The MDKind Registry](#2213-the-mdkind-registry)
+  - [22.1.4 Attaching and Retrieving Metadata](#2214-attaching-and-retrieving-metadata)
+  - [22.1.5 Named Module-Level Metadata](#2215-named-module-level-metadata)
+- [22.2 MD_tbaa — Type-Based Alias Analysis Metadata](#222-mdtbaa-type-based-alias-analysis-metadata)
+  - [22.2.1 Strict Aliasing and Why It Matters](#2221-strict-aliasing-and-why-it-matters)
+  - [22.2.2 The TBAA Metadata Structure](#2222-the-tbaa-metadata-structure)
+  - [22.2.3 Struct-Path TBAA](#2223-struct-path-tbaa)
+  - [22.2.4 The `-fno-strict-aliasing` Effect](#2224-the-fno-strict-aliasing-effect)
+- [22.3 MD_range and MD_unpredictable](#223-mdrange-and-mdunpredictable)
+  - [22.3.1 Value Range Metadata (`!range`)](#2231-value-range-metadata-range)
+  - [22.3.2 `MD_unpredictable` — Unpredictable Branch Hint](#2232-mdunpredictable-unpredictable-branch-hint)
+- [22.4 MD_loop — Loop Transformation Hints](#224-mdloop-loop-transformation-hints)
+  - [22.4.1 Structure of Loop Metadata](#2241-structure-of-loop-metadata)
+  - [22.4.2 Catalogue of Loop Sub-Nodes](#2242-catalogue-of-loop-sub-nodes)
+  - [22.4.3 Pragma-to-Metadata Lowering in Clang](#2243-pragma-to-metadata-lowering-in-clang)
+- [22.5 MD_prof — Profile Metadata](#225-mdprof-profile-metadata)
+  - [22.5.1 Branch Weights](#2251-branch-weights)
+  - [22.5.2 Function Entry Counts](#2252-function-entry-counts)
+  - [22.5.3 Value Profiles](#2253-value-profiles)
+- [22.6 MD_alias_scope and MD_noalias](#226-mdaliasscope-and-mdnoalias)
+  - [22.6.1 The Scope Domain Model](#2261-the-scope-domain-model)
+  - [22.6.2 Key Use Cases](#2262-key-use-cases)
+- [22.7 DWARF Debug Info Metadata: DICompileUnit, DISubprogram, DILocalVariable](#227-dwarf-debug-info-metadata-dicompileunit-disubprogram-dilocalvariable)
+  - [22.7.1 The DIScope Hierarchy](#2271-the-discope-hierarchy)
+  - [22.7.2 DICompileUnit](#2272-dicompileunit)
+  - [22.7.3 DISubprogram](#2273-disubprogram)
+  - [22.7.4 The DIType Hierarchy](#2274-the-ditype-hierarchy)
+  - [22.7.5 DILocalVariable and the `llvm.dbg` Intrinsics](#2275-dilocalvariable-and-the-llvmdbg-intrinsics)
+  - [22.7.6 TBAA for Struct Fields: A Complete Example](#2276-tbaa-for-struct-fields-a-complete-example)
+- [22.8 The New Debug-Record Format (RemoveDIs)](#228-the-new-debug-record-format-removedis)
+  - [22.8.1 The Problem with Intrinsic-Based Debug Info](#2281-the-problem-with-intrinsic-based-debug-info)
+  - [22.8.2 DbgVariableRecord and DbgLabelRecord](#2282-dbgvariablerecord-and-dbglabelrecord)
+  - [22.8.3 Textual IR and Compatibility](#2283-textual-ir-and-compatibility)
+- [22.9 Pseudo-Probe Metadata](#229-pseudo-probe-metadata)
+  - [22.9.1 Motivation: Sample PGO Without Instrumentation Overhead](#2291-motivation-sample-pgo-without-instrumentation-overhead)
+  - [22.9.2 The `llvm.pseudoprobe` Intrinsic](#2292-the-llvmpseudoprobe-intrinsic)
+  - [22.9.3 CSSPGO: Context-Sensitive Sample PGO](#2293-csspgo-context-sensitive-sample-pgo)
+- [22.10 Chapter Summary](#2210-chapter-summary)
+
+---
+
 ## 22.1 Metadata Fundamentals: MDNode, MDString, ValueAsMetadata
 
 ### 22.1.1 What Metadata Is (and Is Not)

@@ -6,6 +6,54 @@ When Cousot and Cousot formalized abstract interpretation, the critical structur
 
 ---
 
+## Table of Contents
+
+- [188.1 Foundations: Categories, Functors, Natural Transformations](#1881-foundations-categories-functors-natural-transformations)
+  - [188.1.1 The Four Axioms](#18811-the-four-axioms)
+  - [188.1.2 Functors](#18812-functors)
+  - [188.1.3 Natural Transformations](#18813-natural-transformations)
+- [188.2 Adjoint Functors — The Central Concept](#1882-adjoint-functors-the-central-concept)
+  - [188.2.1 Two Equivalent Definitions](#18821-two-equivalent-definitions)
+  - [188.2.2 The Fundamental Theorem: Adjunctions Preserve (Co)limits](#18822-the-fundamental-theorem-adjunctions-preserve-colimits)
+  - [188.2.3 Canonical Adjunctions for Compiler Engineers](#18823-canonical-adjunctions-for-compiler-engineers)
+  - [188.2.4 Galois Connections Are Adjunctions](#18824-galois-connections-are-adjunctions)
+  - [188.2.5 LLVM Pass Adjunctions](#18825-llvm-pass-adjunctions)
+- [188.3 Monads and Effect Systems](#1883-monads-and-effect-systems)
+  - [188.3.1 Definition and Monad Laws](#18831-definition-and-monad-laws)
+  - [188.3.2 The Kleisli Category and Monadic Bind](#18832-the-kleisli-category-and-monadic-bind)
+  - [188.3.3 The Eilenberg-Moore Category](#18833-the-eilenberg-moore-category)
+  - [188.3.4 Free Monads as Algebraic Effect Carriers](#18834-free-monads-as-algebraic-effect-carriers)
+  - [188.3.5 The Reader Monad and Compiler Pass Context](#18835-the-reader-monad-and-compiler-pass-context)
+  - [188.3.6 Comonads and Dataflow Analysis](#18836-comonads-and-dataflow-analysis)
+  - [188.3.7 The Monad Transformer Stack](#18837-the-monad-transformer-stack)
+- [188.4 The Curry-Howard-Lambek Correspondence](#1884-the-curry-howard-lambek-correspondence)
+  - [188.4.1 The Three-Way Isomorphism](#18841-the-three-way-isomorphism)
+  - [188.4.2 Linear Types and Monoidal Categories](#18842-linear-types-and-monoidal-categories)
+  - [188.4.3 Dependent Types as Fibrations](#18843-dependent-types-as-fibrations)
+- [188.5 Limits, Colimits, and the Yoneda Lemma](#1885-limits-colimits-and-the-yoneda-lemma)
+  - [188.5.1 Limits and Colimits](#18851-limits-and-colimits)
+  - [188.5.2 The Yoneda Lemma](#18852-the-yoneda-lemma)
+- [188.6 2-Categories and Rewriting](#1886-2-categories-and-rewriting)
+  - [188.6.1 The 2-Category Structure](#18861-the-2-category-structure)
+  - [188.6.2 MLIR Rewrite Rules as 2-Morphisms](#18862-mlir-rewrite-rules-as-2-morphisms)
+  - [188.6.3 String Diagrams](#18863-string-diagrams)
+- [188.7 Fibered Categories and Dependent Types](#1887-fibered-categories-and-dependent-types)
+  - [188.7.1 Grothendieck Fibrations](#18871-grothendieck-fibrations)
+  - [188.7.2 Dependent Types as Fibrations](#18872-dependent-types-as-fibrations)
+  - [188.7.3 Indexed Categories](#18873-indexed-categories)
+- [188.8 Kan Extensions](#1888-kan-extensions)
+  - [188.8.1 The Universal Property](#18881-the-universal-property)
+  - [188.8.2 Compiler Applications](#18882-compiler-applications)
+- [188.9 Toposes](#1889-toposes)
+  - [188.9.1 Definition and Examples](#18891-definition-and-examples)
+  - [188.9.2 The Internal Logic of a Topos](#18892-the-internal-logic-of-a-topos)
+  - [188.9.3 Realizability and the Effective Topos](#18893-realizability-and-the-effective-topos)
+- [188.10 Connecting the Layers](#18810-connecting-the-layers)
+- [Chapter Summary](#chapter-summary)
+- [References](#references)
+
+---
+
 ## 188.1 Foundations: Categories, Functors, Natural Transformations
 
 ### 188.1.1 The Four Axioms

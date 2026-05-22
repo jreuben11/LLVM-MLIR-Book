@@ -6,6 +6,43 @@ Register allocation is one of the hardest problems in compiler backend design. I
 
 ---
 
+## Table of Contents
+
+- [226.1 Register Allocation as an MDP](#2261-register-allocation-as-an-mdp)
+  - [Baseline: The Greedy Allocator](#baseline-the-greedy-allocator)
+  - [MDP Formulation](#mdp-formulation)
+  - [Why the MDP is Hard](#why-the-mdp-is-hard)
+- [226.2 The RL4ReAL Decomposition](#2262-the-rl4real-decomposition)
+  - [Sub-Problem 1: Live Range Splitting](#sub-problem-1-live-range-splitting)
+  - [Sub-Problem 2: Spill Decision](#sub-problem-2-spill-decision)
+  - [Sub-Problem 3: Coloring](#sub-problem-3-coloring)
+  - [Hierarchical Agent Architecture](#hierarchical-agent-architecture)
+  - [Reward Structure](#reward-structure)
+- [226.3 Hierarchical Agent Architecture in Detail](#2263-hierarchical-agent-architecture-in-detail)
+  - [GNN for Interference Graph Encoding](#gnn-for-interference-graph-encoding)
+  - [Policy Networks](#policy-networks)
+- [226.4 Pearl: Deep RL for General Code Optimization](#2264-pearl-deep-rl-for-general-code-optimization)
+  - [Architecture](#architecture)
+  - [The Multi-Level MDP](#the-multi-level-mdp)
+  - [Pearl vs Individual-Heuristic RL](#pearl-vs-individual-heuristic-rl)
+  - [Empirical Results on Chromium](#empirical-results-on-chromium)
+- [226.5 GNN-Based IR Representation: ProGraML](#2265-gnn-based-ir-representation-programl)
+  - [1. Use-Def Graph (LLVM DataFlowGraph)](#1-use-def-graph-llvm-dataflowgraph)
+  - [2. ProGraML (Cummins et al., arXiv 1906.00148)](#2-programl-cummins-et-al-arxiv-190600148)
+  - [3. MLIR Region Tree](#3-mlir-region-tree)
+- [226.6 Training Infrastructure and Reward Shaping](#2266-training-infrastructure-and-reward-shaping)
+  - [Distributed Episode Collection](#distributed-episode-collection)
+  - [Curriculum Learning](#curriculum-learning)
+  - [Reward Shaping Details](#reward-shaping-details)
+- [226.7 Comparison with Classical Approaches](#2267-comparison-with-classical-approaches)
+  - [PBQP (Pseudo-Boolean Quadratic Problem)](#pbqp-pseudo-boolean-quadratic-problem)
+  - [MLGO Eviction Advisor (Chapter 224)](#mlgo-eviction-advisor-chapter-224)
+  - [Greedy Allocator with ML Eviction Advisor](#greedy-allocator-with-ml-eviction-advisor)
+  - [Production vs Research Status](#production-vs-research-status)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 226.1 Register Allocation as an MDP
 
 ### Baseline: The Greedy Allocator

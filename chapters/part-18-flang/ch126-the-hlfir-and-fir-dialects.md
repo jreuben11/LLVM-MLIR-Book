@@ -6,6 +6,43 @@ Fortran's data model is fundamentally richer than C's at the IR level. Array sec
 
 ---
 
+## Table of Contents
+
+- [126.1 The Fortran IR Hierarchy](#1261-the-fortran-ir-hierarchy)
+- [126.2 FIR Types](#1262-fir-types)
+  - [Reference and Pointer Types](#reference-and-pointer-types)
+  - [Array Types](#array-types)
+  - [The Box Type](#the-box-type)
+  - [Character Types](#character-types)
+  - [Shape and Slice Types](#shape-and-slice-types)
+  - [Type Table Summary](#type-table-summary)
+- [126.3 Key FIR Operations](#1263-key-fir-operations)
+  - [Memory Operations](#memory-operations)
+  - [Array Operations](#array-operations)
+  - [Box Operations](#box-operations)
+  - [Control Flow Operations](#control-flow-operations)
+  - [Call and Dispatch](#call-and-dispatch)
+  - [A Complete FIR Example](#a-complete-fir-example)
+- [126.4 HLFIR (High-Level FIR)](#1264-hlfir-high-level-fir)
+  - [HLFIR Types](#hlfir-types)
+  - [HLFIR Operations](#hlfir-operations)
+- [126.5 The HLFIR → FIR Lowering Pipeline](#1265-the-hlfir-fir-lowering-pipeline)
+  - [Pass Sequence](#pass-sequence)
+  - [Key Pass Details](#key-pass-details)
+- [126.6 Box Lowering to LLVM Structs](#1266-box-lowering-to-llvm-structs)
+- [126.7 Fortran Runtime Integration from FIR](#1267-fortran-runtime-integration-from-fir)
+  - [I/O Runtime Calls](#io-runtime-calls)
+  - [Intrinsic Array Runtime Calls](#intrinsic-array-runtime-calls)
+  - [Allocatable Operations](#allocatable-operations)
+- [126.8 Inspecting FIR and HLFIR in Practice](#1268-inspecting-fir-and-hlfir-in-practice)
+  - [Emitting HLFIR](#emitting-hlfir)
+  - [Emitting FIR](#emitting-fir)
+  - [Running Individual Passes](#running-individual-passes)
+  - [FileCheck Test Pattern](#filecheck-test-pattern)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 126.1 The Fortran IR Hierarchy
 
 Fortran requires representation at multiple levels of abstraction:

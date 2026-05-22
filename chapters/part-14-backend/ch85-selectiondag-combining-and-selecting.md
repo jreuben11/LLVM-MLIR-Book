@@ -4,6 +4,45 @@
 
 Once the SelectionDAG has been built from LLVM IR and legalized to types and operations that the target supports, two further processes transform it into a sequence of actual machine instructions: the DAGCombiner peephole optimizer, which simplifies the DAG algebraically and structurally, and the instruction selector, which pattern-matches legal DAG subtrees against target instruction patterns. This chapter examines both in depth — the DAGCombiner's rule set and extension points, and the TableGen-generated `SelectCode` function that drives greedy instruction selection.
 
+## Table of Contents
+
+- [85.1 The DAGCombiner](#851-the-dagcombiner)
+  - [85.1.1 Architecture and Invocation](#8511-architecture-and-invocation)
+  - [85.1.2 Constant Folding](#8512-constant-folding)
+  - [85.1.3 Strength Reduction](#8513-strength-reduction)
+  - [85.1.4 Algebraic Simplification](#8514-algebraic-simplification)
+  - [85.1.5 Bitfield Extraction Patterns](#8515-bitfield-extraction-patterns)
+  - [85.1.6 Memory Operation Combines](#8516-memory-operation-combines)
+- [85.2 Target DAG Combines](#852-target-dag-combines)
+  - [85.2.1 The PerformDAGCombine Hook](#8521-the-performdagcombine-hook)
+  - [85.2.2 DAGCombinerInfo](#8522-dagcombinerinfo)
+- [85.3 Pattern-Based Instruction Selection](#853-pattern-based-instruction-selection)
+  - [85.3.1 The TableGen isel Backend](#8531-the-tablegen-isel-backend)
+  - [85.3.2 Pattern Syntax](#8532-pattern-syntax)
+  - [85.3.3 The SelectCode Function](#8533-the-selectcode-function)
+  - [85.3.4 Pattern Priority and AddedComplexity](#8534-pattern-priority-and-addedcomplexity)
+  - [85.3.5 ComplexPattern Matchers](#8535-complexpattern-matchers)
+- [85.4 Custom Selection in C++](#854-custom-selection-in-c)
+  - [85.4.1 The Select() Override](#8541-the-select-override)
+  - [85.4.2 Emitting MachineNodes](#8542-emitting-machinenodes)
+  - [85.4.3 Multi-Result Instructions](#8543-multi-result-instructions)
+- [85.5 Instruction Selection Debugging](#855-instruction-selection-debugging)
+  - [85.5.1 Viewing DAG Stages](#8551-viewing-dag-stages)
+  - [85.5.2 Text Debug Output](#8552-text-debug-output)
+  - [85.5.3 The MachineVerifier](#8553-the-machineverifier)
+  - [85.5.4 FastISel and its Debug Mode](#8554-fastisel-and-its-debug-mode)
+- [85.6 Post-Selection Cleanup](#856-post-selection-cleanup)
+  - [85.6.1 CopyToReg / CopyFromReg Elimination](#8561-copytoreg-copyfromreg-elimination)
+  - [85.6.2 PHI Lowering](#8562-phi-lowering)
+- [85.7 The Scheduler After isel](#857-the-scheduler-after-isel)
+- [85.8 Pattern Matching Internals](#858-pattern-matching-internals)
+  - [85.8.1 The OPC_ Instruction Stream](#8581-the-opc-instruction-stream)
+  - [85.8.2 Predicate Guards](#8582-predicate-guards)
+  - [85.8.3 Multi-Instruction Patterns](#8583-multi-instruction-patterns)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 85.1 The DAGCombiner
 
 ### 85.1.1 Architecture and Invocation

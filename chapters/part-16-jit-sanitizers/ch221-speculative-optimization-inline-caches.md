@@ -6,6 +6,56 @@ Conservative compilation produces correct code for all possible inputs but leave
 
 ---
 
+## Table of Contents
+
+- [221.1 The Speculative Optimization Model](#2211-the-speculative-optimization-model)
+  - [Conservative vs Speculative Compilation](#conservative-vs-speculative-compilation)
+- [221.2 Inline Caches](#2212-inline-caches)
+  - [IC State Machine](#ic-state-machine)
+  - [Monomorphic IC in x86 Machine Code](#monomorphic-ic-in-x86-machine-code)
+  - [Polymorphic IC: Type-Check Chain](#polymorphic-ic-type-check-chain)
+  - [Feedback Vector Structure](#feedback-vector-structure)
+- [221.3 Guard IR Patterns](#2213-guard-ir-patterns)
+  - [@llvm.assume](#llvmassume)
+  - [Deopt Bundles](#deopt-bundles)
+  - [@llvm.experimental.guard](#llvmexperimentalguard)
+  - [Guard Placement](#guard-placement)
+- [221.4 @llvm.deoptimize and Deopt Bundles in Depth](#2214-llvmdeoptimize-and-deopt-bundles-in-depth)
+  - [Deopt Bundle Format](#deopt-bundle-format)
+  - [RewriteStatepointsForGC](#rewritestatepointsforgc)
+- [221.5 Stackmap Frame Reconstruction](#2215-stackmap-frame-reconstruction)
+  - [.llvm_stackmaps Section Format (v3)](#llvmstackmaps-section-format-v3)
+  - [Location Kinds](#location-kinds)
+  - [StackMapParser API](#stackmapparser-api)
+  - [Deoptimizer Frame Reconstruction](#deoptimizer-frame-reconstruction)
+- [221.6 On-Stack Replacement](#2216-on-stack-replacement)
+  - [Forward OSR: Interpreter → JIT Mid-Loop](#forward-osr-interpreter-jit-mid-loop)
+  - [Backward OSR: JIT → Interpreter (Deoptimization)](#backward-osr-jit-interpreter-deoptimization)
+  - [LLVM's Current Support](#llvms-current-support)
+- [221.7 V8: Ignition → Maglev → TurboFan Tiering](#2217-v8-ignition-maglev-turbofan-tiering)
+  - [Tier 1: Ignition Bytecode Interpreter](#tier-1-ignition-bytecode-interpreter)
+  - [Tier 2: Maglev (Mid-Tier JIT)](#tier-2-maglev-mid-tier-jit)
+  - [Tier 3: TurboFan (Optimizing Compiler)](#tier-3-turbofan-optimizing-compiler)
+  - [Tiering Policy](#tiering-policy)
+  - [Deopt Counters and Bailout Prevention](#deopt-counters-and-bailout-prevention)
+- [221.8 JVM HotSpot: C1 → C2 Tiering](#2218-jvm-hotspot-c1-c2-tiering)
+  - [Tier 0: Template Interpreter](#tier-0-template-interpreter)
+  - [Tier 1: C1 (Client Compiler)](#tier-1-c1-client-compiler)
+  - [Tier 2: C2 (Server Compiler)](#tier-2-c2-server-compiler)
+  - [Tiering Trigger](#tiering-trigger)
+  - [Uncommon Traps (HotSpot's Deoptimization)](#uncommon-traps-hotspots-deoptimization)
+  - [nmethod Invalidation](#nmethod-invalidation)
+- [221.9 Connection to ORC ReOptimizeLayer](#2219-connection-to-orc-reoptimizelayer)
+  - [Architecture](#architecture)
+  - [AddProfilerFunc: Instrumenting Tier-1 Code](#addprofilerfunc-instrumenting-tier-1-code)
+  - [reoptimizeIfCallFrequent: The Trigger](#reoptimizeifcallfrequent-the-trigger)
+  - [ReOptimizeFunc: Tier-2 Recompilation](#reoptimizefunc-tier-2-recompilation)
+  - [ResourceTracker Lifecycle](#resourcetracker-lifecycle)
+  - [Extending with Speculative Guards](#extending-with-speculative-guards)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 221.1 The Speculative Optimization Model
 
 Speculative compilation is a three-party contract between the *profiler*, the *compiler*, and the *runtime*:

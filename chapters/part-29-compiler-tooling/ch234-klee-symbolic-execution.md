@@ -4,6 +4,36 @@
 
 KLEE is an LLVM-based symbolic execution engine that automatically generates test inputs by systematically exploring the feasible execution paths of a program. Where coverage-guided fuzzers like libFuzzer (Chapter 114) probe code stochastically, KLEE explores paths deterministically—each branch condition either must be true, must be false, or is satisfiable both ways, with the solver generating a concrete witness for each case. Originally described in the OSDI 2008 paper "KLEE: Unassisted and Automatic Generation of High-Coverage Tests for Complex Systems Programs" (Cadar, Dunbar, Engler), KLEE has become the canonical reference implementation for systematic testing of LLVM IR and is the basis of dozens of derivative research tools. This chapter covers KLEE's architecture at the source level: the shadow IR layer, the memory model, the path explorer, the solver chain, and the practical workflow of building programs for KLEE and analyzing its output.
 
+## Table of Contents
+
+- [234.1 Design Goals and Scope](#2341-design-goals-and-scope)
+- [234.2 Architecture: KModule, KFunction, KInstruction](#2342-architecture-kmodule-kfunction-kinstruction)
+  - [KModule](#kmodule)
+  - [KFunction](#kfunction)
+  - [KInstruction](#kinstruction)
+- [234.3 ExecutionState](#2343-executionstate)
+- [234.4 Memory Model: MemoryObject and ObjectState](#2344-memory-model-memoryobject-and-objectstate)
+  - [MemoryObject](#memoryobject)
+  - [ObjectState](#objectstate)
+- [234.5 Path Exploration: The Searcher Hierarchy](#2345-path-exploration-the-searcher-hierarchy)
+  - [Concrete Searcher Implementations](#concrete-searcher-implementations)
+  - [WeightedRandomSearcher Weight Types](#weightedrandomsearcher-weight-types)
+- [234.6 Solver Chain](#2346-solver-chain)
+  - [Query and Solver Interface](#query-and-solver-interface)
+  - [Solver Chain Layers](#solver-chain-layers)
+  - [Backend Solvers](#backend-solvers)
+- [234.7 Symbolic API, Environment Model, and Test Case Generation](#2347-symbolic-api-environment-model-and-test-case-generation)
+  - [Making Memory Symbolic](#making-memory-symbolic)
+  - [POSIX and uclibc Environment Models](#posix-and-uclibc-environment-models)
+  - [KTest Format and Test Case Output](#ktest-format-and-test-case-output)
+- [234.8 Building for KLEE and Practical Extensions](#2348-building-for-klee-and-practical-extensions)
+  - [Compilation Workflow](#compilation-workflow)
+  - [Extensions](#extensions)
+  - [Comparison with Related Tools](#comparison-with-related-tools)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 234.1 Design Goals and Scope
 
 KLEE occupies a specific niche in the program-analysis toolbox:

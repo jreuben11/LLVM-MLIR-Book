@@ -4,6 +4,36 @@
 
 Virtual dispatch is the mechanism by which C++ programs select a function implementation at runtime based on an object's dynamic type. This flexibility has a cost: each virtual call requires a vtable pointer load, a function-pointer load from the vtable, an indirect call, and — critically — it blocks the inliner from seeing inside the callee. Whole-Program Devirtualization (WPD) eliminates these costs when the global view afforded by link-time optimization reveals that a virtual call can only reach one (or a small set of) implementation(s). This chapter covers the `WholeProgramDevirtPass`, its analysis of `@llvm.type.checked.load` and `@llvm.type.test` intrinsics, the five devirtualization strategies it applies, how it shares infrastructure with CFI's `LowerTypeTestsPass`, and how it integrates with both full LTO and ThinLTO.
 
+## Table of Contents
+
+- [69.1 The Problem: Virtual Call Overhead and Opacity](#691-the-problem-virtual-call-overhead-and-opacity)
+- [69.2 Type Test Infrastructure: The Foundation of WPD](#692-type-test-infrastructure-the-foundation-of-wpd)
+  - [69.2.1 @llvm.type.checked.load](#6921-llvmtypecheckedload)
+  - [69.2.2 vcall_visibility Attribute](#6922-vcallvisibility-attribute)
+- [69.3 The WholeProgramDevirtPass](#693-the-wholeprogramdevirtpass)
+  - [69.3.1 Pass Structure](#6931-pass-structure)
+- [69.4 Devirtualization Strategies](#694-devirtualization-strategies)
+  - [69.4.1 Single Implementation (Direct Call)](#6941-single-implementation-direct-call)
+  - [69.4.2 Branch Funnel (Multiple Implementations, Small Set)](#6942-branch-funnel-multiple-implementations-small-set)
+  - [69.4.3 Uniform Return Value](#6943-uniform-return-value)
+  - [69.4.4 Unique Return Value](#6944-unique-return-value)
+  - [69.4.5 Virtual Constant Propagation](#6945-virtual-constant-propagation)
+- [69.5 CFI and WPD Shared Infrastructure](#695-cfi-and-wpd-shared-infrastructure)
+  - [69.5.1 LowerTypeTestsPass](#6951-lowertypetestspass)
+  - [69.5.2 Interplay: CFI Precision After WPD](#6952-interplay-cfi-precision-after-wpd)
+- [69.6 ThinLTO Integration](#696-thinlto-integration)
+  - [69.6.1 Summary-Based WPD](#6961-summary-based-wpd)
+  - [69.6.2 Summary Export and Import](#6962-summary-export-and-import)
+- [69.7 Visibility Requirements](#697-visibility-requirements)
+  - [69.7.1 Hidden Visibility](#6971-hidden-visibility)
+  - [69.7.2 vcall_visibility Annotation](#6972-vcallvisibility-annotation)
+  - [69.7.3 `__attribute__((visibility("hidden")))` Per-Class](#6973-attributevisibilityhidden-per-class)
+- [69.8 Diagnostic and Debug Support](#698-diagnostic-and-debug-support)
+- [69.9 A Complete WPD Example](#699-a-complete-wpd-example)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 69.1 The Problem: Virtual Call Overhead and Opacity
 
 A virtual call in C++ compiles to a three-instruction sequence at the machine level:

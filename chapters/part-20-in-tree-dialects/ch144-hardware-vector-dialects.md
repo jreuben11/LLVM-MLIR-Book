@@ -6,6 +6,49 @@ The `vector` dialect (Chapter 141) provides a target-independent SIMD abstractio
 
 ---
 
+## Table of Contents
+
+- [144.1 `arm_neon`](#1441-armneon)
+  - [144.1.1 Overview](#14411-overview)
+  - [144.1.2 Dot Product Operations](#14412-dot-product-operations)
+  - [144.1.3 Other NEON Operations](#14413-other-neon-operations)
+  - [144.1.4 Lowering](#14414-lowering)
+- [144.2 `arm_sve`](#1442-armsve)
+  - [144.2.1 Scalable Vector Extension](#14421-scalable-vector-extension)
+  - [144.2.2 SVE Dot Products and Matrix Ops](#14422-sve-dot-products-and-matrix-ops)
+  - [144.2.3 Predicate Operations](#14423-predicate-operations)
+  - [144.2.4 Structured Zips for ACLE Patterns](#14424-structured-zips-for-acle-patterns)
+  - [144.2.5 Lowering](#14425-lowering)
+- [144.3 `arm_sme`](#1443-armsme)
+  - [144.3.1 Scalable Matrix Extension](#14431-scalable-matrix-extension)
+  - [144.3.2 ZA Array Management](#14432-za-array-management)
+  - [144.3.3 Tile Load and Store](#14433-tile-load-and-store)
+  - [144.3.4 Outer Product (MOP)](#14434-outer-product-mop)
+  - [144.3.5 Lowering](#14435-lowering)
+- [144.4 `x86vector`](#1444-x86vector)
+  - [144.4.1 Overview](#14441-overview)
+  - [144.4.2 AVX Dot Products](#14442-avx-dot-products)
+  - [144.4.3 AVX-512 Compress and Expand](#14443-avx-512-compress-and-expand)
+  - [144.4.4 VP2INTERSECT (Set Intersection)](#14444-vp2intersect-set-intersection)
+  - [144.4.5 BF16 Conversion](#14445-bf16-conversion)
+  - [144.4.6 Lowering](#14446-lowering)
+- [144.5 `amdgpu`](#1445-amdgpu)
+  - [144.5.1 AMD GPU Matrix Operations](#14451-amd-gpu-matrix-operations)
+  - [144.5.2 MFMA Matrix Operations](#14452-mfma-matrix-operations)
+  - [144.5.3 Buffer Operations](#14453-buffer-operations)
+  - [144.5.4 Wave Operations](#14454-wave-operations)
+  - [144.5.5 Lowering](#14455-lowering)
+- [144.6 `rocdl`](#1446-rocdl)
+  - [144.6.1 ROCDL as the AMD Hardware Dialect](#14461-rocdl-as-the-amd-hardware-dialect)
+  - [144.6.2 Thread and Block Indices](#14462-thread-and-block-indices)
+  - [144.6.3 Memory and Synchronization](#14463-memory-and-synchronization)
+  - [144.6.4 MFMA Intrinsics](#14464-mfma-intrinsics)
+  - [144.6.5 Lowering](#14465-lowering)
+- [144.7 Hardware Dialect Comparison](#1447-hardware-dialect-comparison)
+- [Chapter 144 Summary](#chapter-144-summary)
+
+---
+
 ## 144.1 `arm_neon`
 
 ### 144.1.1 Overview

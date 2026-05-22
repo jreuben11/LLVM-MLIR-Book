@@ -6,6 +6,34 @@ The Android NDK ships a complete LLVM/Clang toolchain that has been the sole sup
 
 ---
 
+## Table of Contents
+
+- [236.1 NDK Architecture and Toolchain Layout](#2361-ndk-architecture-and-toolchain-layout)
+- [236.2 Target Triples and API Levels](#2362-target-triples-and-api-levels)
+- [236.3 Sysroot Structure and Stub Libraries](#2363-sysroot-structure-and-stub-libraries)
+- [236.4 CMake Integration](#2364-cmake-integration)
+  - [Minimum CMakeLists.txt](#minimum-cmakeliststxt)
+  - [Gradle configuration](#gradle-configuration)
+  - [Key CMake variables](#key-cmake-variables)
+- [236.5 Bionic libc Differences](#2365-bionic-libc-differences)
+  - [Missing POSIX features](#missing-posix-features)
+  - [Register x18 — shadow call stack](#register-x18-shadow-call-stack)
+  - [`__attribute__((visibility("default")))` and `-fvisibility=hidden`](#attributevisibilitydefault-and-fvisibilityhidden)
+  - [Thread-local storage](#thread-local-storage)
+- [236.6 Multi-ABI APK Layout](#2366-multi-abi-apk-layout)
+- [236.7 Sanitizers and wrap.sh](#2367-sanitizers-and-wrapsh)
+  - [HWAddressSanitizer (HWASan)](#hwaddresssanitizer-hwasan)
+  - [wrap.sh mechanism](#wrapsh-mechanism)
+  - [AddressSanitizer](#addresssanitizer)
+  - [UBSan and CFI](#ubsan-and-cfi)
+- [236.8 The Android LLVM Fork and GKI](#2368-the-android-llvm-fork-and-gki)
+  - [Android's LLVM fork](#androids-llvm-fork)
+  - [Generic Kernel Image (GKI) mandate](#generic-kernel-image-gki-mandate)
+  - [Clang-built kernel and LTO](#clang-built-kernel-and-lto)
+- [Summary](#summary)
+
+---
+
 ## 236.1 NDK Architecture and Toolchain Layout
 
 The NDK is a self-contained directory tree. Since NDK r23 the structure has stabilised:

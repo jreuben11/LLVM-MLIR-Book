@@ -6,6 +6,45 @@ The `llvm` dialect is the terminus of every MLIR lowering pipeline that targets 
 
 ---
 
+## Table of Contents
+
+- [145.1 Purpose and Design](#1451-purpose-and-design)
+  - [145.1.1 Why Represent LLVM IR in MLIR](#14511-why-represent-llvm-ir-in-mlir)
+  - [145.1.2 MLIR vs LLVM IR Structural Differences](#14512-mlir-vs-llvm-ir-structural-differences)
+- [145.2 LLVM Dialect Types](#1452-llvm-dialect-types)
+  - [145.2.1 Pointer Type](#14521-pointer-type)
+  - [145.2.2 Aggregate Types](#14522-aggregate-types)
+  - [145.2.3 Other Types](#14523-other-types)
+- [145.3 Key LLVM Ops](#1453-key-llvm-ops)
+  - [145.3.1 Memory Operations](#14531-memory-operations)
+  - [145.3.2 Pointer Arithmetic and Casts](#14532-pointer-arithmetic-and-casts)
+  - [145.3.3 Arithmetic and Logic](#14533-arithmetic-and-logic)
+  - [145.3.4 Control Flow](#14534-control-flow)
+  - [145.3.5 Function Calls](#14535-function-calls)
+  - [145.3.6 Type Conversion Ops](#14536-type-conversion-ops)
+  - [145.3.7 Aggregates and Vectors](#14537-aggregates-and-vectors)
+  - [145.3.8 Intrinsics](#14538-intrinsics)
+- [145.4 Globals and Constants](#1454-globals-and-constants)
+  - [145.4.1 Global Variables](#14541-global-variables)
+  - [145.4.2 Constants and Addresses](#14542-constants-and-addresses)
+  - [145.4.3 Atomic Operations](#14543-atomic-operations)
+- [145.5 Function Definitions and Attributes](#1455-function-definitions-and-attributes)
+  - [145.5.1 `llvm.func`](#14551-llvmfunc)
+  - [145.5.2 Calling Conventions](#14552-calling-conventions)
+  - [145.5.3 Operand Bundles and Invoke](#14553-operand-bundles-and-invoke)
+- [145.6 Metadata and Debug Info](#1456-metadata-and-debug-info)
+  - [145.6.1 LLVM Metadata in MLIR](#14561-llvm-metadata-in-mlir)
+  - [145.6.2 Access Groups and Alias.scope](#14562-access-groups-and-aliasscope)
+- [145.7 Conversion to and from LLVM Dialect](#1457-conversion-to-and-from-llvm-dialect)
+  - [145.7.1 Standard Conversion Passes](#14571-standard-conversion-passes)
+  - [145.7.2 `LLVMTypeConverter`](#14572-llvmtypeconverter)
+  - [145.7.3 `--reconcile-unrealized-casts`](#14573-reconcile-unrealized-casts)
+  - [145.7.4 `mlir-translate --mlir-to-llvmir`](#14574-mlir-translate-mlir-to-llvmir)
+  - [145.7.5 Import from LLVM IR](#14575-import-from-llvm-ir)
+- [Chapter 145 Summary](#chapter-145-summary)
+
+---
+
 ## 145.1 Purpose and Design
 
 ### 145.1.1 Why Represent LLVM IR in MLIR

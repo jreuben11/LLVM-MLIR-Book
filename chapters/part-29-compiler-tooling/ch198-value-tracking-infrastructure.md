@@ -6,6 +6,53 @@ Every optimization pass faces the same fundamental question: what can we prove a
 
 ---
 
+## Table of Contents
+
+- [198.1 The ValueTracking Library](#1981-the-valuetracking-library)
+  - [198.1.1 Role and Scope](#19811-role-and-scope)
+  - [198.1.2 Relationship to Sibling Libraries](#19812-relationship-to-sibling-libraries)
+- [198.2 KnownBits](#1982-knownbits)
+  - [198.2.1 The Struct](#19821-the-struct)
+  - [198.2.2 The Lattice Structure](#19822-the-lattice-structure)
+  - [198.2.3 computeKnownBits](#19823-computeknownbits)
+  - [198.2.4 Concrete Example](#19824-concrete-example)
+  - [198.2.5 ComputeNumSignBits and Scalar Predicates](#19825-computenumsignbits-and-scalar-predicates)
+  - [198.2.6 Use in InstCombine](#19826-use-in-instcombine)
+- [198.3 ConstantRange](#1983-constantrange)
+  - [198.3.1 Representation](#19831-representation)
+  - [198.3.2 Set Operations](#19832-set-operations)
+  - [198.3.3 Arithmetic Operations](#19833-arithmetic-operations)
+  - [198.3.4 No-Wrap Variants and makeGuaranteedNoWrapRegion](#19834-no-wrap-variants-and-makeguaranteednowrapregion)
+  - [198.3.5 Use in ScalarEvolution and InstructionSimplify](#19835-use-in-scalarevolution-and-instructionsimplify)
+- [198.4 DemandedBits](#1984-demandedbits)
+  - [198.4.1 The Analysis](#19841-the-analysis)
+  - [198.4.2 Use in InstCombine and CodeGenPrepare](#19842-use-in-instcombine-and-codegenprepare)
+- [198.5 LazyValueInfo](#1985-lazyvalueinfo)
+  - [198.5.1 Demand-Driven Conditional Inference](#19851-demand-driven-conditional-inference)
+  - [198.5.2 Use in JumpThreading](#19852-use-in-jumpthreading)
+  - [198.5.3 Use in CorrelatedValuePropagation](#19853-use-in-correlatedvaluepropagation)
+- [198.6 SimplifyQuery](#1986-simplifyquery)
+  - [198.6.1 The Context Struct](#19861-the-context-struct)
+  - [198.6.2 How @llvm.assume Interacts with KnownBits](#19862-how-llvmassume-interacts-with-knownbits)
+- [198.7 Pointer Tracking and Alignment Inference](#1987-pointer-tracking-and-alignment-inference)
+  - [198.7.1 Value::getPointerAlignment](#19871-valuegetpointeralignment)
+  - [198.7.2 getKnownAlignment](#19872-getknownalignment)
+  - [198.7.3 Use in Vectorization and Load/Store Optimization](#19873-use-in-vectorization-and-loadstore-optimization)
+- [198.8 Writing a Pass That Uses Value Tracking](#1988-writing-a-pass-that-uses-value-tracking)
+  - [198.8.1 The Goal](#19881-the-goal)
+  - [198.8.2 Complete Pass Source](#19882-complete-pass-source)
+  - [198.8.3 Test IR and Expected Output](#19883-test-ir-and-expected-output)
+  - [198.8.4 Extending the Pass: Using ConstantRange](#19884-extending-the-pass-using-constantrange)
+- [198.9 Validation with Alive2](#1989-validation-with-alive2)
+  - [198.9.1 Why Formal Validation Matters](#19891-why-formal-validation-matters)
+  - [198.9.2 The alive-tv Tool](#19892-the-alive-tv-tool)
+  - [198.9.3 Verifying a DemandedBits-Enabled Peephole](#19893-verifying-a-demandedbits-enabled-peephole)
+  - [198.9.4 Verifying a KnownBits-Conditional Peephole](#19894-verifying-a-knownbits-conditional-peephole)
+  - [198.9.5 Integration with the LLVM Test Suite](#19895-integration-with-the-llvm-test-suite)
+- [198.10 Summary](#19810-summary)
+
+---
+
 ## 198.1 The ValueTracking Library
 
 ### 198.1.1 Role and Scope

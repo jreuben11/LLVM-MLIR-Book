@@ -8,6 +8,47 @@ Cross-references: [Chapter 212 — Weights as a Programming Substrate](ch212-wei
 
 ---
 
+## Table of Contents
+
+- [217.1 Test-Time Compute for Self-Understanding](#2171-test-time-compute-for-self-understanding)
+  - [External Reasoning vs. Self-Directed Reasoning](#external-reasoning-vs-self-directed-reasoning)
+  - [Self-Knowledge as a Computational Primitive](#self-knowledge-as-a-computational-primitive)
+  - [The Taxonomy of Self-Directed Computation](#the-taxonomy-of-self-directed-computation)
+- [217.2 Chain-of-Thought Self-Debugging](#2172-chain-of-thought-self-debugging)
+  - [Wei et al. and the Chain-of-Thought Result](#wei-et-al-and-the-chain-of-thought-result)
+  - [Self-Diagnosis Prompting Patterns](#self-diagnosis-prompting-patterns)
+- [217.3 Iterative Self-Refinement (SELF-REFINE)](#2173-iterative-self-refinement-self-refine)
+  - [The Generate-Critique-Refine Loop](#the-generate-critique-refine-loop)
+  - [Implementation](#implementation)
+  - [Convergence Properties and Stopping Criteria](#convergence-properties-and-stopping-criteria)
+  - [Task-Conditional Critique Dimensions](#task-conditional-critique-dimensions)
+- [217.4 Self-Play Fine-Tuning (SPIN)](#2174-self-play-fine-tuning-spin)
+  - [Self-as-Adversary](#self-as-adversary)
+  - [Discriminator Loss](#discriminator-loss)
+  - [SPIN Training Loop](#spin-training-loop)
+- [217.5 Inference-Time Activation Analysis](#2175-inference-time-activation-analysis)
+  - [From Circuit Discovery to Capability Assessment](#from-circuit-discovery-to-capability-assessment)
+  - [TransformerLens Activation Probing at Inference Time](#transformerlens-activation-probing-at-inference-time)
+  - [Activation Patterns and Weight-Space Geometry](#activation-patterns-and-weight-space-geometry)
+- [217.6 Self-Generated Evaluation Sets](#2176-self-generated-evaluation-sets)
+  - [Model as Its Own Test Designer](#model-as-its-own-test-designer)
+  - [Capability Boundary Discovery via Self-Play](#capability-boundary-discovery-via-self-play)
+- [217.7 DeepSeek-R1 as Reference Implementation](#2177-deepseek-r1-as-reference-implementation)
+  - [Extended Reasoning Traces as Self-Reflection](#extended-reasoning-traces-as-self-reflection)
+  - [GRPO Training Mechanism](#grpo-training-mechanism)
+  - [The Aha Moment and Emergent Self-Reflection](#the-aha-moment-and-emergent-self-reflection)
+  - [Reasoning Token Scaling and Self-Reflection Depth](#reasoning-token-scaling-and-self-reflection-depth)
+- [217.8 TTT Integration: Gradient Updates at Inference Time](#2178-ttt-integration-gradient-updates-at-inference-time)
+  - [Self-Reflection as the Adapter Selector](#self-reflection-as-the-adapter-selector)
+  - [Targeted vs. Uniform Adaptation](#targeted-vs-uniform-adaptation)
+- [217.9 Cognitive Angle: Self-Reflection as the Bridge](#2179-cognitive-angle-self-reflection-as-the-bridge)
+  - [Runtime Complement to Weight-Level Modification](#runtime-complement-to-weight-level-modification)
+  - [Connection to the Evolutionary Loop (Ch215 / DGM)](#connection-to-the-evolutionary-loop-ch215-dgm)
+  - [The Full Self-Improvement Stack](#the-full-self-improvement-stack)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 217.1 Test-Time Compute for Self-Understanding
 
 ### External Reasoning vs. Self-Directed Reasoning

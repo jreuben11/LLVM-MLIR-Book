@@ -8,6 +8,42 @@ Cross-references: [Chapter 212 — Weights as a Programming Substrate](ch212-wei
 
 ---
 
+## Table of Contents
+
+- [214.1 Model Editing: Surgical Weight Modification](#2141-model-editing-surgical-weight-modification)
+  - [The Editing Problem](#the-editing-problem)
+  - [ROME: Rank-One Model Editing](#rome-rank-one-model-editing)
+  - [MEMIT: Mass-Editing Across Layers](#memit-mass-editing-across-layers)
+  - [GRACE: Retrieval-Augmented Editing Without Weight Modification](#grace-retrieval-augmented-editing-without-weight-modification)
+  - [Editing, Weights, and Interpretability: The Three-Chapter Arc](#editing-weights-and-interpretability-the-three-chapter-arc)
+- [214.2 Test-Time Training](#2142-test-time-training)
+  - [The TTT Loop](#the-ttt-loop)
+  - [JAX Implementation](#jax-implementation)
+  - [Multi-Step TTT and Streaming](#multi-step-ttt-and-streaming)
+- [214.3 Meta-Learning: Learning to Learn](#2143-meta-learning-learning-to-learn)
+  - [MAML: Bi-Level Optimisation](#maml-bi-level-optimisation)
+  - [iMAML: Implicit Differentiation](#imaml-implicit-differentiation)
+  - [Hypernetworks: Weight Generation](#hypernetworks-weight-generation)
+- [214.4 Gradient Surgery for Multi-Objective Learning](#2144-gradient-surgery-for-multi-objective-learning)
+  - [The Conflicting Gradient Problem](#the-conflicting-gradient-problem)
+  - [CAGrad: Constrained Average Gradient](#cagrad-constrained-average-gradient)
+- [214.5 In-Context Learning as Implicit Gradient Descent](#2145-in-context-learning-as-implicit-gradient-descent)
+  - [The Linear Attention Duality](#the-linear-attention-duality)
+  - [Formal Derivation Under Linear Attention](#formal-derivation-under-linear-attention)
+  - [Implications for Model Understanding](#implications-for-model-understanding)
+  - [Weight-Stationary, Functionally Gradient-Descent-Equivalent](#weight-stationary-functionally-gradient-descent-equivalent)
+- [214.6 Continual Learning: Capability Accumulation](#2146-continual-learning-capability-accumulation)
+  - [The Catastrophic Forgetting Problem](#the-catastrophic-forgetting-problem)
+  - [EWC: Elastic Weight Consolidation](#ewc-elastic-weight-consolidation)
+  - [GEM and A-GEM: Gradient Episodic Memory](#gem-and-a-gem-gradient-episodic-memory)
+  - [Self-Distillation Fine-Tuning (SDFT)](#self-distillation-fine-tuning-sdft)
+  - [Connection to ORC JIT ReOptimizeLayer](#connection-to-orc-jit-reoptimizelayer)
+- [214.7 The Cognitive Angle: A Spectrum of Self-Modification](#2147-the-cognitive-angle-a-spectrum-of-self-modification)
+  - [The Self-Improvement Loop Topology](#the-self-improvement-loop-topology)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 214.1 Model Editing: Surgical Weight Modification
 
 ### The Editing Problem

@@ -6,6 +6,39 @@ The coding-agent properties defined in Chapter 203 — formal semantics, depende
 
 ---
 
+## Table of Contents
+
+- [205.1 Why Python Frameworks Miss the Target](#2051-why-python-frameworks-miss-the-target)
+- [205.2 Production Serving Demands](#2052-production-serving-demands)
+- [205.3 Ten Design Considerations for Transformer Model Development](#2053-ten-design-considerations-for-transformer-model-development)
+  - [205.3.1 Named, Typed Tensor Dimensions](#20531-named-typed-tensor-dimensions)
+  - [205.3.2 Automatic Differentiation as a Language-Level Transform](#20532-automatic-differentiation-as-a-language-level-transform)
+  - [205.3.3 Parallelism Strategies as Type Annotations](#20533-parallelism-strategies-as-type-annotations)
+  - [205.3.4 Device and Precision as Types](#20534-device-and-precision-as-types)
+  - [205.3.5 Kernel Fusion as a Compiler-Derived Property](#20535-kernel-fusion-as-a-compiler-derived-property)
+  - [205.3.6 Stochasticity as an Algebraic Effect](#20536-stochasticity-as-an-algebraic-effect)
+  - [205.3.7 Recomputation (Activation Checkpointing) as an Annotation](#20537-recomputation-activation-checkpointing-as-an-annotation)
+  - [205.3.8 Einsum and Index Notation as First-Class Syntax](#20538-einsum-and-index-notation-as-first-class-syntax)
+  - [205.3.9 Hardware Portability via MLIR](#20539-hardware-portability-via-mlir)
+  - [205.3.10 LLM-Legible Compact Kernel DSL](#205310-llm-legible-compact-kernel-dsl)
+- [205.4 Language Survey](#2054-language-survey)
+  - [205.4.1 Mojo (Modular)](#20541-mojo-modular)
+  - [205.4.2 Dex (Google Research)](#20542-dex-google-research)
+  - [205.4.3 Futhark (DIKU, University of Copenhagen)](#20543-futhark-diku-university-of-copenhagen)
+  - [205.4.4 Exo 2 (MIT CSAIL, ASPLOS 2025)](#20544-exo-2-mit-csail-asplos-2025)
+  - [205.4.5 Clef](#20545-clef)
+  - [205.4.6 Burn (Rust)](#20546-burn-rust)
+- [205.5 StableHLO and MLIR as the Convergence IR](#2055-stablehlo-and-mlir-as-the-convergence-ir)
+- [205.6 LLM-Driven Kernel Generation](#2056-llm-driven-kernel-generation)
+  - [205.6.1 Agentic Generate-Test-Refine Loops](#20561-agentic-generate-test-refine-loops)
+  - [205.6.2 Compiler-LLM Cooperation Across Abstraction Levels](#20562-compiler-llm-cooperation-across-abstraction-levels)
+  - [205.6.3 Dynamic Shape Handling](#20563-dynamic-shape-handling)
+- [205.7 Design Space Assessment: What the Unified PL Still Lacks](#2057-design-space-assessment-what-the-unified-pl-still-lacks)
+- [205.8 The Swift for TensorFlow Retrospective](#2058-the-swift-for-tensorflow-retrospective)
+- [Chapter 205 Summary](#chapter-205-summary)
+
+---
+
 ## 205.1 Why Python Frameworks Miss the Target
 
 Transformer model development is dominated by frameworks embedded in Python — a language designed for human data scientists. Each framework has made pragmatic choices that are correct for human authors and wrong for AI authors.

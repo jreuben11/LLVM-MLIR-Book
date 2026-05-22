@@ -6,6 +6,36 @@ XLA (Accelerated Linear Algebra) is Google's domain-specific compiler for machin
 
 ---
 
+## Table of Contents
+
+- [153.1 The OpenXLA Project](#1531-the-openxla-project)
+  - [153.1.1 Frontend Integration Points](#15311-frontend-integration-points)
+- [153.2 HLO: The Core Intermediate Representation](#1532-hlo-the-core-intermediate-representation)
+  - [153.2.1 IR Hierarchy](#15321-ir-hierarchy)
+  - [153.2.2 Shapes and Primitive Types](#15322-shapes-and-primitive-types)
+- [153.3 The XlaBuilder Client API](#1533-the-xlabuilder-client-api)
+- [153.4 The Compilation Pipeline](#1534-the-compilation-pipeline)
+  - [153.4.1 AlgebraicSimplifier](#15341-algebraicsimplifier)
+  - [153.4.2 Layout Assignment](#15342-layout-assignment)
+  - [153.4.3 Fusion](#15343-fusion)
+- [153.5 Buffer Assignment](#1535-buffer-assignment)
+- [153.6 Ahead-of-Time and JIT Compilation](#1536-ahead-of-time-and-jit-compilation)
+  - [153.6.1 JIT via LocalClient](#15361-jit-via-localclient)
+  - [153.6.2 AOT via AotCompilationResult](#15362-aot-via-aotcompilationresult)
+- [153.7 XLA and MLIR Integration](#1537-xla-and-mlir-integration)
+  - [153.7.1 StableHLO as the Front Door](#15371-stablehlo-as-the-front-door)
+  - [153.7.2 MHLO (Deprecated)](#15372-mhlo-deprecated)
+  - [153.7.3 The Linalg / MLIR Codegen Path](#15373-the-linalg-mlir-codegen-path)
+- [153.8 HloModuleConfig and Compilation Options](#1538-hlomoduleconfig-and-compilation-options)
+- [153.9 Profiling and Debugging XLA Programs](#1539-profiling-and-debugging-xla-programs)
+  - [153.9.1 HLO Dumps](#15391-hlo-dumps)
+  - [153.9.2 XProf and TensorBoard Integration](#15392-xprof-and-tensorboard-integration)
+  - [153.9.3 Cost Analysis](#15393-cost-analysis)
+- [153.10 XLA vs MLIR: Complementary Roles](#15310-xla-vs-mlir-complementary-roles)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 153.1 The OpenXLA Project
 
 XLA predates MLIR by several years. It was designed as a purpose-built compiler for linear algebra graphs, with explicit knowledge of shapes at compile time and an aggressive fusion model that eliminates memory bandwidth bottlenecks. The OpenXLA project was announced in 2022 as a vendor-neutral home for XLA development, with contributions from Google, NVIDIA, AMD, Intel, and Apple.

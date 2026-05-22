@@ -8,6 +8,43 @@ Cross-references: [Chapter 203 — AI-First PL Principles](ch203-ai-first-pl-pri
 
 ---
 
+## Table of Contents
+
+- [207.1 Reflective, Homoiconic, and Self-Improving Code](#2071-reflective-homoiconic-and-self-improving-code)
+  - [The Vision](#the-vision)
+  - [Lean 4 as the Closest Existing System](#lean-4-as-the-closest-existing-system)
+  - [Four Paradigms from AI Proof-Search Systems](#four-paradigms-from-ai-proof-search-systems)
+  - [Two Theoretical Reflective Paradigms](#two-theoretical-reflective-paradigms)
+  - [Three Homoiconicity Paradigms](#three-homoiconicity-paradigms)
+  - [The Type-Theoretic Formulation](#the-type-theoretic-formulation)
+  - [Formally Verified Self-Improvement](#formally-verified-self-improvement)
+  - [The Reflective Gap Table](#the-reflective-gap-table)
+- [207.2 Open Problems](#2072-open-problems)
+  - [G1 — The Typed `LLMCall` Primitive](#g1-the-typed-llmcall-primitive)
+  - [G2 — Typed Holes and Partial Programs](#g2-typed-holes-and-partial-programs)
+  - [G3 — Testing Layer Between Generation and Formal Proof](#g3-testing-layer-between-generation-and-formal-proof)
+  - [G4 — Multi-Modal LLM I/O Types](#g4-multi-modal-llm-io-types)
+  - [G5 — Type Inference Strategy](#g5-type-inference-strategy)
+  - [G6 — API and System Boundary Contracts](#g6-api-and-system-boundary-contracts)
+  - [G7 — RLHF/DPO Feedback Loop Formalisation](#g7-rlhfdpo-feedback-loop-formalisation)
+- [207.3 Build Roadmap](#2073-build-roadmap)
+  - [Phase 0 — Validated Type Theory (3–6 months, 2–4 people)](#phase-0-validated-type-theory-36-months-24-people)
+  - [Phase 1 — Reference Compiler to MLIR (6–12 months, 4–8 people)](#phase-1-reference-compiler-to-mlir-612-months-48-people)
+  - [Phase 2 — Effect System and Security Layer (6–9 months, 4–6 people)](#phase-2-effect-system-and-security-layer-69-months-46-people)
+  - [Phase 3 — Probabilistic and Quantitative Types (9–12 months, 4–6 people)](#phase-3-probabilistic-and-quantitative-types-912-months-46-people)
+  - [Phase 4 — Formal Specification Integration (6–9 months, 6–10 people)](#phase-4-formal-specification-integration-69-months-610-people)
+  - [Phase 5 — Reflective and Self-Improving Substrate (12–18 months, research team)](#phase-5-reflective-and-self-improving-substrate-1218-months-research-team)
+  - [Phase Summary](#phase-summary)
+- [207.4 The Unified Synthesis](#2074-the-unified-synthesis)
+  - [The Dependency Stack](#the-dependency-stack)
+  - [What Makes This Design Space Coherent](#what-makes-this-design-space-coherent)
+  - [The Paradigm Failure Resolution](#the-paradigm-failure-resolution)
+  - [The Unresolved Core](#the-unresolved-core)
+  - [Brooks Revisited](#brooks-revisited)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 207.1 Reflective, Homoiconic, and Self-Improving Code
 
 ### The Vision

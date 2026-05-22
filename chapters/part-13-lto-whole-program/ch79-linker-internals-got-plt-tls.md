@@ -4,6 +4,42 @@
 
 Dynamic linking, thread-local storage, and IFUNC resolution are implemented through several interdependent linker-generated data structures: the Global Offset Table (GOT), the Procedure Linkage Table (PLT), and TLS descriptor tables. These structures mediate between static compilation-time addresses and runtime-determined addresses — for DSO base addresses, thread-local variable offsets, and runtime function resolution. This chapter develops the mechanics of each structure, their interplay with CPU-level support (FSBASE/GSBASE for TLS, CFI for PLT), LLD's implementation, and the related `.ctors`/`.dtors`/`.init_array` mechanisms.
 
+## Table of Contents
+
+- [79.1 Position-Independent Code and the Need for GOT](#791-position-independent-code-and-the-need-for-got)
+  - [79.1.1 The Problem](#7911-the-problem)
+  - [79.1.2 GOT Layout](#7912-got-layout)
+  - [79.1.3 GOT Relocation: GOTPCREL](#7913-got-relocation-gotpcrel)
+- [79.2 The Procedure Linkage Table (PLT)](#792-the-procedure-linkage-table-plt)
+  - [79.2.1 Lazy Binding](#7921-lazy-binding)
+  - [79.2.2 PLT Stub Structure](#7922-plt-stub-structure)
+  - [79.2.3 `-z now` (Eager Binding)](#7923-z-now-eager-binding)
+  - [79.2.4 IRELATIVE and IFUNC](#7924-irelative-and-ifunc)
+- [79.3 Thread-Local Storage (TLS)](#793-thread-local-storage-tls)
+  - [79.3.1 Four TLS Models](#7931-four-tls-models)
+  - [79.3.2 General Dynamic TLS](#7932-general-dynamic-tls)
+  - [79.3.3 Initial Exec TLS](#7933-initial-exec-tls)
+  - [79.3.4 Local Exec TLS](#7934-local-exec-tls)
+  - [79.3.5 TLS Relaxation by LLD](#7935-tls-relaxation-by-lld)
+  - [79.3.6 TLSDESC (AArch64, x86-64)](#7936-tlsdesc-aarch64-x86-64)
+- [79.4 `.eh_frame` and Exception Handling](#794-ehframe-and-exception-handling)
+  - [79.4.1 The `.eh_frame` Section](#7941-the-ehframe-section)
+  - [79.4.2 `.eh_frame_hdr`](#7942-ehframehdr)
+- [79.5 `.ctors`, `.dtors`, `.init_array`, `.fini_array`](#795-ctors-dtors-initarray-finiarray)
+  - [79.5.1 C++ Constructors and Destructors](#7951-c-constructors-and-destructors)
+  - [79.5.2 Priority Ordering](#7952-priority-ordering)
+  - [79.5.3 `__attribute__((visibility("hidden")))` and `.init_array`](#7953-attributevisibilityhidden-and-initarray)
+- [Linker Relaxation](#linker-relaxation)
+  - [Why Relaxation Exists](#why-relaxation-exists)
+  - [RISC-V Relaxation (the most comprehensive implementation)](#risc-v-relaxation-the-most-comprehensive-implementation)
+  - [AArch64 Relaxation](#aarch64-relaxation)
+  - [x86-64 GOT Relaxation](#x86-64-got-relaxation)
+  - [TLS Relaxation Chains](#tls-relaxation-chains)
+  - [Relaxation and Section Layout](#relaxation-and-section-layout)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 79.1 Position-Independent Code and the Need for GOT
 
 ### 79.1.1 The Problem

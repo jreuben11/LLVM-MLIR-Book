@@ -6,6 +6,37 @@ Classical genetic algorithms applied to compiler pass ordering treat passes as o
 
 ---
 
+## Table of Contents
+
+- [225.1 Beyond Blind Genetic Operators](#2251-beyond-blind-genetic-operators)
+  - [The Blindness Problem](#the-blindness-problem)
+  - [What Domain Knowledge Provides](#what-domain-knowledge-provides)
+- [225.2 Pass Behavioral Vectors](#2252-pass-behavioral-vectors)
+  - [Vector Dimensions](#vector-dimensions)
+  - [Computing Behavioral Vectors from LLVM's Analysis Framework](#computing-behavioral-vectors-from-llvms-analysis-framework)
+  - [Pass Similarity and Independence](#pass-similarity-and-independence)
+- [225.3 Pass Synergy Graphs](#2253-pass-synergy-graphs)
+  - [Edge Semantics](#edge-semantics)
+  - [Extracting the Graph from Empirical Data](#extracting-the-graph-from-empirical-data)
+  - [Known High-Synergy Clusters](#known-high-synergy-clusters)
+  - [Strongly Connected Components](#strongly-connected-components)
+- [225.4 Knowledge-Guided Genetic Operators](#2254-knowledge-guided-genetic-operators)
+  - [Synergy-Guided Crossover](#synergy-guided-crossover)
+  - [Prerequisite-Respecting Mutation](#prerequisite-respecting-mutation)
+  - [Population Seeding from Known Good Sequences](#population-seeding-from-known-good-sequences)
+- [225.5 ECCO: Causal Reasoning for Pass Combination Explanation](#2255-ecco-causal-reasoning-for-pass-combination-explanation)
+  - [Counterfactual Ablation](#counterfactual-ablation)
+  - [Iterative Pruning](#iterative-pruning)
+  - [Causal Graph Construction](#causal-graph-construction)
+- [225.6 The Hybrid Framework](#2256-the-hybrid-framework)
+  - [Empirical Results (arXiv 2510.14292)](#empirical-results-arxiv-251014292)
+- [225.7 Integration with ORC ReOptimizeLayer](#2257-integration-with-orc-reoptimizelayer)
+  - [Policy Representation](#policy-representation)
+  - [ReOptimizeLayer Integration](#reoptimizelayer-integration)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 225.1 Beyond Blind Genetic Operators
 
 ### The Blindness Problem

@@ -4,6 +4,34 @@
 
 Cranelift is a code-generation backend written in Rust, designed from the ground up to prioritize compilation speed over peak generated-code performance. It powers Wasmtime's optimizing tier, serves as an alternative Rust codegen backend via `rustc_codegen_cranelift`, and underpins SpiderMonkey's Wasm compilation in Firefox. Where LLVM optimizes exhaustively for every CPU cycle, Cranelift targets sub-millisecond compile times acceptable for JIT workloads—trading roughly 10–15% runtime performance for 10× faster compilation. This chapter dissects Cranelift's IR design, its ISLE instruction-selection DSL, the regalloc2 allocator, and its integration points with the broader WebAssembly ecosystem.
 
+## Table of Contents
+
+- [230.1 Design Philosophy: Speed vs. Code Quality](#2301-design-philosophy-speed-vs-code-quality)
+- [230.2 Cranelift IR (CLIF): Block Parameters and Value Types](#2302-cranelift-ir-clif-block-parameters-and-value-types)
+  - [Value Types](#value-types)
+  - [CLIF Text Format](#clif-text-format)
+  - [Calling Conventions](#calling-conventions)
+- [230.3 FunctionBuilder: Constructing CLIF from a Frontend](#2303-functionbuilder-constructing-clif-from-a-frontend)
+- [230.4 ISLE: Instruction Selection by Term Rewriting](#2304-isle-instruction-selection-by-term-rewriting)
+  - [ISLE Basics](#isle-basics)
+  - [x86-64 ISLE Example](#x86-64-isle-example)
+  - [Benefits of ISLE](#benefits-of-isle)
+- [230.5 regalloc2: Register Allocation with Live-Range Splitting](#2305-regalloc2-register-allocation-with-live-range-splitting)
+  - [Input Interface](#input-interface)
+  - [Output](#output)
+- [230.6 Wasmtime Integration: Winch and Cranelift Tiers](#2306-wasmtime-integration-winch-and-cranelift-tiers)
+  - [Winch: Baseline Compilation](#winch-baseline-compilation)
+  - [Wasm → CLIF Translation](#wasm-clif-translation)
+  - [Runtime Integration](#runtime-integration)
+- [230.7 rustc_codegen_cranelift](#2307-rustccodegencranelift)
+  - [Integration with rustc](#integration-with-rustc)
+  - [Status and Limitations](#status-and-limitations)
+  - [Benchmark: Compile-Time Comparison](#benchmark-compile-time-comparison)
+- [230.8 Comparison: Cranelift vs. LLVM vs. QBE](#2308-comparison-cranelift-vs-llvm-vs-qbe)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 230.1 Design Philosophy: Speed vs. Code Quality
 
 Cranelift's thesis is that JIT compilation has a different objective function than AOT compilation. A JIT that takes 500 ms to compile a function has already lost; the baseline interpreter is faster. Cranelift targets:

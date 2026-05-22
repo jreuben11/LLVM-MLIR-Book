@@ -6,6 +6,42 @@ XLA's GPU backend is where the majority of production ML training runs. It targe
 
 ---
 
+## Table of Contents
+
+- [156.1 GPU Backend Architecture](#1561-gpu-backend-architecture)
+- [156.2 GPU-Specific HLO Passes](#1562-gpu-specific-hlo-passes)
+  - [156.2.1 GpuLayoutAssignment](#15621-gpulayoutassignment)
+  - [156.2.2 TritonGemmRewriter](#15622-tritongemmrewriter)
+  - [156.2.3 GPU Fusion Analysis](#15623-gpu-fusion-analysis)
+- [156.3 GPU Kernel Emission](#1563-gpu-kernel-emission)
+  - [156.3.1 GpuIrEmitter](#15631-gpuiremitter)
+  - [156.3.2 Reduction Kernels](#15632-reduction-kernels)
+  - [156.3.3 Row Reduction vs Column Reduction](#15633-row-reduction-vs-column-reduction)
+- [156.4 Triton Integration](#1564-triton-integration)
+  - [156.4.1 TritonFusionEmitter](#15641-tritonfusionemitter)
+  - [156.4.2 Tiling Parameters](#15642-tiling-parameters)
+  - [156.4.3 Sparse Dot (Flash Attention)](#15643-sparse-dot-flash-attention)
+- [156.5 Auto-Tuning](#1565-auto-tuning)
+  - [156.5.1 GEMM Auto-Tuning](#15651-gemm-auto-tuning)
+  - [156.5.2 cuBLAS Algorithm Selection](#15652-cublas-algorithm-selection)
+  - [156.5.3 cuDNN Convolution Selection](#15653-cudnn-convolution-selection)
+- [156.6 Memory Management: StreamExecutor](#1566-memory-management-streamexecutor)
+- [156.7 Collective Operations and NCCL](#1567-collective-operations-and-nccl)
+  - [156.7.1 AllReduce Thunk](#15671-allreduce-thunk)
+  - [156.7.2 Communication Scheduling](#15672-communication-scheduling)
+- [156.8 GpuExecutable and the Runtime](#1568-gpuexecutable-and-the-runtime)
+  - [156.8.1 Execution Flow](#15681-execution-flow)
+  - [156.8.2 Kernel Cache](#15682-kernel-cache)
+- [156.9 ROCm Support](#1569-rocm-support)
+- [156.10 Performance Considerations](#15610-performance-considerations)
+  - [156.10.1 Occupancy](#156101-occupancy)
+  - [156.10.2 Memory Coalescing](#156102-memory-coalescing)
+  - [156.10.3 Shared Memory Tiling](#156103-shared-memory-tiling)
+  - [156.10.4 Bank Conflicts](#156104-bank-conflicts)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 156.1 GPU Backend Architecture
 
 The GPU backend lives in [`xla/backends/gpu/`](https://github.com/openxla/xla/tree/main/xla/backends/gpu) with the core compilation infrastructure in `xla/service/gpu/`. The pipeline:

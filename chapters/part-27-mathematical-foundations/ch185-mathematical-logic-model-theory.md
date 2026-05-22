@@ -6,6 +6,53 @@ Compiler engineers routinely cross into territory that demands mathematical logi
 
 ---
 
+## Table of Contents
+
+- [185.1 Proof Systems](#1851-proof-systems)
+  - [Natural Deduction](#natural-deduction)
+  - [The Sequent Calculus LK](#the-sequent-calculus-lk)
+  - [Gentzen's Cut-Elimination Theorem (Hauptsatz)](#gentzens-cut-elimination-theorem-hauptsatz)
+  - [Hilbert-Style Systems vs Natural Deduction vs Sequent Calculus](#hilbert-style-systems-vs-natural-deduction-vs-sequent-calculus)
+  - [Resolution and Robinson Unification](#resolution-and-robinson-unification)
+- [185.2 First-Order Logic: Syntax and Semantics](#1852-first-order-logic-syntax-and-semantics)
+  - [Syntax](#syntax)
+  - [Tarski Semantics](#tarski-semantics)
+  - [Soundness and Completeness](#soundness-and-completeness)
+  - [Henkin's Completeness Proof](#henkins-completeness-proof)
+  - [Compactness and Löwenheim-Skolem](#compactness-and-lwenheim-skolem)
+- [185.3 Incompleteness](#1853-incompleteness)
+  - [Gödel's First Incompleteness Theorem](#gdels-first-incompleteness-theorem)
+  - [The Second Incompleteness Theorem](#the-second-incompleteness-theorem)
+  - [Tarski's Undefinability of Truth](#tarskis-undefinability-of-truth)
+  - [What Incompleteness Means for Compiler Verification](#what-incompleteness-means-for-compiler-verification)
+- [185.4 Decidable Fragments and the SMT Connection](#1854-decidable-fragments-and-the-smt-connection)
+  - [Church's Theorem and the Decidability Spectrum](#churchs-theorem-and-the-decidability-spectrum)
+  - [The DPLL(T) Architecture](#the-dpllt-architecture)
+  - [Nelson-Oppen Theory Combination](#nelson-oppen-theory-combination)
+  - [Congruence Closure: The EUF Decision Procedure](#congruence-closure-the-euf-decision-procedure)
+  - [Z3's Theory Stack](#z3s-theory-stack)
+  - [SMT-LIB 2 Concrete Examples](#smt-lib-2-concrete-examples)
+- [185.5 Model Theory](#1855-model-theory)
+  - [Structures and Their Theories](#structures-and-their-theories)
+  - [Elementary Equivalence and Embeddings](#elementary-equivalence-and-embeddings)
+  - [Model-Theoretic Proof of Compactness via Ultraproducts](#model-theoretic-proof-of-compactness-via-ultraproducts)
+  - [Quantifier Elimination](#quantifier-elimination)
+  - [Algebraically Closed Fields and Hilbert's Nullstellensatz](#algebraically-closed-fields-and-hilberts-nullstellensatz)
+- [185.6 Higher-Order Logic vs. First-Order Logic](#1856-higher-order-logic-vs-first-order-logic)
+  - [The Expressivity Gap](#the-expressivity-gap)
+  - [Why Isabelle Uses HOL](#why-isabelle-uses-hol)
+  - [Why Isabelle Uses HOL and Coq/Lean Use Dependent Types](#why-isabelle-uses-hol-and-coqlean-use-dependent-types)
+  - [The HOL Family](#the-hol-family)
+- [185.7 Connections Across the Compiler Ecosystem](#1857-connections-across-the-compiler-ecosystem)
+  - [Hoare Logic as a Proof System for Programs](#hoare-logic-as-a-proof-system-for-programs)
+  - [Abstract Interpretation as a Model-Theoretic Structure](#abstract-interpretation-as-a-model-theoretic-structure)
+  - [Z3 Enabling Alive2, Dafny, and Verus](#z3-enabling-alive2-dafny-and-verus)
+  - [The Curry-Howard-Lambek Correspondence](#the-curry-howard-lambek-correspondence)
+- [185.8 Summary](#1858-summary)
+- [References](#references)
+
+---
+
 ## 185.1 Proof Systems
 
 A proof system is a purely syntactic device: given a set of axioms and inference rules, it generates theorems without referring to meaning. The interplay between syntax (provability, `⊢`) and semantics (truth, `⊨`) is the central tension of logic — resolved for first-order logic by Gödel's completeness theorem, and shown to be fundamentally unresolvable for arithmetic by his incompleteness theorems.

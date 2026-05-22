@@ -6,6 +6,34 @@ NVIDIA's modern GPU programming model has evolved beyond CUDA threads and warps.
 
 ---
 
+## Table of Contents
+
+- [164.1 Hardware Context: Hopper Architecture](#1641-hardware-context-hopper-architecture)
+  - [164.1.1 Warpgroup MMA (WGMMA)](#16411-warpgroup-mma-wgmma)
+  - [164.1.2 Tensor Memory Accelerator (TMA)](#16412-tensor-memory-accelerator-tma)
+  - [164.1.3 CTA Clusters](#16413-cta-clusters)
+- [164.2 CuTe: The Layout Algebra](#1642-cute-the-layout-algebra)
+  - [164.2.1 Layouts](#16421-layouts)
+  - [164.2.2 Tile Algebra](#16422-tile-algebra)
+  - [164.2.3 Atom Layouts](#16423-atom-layouts)
+- [164.3 The nvgpu Dialect in MLIR](#1643-the-nvgpu-dialect-in-mlir)
+  - [164.3.1 TMA Descriptor Creation](#16431-tma-descriptor-creation)
+  - [164.3.2 TMA Async Load](#16432-tma-async-load)
+  - [164.3.3 Warpgroup MMA](#16433-warpgroup-mma)
+  - [164.3.4 Warpgroup Accumulator → MemRef](#16434-warpgroup-accumulator-memref)
+- [164.4 The Tile IR Initiative](#1644-the-tile-ir-initiative)
+  - [164.4.1 Design Goals](#16441-design-goals)
+  - [164.4.2 Current State: nvgpu.tma + nvgpu.warpgroup](#16442-current-state-nvgputma-nvgpuwarpgroup)
+  - [164.4.3 linalg + Transform Dialect Path](#16443-linalg-transform-dialect-path)
+- [164.5 Memory Hierarchy for Hopper Kernels](#1645-memory-hierarchy-for-hopper-kernels)
+  - [164.5.1 SMEM Pipeline Depth](#16451-smem-pipeline-depth)
+  - [164.5.2 mbarrier Synchronization](#16452-mbarrier-synchronization)
+- [164.6 Putting It Together: A Simple Hopper GEMM in MLIR](#1646-putting-it-together-a-simple-hopper-gemm-in-mlir)
+- [164.7 Performance Expectations](#1647-performance-expectations)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 164.1 Hardware Context: Hopper Architecture
 
 NVIDIA's Hopper GPU (H100, H200) introduced three hardware mechanisms that fundamentally change kernel authoring:

@@ -4,6 +4,23 @@
 
 Profile-guided optimization (PGO) uses dynamic profile data — counts of how often each code path executes at runtime — to make better optimization decisions. Inlining threshold increases for hot call sites, loop unrolling for high-trip-count loops, and function layout for better icache behavior all depend on knowing *which code is actually hot*. This chapter covers LLVM's instrumentation-based PGO, SampleProfile/AutoFDO, pseudo-probes, context-sensitive PGO (CSSPGO), the `llvm-profdata` tool, and PGO integration with ThinLTO and BOLT.
 
+## Table of Contents
+
+- [67.1 Instrumentation-Based PGO](#671-instrumentation-based-pgo)
+  - [67.1.1 Two-Stage Build](#6711-two-stage-build)
+  - [67.1.2 Instrumentation Internals](#6712-instrumentation-internals)
+  - [67.1.3 Profile Data Consumption](#6713-profile-data-consumption)
+  - [67.1.4 Value Profiling](#6714-value-profiling)
+- [67.2 SampleProfile and AutoFDO](#672-sampleprofile-and-autofdo)
+- [67.3 Pseudo-Probes](#673-pseudo-probes)
+- [67.4 Context-Sensitive PGO (CSSPGO)](#674-context-sensitive-pgo-csspgo)
+- [67.5 `llvm-profdata` Tool](#675-llvm-profdata-tool)
+- [67.6 ThinLTO + PGO](#676-thinlto-pgo)
+- [67.7 PGO + BOLT](#677-pgo-bolt)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 67.1 Instrumentation-Based PGO
 
 ### 67.1.1 Two-Stage Build

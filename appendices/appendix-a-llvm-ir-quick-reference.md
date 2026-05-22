@@ -6,6 +6,43 @@ This appendix is a dense quick-reference for LLVM IR syntax and semantics as of 
 
 ---
 
+## Table of Contents
+
+- [A.1 Module-Level Declarations](#a1-module-level-declarations)
+  - [Linkage Types](#linkage-types)
+- [A.2 Type System](#a2-type-system)
+  - [Primitive Types](#primitive-types)
+  - [Aggregate and Derived Types](#aggregate-and-derived-types)
+  - [DataLayout Specifiers (key)](#datalayout-specifiers-key)
+- [A.3 Instruction Reference](#a3-instruction-reference)
+  - [Arithmetic (Integer)](#arithmetic-integer)
+  - [Arithmetic (Floating-Point)](#arithmetic-floating-point)
+  - [Comparison](#comparison)
+  - [Memory](#memory)
+  - [Cast Instructions](#cast-instructions)
+  - [Control Flow](#control-flow)
+  - [Other](#other)
+- [A.4 Attributes](#a4-attributes)
+  - [Function Attributes](#function-attributes)
+  - [Parameter Attributes](#parameter-attributes)
+  - [Return Attributes](#return-attributes)
+- [A.5 Calling Conventions](#a5-calling-conventions)
+- [A.6 Metadata](#a6-metadata)
+  - [Named Metadata](#named-metadata)
+  - [Key Instruction Metadata](#key-instruction-metadata)
+  - [`!llvm.loop` Hints](#llvmloop-hints)
+- [A.7 Intrinsics](#a7-intrinsics)
+  - [Memory Intrinsics](#memory-intrinsics)
+  - [Hint Intrinsics](#hint-intrinsics)
+  - [Exception Handling](#exception-handling)
+  - [Frame/Stack](#framestack)
+  - [Register Access](#register-access)
+  - [Bit Manipulation](#bit-manipulation)
+  - [Arithmetic with Overflow](#arithmetic-with-overflow)
+  - [Vector Intrinsics](#vector-intrinsics)
+
+---
+
 ## A.1 Module-Level Declarations
 
 ```llvm

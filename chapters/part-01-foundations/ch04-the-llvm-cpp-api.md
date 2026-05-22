@@ -8,6 +8,63 @@ This chapter is a systematic tour of those primitives with enough depth to be us
 
 ---
 
+## Table of Contents
+
+- [4.1 LLVM's Custom RTTI: `isa`, `cast`, `dyn_cast`](#41-llvms-custom-rtti-isa-cast-dyncast)
+  - [4.1.1 The Four Casting Operations](#411-the-four-casting-operations)
+  - [4.1.2 The `classof` Contract](#412-the-classof-contract)
+  - [4.1.3 The `isa_impl` Trait System (LLVM 14+)](#413-the-isaimpl-trait-system-llvm-14)
+- [4.2 LLVMContext: The Thread-Local Universe](#42-llvmcontext-the-thread-local-universe)
+  - [4.2.1 What LLVMContext Owns](#421-what-llvmcontext-owns)
+  - [4.2.2 Thread Safety and the One-Context-Per-Thread Rule](#422-thread-safety-and-the-one-context-per-thread-rule)
+  - [4.2.3 Diagnostic Handlers](#423-diagnostic-handlers)
+  - [4.2.4 Context Disposal](#424-context-disposal)
+- [4.3 The ADT Library](#43-the-adt-library)
+  - [4.3.1 `SmallVector<T, N>`](#431-smallvectort-n)
+  - [4.3.2 `StringRef` — The Non-Owning String View](#432-stringref-the-non-owning-string-view)
+  - [4.3.3 `SmallString<N>`](#433-smallstringn)
+  - [4.3.4 `Twine` — Lazy String Concatenation](#434-twine-lazy-string-concatenation)
+  - [4.3.5 `ArrayRef<T>` and `MutableArrayRef<T>`](#435-arrayreft-and-mutablearrayreft)
+  - [4.3.6 `DenseMap<K, V>`](#436-densemapk-v)
+  - [4.3.7 `DenseSet<T>`](#437-densesett)
+  - [4.3.8 `StringMap<V>`](#438-stringmapv)
+  - [4.3.9 `SetVector<T>` and `SmallSetVector<T, N>`](#439-setvectort-and-smallsetvectort-n)
+  - [4.3.10 `MapVector<K, V>`](#4310-mapvectork-v)
+  - [4.3.11 `StringSwitch<T>`](#4311-stringswitcht)
+  - [4.3.12 `std::optional<T>`](#4312-stdoptionalt)
+  - [4.3.13 `llvm::Error` and `llvm::Expected<T>`](#4313-llvmerror-and-llvmexpectedt)
+- [4.4 Support Utilities](#44-support-utilities)
+  - [4.4.1 Output Streams: `raw_ostream`, `errs`, `outs`, `dbgs`](#441-output-streams-rawostream-errs-outs-dbgs)
+  - [4.4.2 Formatting: `llvm::format` and `llvm::formatv`](#442-formatting-llvmformat-and-llvmformatv)
+  - [4.4.3 Filesystem Utilities: `sys::path` and `sys::fs`](#443-filesystem-utilities-syspath-and-sysfs)
+  - [4.4.4 Timers: `Timer` and `TimeRegion`](#444-timers-timer-and-timeregion)
+  - [4.4.5 `MemoryBuffer`: Owning File Contents](#445-memorybuffer-owning-file-contents)
+  - [4.4.6 Target Triple: `llvm::sys::getProcessTriple`](#446-target-triple-llvmsysgetprocesstriple)
+- [4.5 Error Handling: `llvm::Error` and `llvm::Expected<T>`](#45-error-handling-llvmerror-and-llvmexpectedt)
+  - [4.5.1 `llvm::Error`](#451-llvmerror)
+  - [4.5.2 `llvm::Expected<T>`](#452-llvmexpectedt)
+  - [4.5.3 `handleErrors` and Error Categories](#453-handleerrors-and-error-categories)
+  - [4.5.4 `llvm::cantFail`](#454-llvmcantfail)
+  - [4.5.5 Defining Custom Error Types](#455-defining-custom-error-types)
+  - [4.5.6 Bridging to `std::error_code`](#456-bridging-to-stderrorcode)
+  - [4.5.7 How This Differs from Exceptions](#457-how-this-differs-from-exceptions)
+- [4.6 Command-Line Options with `cl::opt`](#46-command-line-options-with-clopt)
+  - [4.6.1 Basic Option Declarations](#461-basic-option-declarations)
+  - [4.6.2 Option Categories](#462-option-categories)
+  - [4.6.3 Invoking the Parser](#463-invoking-the-parser)
+  - [4.6.4 Enum Options and Aliases](#464-enum-options-and-aliases)
+  - [4.6.5 How Passes Register Options](#465-how-passes-register-options)
+- [4.7 Visitor and Iterator Patterns](#47-visitor-and-iterator-patterns)
+  - [4.7.1 Iterating Over IR: The Range-Based API](#471-iterating-over-ir-the-range-based-api)
+  - [4.7.2 Predecessors and Successors](#472-predecessors-and-successors)
+  - [4.7.3 Use-Def and Def-Use Chains](#473-use-def-and-def-use-chains)
+  - [4.7.4 Depth-First and Breadth-First Graph Iterators](#474-depth-first-and-breadth-first-graph-iterators)
+  - [4.7.5 `make_range` and Custom Iterator Ranges](#475-makerange-and-custom-iterator-ranges)
+  - [4.7.6 `InstVisitor`: The Visitor Pattern for Instructions](#476-instvisitor-the-visitor-pattern-for-instructions)
+- [4.8 Chapter Summary](#48-chapter-summary)
+
+---
+
 ## 4.1 LLVM's Custom RTTI: `isa`, `cast`, `dyn_cast`
 
 C++ provides `dynamic_cast<T*>(p)` for runtime type queries, but it carries two costs that are unacceptable in a hot compiler inner loop: it requires RTTI to be compiled in (a non-trivial binary size penalty), and it is significantly slower than a carefully written `classof` check because the C++ runtime must traverse the entire class hierarchy stored in the typeinfo tables. LLVM's solution is a custom RTTI system, defined in [`llvm/include/llvm/Support/Casting.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/llvm/include/llvm/Support/Casting.h), that replaces `dynamic_cast` with four function templates.

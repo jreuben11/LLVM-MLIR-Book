@@ -10,6 +10,43 @@ Cross-references: [Chapter 207 — Reflective Code, Open Problems, and Build Roa
 
 ---
 
+## Table of Contents
+
+- [216.1 Theoretical Foundations](#2161-theoretical-foundations)
+  - [Kolmogorov Complexity](#kolmogorov-complexity)
+  - [Self-Reference and the Halting Problem](#self-reference-and-the-halting-problem)
+  - [Algorithmic Information Theory Basics](#algorithmic-information-theory-basics)
+- [216.2 The Gödel Machine](#2162-the-gdel-machine)
+  - [Formal Definition](#formal-definition)
+  - [The Self-Rewrite Condition](#the-self-rewrite-condition)
+  - [Pseudocode of the Gödel Machine Inner Loop](#pseudocode-of-the-gdel-machine-inner-loop)
+  - [Guaranteed Improvement and Its Caveats](#guaranteed-improvement-and-its-caveats)
+- [216.3 AIXI: Bayesian-Optimal Universal Agent](#2163-aixi-bayesian-optimal-universal-agent)
+  - [The Universal Semimeasure Prior](#the-universal-semimeasure-prior)
+  - [The AIXI Policy](#the-aixi-policy)
+  - [Incomputability and Approximations](#incomputability-and-approximations)
+  - [AIXI and Self-Improvement](#aixi-and-self-improvement)
+- [216.4 Levin Search and Solomonoff Induction](#2164-levin-search-and-solomonoff-induction)
+  - [Levin Search](#levin-search)
+  - [Solomonoff Induction](#solomonoff-induction)
+- [216.5 Darwin Gödel Machine as Evolutionary Relaxation](#2165-darwin-gdel-machine-as-evolutionary-relaxation)
+  - [The Core Substitution](#the-core-substitution)
+  - [Archive-Based Quality-Diversity](#archive-based-quality-diversity)
+  - [The Trade-off: Soundness for Computability](#the-trade-off-soundness-for-computability)
+- [216.6 Connection to Verified Compilation](#2166-connection-to-verified-compilation)
+  - [What Alive2 and Vellvm Can Certify](#what-alive2-and-vellvm-can-certify)
+  - [`drift` as a Practical Surrogate](#drift-as-a-practical-surrogate)
+  - [Capability Regression Prevention as a Formal Constraint](#capability-regression-prevention-as-a-formal-constraint)
+- [216.7 The Specification Problem](#2167-the-specification-problem)
+  - [Goodhart's Law at the Foundation](#goodharts-law-at-the-foundation)
+  - [The Legg–Hutter Universal Intelligence Measure](#the-legghutter-universal-intelligence-measure)
+  - [Formalising Capability Preservation as a Typed Invariant](#formalising-capability-preservation-as-a-typed-invariant)
+  - [Open Problems](#open-problems)
+- [216.8 Cognitive Angle](#2168-cognitive-angle)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 216.1 Theoretical Foundations
 
 ### Kolmogorov Complexity

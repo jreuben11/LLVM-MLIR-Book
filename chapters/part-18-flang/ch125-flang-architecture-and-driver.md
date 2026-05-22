@@ -6,6 +6,41 @@ Fortran may be half a century old, but it remains the dominant language for high
 
 ---
 
+## Table of Contents
+
+- [125.1 Flang Overview](#1251-flang-overview)
+  - [Language Coverage](#language-coverage)
+  - [Major Components](#major-components)
+- [125.2 The Driver](#1252-the-driver)
+  - [flang-new and the Clang Driver Framework](#flang-new-and-the-clang-driver-framework)
+  - [Compilation Steps](#compilation-steps)
+  - [FrontendAction Hierarchy](#frontendaction-hierarchy)
+- [125.3 The Parser](#1253-the-parser)
+  - [Design Philosophy](#design-philosophy)
+  - [Prescanner and Tokenizer](#prescanner-and-tokenizer)
+  - [ParseTree Nodes](#parsetree-nodes)
+  - [The Parsing Class](#the-parsing-class)
+  - [Unparse Round-Trip](#unparse-round-trip)
+- [125.4 Semantic Analysis](#1254-semantic-analysis)
+  - [Overview](#overview)
+  - [Symbols and Scopes](#symbols-and-scopes)
+  - [ResolveNames Pass](#resolvenames-pass)
+  - [Expression Evaluation](#expression-evaluation)
+  - [CheckDeclarations and CheckExpressions](#checkdeclarations-and-checkexpressions)
+- [125.5 Lower-Level Internals: The Lowering Bridge](#1255-lower-level-internals-the-lowering-bridge)
+  - [AbstractConverter](#abstractconverter)
+  - [Bridge Class](#bridge-class)
+  - [OpenMP and OpenACC Lowering](#openmp-and-openacc-lowering)
+- [125.6 flang-new vs f18](#1256-flang-new-vs-f18)
+  - [Historical Context](#historical-context)
+  - [Production Readiness](#production-readiness)
+  - [Known Limitations](#known-limitations)
+- [125.7 The bbc Tool](#1257-the-bbc-tool)
+- [125.8 Testing Infrastructure](#1258-testing-infrastructure)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 125.1 Flang Overview
 
 Flang occupies the `flang/` subtree of the LLVM monorepo. Its immediate predecessor, known informally as **f18**, was a clean-room reimplementation begun at NVIDIA in 2017 and donated to the LLVM Foundation in 2019. The original LLVM Flang (sometimes called "classic Flang," hosted under the `flang-legacy` organization) was a separate project based on PGI's Fortran front end; it is no longer actively developed. Every reference in this book to "Flang" means the in-tree implementation at `flang/`.

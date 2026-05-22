@@ -6,6 +6,47 @@ Every deployed compiler makes thousands of silent decisions — constant folding
 
 ---
 
+## Table of Contents
+
+- [195.1 What Toolchain Qualification Means](#1951-what-toolchain-qualification-means)
+  - [The Trusted Base Problem](#the-trusted-base-problem)
+  - [Tool Confidence Levels](#tool-confidence-levels)
+  - [The "No Additional Measures" Threshold](#the-no-additional-measures-threshold)
+- [195.2 DO-178C and DO-330 (Avionics)](#1952-do-178c-and-do-330-avionics)
+  - [Software Levels and DO-178C](#software-levels-and-do-178c)
+  - [DO-330: Tool Qualification Levels](#do-330-tool-qualification-levels)
+  - [DO-330 Qualification Artifacts](#do-330-qualification-artifacts)
+- [195.3 ISO 26262 (Automotive)](#1953-iso-26262-automotive)
+  - [ASIL Levels](#asil-levels)
+  - [Tool Classification Under ISO 26262 Part 8](#tool-classification-under-iso-26262-part-8)
+  - [ASIL Decomposition and Compiler Implications](#asil-decomposition-and-compiler-implications)
+  - [Qualification Test Suite Approach](#qualification-test-suite-approach)
+- [195.4 IEC 61508 and Sector Standards](#1954-iec-61508-and-sector-standards)
+  - [IEC 61508: The Base Standard](#iec-61508-the-base-standard)
+- [195.5 Ferrocene — Qualified Rust Toolchain](#1955-ferrocene-qualified-rust-toolchain)
+  - [Architecture and Lineage](#architecture-and-lineage)
+  - [The Ferrocene Language Specification (FLS)](#the-ferrocene-language-specification-fls)
+  - [FerreQual Qualification Test Suite](#ferrequal-qualification-test-suite)
+  - [Installing and Using Ferrocene](#installing-and-using-ferrocene)
+  - [The Safety Argument](#the-safety-argument)
+- [195.6 LLVM-Specific Qualification Concerns](#1956-llvm-specific-qualification-concerns)
+  - [Undefined Behavior Exploitation by the Optimizer](#undefined-behavior-exploitation-by-the-optimizer)
+  - [Mandated Compiler Flags for Qualified Builds](#mandated-compiler-flags-for-qualified-builds)
+  - [Alive2 as a Qualification Aid](#alive2-as-a-qualification-aid)
+- [195.7 MISRA C:2023 and MISRA C++:2023](#1957-misra-c2023-and-misra-c2023)
+  - [Rule Structure](#rule-structure)
+  - [Clang Integration](#clang-integration)
+- [195.8 SPARK 2014 and GNATprove](#1958-spark-2014-and-gnatprove)
+  - [SPARK as an Analyzable Ada Subset](#spark-as-an-analyzable-ada-subset)
+  - [SPARK Proof Levels](#spark-proof-levels)
+  - [Contract Syntax](#contract-syntax)
+  - [SPARK in Practice](#spark-in-practice)
+- [195.9 The Verified/Qualified Software Stack](#1959-the-verifiedqualified-software-stack)
+- [195.10 Standards Comparison](#19510-standards-comparison)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 195.1 What Toolchain Qualification Means
 
 ### The Trusted Base Problem

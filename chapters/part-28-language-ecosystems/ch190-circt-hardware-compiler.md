@@ -6,6 +6,54 @@ The open-source EDA (Electronic Design Automation) world has long suffered from 
 
 ---
 
+## Table of Contents
+
+- [190.1 CIRCT Motivation and Architecture](#1901-circt-motivation-and-architecture)
+  - [Why Hardware Compilers Need Compiler Infrastructure](#why-hardware-compilers-need-compiler-infrastructure)
+  - [CIRCT as a Downstream MLIR Consumer](#circt-as-a-downstream-mlir-consumer)
+  - [Repository Layout](#repository-layout)
+  - [`firtool`: The Primary Driver](#firtool-the-primary-driver)
+- [190.2 The CIRCT Dialect Stack](#1902-the-circt-dialect-stack)
+- [190.3 The FIRRTL Dialect](#1903-the-firrtl-dialect)
+  - [FIRRTL Background](#firrtl-background)
+  - [FIRRTL Types](#firrtl-types)
+  - [FIRRTL Textual Form (Chisel Output)](#firrtl-textual-form-chisel-output)
+  - [Key FIRRTL Transformation Passes](#key-firrtl-transformation-passes)
+- [190.4 The HW, Comb, and Seq Dialects](#1904-the-hw-comb-and-seq-dialects)
+  - [HW: Structural Hardware](#hw-structural-hardware)
+  - [Comb: Combinational Logic](#comb-combinational-logic)
+  - [Seq: Sequential Elements](#seq-sequential-elements)
+- [190.5 The Arc Dialect](#1905-the-arc-dialect)
+  - [Arc Functions as Pure Bitvector Computations](#arc-functions-as-pure-bitvector-computations)
+- [190.6 The Handshake Dialect](#1906-the-handshake-dialect)
+  - [Token-Based Dataflow Execution](#token-based-dataflow-execution)
+- [190.7 The SV Dialect and SystemVerilog Emission](#1907-the-sv-dialect-and-systemverilog-emission)
+  - [SV Dialect Ops](#sv-dialect-ops)
+  - [ExportVerilog: The Emission Pass](#exportverilog-the-emission-pass)
+  - [File Splitting](#file-splitting)
+- [190.8 The FIRRTL-to-SystemVerilog Compilation Pipeline](#1908-the-firrtl-to-systemverilog-compilation-pipeline)
+  - [End-to-End Flow](#end-to-end-flow)
+  - [The LowerFIRRTLToHW Pass](#the-lowerfirrtltohw-pass)
+  - [Chisel 6 Interoperability](#chisel-6-interoperability)
+  - [firtool Invocation Examples](#firtool-invocation-examples)
+- [190.9 High-Level Synthesis](#1909-high-level-synthesis)
+  - [The Calyx Language](#the-calyx-language)
+  - [Dynamatic: Dynamic Scheduling via Handshake](#dynamatic-dynamic-scheduling-via-handshake)
+  - [Comparison: CIRCT HLS vs. Proprietary Tools](#comparison-circt-hls-vs-proprietary-tools)
+- [190.10 Formal Verification in CIRCT](#19010-formal-verification-in-circt)
+  - [The Verif Dialect](#the-verif-dialect)
+  - [circt-bmc: Bounded Model Checking](#circt-bmc-bounded-model-checking)
+  - [The SMT Dialect](#the-smt-dialect)
+- [190.11 MLIR Integration Details](#19011-mlir-integration-details)
+  - [Tracking Upstream MLIR](#tracking-upstream-mlir)
+  - [Hardware-Specific Op Interfaces](#hardware-specific-op-interfaces)
+  - [Python Bindings and PyCDE](#python-bindings-and-pycde)
+  - [ESSENT: Fast C++ Simulation](#essent-fast-c-simulation)
+  - [Testing Infrastructure](#testing-infrastructure)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 190.1 CIRCT Motivation and Architecture
 
 ### Why Hardware Compilers Need Compiler Infrastructure

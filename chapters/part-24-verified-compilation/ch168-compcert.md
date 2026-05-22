@@ -6,6 +6,45 @@ Every optimizing compiler embodies thousands of small transformations — regist
 
 ---
 
+## Table of Contents
+
+- [168.1 CompCert Overview](#1681-compcert-overview)
+  - [Why Proofs Matter](#why-proofs-matter)
+  - [Coq and the Calculus of Inductive Constructions](#coq-and-the-calculus-of-inductive-constructions)
+- [168.2 The CompCert IR Stack](#1682-the-compcert-ir-stack)
+  - [C → Clight: Parsing and Typing](#c-clight-parsing-and-typing)
+  - [Clight → C#minor: Expression Semantics](#clight-cminor-expression-semantics)
+  - [C#minor → Cminor: Abstract Machine](#cminor-cminor-abstract-machine)
+  - [Cminor → RTL: Register Transfer Language](#cminor-rtl-register-transfer-language)
+  - [RTL → LTL: Location Transfer Language](#rtl-ltl-location-transfer-language)
+  - [LTL → Linear: From CFG to Linear Code](#ltl-linear-from-cfg-to-linear-code)
+  - [Linear → Mach: Frame Layout](#linear-mach-frame-layout)
+  - [Mach → Assembly](#mach-assembly)
+  - [The Full Chain](#the-full-chain)
+- [168.3 Simulation Proof Structure](#1683-simulation-proof-structure)
+  - [The Compose Theorem](#the-compose-theorem)
+  - [The Backward Simulation Flip](#the-backward-simulation-flip)
+  - [A Concrete Pass Proof: Constant Propagation](#a-concrete-pass-proof-constant-propagation)
+- [168.4 Memory Model](#1684-memory-model)
+  - [Abstract Block-Offset Memory](#abstract-block-offset-memory)
+  - [Memory Permissions](#memory-permissions)
+  - [Memory Injections](#memory-injections)
+  - [The alloc/free/load/store Lemmas](#the-allocfreeloadstore-lemmas)
+- [168.5 Register Allocation in CompCert](#1685-register-allocation-in-compcert)
+  - [The Algorithm: George-Appel IRC](#the-algorithm-george-appel-irc)
+  - [The Verified Checker](#the-verified-checker)
+  - [The RTL → LTL Simulation](#the-rtl-ltl-simulation)
+- [168.6 CompCert in Practice](#1686-compcert-in-practice)
+  - [The `ccomp` Driver](#the-ccomp-driver)
+  - [Unverified Components](#unverified-components)
+  - [Performance](#performance)
+  - [Industrial Adoption](#industrial-adoption)
+  - [Limitations and Open Problems](#limitations-and-open-problems)
+- [Chapter Summary](#chapter-summary)
+  - [References](#references)
+
+---
+
 ## 168.1 CompCert Overview
 
 CompCert compiles a large, well-defined subset of C (the Clight language) to PowerPC, ARM, x86-32, and AArch64 assembly. The central theorem, formalized in Coq, is:

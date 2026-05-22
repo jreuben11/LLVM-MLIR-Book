@@ -6,6 +6,43 @@ HLO (High Level Operations) is XLA's internal IR — a strongly typed, functiona
 
 ---
 
+## Table of Contents
+
+- [154.1 HLO Instruction Opcodes](#1541-hlo-instruction-opcodes)
+  - [154.1.1 Element-wise Arithmetic](#15411-element-wise-arithmetic)
+  - [154.1.2 Linear Algebra](#15412-linear-algebra)
+  - [154.1.3 Shape Manipulation](#15413-shape-manipulation)
+  - [154.1.4 Reductions and Scans](#15414-reductions-and-scans)
+  - [154.1.5 Control Flow](#15415-control-flow)
+  - [154.1.6 Collective Communication](#15416-collective-communication)
+  - [154.1.7 Custom Operations](#15417-custom-operations)
+- [154.2 HLO Text Format](#1542-hlo-text-format)
+- [154.3 Shape System in Depth](#1543-shape-system-in-depth)
+  - [154.3.1 Dynamic Shapes](#15431-dynamic-shapes)
+  - [154.3.2 Tuple Shapes](#15432-tuple-shapes)
+- [154.4 StableHLO: A Versioned MLIR Dialect](#1544-stablehlo-a-versioned-mlir-dialect)
+  - [154.4.1 Design Rationale](#15441-design-rationale)
+  - [154.4.2 StableHLO Op Set](#15442-stablehlo-op-set)
+  - [154.4.3 dot_general: The Universal Contraction Op](#15443-dotgeneral-the-universal-contraction-op)
+- [154.5 VHLO: The Versioning Substrate](#1545-vhlo-the-versioning-substrate)
+  - [154.5.1 How Versioning Works](#15451-how-versioning-works)
+  - [154.5.2 Bytecode Format](#15452-bytecode-format)
+- [154.6 CHLO: Complex HLO Decompositions](#1546-chlo-complex-hlo-decompositions)
+- [154.7 The Dialect Conversion Chain](#1547-the-dialect-conversion-chain)
+  - [154.7.1 StableHLO → HLO Conversion](#15471-stablehlo-hlo-conversion)
+  - [154.7.2 HLO → StableHLO Conversion](#15472-hlo-stablehlo-conversion)
+- [154.8 Type System Correspondence](#1548-type-system-correspondence)
+- [154.9 Working with StableHLO Programmatically](#1549-working-with-stablehlo-programmatically)
+  - [154.9.1 C++ API](#15491-c-api)
+  - [154.9.2 Python API via JAX](#15492-python-api-via-jax)
+  - [154.9.3 stablehlo-opt Tool](#15493-stablehlo-opt-tool)
+- [154.10 HLO Optimization Techniques](#15410-hlo-optimization-techniques)
+  - [154.10.1 Algebraic Simplification Examples](#154101-algebraic-simplification-examples)
+  - [154.10.2 Fusion for the Softmax Example](#154102-fusion-for-the-softmax-example)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 154.1 HLO Instruction Opcodes
 
 Every `HloInstruction` carries an `HloOpcode` that determines its semantics. The opcode space spans roughly 130 distinct operations; the most important fall into five categories:

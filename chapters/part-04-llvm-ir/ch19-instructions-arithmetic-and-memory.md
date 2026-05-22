@@ -10,6 +10,49 @@ Throughout the chapter, code examples are verified against LLVM 22.1.3 (`clang -
 
 ---
 
+## Table of Contents
+
+- [19.1 Wrap Flags: `nsw`, `nuw`, `exact`, and `disjoint`](#191-wrap-flags-nsw-nuw-exact-and-disjoint)
+  - [19.1.1 The Poison Semantics Contract](#1911-the-poison-semantics-contract)
+  - [19.1.2 `nsw` — No Signed Wrap](#1912-nsw-no-signed-wrap)
+  - [19.1.3 `nuw` — No Unsigned Wrap](#1913-nuw-no-unsigned-wrap)
+  - [19.1.4 `exact` — Exact Division and Exact Shift](#1914-exact-exact-division-and-exact-shift)
+  - [19.1.5 `disjoint` — Non-Overlapping Bits on `or`](#1915-disjoint-non-overlapping-bits-on-or)
+- [19.2 Floating-Point Fast-Math Flags](#192-floating-point-fast-math-flags)
+  - [19.2.1 IEEE 754 and Its Costs](#1921-ieee-754-and-its-costs)
+  - [19.2.2 The Seven Flags](#1922-the-seven-flags)
+  - [19.2.3 How Clang Emits Fast-Math Flags](#1923-how-clang-emits-fast-math-flags)
+- [19.3 `getelementptr`: Address Computation Without Dereferencing](#193-getelementptr-address-computation-without-dereferencing)
+  - [19.3.1 Purpose and Formal Semantics](#1931-purpose-and-formal-semantics)
+  - [19.3.2 Syntax and Index Rules](#1932-syntax-and-index-rules)
+  - [19.3.3 Worked Examples](#1933-worked-examples)
+  - [19.3.4 The `inbounds` Flag](#1934-the-inbounds-flag)
+  - [19.3.5 GEP Does Not Dereference](#1935-gep-does-not-dereference)
+- [19.4 `load` and `store`: Alignment, Volatile, and Atomics](#194-load-and-store-alignment-volatile-and-atomics)
+  - [19.4.1 Basic Syntax](#1941-basic-syntax)
+  - [19.4.2 Alignment and Undefined Behavior](#1942-alignment-and-undefined-behavior)
+  - [19.4.3 `volatile` Loads and Stores](#1943-volatile-loads-and-stores)
+  - [19.4.4 Load and Store Type Consistency](#1944-load-and-store-type-consistency)
+- [19.5 Atomic `load` and `store`: A Preview](#195-atomic-load-and-store-a-preview)
+  - [19.5.1 Syntax](#1951-syntax)
+  - [19.5.2 Ordering Levels](#1952-ordering-levels)
+- [19.6 `alloca`: Stack Allocation and the `mem2reg` Pattern](#196-alloca-stack-allocation-and-the-mem2reg-pattern)
+  - [19.6.1 Syntax and Semantics](#1961-syntax-and-semantics)
+  - [19.6.2 The Clang Alloca-then-`mem2reg` Pattern](#1962-the-clang-alloca-then-mem2reg-pattern)
+  - [19.6.3 Lifetime Markers](#1963-lifetime-markers)
+- [19.7 `freeze`: Making Poison Safe](#197-freeze-making-poison-safe)
+  - [19.7.1 The Problem Freeze Solves](#1971-the-problem-freeze-solves)
+  - [19.7.2 Syntax and Semantics](#1972-syntax-and-semantics)
+  - [19.7.3 `freeze`, `undef`, and the Transition from `undef` to `poison`](#1973-freeze-undef-and-the-transition-from-undef-to-poison)
+- [19.8 `ptrtoint`/`inttoptr` and Pointer Provenance](#198-ptrtointinttoptr-and-pointer-provenance)
+  - [19.8.1 The Two Conversion Instructions](#1981-the-two-conversion-instructions)
+  - [19.8.2 Pointer Provenance](#1982-pointer-provenance)
+  - [19.8.3 The PNVI-ae-udi Model](#1983-the-pnvi-ae-udi-model)
+  - [19.8.4 Why `inttoptr` Is Dangerous for Alias Analysis](#1984-why-inttoptr-is-dangerous-for-alias-analysis)
+- [19.9 Chapter Summary](#199-chapter-summary)
+
+---
+
 ## 19.1 Wrap Flags: `nsw`, `nuw`, `exact`, and `disjoint`
 
 ### 19.1.1 The Poison Semantics Contract

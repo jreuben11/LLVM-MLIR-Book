@@ -4,6 +4,51 @@
 
 GlobalISel is LLVM's modern instruction selection framework, designed to overcome the fundamental architectural limitations of SelectionDAG. Where SelectionDAG processes IR one basic block at a time, GlobalISel operates across the entire function, enabling global optimization during selection. Where SelectionDAG invents the DAG representation only to immediately serialize it into instructions, GlobalISel works directly on `MachineInstr` objects from the start, using a set of generic opcodes (`G_*`) that are progressively refined to target-specific instructions. This chapter traces the four-stage GlobalISel pipeline — IRTranslator, Legalizer, RegBankSelect, and InstructionSelect — and covers the combiner DSL used to write optimization rules.
 
+## Table of Contents
+
+- [86.1 Architecture Overview](#861-architecture-overview)
+  - [86.1.1 The Generic MachineIR Representation](#8611-the-generic-machineir-representation)
+  - [86.1.2 The Four-Stage Pipeline](#8612-the-four-stage-pipeline)
+- [86.2 IRTranslator](#862-irtranslator)
+  - [86.2.1 Overview](#8621-overview)
+  - [86.2.2 Translating Simple Instructions](#8622-translating-simple-instructions)
+  - [86.2.3 Translating PHI Nodes](#8623-translating-phi-nodes)
+  - [86.2.4 Translating Calls](#8624-translating-calls)
+  - [86.2.5 Translating Returns](#8625-translating-returns)
+- [86.3 The Legalizer](#863-the-legalizer)
+  - [86.3.1 LegalizerInfo API](#8631-legalizerinfo-api)
+  - [86.3.2 The Legalizer Pass](#8632-the-legalizer-pass)
+  - [86.3.3 LegalizerHelper](#8633-legalizerhelper)
+  - [86.3.4 Concrete Example: Widening G_ADD](#8634-concrete-example-widening-gadd)
+  - [86.3.5 Concrete Example: Splitting a Vector G_MUL](#8635-concrete-example-splitting-a-vector-gmul)
+  - [86.3.6 Artifact Combining](#8636-artifact-combining)
+- [86.4 RegBankSelect](#864-regbankselect)
+  - [86.4.1 Register Banks](#8641-register-banks)
+  - [86.4.2 The RegBankSelect Pass](#8642-the-regbankselect-pass)
+  - [86.4.3 InstructionMappings](#8643-instructionmappings)
+  - [86.4.4 Cross-Bank Copies](#8644-cross-bank-copies)
+- [86.5 InstructionSelect](#865-instructionselect)
+  - [86.5.1 Overview](#8651-overview)
+  - [86.5.2 TableGen Patterns for GlobalISel](#8652-tablegen-patterns-for-globalisel)
+  - [86.5.3 GICombineRule: The Combiner DSL](#8653-gicombinerule-the-combiner-dsl)
+  - [86.5.4 Pre- and Post-Legalization Combiners](#8654-pre-and-post-legalization-combiners)
+- [86.6 Falling Back to SelectionDAG](#866-falling-back-to-selectiondag)
+  - [86.6.1 Fallback Mechanisms](#8661-fallback-mechanisms)
+  - [86.6.2 Per-Function Fallback](#8662-per-function-fallback)
+  - [86.6.3 Per-Instruction Fallback](#8663-per-instruction-fallback)
+  - [86.6.4 Checking GlobalISel Status by Target](#8664-checking-globalisel-status-by-target)
+- [86.7 Debugging GlobalISel](#867-debugging-globalisel)
+  - [86.7.1 Dumping the Machine Function](#8671-dumping-the-machine-function)
+  - [86.7.2 Machine IR Text Format](#8672-machine-ir-text-format)
+  - [86.7.3 GlobalISel Observers](#8673-globalisel-observers)
+  - [86.7.4 FileCheck Testing](#8674-filecheck-testing)
+- [86.8 Writing a Target GlobalISel Backend](#868-writing-a-target-globalisel-backend)
+  - [86.8.1 Required Components](#8681-required-components)
+  - [86.8.2 Integrating with TargetPassConfig](#8682-integrating-with-targetpassconfig)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 86.1 Architecture Overview
 
 ### 86.1.1 The Generic MachineIR Representation

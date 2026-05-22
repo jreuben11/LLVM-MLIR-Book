@@ -6,6 +6,55 @@ MLIR IR lives in two serialized forms: a textual format designed for human reada
 
 ---
 
+## Table of Contents
+
+- [136.1 The Textual Format](#1361-the-textual-format)
+  - [Design Principles](#design-principles)
+  - [Syntax Elements](#syntax-elements)
+  - [Builtin and Dialect Types](#builtin-and-dialect-types)
+  - [Attribute Syntax](#attribute-syntax)
+  - [Parsing APIs](#parsing-apis)
+  - [Printing APIs](#printing-apis)
+- [136.2 The Bytecode Format Overview](#1362-the-bytecode-format-overview)
+  - [Design Goals](#design-goals)
+  - [File Header](#file-header)
+  - [Section Layout](#section-layout)
+  - [Encoding Primitives](#encoding-primitives)
+- [136.3 Writing and Reading Bytecode](#1363-writing-and-reading-bytecode)
+  - [Writing Bytecode](#writing-bytecode)
+  - [Reading Bytecode](#reading-bytecode)
+  - [Command-Line Workflow](#command-line-workflow)
+- [136.4 Bytecode Versioning](#1364-bytecode-versioning)
+  - [Version History](#version-history)
+  - [Compatibility Policy](#compatibility-policy)
+- [136.5 DialectBytecodeInterface](#1365-dialectbytecodeinterface)
+  - [Purpose and Registration](#purpose-and-registration)
+  - [Writing Types and Attributes](#writing-types-and-attributes)
+  - [Reading Types and Attributes](#reading-types-and-attributes)
+  - [Dialect Versioning](#dialect-versioning)
+- [136.6 External Resources](#1366-external-resources)
+  - [The Resource Problem](#the-resource-problem)
+  - [DenseResourceElementsAttr](#denseresourceelementsattr)
+  - [Resource Blobs in Bytecode](#resource-blobs-in-bytecode)
+  - [FallbackAsmResourceMap](#fallbackasmresourcemap)
+- [136.7 Translation: mlir-translate](#1367-translation-mlir-translate)
+  - [The Translation Framework](#the-translation-framework)
+  - [Available Translations in LLVM 22](#available-translations-in-llvm-22)
+  - [A Complete Linalg → LLVM IR Pipeline](#a-complete-linalg-llvm-ir-pipeline)
+  - [Implementing a Custom Translation](#implementing-a-custom-translation)
+- [136.8 Custom Dialects and Serialization](#1368-custom-dialects-and-serialization)
+  - [Registration Pattern](#registration-pattern)
+  - [Blob Writing for Custom Types](#blob-writing-for-custom-types)
+  - [FileCheck-Based Bytecode Tests](#filecheck-based-bytecode-tests)
+- [136.9 MLIR in Production Pipelines](#1369-mlir-in-production-pipelines)
+  - [Bytecode as Compiler Artifacts](#bytecode-as-compiler-artifacts)
+  - [Versioning Concerns](#versioning-concerns)
+  - [Multi-Module Test Files](#multi-module-test-files)
+  - [The MLIR Language Server](#the-mlir-language-server)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 136.1 The Textual Format
 
 ### Design Principles

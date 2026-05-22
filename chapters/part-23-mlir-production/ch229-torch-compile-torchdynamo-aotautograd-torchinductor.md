@@ -6,6 +6,48 @@ PyTorch 2.0 introduced `torch.compile`, a compiler stack that accelerates PyTorc
 
 ---
 
+## Table of Contents
+
+- [229.1 The PyTorch 2.0 Compilation Model](#2291-the-pytorch-20-compilation-model)
+  - [Eager vs Compiled Mode](#eager-vs-compiled-mode)
+  - [What Compilation Gains](#what-compilation-gains)
+  - [Compilation Pipeline Overview](#compilation-pipeline-overview)
+  - [Relationship to Other PyTorch Compilation Approaches](#relationship-to-other-pytorch-compilation-approaches)
+- [229.2 TorchDynamo: Frame-Level Graph Capture](#2292-torchdynamo-frame-level-graph-capture)
+  - [CPython Frame Evaluation Hook (PEP 523)](#cpython-frame-evaluation-hook-pep-523)
+  - [Proxy Tensors and Symbolic Execution](#proxy-tensors-and-symbolic-execution)
+  - [Graph Breaks](#graph-breaks)
+  - [Guard Types](#guard-types)
+  - [Debugging Graph Breaks](#debugging-graph-breaks)
+- [229.3 FX Graph Intermediate Representation](#2293-fx-graph-intermediate-representation)
+  - [Graph Structure](#graph-structure)
+  - [Node Types](#node-types)
+  - [FX Passes](#fx-passes)
+- [229.4 AOTAutograd: Joint Forward/Backward Tracing](#2294-aotautograd-joint-forwardbackward-tracing)
+  - [The Problem AOTAutograd Solves](#the-problem-aotautograd-solves)
+  - [How It Works](#how-it-works)
+  - [Why AOTAutograd Enables Better Optimization](#why-aotautograd-enables-better-optimization)
+- [229.5 TorchInductor: FX Graph to Native Code](#2295-torchinductor-fx-graph-to-native-code)
+  - [Architecture](#architecture)
+  - [GPU Path: FX → Triton](#gpu-path-fx-triton)
+  - [CPU Path: FX → C++](#cpu-path-fx-c)
+  - [AOTInductor: Standalone Inference Binaries](#aotinductor-standalone-inference-binaries)
+- [229.6 torch.export and ExportedProgram](#2296-torchexport-and-exportedprogram)
+  - [Strict vs Non-Strict Export](#strict-vs-non-strict-export)
+  - [ExportedProgram Structure](#exportedprogram-structure)
+  - [Serialization and Deployment](#serialization-and-deployment)
+- [229.7 Guard System and Recompilation](#2297-guard-system-and-recompilation)
+  - [Guard Cache Architecture](#guard-cache-architecture)
+  - [Recompilation Limits](#recompilation-limits)
+  - [Dynamic Shapes](#dynamic-shapes)
+- [229.8 Backends and Ecosystem](#2298-backends-and-ecosystem)
+  - [Backend Interface](#backend-interface)
+  - [Built-in Backends](#built-in-backends)
+  - [Stability (PyTorch 2.4–2.6)](#stability-pytorch-2426)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 229.1 The PyTorch 2.0 Compilation Model
 
 ### Eager vs Compiled Mode

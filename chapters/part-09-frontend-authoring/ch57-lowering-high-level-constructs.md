@@ -4,6 +4,35 @@
 
 A real language frontend must lower constructs that have no direct LLVM counterpart: aggregates, dynamic dispatch, closures, tagged unions, coroutines, string literals, and runtime type information. Each requires a deliberate mapping from the source-level abstraction to sequences of LLVM IR instructions. This chapter documents the canonical lowering strategies for each, with worked code examples that extend the Cal emitter from Chapter 56.
 
+## Table of Contents
+
+- [57.1 Aggregates](#571-aggregates)
+  - [57.1.1 Struct Types](#5711-struct-types)
+  - [57.1.2 Arrays](#5712-arrays)
+  - [57.1.3 Passing Aggregates](#5713-passing-aggregates)
+- [57.2 Vtables and Dynamic Dispatch](#572-vtables-and-dynamic-dispatch)
+  - [57.2.1 Vtable Layout](#5721-vtable-layout)
+  - [57.2.2 Object Layout](#5722-object-layout)
+  - [57.2.3 Virtual Dispatch](#5723-virtual-dispatch)
+- [57.3 Closures](#573-closures)
+  - [57.3.1 Closure Type](#5731-closure-type)
+  - [57.3.2 Environment Record](#5732-environment-record)
+  - [57.3.3 Closure Function](#5733-closure-function)
+  - [57.3.4 Calling a Closure](#5734-calling-a-closure)
+- [57.4 Tagged Unions (Sum Types)](#574-tagged-unions-sum-types)
+  - [57.4.1 Building the Type](#5741-building-the-type)
+  - [57.4.2 Construction](#5742-construction)
+  - [57.4.3 Pattern Matching (Match/Switch)](#5743-pattern-matching-matchswitch)
+- [57.5 Coroutines](#575-coroutines)
+  - [57.5.1 Coroutine Lifecycle Intrinsics](#5751-coroutine-lifecycle-intrinsics)
+  - [57.5.2 Frontend Emission Pattern](#5752-frontend-emission-pattern)
+- [57.6 String Literals](#576-string-literals)
+- [57.7 RTTI Emission](#577-rtti-emission)
+- [57.8 Putting It Together: Lowering Complex Types](#578-putting-it-together-lowering-complex-types)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 57.1 Aggregates
 
 ### 57.1.1 Struct Types

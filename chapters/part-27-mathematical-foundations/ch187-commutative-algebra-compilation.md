@@ -8,6 +8,53 @@ Readers should be comfortable with the polyhedral model ([Chapter 70 — Foundat
 
 ---
 
+## Table of Contents
+
+- [187.1 Ring Theory Foundations](#1871-ring-theory-foundations)
+  - [187.1.1 Commutative Rings and Ideals](#18711-commutative-rings-and-ideals)
+  - [187.1.2 Quotient Rings and the First Isomorphism Theorem](#18712-quotient-rings-and-the-first-isomorphism-theorem)
+  - [187.1.3 The Hilbert Basis Theorem and Noetherian Rings](#18713-the-hilbert-basis-theorem-and-noetherian-rings)
+  - [187.1.4 Hilbert's Nullstellensatz](#18714-hilberts-nullstellensatz)
+  - [187.1.5 Primary Decomposition](#18715-primary-decomposition)
+- [187.2 Gröbner Bases](#1872-grbner-bases)
+  - [187.2.1 Monomial Orderings](#18721-monomial-orderings)
+  - [187.2.2 The Multivariate Division Algorithm](#18722-the-multivariate-division-algorithm)
+  - [187.2.3 S-Polynomials and Buchberger's Algorithm](#18723-s-polynomials-and-buchbergers-algorithm)
+  - [187.2.4 Complexity](#18724-complexity)
+  - [187.2.5 Compiler Applications of Gröbner Bases](#18725-compiler-applications-of-grbner-bases)
+  - [187.2.6 SageMath Example: Gröbner Basis and Constraint Solving](#18726-sagemath-example-grbner-basis-and-constraint-solving)
+- [187.3 Algebraic Geometry and Polyhedral Compilation](#1873-algebraic-geometry-and-polyhedral-compilation)
+  - [187.3.1 Affine Varieties and Coordinate Rings](#18731-affine-varieties-and-coordinate-rings)
+  - [187.3.2 Toric Varieties and Normal Fans](#18732-toric-varieties-and-normal-fans)
+  - [187.3.3 The Ehrhart Polynomial](#18733-the-ehrhart-polynomial)
+  - [187.3.4 Triangular Loop Nest as an Ehrhart Computation](#18734-triangular-loop-nest-as-an-ehrhart-computation)
+  - [187.3.5 The Barvinok Algorithm and ISL](#18735-the-barvinok-algorithm-and-isl)
+  - [187.3.6 The Hilbert Series](#18736-the-hilbert-series)
+- [187.4 Abstract Interpretation as Algebra](#1874-abstract-interpretation-as-algebra)
+  - [187.4.1 Numerical Abstract Domains as Geometric Objects](#18741-numerical-abstract-domains-as-geometric-objects)
+  - [187.4.2 The Widening Operator](#18742-the-widening-operator)
+  - [187.4.3 Galois Connections as Adjunctions (Preview)](#18743-galois-connections-as-adjunctions-preview)
+- [187.5 Semirings in Program Analysis: The Algebraic Path Problem](#1875-semirings-in-program-analysis-the-algebraic-path-problem)
+  - [187.5.1 Closed Semirings](#18751-closed-semirings)
+  - [187.5.2 Tarjan's Algebraic Path Problem](#18752-tarjans-algebraic-path-problem)
+  - [187.5.3 Dominator Analysis via the Boolean Semiring](#18753-dominator-analysis-via-the-boolean-semiring)
+  - [187.5.4 The Tropical Semiring and WCET Analysis](#18754-the-tropical-semiring-and-wcet-analysis)
+  - [187.5.5 CFL Reachability and the Regular Language Semiring](#18755-cfl-reachability-and-the-regular-language-semiring)
+  - [187.5.6 Mohri's Weighted Automata Framework](#18756-mohris-weighted-automata-framework)
+- [187.6 Effect Systems and Graded Algebraic Structures](#1876-effect-systems-and-graded-algebraic-structures)
+  - [187.6.1 Effects as Free Commutative Monoids](#18761-effects-as-free-commutative-monoids)
+  - [187.6.2 Graded Monads](#18762-graded-monads)
+  - [187.6.3 Effect Algebras](#18763-effect-algebras)
+- [187.7 Module Theory and Compiler Connections](#1877-module-theory-and-compiler-connections)
+  - [187.7.1 Modules over a Ring](#18771-modules-over-a-ring)
+  - [187.7.2 The Curry-Howard-Lambek Correspondence](#18772-the-curry-howard-lambek-correspondence)
+  - [187.7.3 Kähler Differentials and Automatic Differentiation](#18773-khler-differentials-and-automatic-differentiation)
+- [187.8 Connections and the Bigger Picture](#1878-connections-and-the-bigger-picture)
+- [187.9 Summary](#1879-summary)
+- [References](#references)
+
+---
+
 ## 187.1 Ring Theory Foundations
 
 ### 187.1.1 Commutative Rings and Ideals

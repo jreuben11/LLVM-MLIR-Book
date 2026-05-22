@@ -4,6 +4,30 @@
 
 Scalar optimizations — those that operate on a single function without loop-level restructuring or inter-procedural information — form the backbone of the optimization pipeline. They eliminate dead code, propagate constants, simplify control flow, number equivalent values, and combine redundant operations. This chapter covers the most important scalar passes in LLVM 22.1: DCE/ADCE/BDCE, GVN/NewGVN, SCCP/IPSCCP, InstCombine/InstSimplify, SimplifyCFG, Reassociate, EarlyCSE, CorrelatedValuePropagation, JumpThreading, and TailCallElim.
 
+## Table of Contents
+
+- [62.1 Dead Code Elimination (DCE, ADCE, BDCE)](#621-dead-code-elimination-dce-adce-bdce)
+  - [62.1.1 DCE — Basic Dead Code Elimination](#6211-dce-basic-dead-code-elimination)
+  - [62.1.2 ADCE — Aggressive DCE](#6212-adce-aggressive-dce)
+  - [62.1.3 BDCE — Bit-Tracking DCE](#6213-bdce-bit-tracking-dce)
+- [62.2 Global Value Numbering (GVN, NewGVN)](#622-global-value-numbering-gvn-newgvn)
+  - [62.2.1 GVN](#6221-gvn)
+  - [62.2.2 NewGVN](#6222-newgvn)
+- [62.3 SCCP — Sparse Conditional Constant Propagation](#623-sccp-sparse-conditional-constant-propagation)
+  - [62.3.1 IPSCCP](#6231-ipsccp)
+- [62.4 InstCombine and InstSimplify](#624-instcombine-and-instsimplify)
+  - [62.4.1 InstCombine](#6241-instcombine)
+  - [62.4.2 InstSimplify](#6242-instsimplify)
+- [62.5 SimplifyCFG](#625-simplifycfg)
+- [62.6 Reassociate](#626-reassociate)
+- [62.7 EarlyCSE](#627-earlycse)
+- [62.8 CorrelatedValuePropagation](#628-correlatedvaluepropagation)
+- [62.9 JumpThreading](#629-jumpthreading)
+- [62.10 TailCallElim](#6210-tailcallelim)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 62.1 Dead Code Elimination (DCE, ADCE, BDCE)
 
 ### 62.1.1 DCE — Basic Dead Code Elimination

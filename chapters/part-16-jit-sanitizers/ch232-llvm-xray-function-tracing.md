@@ -6,6 +6,46 @@ Profiling production systems involves a fundamental trade-off: instruments with 
 
 ---
 
+## Table of Contents
+
+- [232.1 Design Goals and Comparison with Other Tools](#2321-design-goals-and-comparison-with-other-tools)
+  - [Design Goals](#design-goals)
+  - [Comparison with Other Profiling Approaches](#comparison-with-other-profiling-approaches)
+- [232.2 NOP Sled Instrumentation](#2322-nop-sled-instrumentation)
+  - [Compiler-Side: Inserting the Sled](#compiler-side-inserting-the-sled)
+  - [Runtime Patching: `__xray_patch()`](#runtime-patching-xraypatch)
+  - [ELF Sections](#elf-sections)
+- [232.3 XRay Modes](#2323-xray-modes)
+  - [Basic Mode](#basic-mode)
+  - [Flight Recorder Mode](#flight-recorder-mode)
+  - [Custom Handler Mode](#custom-handler-mode)
+- [232.4 Custom Handlers and Flame Graph Collection](#2324-custom-handlers-and-flame-graph-collection)
+  - [Building a Flame Graph Collector](#building-a-flame-graph-collector)
+  - [Argument Logging](#argument-logging)
+  - [Handler Constraints](#handler-constraints)
+- [232.5 The `llvm-xray` Tool Suite](#2325-the-llvm-xray-tool-suite)
+  - [`llvm-xray account`](#llvm-xray-account)
+  - [`llvm-xray convert`](#llvm-xray-convert)
+  - [`llvm-xray stack`](#llvm-xray-stack)
+  - [`llvm-xray graph`](#llvm-xray-graph)
+- [232.6 Compiler and LTO Integration](#2326-compiler-and-lto-integration)
+  - [Instrumentation Threshold](#instrumentation-threshold)
+  - [Mutual Exclusivity with PGO](#mutual-exclusivity-with-pgo)
+  - [ThinLTO Interaction](#thinlto-interaction)
+  - [Runtime Library](#runtime-library)
+- [232.7 Selective Tracing](#2327-selective-tracing)
+  - [Attribute-Based Control](#attribute-based-control)
+  - [Per-Function Patching](#per-function-patching)
+  - [Combining with `-fxray-ignore-loops`](#combining-with-fxray-ignore-loops)
+- [232.8 Production Deployment Patterns](#2328-production-deployment-patterns)
+  - [Flight Recorder for Latency Anomaly Detection](#flight-recorder-for-latency-anomaly-detection)
+  - [Per-Function Sampling Rotation](#per-function-sampling-rotation)
+  - [Comparison: XRay vs eBPF Uprobes](#comparison-xray-vs-ebpf-uprobes)
+  - [XRay vs Tracy Profiler](#xray-vs-tracy-profiler)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 232.1 Design Goals and Comparison with Other Tools
 
 ### Design Goals

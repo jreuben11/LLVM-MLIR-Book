@@ -4,6 +4,37 @@
 
 CIR generation follows the same producer-consumer contract as classic CodeGen: the compiler driver installs an `ASTConsumer`, and the Sema/Parser pipeline pushes completed declarations to it. But where `CodeGenModule` immediately lowers each construct to LLVM IR, `CIRGenModule` builds an MLIR module filled with CIR operations, deferring all LLVM knowledge to the lowering pass. This chapter dissects the generator, shows how C and C++ constructs map to CIR operations, and explains the back-references to the AST that give CIR its analysis advantage.
 
+## Table of Contents
+
+- [53.1 Entry Points](#531-entry-points)
+  - [53.1.1 CIRGenerator — the ASTConsumer](#5311-cirgenerator-the-astconsumer)
+  - [53.1.2 CIRGenModule — the Module Builder](#5312-cirgenmodule-the-module-builder)
+  - [53.1.3 CIRGenFunction — the Function Builder](#5313-cirgenfunction-the-function-builder)
+- [53.2 Type Mapping: AST Types to CIR Types](#532-type-mapping-ast-types-to-cir-types)
+- [53.3 Function Emission](#533-function-emission)
+  - [53.3.1 `emitFunctionBody`](#5331-emitfunctionbody)
+  - [53.3.2 Statement Emission](#5332-statement-emission)
+  - [53.3.3 Expression Emission](#5333-expression-emission)
+- [53.4 Variable Handling](#534-variable-handling)
+  - [53.4.1 Locals and Automatic Storage](#5341-locals-and-automatic-storage)
+  - [53.4.2 Globals](#5342-globals)
+  - [53.4.3 The Local Variable Map](#5343-the-local-variable-map)
+- [53.5 Function Calls](#535-function-calls)
+  - [53.5.1 Direct Calls](#5351-direct-calls)
+  - [53.5.2 Indirect Calls](#5352-indirect-calls)
+  - [53.5.3 Virtual Calls](#5353-virtual-calls)
+  - [53.5.4 ABI Argument Handling](#5354-abi-argument-handling)
+- [53.6 Record (Struct/Union) Emission](#536-record-structunion-emission)
+  - [53.6.1 Record Type Creation](#5361-record-type-creation)
+  - [53.6.2 Member Access](#5362-member-access)
+- [53.7 Back-References to the AST](#537-back-references-to-the-ast)
+- [53.8 Exception Handling Emission](#538-exception-handling-emission)
+- [53.9 Constants and Initializers](#539-constants-and-initializers)
+- [53.10 Comparison with Classic CodeGenModule](#5310-comparison-with-classic-codegenmodule)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 53.1 Entry Points
 
 ### 53.1.1 CIRGenerator — the ASTConsumer

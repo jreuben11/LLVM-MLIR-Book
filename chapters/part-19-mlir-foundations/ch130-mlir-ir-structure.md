@@ -6,6 +6,49 @@ Understanding MLIR's IR structure is prerequisite to everything else in this par
 
 ---
 
+## Table of Contents
+
+- [130.1 The Region-Block-Op Hierarchy](#1301-the-region-block-op-hierarchy)
+  - [Three-Level Nesting](#three-level-nesting)
+  - [ModuleOp](#moduleop)
+  - [func.func and SSA Regions](#funcfunc-and-ssa-regions)
+  - [scf.for — Nested Region Example](#scffor-nested-region-example)
+- [130.2 Operations](#1302-operations)
+  - [The Operation Class](#the-operation-class)
+  - [OpState: The User-Facing Wrapper](#opstate-the-user-facing-wrapper)
+  - [Op Name Anatomy](#op-name-anatomy)
+- [130.3 Values and Types](#1303-values-and-types)
+  - [The Value Class](#the-value-class)
+  - [Types](#types)
+  - [TypeRange and ValueRange](#typerange-and-valuerange)
+- [130.4 Blocks and Control Flow](#1304-blocks-and-control-flow)
+  - [Block Structure](#block-structure)
+  - [Block Arguments vs PHI Nodes](#block-arguments-vs-phi-nodes)
+  - [Terminator Operations](#terminator-operations)
+  - [CFG Operations](#cfg-operations)
+- [130.5 Regions and Structural Constraints](#1305-regions-and-structural-constraints)
+  - [Region Class](#region-class)
+  - [SSA Regions vs Graph Regions](#ssa-regions-vs-graph-regions)
+  - [IsolatedFromAbove](#isolatedfromabove)
+- [130.6 Attributes](#1306-attributes)
+  - [Attribute Basics](#attribute-basics)
+  - [Built-in Attributes](#built-in-attributes)
+  - [Accessing Attributes](#accessing-attributes)
+  - [Discardable vs Non-Discardable Attributes](#discardable-vs-non-discardable-attributes)
+- [130.7 Affine Maps](#1307-affine-maps)
+  - [What Is an AffineMap?](#what-is-an-affinemap)
+  - [Affine Map Syntax](#affine-map-syntax)
+  - [AffineExpr Operations](#affineexpr-operations)
+  - [Uses of AffineMap](#uses-of-affinemap)
+- [130.8 Locations](#1308-locations)
+- [130.9 Walking and Visiting IR](#1309-walking-and-visiting-ir)
+  - [walk()](#walk)
+  - [getParentOfType](#getparentoftype)
+  - [Iterating Blocks and Ops](#iterating-blocks-and-ops)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 130.1 The Region-Block-Op Hierarchy
 
 ### Three-Level Nesting

@@ -4,6 +4,33 @@
 
 TableGen is LLVM's domain-specific language for describing hardware targets. Rather than writing thousands of lines of C++ that encode instruction formats, register classes, calling conventions, and instruction selection patterns, target authors write TableGen (`.td`) files that are processed by `llvm-tblgen` to generate the corresponding C++ code. The generated code is included into the backend via `#include "X86GenInstrInfo.inc"` and similar files. This chapter covers TableGen syntax from basics through advanced features (multiclass, foreach, defm, defvar, `!`-operators) and the specific TableGen backends that generate each piece of the LLVM backend infrastructure.
 
+## Table of Contents
+
+- [82.1 TableGen Language Fundamentals](#821-tablegen-language-fundamentals)
+  - [82.1.1 Records](#8211-records)
+  - [82.1.2 Classes](#8212-classes)
+  - [82.1.3 `def`, `let`, and `defvar`](#8213-def-let-and-defvar)
+  - [82.1.4 `!`-Operators](#8214-operators)
+- [82.2 Multiclass and defm](#822-multiclass-and-defm)
+  - [82.2.1 The Problem: Code Duplication](#8221-the-problem-code-duplication)
+  - [82.2.2 multiclass](#8222-multiclass)
+  - [82.2.3 defm Inheritance](#8223-defm-inheritance)
+  - [82.2.4 foreach](#8224-foreach)
+  - [82.2.5 The Record Graph](#8225-the-record-graph)
+- [82.3 TableGen for Register Information (-gen-register-info)](#823-tablegen-for-register-information-gen-register-info)
+- [82.4 TableGen for Instruction Info (-gen-instr-info)](#824-tablegen-for-instruction-info-gen-instr-info)
+- [82.5 TableGen for DAG Instruction Selection (-gen-dag-isel)](#825-tablegen-for-dag-instruction-selection-gen-dag-isel)
+- [82.6 TableGen for GlobalISel (-gen-global-isel)](#826-tablegen-for-globalisel-gen-global-isel)
+- [82.7 TableGen for Assembly (-gen-asm-matcher, -gen-asm-writer)](#827-tablegen-for-assembly-gen-asm-matcher-gen-asm-writer)
+  - [82.7.1 Assembly Writing (-gen-asm-writer)](#8271-assembly-writing-gen-asm-writer)
+  - [82.7.2 Assembly Matching (-gen-asm-matcher)](#8272-assembly-matching-gen-asm-matcher)
+- [82.8 TableGen for Calling Conventions (-gen-callingconv)](#828-tablegen-for-calling-conventions-gen-callingconv)
+- [82.9 TableGen for Subtarget (-gen-subtarget)](#829-tablegen-for-subtarget-gen-subtarget)
+- [82.10 TableGen for Scheduling Models (-gen-sched-models)](#8210-tablegen-for-scheduling-models-gen-sched-models)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 82.1 TableGen Language Fundamentals
 
 ### 82.1.1 Records

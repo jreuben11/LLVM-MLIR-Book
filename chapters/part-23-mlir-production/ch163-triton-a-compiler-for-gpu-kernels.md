@@ -6,6 +6,33 @@ Triton is an MLIR-based compiler that lets GPU kernels be written in Python-like
 
 ---
 
+## Table of Contents
+
+- [163.1 The Triton Programming Model](#1631-the-triton-programming-model)
+  - [163.1.1 Kernel Structure](#16311-kernel-structure)
+  - [163.1.2 Launching the Kernel](#16312-launching-the-kernel)
+- [163.2 Triton's MLIR Compilation Pipeline](#1632-tritons-mlir-compilation-pipeline)
+- [163.3 The Triton Dialect](#1633-the-triton-dialect)
+  - [163.3.1 Pointer Types and Tensor Operations](#16331-pointer-types-and-tensor-operations)
+- [163.4 The TritonGPU Dialect](#1634-the-tritongpu-dialect)
+  - [163.4.1 Blocked Encoding](#16341-blocked-encoding)
+  - [163.4.2 MMA Encoding](#16342-mma-encoding)
+  - [163.4.3 Shared Memory Encoding](#16343-shared-memory-encoding)
+  - [163.4.4 Layout Conversion](#16344-layout-conversion)
+- [163.5 Optimization Passes](#1635-optimization-passes)
+  - [163.5.1 Software Pipelining](#16351-software-pipelining)
+  - [163.5.2 Memory Coalescing](#16352-memory-coalescing)
+  - [163.5.3 Shared Memory Prefetching](#16353-shared-memory-prefetching)
+- [163.6 Autotuning](#1636-autotuning)
+  - [163.6.1 Autotuning Internals](#16361-autotuning-internals)
+  - [163.6.2 SPLIT_K Optimization](#16362-splitk-optimization)
+- [163.7 FlashAttention in Triton](#1637-flashattention-in-triton)
+- [163.8 XLA Integration](#1638-xla-integration)
+- [163.9 PyTorch 2.0 Torch.compile Integration](#1639-pytorch-20-torchcompile-integration)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 163.1 The Triton Programming Model
 
 Triton's key insight is that GPU kernel performance is primarily determined by how data is tiled across the thread hierarchy, not by individual thread operations. Triton exposes **tile-level programming**: a program operates on 1D, 2D, or 3D blocks of data, and Triton's compiler determines the mapping to warps and threads.

@@ -6,6 +6,36 @@ Quick reference for the binary object file formats supported by LLVM's MC layer,
 
 ---
 
+## Table of Contents
+
+- [F.1 ELF (Executable and Linking Format)](#f1-elf-executable-and-linking-format)
+  - [ELF Header Fields](#elf-header-fields)
+  - [Key ELF Sections](#key-elf-sections)
+  - [ELF Symbol Table Entry](#elf-symbol-table-entry)
+  - [x86-64 Relocation Types](#x86-64-relocation-types)
+  - [AArch64 Relocation Types](#aarch64-relocation-types)
+  - [Dynamic Linking Sections](#dynamic-linking-sections)
+- [F.2 COFF/PE (Windows)](#f2-coffpe-windows)
+  - [PE32+ Structure](#pe32-structure)
+  - [COFF File Header](#coff-file-header)
+  - [Optional Header Key Fields (PE32+)](#optional-header-key-fields-pe32)
+  - [Key PE Sections](#key-pe-sections)
+  - [Import Directory Table](#import-directory-table)
+  - [COFF Relocations (x86-64)](#coff-relocations-x86-64)
+- [F.3 MachO (macOS / iOS / iPadOS)](#f3-macho-macos-ios-ipados)
+  - [Mach-O Header](#mach-o-header)
+  - [Key Load Commands](#key-load-commands)
+  - [Segments and Sections](#segments-and-sections)
+  - [MachO Relocations (x86-64)](#macho-relocations-x86-64)
+  - [Fat Binaries (Universal Binaries)](#fat-binaries-universal-binaries)
+- [F.4 WebAssembly Object Format](#f4-webassembly-object-format)
+  - [Wasm Section Types](#wasm-section-types)
+  - [Wasm Custom Sections](#wasm-custom-sections)
+  - [Wasm Relocation Types (selected)](#wasm-relocation-types-selected)
+- [F.5 LLVM MC Layer](#f5-llvm-mc-layer)
+
+---
+
 ## F.1 ELF (Executable and Linking Format)
 
 ELF is the standard on Linux, FreeBSD, Android, and most embedded targets. Header defined in `<elf.h>` / [llvm/BinaryFormat/ELF.h](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/llvm/include/llvm/BinaryFormat/ELF.h).

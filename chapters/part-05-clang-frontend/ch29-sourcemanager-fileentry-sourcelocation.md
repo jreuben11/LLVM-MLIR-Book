@@ -6,6 +6,63 @@ A C++ translation unit is not a single text file. Before a single token has been
 
 ---
 
+## Table of Contents
+
+- [The Fundamental Problem: Virtual vs. Physical Character Stream](#the-fundamental-problem-virtual-vs-physical-character-stream)
+  - [Concrete SLocEntry Layout: A Worked Example](#concrete-slocentry-layout-a-worked-example)
+- [`SourceLocation`: A 32-Bit Address in the Virtual Stream](#sourcelocation-a-32-bit-address-in-the-virtual-stream)
+  - [Validity, File vs. Macro](#validity-file-vs-macro)
+  - [Serialization](#serialization)
+  - [`SourceRange` and `CharSourceRange`](#sourcerange-and-charsourcerange)
+  - [`FullSourceLoc`](#fullsourceloc)
+- [`FileID` and `SLocEntry`: The Index Table](#fileid-and-slocentry-the-index-table)
+  - [`FileID`](#fileid)
+  - [`SLocEntry`](#slocentry)
+  - [Local vs. Loaded Tables](#local-vs-loaded-tables)
+- [`ContentCache`: Lazy Buffer Management](#contentcache-lazy-buffer-management)
+- [`FileManager` and `FileEntry`](#filemanager-and-fileentry)
+  - [`FileManager`](#filemanager)
+  - [`FileEntry`](#fileentry)
+  - [`FileEntryRef`: The Modern Reference Type](#fileentryref-the-modern-reference-type)
+- [`SourceManager`: Construction and Core API](#sourcemanager-construction-and-core-api)
+  - [Construction](#construction)
+  - [Creating FileIDs](#creating-fileids)
+  - [FileID Lookups](#fileid-lookups)
+- [Spelling vs. Expansion Locations: The Core Duality](#spelling-vs-expansion-locations-the-core-duality)
+  - [Expansion Range](#expansion-range)
+  - [Macro Argument vs. Macro Body](#macro-argument-vs-macro-body)
+  - [`getFileLoc`](#getfileloc)
+- [Line/Column Decomposition](#linecolumn-decomposition)
+  - [`getDecomposedLoc`](#getdecomposedloc)
+  - [`getLineNumber` and `getColumnNumber`](#getlinenumber-and-getcolumnnumber)
+  - [`getPresumedLoc` and the Line Table](#getpresumedloc-and-the-line-table)
+  - [`LineTableInfo` and `#line` Directives](#linetableinfo-and-line-directives)
+- [Practical Source Manager Queries](#practical-source-manager-queries)
+  - [Reverse Lookup: From File/Line/Column to SourceLocation](#reverse-lookup-from-filelinecolumn-to-sourcelocation)
+  - [Extracting Source Text](#extracting-source-text)
+  - [Ordering Two Locations](#ordering-two-locations)
+  - [Checking Same File](#checking-same-file)
+  - [Walking the Include Chain](#walking-the-include-chain)
+  - [Example: Printing Macro Expansion Locations in a Clang Tool](#example-printing-macro-expansion-locations-in-a-clang-tool)
+- [The `#include` Chain and Macro Expansion Trace](#the-include-chain-and-macro-expansion-trace)
+  - [Reconstructing Include Depth](#reconstructing-include-depth)
+  - [Tracing Macro Expansions](#tracing-macro-expansions)
+- [Token Splitting and `createTokenSplitLoc`](#token-splitting-and-createtokensplitloc)
+- [Address Space Exhaustion](#address-space-exhaustion)
+- [PCH and Modules Integration](#pch-and-modules-integration)
+  - [The Loaded SLocEntry Space](#the-loaded-slocentry-space)
+  - [`MacroArgsMap` and `getMacroArgExpandedLocation`](#macroargsmap-and-getmacroargexpandedlocation)
+  - [Preamble and `overrideFileContents`](#preamble-and-overridefilecontents)
+- [Performance Characteristics](#performance-characteristics)
+  - [SLocEntry Lookup](#slocentry-lookup)
+  - [Line Number Cache](#line-number-cache)
+  - [`isBeforeInTranslationUnit` Cost](#isbeforeintranslationunit-cost)
+  - [Memory Budget](#memory-budget)
+- [Integration with clangd](#integration-with-clangd)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## The Fundamental Problem: Virtual vs. Physical Character Stream
 
 The C preprocessor model specifies that translation proceeds on a "translation unit" that is conceptually a flat sequence of characters. In reality that sequence is produced dynamically: `#include` directives splice file contents inline, macro invocations replace identifier tokens with potentially many expansion tokens, and `#line` directives can rewrite the apparent file name and line number for any subsequent text. A naive compiler that records only a byte offset into this virtual stream cannot reconstruct the original source position from that offset alone.

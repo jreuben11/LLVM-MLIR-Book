@@ -12,6 +12,56 @@ This chapter covers the complete theory of lexical analysis. Sections 1 through 
 
 ---
 
+## Table of Contents
+
+- [6.1 The Chomsky Hierarchy and Regular Languages](#61-the-chomsky-hierarchy-and-regular-languages)
+  - [Why regular languages for lexing?](#why-regular-languages-for-lexing)
+- [6.2 Regular Expressions: Formal Definition and Operators](#62-regular-expressions-formal-definition-and-operators)
+  - [Extended operators and their desugaring](#extended-operators-and-their-desugaring)
+  - [Precedence and associativity](#precedence-and-associativity)
+  - [The equivalence theorem](#the-equivalence-theorem)
+  - [The pumping lemma: what regular languages cannot do](#the-pumping-lemma-what-regular-languages-cannot-do)
+- [6.3 Thompson's NFA Construction](#63-thompsons-nfa-construction)
+  - [Formal definition of ε-NFA](#formal-definition-of-nfa)
+  - [ε-closure](#closure)
+  - [Thompson's construction](#thompsons-construction)
+  - [Worked example: Thompson construction for `(a|b)*abb`](#worked-example-thompson-construction-for-ababb)
+  - [NFA simulation: the on-the-fly alternative](#nfa-simulation-the-on-the-fly-alternative)
+- [6.4 The Subset Construction: NFA to DFA](#64-the-subset-construction-nfa-to-dfa)
+  - [Formal definition](#formal-definition)
+  - [The algorithm](#the-algorithm)
+  - [Worked example: NFA for `(a|b)*abb` → DFA](#worked-example-nfa-for-ababb-dfa)
+  - [Direct DFA construction via followpos](#direct-dfa-construction-via-followpos)
+- [6.5 DFA Minimization: Hopcroft, Brzozowski, and Table-Filling](#65-dfa-minimization-hopcroft-brzozowski-and-table-filling)
+  - [The distinguishability relation](#the-distinguishability-relation)
+  - [The table-filling algorithm (O(n²))](#the-table-filling-algorithm-on)
+  - [Hopcroft's algorithm (O(n log n))](#hopcrofts-algorithm-on-log-n)
+  - [Brzozowski's algorithm](#brzozowskis-algorithm)
+  - [The Myhill–Nerode theorem and canonical uniqueness](#the-myhillnerode-theorem-and-canonical-uniqueness)
+  - [Brzozowski derivatives: a third path to the minimal DFA](#brzozowski-derivatives-a-third-path-to-the-minimal-dfa)
+- [6.6 Lexer Generators: flex, re2c, ragel](#66-lexer-generators-flex-re2c-ragel)
+  - [flex/lex](#flexlex)
+  - [re2c](#re2c)
+  - [ragel](#ragel)
+  - [Comparative summary](#comparative-summary)
+- [6.7 The Case for Hand-Written Lexers](#67-the-case-for-hand-written-lexers)
+  - [Performance: the tight-loop advantage](#performance-the-tight-loop-advantage)
+  - [Context-sensitivity: what regular languages cannot express](#context-sensitivity-what-regular-languages-cannot-express)
+  - [Error recovery: better diagnostics](#error-recovery-better-diagnostics)
+  - [Clang's Lexer: architecture](#clangs-lexer-architecture)
+  - [Keyword recognition: perfect hashing vs. trie vs. table switch](#keyword-recognition-perfect-hashing-vs-trie-vs-table-switch)
+  - [The pragmatic verdict](#the-pragmatic-verdict)
+- [6.8 Incremental and Lazy Lexing for IDEs](#68-incremental-and-lazy-lexing-for-ides)
+  - [The incremental lexing problem](#the-incremental-lexing-problem)
+  - [Tree-sitter's approach](#tree-sitters-approach)
+  - [clangd's approach](#clangds-approach)
+  - [Design principles for IDE-ready lexers](#design-principles-for-ide-ready-lexers)
+  - [Formal analysis of incremental re-lexing cost](#formal-analysis-of-incremental-re-lexing-cost)
+  - [Lazy lexing: tokenize only what the parser needs](#lazy-lexing-tokenize-only-what-the-parser-needs)
+- [6.9 Chapter Summary](#69-chapter-summary)
+
+---
+
 ## 6.1 The Chomsky Hierarchy and Regular Languages
 
 Noam Chomsky's 1956 classification of formal grammars partitions the infinite universe of formal languages into four nested classes, defined by the form of their production rules [Dragon §3.3].

@@ -6,6 +6,43 @@ compiler-rt is the LLVM project's replacement for libgcc: a collection of low-le
 
 ---
 
+## Table of Contents
+
+- [19.1 Repository Layout and Build System](#191-repository-layout-and-build-system)
+  - [19.1.1 C ABI Requirement](#1911-c-abi-requirement)
+- [19.2 Arithmetic Builtins](#192-arithmetic-builtins)
+  - [19.2.1 Integer Division](#1921-integer-division)
+  - [19.2.2 128-bit Integer Operations](#1922-128-bit-integer-operations)
+  - [19.2.3 Bit Manipulation](#1923-bit-manipulation)
+- [19.3 Soft-Float Builtins](#193-soft-float-builtins)
+  - [19.3.1 Arithmetic Operations](#1931-arithmetic-operations)
+  - [19.3.2 Conversion Builtins](#1932-conversion-builtins)
+  - [19.3.3 Comparison Builtins](#1933-comparison-builtins)
+  - [19.3.4 BFloat16 and FP16 Conversions](#1934-bfloat16-and-fp16-conversions)
+- [19.4 Assembly-Optimized Hot Paths](#194-assembly-optimized-hot-paths)
+- [19.5 Profile Instrumentation Runtime](#195-profile-instrumentation-runtime)
+  - [19.5.1 Data Layout](#1951-data-layout)
+  - [19.5.2 Counter Storage Models](#1952-counter-storage-models)
+  - [19.5.3 Continuous Mode](#1953-continuous-mode)
+  - [19.5.4 Coverage Mapping](#1954-coverage-mapping)
+- [19.6 Sanitizer Support Infrastructure](#196-sanitizer-support-infrastructure)
+  - [19.6.1 sanitizer_common](#1961-sanitizercommon)
+  - [19.6.2 Interceptor Mechanism](#1962-interceptor-mechanism)
+- [19.7 Weak and Init Functions](#197-weak-and-init-functions)
+  - [19.7.1 __attribute__((constructor)) and CRT Init](#1971-attributeconstructor-and-crt-init)
+  - [19.7.2 Weak Symbols for Customization](#1972-weak-symbols-for-customization)
+- [19.8 Bare-Metal and Cross-Compilation](#198-bare-metal-and-cross-compilation)
+  - [19.8.1 Multilib Layout](#1981-multilib-layout)
+  - [19.8.2 Freestanding Environments](#1982-freestanding-environments)
+  - [19.8.3 Builtins vs libgcc](#1983-builtins-vs-libgcc)
+- [19.9 Calling Convention Nuances](#199-calling-convention-nuances)
+  - [19.9.1 The `__attribute__((used))` Pattern](#1991-the-attributeused-pattern)
+  - [19.9.2 AArch64 and the EABI](#1992-aarch64-and-the-eabi)
+- [19.10 Building compiler-rt for Custom Toolchains](#1910-building-compiler-rt-for-custom-toolchains)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 19.1 Repository Layout and Build System
 
 compiler-rt lives under `compiler-rt/` in the LLVM monorepo. It is a `LLVM_ENABLE_RUNTIMES` component, meaning it is built against an already-installed (or in-tree-built) LLVM/Clang rather than as part of LLVM itself:

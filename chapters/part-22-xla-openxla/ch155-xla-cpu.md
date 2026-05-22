@@ -6,6 +6,41 @@ XLA's CPU backend transforms HLO computations into native code for x86-64 and AA
 
 ---
 
+## Table of Contents
+
+- [155.1 CPU Backend Architecture](#1551-cpu-backend-architecture)
+- [155.2 CPU-Specific HLO Passes](#1552-cpu-specific-hlo-passes)
+  - [155.2.1 CpuLayoutAssignment](#15521-cpulayoutassignment)
+  - [155.2.2 CpuFusionPass](#15522-cpufusionpass)
+  - [155.2.3 DotOpEmitter and OneDNN Selection](#15523-dotopemitter-and-onednn-selection)
+- [155.3 The IrEmitter](#1553-the-iremitter)
+  - [155.3.1 Emitting Element-wise Ops](#15531-emitting-element-wise-ops)
+  - [155.3.2 Emitting Reductions](#15532-emitting-reductions)
+  - [155.3.3 Emitting Dot Products](#15533-emitting-dot-products)
+- [155.4 OneDNN Integration](#1554-onednn-integration)
+  - [155.4.1 Matrix Multiply via OneDNN](#15541-matrix-multiply-via-onednn)
+  - [155.4.2 Convolution via OneDNN](#15542-convolution-via-onednn)
+  - [155.4.3 OneDNN Graph Fusion](#15543-onednn-graph-fusion)
+- [155.5 Eigen Integration](#1555-eigen-integration)
+- [155.6 Parallelism Model](#1556-parallelism-model)
+  - [155.6.1 ParallelTaskAssigner](#15561-paralleltaskassigner)
+  - [155.6.2 Thunk Execution Model](#15562-thunk-execution-model)
+  - [155.6.3 Thread Pool Integration](#15563-thread-pool-integration)
+- [155.7 Memory Layout and Buffer Management](#1557-memory-layout-and-buffer-management)
+  - [155.7.1 Buffer Allocation Scheme](#15571-buffer-allocation-scheme)
+  - [155.7.2 Input/Output Aliasing](#15572-inputoutput-aliasing)
+- [155.8 Vectorization](#1558-vectorization)
+  - [155.8.1 LLVM Auto-Vectorization](#15581-llvm-auto-vectorization)
+  - [155.8.2 Target Feature Selection](#15582-target-feature-selection)
+- [155.9 CpuExecutable and the Runtime](#1559-cpuexecutable-and-the-runtime)
+- [155.10 Profiling and Debugging CPU Kernels](#15510-profiling-and-debugging-cpu-kernels)
+  - [155.10.1 Emitted LLVM IR Dumps](#155101-emitted-llvm-ir-dumps)
+  - [155.10.2 Intel VTune / Linux Perf](#155102-intel-vtune-linux-perf)
+  - [155.10.3 CPU Thunk Trace](#155103-cpu-thunk-trace)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 155.1 CPU Backend Architecture
 
 The CPU backend lives in [`xla/backends/cpu/`](https://github.com/openxla/xla/tree/main/xla/backends/cpu) with the core compilation logic in `xla/service/cpu/`. Its pipeline:

@@ -6,6 +6,40 @@ Human programming languages optimise for *writing and reading by people*. When a
 
 ---
 
+## Table of Contents
+
+- [203.1 The AI-First Inversion](#2031-the-ai-first-inversion)
+  - [203.1.1 The Type Inference Strategy (G2)](#20311-the-type-inference-strategy-g2)
+- [203.2 Capability Tier Maturity Matrix](#2032-capability-tier-maturity-matrix)
+- [203.3 Languages Designed for AI as Primary Author](#2033-languages-designed-for-ai-as-primary-author)
+  - [203.3.1 MoonBit](#20331-moonbit)
+  - [203.3.2 Pel](#20332-pel)
+  - [203.3.3 Dana](#20333-dana)
+- [203.4 Vericoding Languages](#2034-vericoding-languages)
+  - [203.4.1 Dafny](#20341-dafny)
+  - [203.4.2 Lean 4](#20342-lean-4)
+  - [203.4.3 Verus](#20343-verus)
+- [203.5 Languages with Structural AI Affinity](#2035-languages-with-structural-ai-affinity)
+  - [203.5.1 Unison](#20351-unison)
+  - [203.5.2 Koka](#20352-koka)
+  - [203.5.3 Idris 2](#20353-idris-2)
+- [203.6 LLM Interaction Languages](#2036-llm-interaction-languages)
+  - [203.6.1 LMQL](#20361-lmql)
+  - [203.6.2 Guidance](#20362-guidance)
+  - [203.6.3 Outlines](#20363-outlines)
+  - [203.6.4 DSPy](#20364-dspy)
+- [203.7 The Probabilistic Programming Bridge](#2037-the-probabilistic-programming-bridge)
+  - [203.7.1 Paradigm 1 — Distributions as First-Class Types](#20371-paradigm-1-distributions-as-first-class-types)
+  - [203.7.2 Paradigm 2 — Inference as Algebraic Effect Handler](#20372-paradigm-2-inference-as-algebraic-effect-handler)
+  - [203.7.3 Paradigm 3 — Trace as First-Class Typed Value](#20373-paradigm-3-trace-as-first-class-typed-value)
+  - [203.7.4 Paradigm 4 — Compiler-Derived Gradients](#20374-paradigm-4-compiler-derived-gradients)
+  - [203.7.5 Paradigm 5 — Convergence as Refinement Types](#20375-paradigm-5-convergence-as-refinement-types)
+  - [203.7.6 Reference Systems](#20376-reference-systems)
+- [203.8 WebAssembly as AI-First Deployment Substrate](#2038-webassembly-as-ai-first-deployment-substrate)
+- [Chapter 203 Summary](#chapter-203-summary)
+
+---
+
 ## 203.1 The AI-First Inversion
 
 Seven design pressures distinguish an AI-first PL from a human-first one. Each inverts a property that human languages treat as a virtue.

@@ -6,6 +6,50 @@ The conventional MLIR pass pipeline is static: a fixed sequence of passes execut
 
 ---
 
+## Table of Contents
+
+- [150.1 The Transform Dialect Concept](#1501-the-transform-dialect-concept)
+  - [The problem with static pipelines](#the-problem-with-static-pipelines)
+  - [Two-program architecture](#two-program-architecture)
+  - [Key source locations](#key-source-locations)
+- [150.2 Core Transform Operations](#1502-core-transform-operations)
+  - [transform.sequence](#transformsequence)
+  - [Handle types](#handle-types)
+  - [transform.structured.match](#transformstructuredmatch)
+  - [transform.get_parent_op](#transformgetparentop)
+  - [transform.apply_patterns](#transformapplypatterns)
+  - [transform.apply_registered_pass](#transformapplyregisteredpass)
+- [150.3 Structured (Linalg) Transformations](#1503-structured-linalg-transformations)
+  - [Tiling](#tiling)
+  - [Fusing producers](#fusing-producers)
+  - [Vectorization](#vectorization)
+  - [Padding](#padding)
+  - [Decomposition and specialization](#decomposition-and-specialization)
+- [150.4 Loop Transformations](#1504-loop-transformations)
+  - [Unrolling](#unrolling)
+  - [Loop peeling](#loop-peeling)
+  - [Software pipelining](#software-pipelining)
+  - [Loop coalescing](#loop-coalescing)
+  - [Getting enclosing loops](#getting-enclosing-loops)
+- [150.5 Named Sequences and Composability](#1505-named-sequences-and-composability)
+  - [transform.named_sequence](#transformnamedsequence)
+  - [transform.foreach_match](#transformforeachmatch)
+- [150.6 Interactivity and Extensibility](#1506-interactivity-and-extensibility)
+  - [Adding new transform operations](#adding-new-transform-operations)
+  - [TransformState](#transformstate)
+- [150.7 The Transform Interpreter](#1507-the-transform-interpreter)
+  - [Running transforms programmatically](#running-transforms-programmatically)
+  - [Running via mlir-opt](#running-via-mlir-opt)
+  - [Separating transform and payload](#separating-transform-and-payload)
+- [150.8 Complete Example: Tiled Matrix Multiplication](#1508-complete-example-tiled-matrix-multiplication)
+- [150.9 Debugging and Verification](#1509-debugging-and-verification)
+  - [Expensive checks](#expensive-checks)
+  - [Printing transform state](#printing-transform-state)
+  - [Common errors](#common-errors)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 150.1 The Transform Dialect Concept
 
 ### The problem with static pipelines

@@ -4,6 +4,32 @@
 
 The MC (Machine Code) layer is the lowest abstraction stratum in the LLVM backend, bridging the gap between the register-allocated, frame-lowered `MachineInstr` representation and the concrete bytes or assembly text that constitute the output artifact. It provides a uniform API for emitting assembly and object code that is used by the integrated assembler, the standalone `llvm-mc` tool, the disassembler, and the `AsmPrinter` backend. This chapter covers the MC layer's principal classes — `MCInst`, `MCStreamer`, `MCAssembler`, `MCObjectWriter` — the fixup and relocation pipeline, the disassembly path, and the `.mir` text format with its `lit`-based regression testing infrastructure.
 
+## Table of Contents
+
+- [94.1 The MC Layer Architecture](#941-the-mc-layer-architecture)
+- [94.2 MCInst](#942-mcinst)
+  - [94.2.1 MachineInstr to MCInst Conversion](#9421-machineinstr-to-mcinst-conversion)
+- [94.3 MCStreamer](#943-mcstreamer)
+  - [94.3.1 MCAsmStreamer](#9431-mcasmstreamer)
+  - [94.3.2 MCObjectStreamer](#9432-mcobjectstreamer)
+- [94.4 MCCodeEmitter](#944-mccodeemitter)
+- [94.5 Fixups and Relocations](#945-fixups-and-relocations)
+  - [94.5.1 Fixup to Relocation Conversion](#9451-fixup-to-relocation-conversion)
+- [94.6 MCAssembler and MCObjectWriter](#946-mcassembler-and-mcobjectwriter)
+- [94.7 MCDisassembler](#947-mcdisassembler)
+- [94.8 The .mir Text Format Revisited](#948-the-mir-text-format-revisited)
+  - [94.8.1 Full .mir File Structure](#9481-full-mir-file-structure)
+  - [94.8.2 YAML Header Fields](#9482-yaml-header-fields)
+  - [94.8.3 Using llc --stop-after and --start-after](#9483-using-llc-stop-after-and-start-after)
+- [94.9 lit Test Infrastructure](#949-lit-test-infrastructure)
+  - [94.9.1 RUN Line Conventions](#9491-run-line-conventions)
+  - [94.9.2 update_mir_test_checks.py](#9492-updatemirtestcheckspy)
+  - [94.9.3 IR-Level Backend Tests](#9493-ir-level-backend-tests)
+  - [94.9.4 MC-Level Tests](#9494-mc-level-tests)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 94.1 The MC Layer Architecture
 
 The MC layer (`llvm/include/llvm/MC/`, `llvm/lib/MC/`) was designed to factor out the common assembly and object-file emission logic that had previously been duplicated across every target backend. Its design goals are:

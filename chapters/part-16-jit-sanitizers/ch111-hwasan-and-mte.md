@@ -6,6 +6,50 @@ Software AddressSanitizer works, but at a price: a 2–3× slowdown and doubled 
 
 ---
 
+## Table of Contents
+
+- [111.1 Motivation: Software ASan Overhead](#1111-motivation-software-asan-overhead)
+  - [111.1.1 The Production Monitoring Gap](#11111-the-production-monitoring-gap)
+  - [111.1.2 AArch64 Top Byte Ignore (TBI)](#11112-aarch64-top-byte-ignore-tbi)
+  - [111.1.3 Design Space Overview](#11113-design-space-overview)
+- [111.2 HWASan: Architecture Overview](#1112-hwasan-architecture-overview)
+  - [111.2.1 Tag Model](#11121-tag-model)
+  - [111.2.2 Check Sequence](#11122-check-sequence)
+  - [111.2.3 Overhead Analysis](#11123-overhead-analysis)
+- [111.3 HWASan Implementation](#1113-hwasan-implementation)
+  - [111.3.1 HWAddressSanitizerPass](#11131-hwaddresssanitizerpass)
+  - [111.3.2 HWASan Heap Allocation](#11132-hwasan-heap-allocation)
+  - [111.3.3 Stack Tagging](#11133-stack-tagging)
+  - [111.3.4 x86_64 HWASan Mode](#11134-x8664-hwasan-mode)
+- [111.4 MTE: Memory Tagging Extension](#1114-mte-memory-tagging-extension)
+  - [111.4.1 ARMv8.5-A Hardware Structure](#11141-armv85-a-hardware-structure)
+  - [111.4.2 MTE Instructions](#11142-mte-instructions)
+  - [111.4.3 Linux Kernel Support](#11143-linux-kernel-support)
+  - [111.4.4 Synchronous vs Asynchronous Modes](#11144-synchronous-vs-asynchronous-modes)
+- [111.5 Clang/LLVM MTE Integration](#1115-clangllvm-mte-integration)
+  - [111.5.1 Clang Flags](#11151-clang-flags)
+  - [111.5.2 AArch64StackTaggingPass](#11152-aarch64stacktaggingpass)
+  - [111.5.3 AArch64GlobalsTaggingPass](#11153-aarch64globalstaggingpass)
+  - [111.5.4 Heap Integration Requirements](#11154-heap-integration-requirements)
+- [111.6 Comparison: ASan vs HWASan vs MTE](#1116-comparison-asan-vs-hwasan-vs-mte)
+  - [111.6.1 Feature Table](#11161-feature-table)
+  - [111.6.2 False Negative Analysis](#11162-false-negative-analysis)
+  - [111.6.3 Production Adoption](#11163-production-adoption)
+- [111.7 Stack Use-After-Return Detection](#1117-stack-use-after-return-detection)
+  - [111.7.1 The Use-After-Return Problem](#11171-the-use-after-return-problem)
+  - [111.7.2 ASan Fake Stack](#11172-asan-fake-stack)
+  - [111.7.3 HWASan Tagged Stack](#11173-hwasan-tagged-stack)
+  - [111.7.4 MTE Tagged Stack UAR](#11174-mte-tagged-stack-uar)
+- [111.8 Practical Deployment Patterns](#1118-practical-deployment-patterns)
+  - [111.8.1 Development Build on AArch64](#11181-development-build-on-aarch64)
+  - [111.8.2 Production Build with MTE Async](#11182-production-build-with-mte-async)
+  - [111.8.3 QEMU MTE Testing](#11183-qemu-mte-testing)
+  - [111.8.4 Checking MTE Hardware at Runtime](#11184-checking-mte-hardware-at-runtime)
+  - [111.8.5 GDB/LLDB Support](#11185-gdblldb-support)
+- [Chapter 111 Summary](#chapter-111-summary)
+
+---
+
 ## 111.1 Motivation: Software ASan Overhead
 
 ### 111.1.1 The Production Monitoring Gap

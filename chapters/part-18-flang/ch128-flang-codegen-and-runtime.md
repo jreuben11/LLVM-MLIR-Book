@@ -6,6 +6,40 @@ The final stage of Flang's compilation pipeline converts the FIR dialect represe
 
 ---
 
+## Table of Contents
+
+- [128.1 FIR to LLVM Conversion](#1281-fir-to-llvm-conversion)
+  - [The ConvertFIRToLLVM Pass](#the-convertfirtollvm-pass)
+  - [FIR Type Conversion](#fir-type-conversion)
+  - [Op Conversion Patterns](#op-conversion-patterns)
+  - [TargetRewrite Pass](#targetrewrite-pass)
+  - [BoxedProcedurePass](#boxedprocedurepass)
+- [128.2 Compiler Options and Optimization](#1282-compiler-options-and-optimization)
+  - [Optimization Levels](#optimization-levels)
+  - [Floating-Point Flags](#floating-point-flags)
+  - [FIR-Specific Optimization Flags](#fir-specific-optimization-flags)
+  - [Vectorization](#vectorization)
+- [128.3 The Fortran Runtime Library (flang-rt)](#1283-the-fortran-runtime-library-flang-rt)
+  - [I/O Runtime](#io-runtime)
+  - [Intrinsic Array Runtime](#intrinsic-array-runtime)
+  - [Allocatable Operations](#allocatable-operations)
+  - [Type Information for Polymorphism](#type-information-for-polymorphism)
+  - [Error Termination](#error-termination)
+- [128.4 IEEE Floating-Point Exception Handling](#1284-ieee-floating-point-exception-handling)
+  - [Fortran IEEE Intrinsic Module](#fortran-ieee-intrinsic-module)
+  - [Runtime Implementation](#runtime-implementation)
+  - [SIGFPE Handling](#sigfpe-handling)
+  - [Current Limitations](#current-limitations)
+- [128.5 Testing Flang](#1285-testing-flang)
+  - [Lit Test Infrastructure](#lit-test-infrastructure)
+  - [HLFIR Test Example](#hlfir-test-example)
+  - [FIR Codegen Test Example](#fir-codegen-test-example)
+  - [End-to-End Tests](#end-to-end-tests)
+- [128.6 Compiler Pipeline Summary](#1286-compiler-pipeline-summary)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 128.1 FIR to LLVM Conversion
 
 ### The ConvertFIRToLLVM Pass

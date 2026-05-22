@@ -4,6 +4,31 @@
 
 Every language that compiles through LLVM needs a frontend: a pipeline that transforms source text into LLVM IR. Clang is one such frontend, but nothing about LLVM requires it — Rust, Swift, Julia, Zig, Flang, and dozens of domain-specific languages all share the same LLVM backend via independently authored frontends. This chapter builds the skeleton of a new language frontend from scratch, covering lexical analysis, parsing, AST design, and the driver glue that connects them. The running example is a small expression language called *Cal*, demonstrating every step with compilable code.
 
+## Table of Contents
+
+- [55.1 Frontend Architecture](#551-frontend-architecture)
+- [55.2 The Lexer](#552-the-lexer)
+  - [55.2.1 Design Principles](#5521-design-principles)
+  - [55.2.2 Token Representation](#5522-token-representation)
+  - [55.2.3 Implementation](#5523-implementation)
+- [55.3 AST Design](#553-ast-design)
+  - [55.3.1 Node Hierarchy](#5531-node-hierarchy)
+  - [55.3.2 Arena Allocation](#5532-arena-allocation)
+- [55.4 The Parser](#554-the-parser)
+  - [55.4.1 Recursive Descent](#5541-recursive-descent)
+  - [55.4.2 Parsing Declarations](#5542-parsing-declarations)
+  - [55.4.3 Pratt Parsing for Expressions](#5543-pratt-parsing-for-expressions)
+  - [55.4.4 Error Recovery](#5544-error-recovery)
+- [55.5 The Kaleidoscope Reference](#555-the-kaleidoscope-reference)
+  - [55.5.1 Kaleidoscope Grammar](#5551-kaleidoscope-grammar)
+  - [55.5.2 Key Kaleidoscope Design Choices](#5552-key-kaleidoscope-design-choices)
+- [55.6 Putting the Pieces Together: the Cal Driver](#556-putting-the-pieces-together-the-cal-driver)
+- [55.7 Type Checking](#557-type-checking)
+- [55.8 Build System Integration](#558-build-system-integration)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 55.1 Frontend Architecture
 
 A minimal LLVM frontend has four components:

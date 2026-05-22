@@ -4,6 +4,46 @@
 
 A polyhedral schedule is an abstract mathematical object: a multidimensional affine map from iteration space to time. To execute a program, this abstract schedule must be materialized into loops, conditionals, and array accesses in a target language (C, LLVM IR, or an MLIR dialect). The code generation problem — given a polyhedral schedule, produce a correct and efficient loop nest — is non-trivial: loop bounds may be complex expressions involving floor and ceiling functions, iteration order may require conditionals to handle boundary cases, and tiles may have irregular shapes near the boundaries of the domain. This chapter covers the CLooG algorithm, ISL's AST generator, loop bound generation via Fourier-Motzkin elimination, tiling strategies, OpenMP code generation, SIMD-aware codegen, and GPU mapping.
 
+## Table of Contents
+
+- [73.1 The Code Generation Problem](#731-the-code-generation-problem)
+  - [73.1.1 From Schedule to Loops](#7311-from-schedule-to-loops)
+  - [73.1.2 Challenges](#7312-challenges)
+  - [73.1.3 History: CLooG](#7313-history-cloog)
+- [73.2 Loop Bound Generation](#732-loop-bound-generation)
+  - [73.2.1 Projecting Out Variables via Fourier-Motzkin](#7321-projecting-out-variables-via-fourier-motzkin)
+  - [73.2.2 Maximum and Minimum Expressions](#7322-maximum-and-minimum-expressions)
+  - [73.2.3 Floor and Ceiling Functions](#7323-floor-and-ceiling-functions)
+  - [73.2.4 Parametric Bounds](#7324-parametric-bounds)
+- [73.3 The ISL AST Generator](#733-the-isl-ast-generator)
+  - [73.3.1 Architecture](#7331-architecture)
+  - [73.3.2 AST Node Types](#7332-ast-node-types)
+  - [73.3.3 Schedule Trees to AST](#7333-schedule-trees-to-ast)
+  - [73.3.4 Generating Statement Bodies](#7334-generating-statement-bodies)
+- [73.4 Tiling Strategies](#734-tiling-strategies)
+  - [73.4.1 Hyperrectangular Tiling](#7341-hyperrectangular-tiling)
+  - [73.4.2 Parallelogram Tiling](#7342-parallelogram-tiling)
+  - [73.4.3 Diamond Tiling](#7343-diamond-tiling)
+  - [73.4.4 Time-Skewed Tiling](#7344-time-skewed-tiling)
+- [73.5 OpenMP Code Generation](#735-openmp-code-generation)
+  - [73.5.1 Parallel Loops from Schedules](#7351-parallel-loops-from-schedules)
+  - [73.5.2 Reduction Parallelism](#7352-reduction-parallelism)
+  - [73.5.3 Barrier Elimination](#7353-barrier-elimination)
+- [73.6 SIMD-Aware Code Generation](#736-simd-aware-code-generation)
+  - [73.6.1 Vectorization at the Schedule Level](#7361-vectorization-at-the-schedule-level)
+  - [73.6.2 MLIR Vector Dialect Integration](#7362-mlir-vector-dialect-integration)
+- [73.7 GPU Code Generation: Polly-ACC and PPCG](#737-gpu-code-generation-polly-acc-and-ppcg)
+  - [73.7.1 The GPU Mapping Problem](#7371-the-gpu-mapping-problem)
+  - [73.7.2 PPCG (Polyhedral Parallel Code Generator)](#7372-ppcg-polyhedral-parallel-code-generator)
+  - [73.7.3 Shared Memory Tiling for GPU](#7373-shared-memory-tiling-for-gpu)
+- [73.8 Unroll-and-Jam at the Polyhedral Level](#738-unroll-and-jam-at-the-polyhedral-level)
+  - [73.8.1 Definition](#7381-definition)
+  - [73.8.2 Polyhedral Formulation](#7382-polyhedral-formulation)
+  - [73.8.3 Legality](#7383-legality)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 73.1 The Code Generation Problem
 
 ### 73.1.1 From Schedule to Loops

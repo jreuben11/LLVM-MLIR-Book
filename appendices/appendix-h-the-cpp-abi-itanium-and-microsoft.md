@@ -6,6 +6,42 @@ Quick reference for the two major C++ ABIs supported by Clang. For full treatmen
 
 ---
 
+## Table of Contents
+
+- [H.1 Itanium C++ ABI](#h1-itanium-c-abi)
+  - [Name Mangling Grammar](#name-mangling-grammar)
+  - [Type Encoding in Mangling](#type-encoding-in-mangling)
+  - [Virtual Table Layout (Single Inheritance)](#virtual-table-layout-single-inheritance)
+  - [Multiple Inheritance vtable Layout](#multiple-inheritance-vtable-layout)
+  - [Virtual Inheritance and VTT](#virtual-inheritance-and-vtt)
+  - [`__cxa_exception` Layout](#cxaexception-layout)
+- [H.2 Calling Convention: Itanium / System V AMD64 ABI](#h2-calling-convention-itanium-system-v-amd64-abi)
+  - [Integer/Pointer Arguments](#integerpointer-arguments)
+  - [Floating-Point Arguments](#floating-point-arguments)
+  - [Return Values](#return-values)
+  - [Callee-Saved Registers](#callee-saved-registers)
+  - [Stack Frame Layout](#stack-frame-layout)
+- [H.3 Microsoft C++ ABI](#h3-microsoft-c-abi)
+  - [Name Mangling](#name-mangling)
+  - [MSVC Type Encoding in Mangling](#msvc-type-encoding-in-mangling)
+  - [Virtual Table Layout (MSVC)](#virtual-table-layout-msvc)
+  - [RTTI Structures](#rtti-structures)
+  - [`__declspec` Extensions](#declspec-extensions)
+  - [SEH (Structured Exception Handling)](#seh-structured-exception-handling)
+- [H.4 Calling Convention: Microsoft x64](#h4-calling-convention-microsoft-x64)
+  - [Integer/Pointer Arguments](#integerpointer-arguments)
+  - [Floating-Point Arguments](#floating-point-arguments)
+  - [Return Values](#return-values)
+  - [Shadow Space (Home Space)](#shadow-space-home-space)
+  - [Callee-Saved Registers (Microsoft x64)](#callee-saved-registers-microsoft-x64)
+- [H.5 C++ ABI in LLVM / Clang](#h5-c-abi-in-llvm-clang)
+  - [`TargetCXXABI::Kind` Enumeration](#targetcxxabikind-enumeration)
+  - [Selecting ABI in Clang](#selecting-abi-in-clang)
+  - [Key ABI-Affecting Clang Flags](#key-abi-affecting-clang-flags)
+- [H.6 ABI Quick Comparison Table](#h6-abi-quick-comparison-table)
+
+---
+
 ## H.1 Itanium C++ ABI
 
 Used on Linux, macOS (up to Apple clang switch to Apple ABI), FreeBSD, Android, and all GCC-compatible targets. Specification: [Itanium C++ ABI](https://itanium-cxx-abi.github.io/cxx-abi/abi.html). Implemented in Clang at [clang/lib/CodeGen/CGCXXABI.cpp](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/lib/CodeGen/CGCXXABI.cpp) and `ItaniumCXXABI.cpp`.

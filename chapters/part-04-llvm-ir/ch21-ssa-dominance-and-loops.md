@@ -8,6 +8,49 @@ Prerequisites: [Chapter 9 — Intermediate Representations and SSA Construction]
 
 ---
 
+## Table of Contents
+
+- [21.1 SSA in LLVM IR: How Clang Generates It](#211-ssa-in-llvm-ir-how-clang-generates-it)
+  - [21.1.1 The Alloca-First Strategy](#2111-the-alloca-first-strategy)
+  - [21.1.2 Why Alloca-First is Cleaner](#2112-why-alloca-first-is-cleaner)
+- [21.2 The `mem2reg` and `sroa` Passes](#212-the-mem2reg-and-sroa-passes)
+  - [21.2.1 `mem2reg`: Promote Memory to Register](#2121-mem2reg-promote-memory-to-register)
+  - [21.2.2 `sroa`: Scalar Replacement of Aggregates](#2122-sroa-scalar-replacement-of-aggregates)
+- [21.3 DominatorTree and PostDominatorTree](#213-dominatortree-and-postdominatortree)
+  - [21.3.1 The `DominatorTree` Class](#2131-the-dominatortree-class)
+  - [21.3.2 `PostDominatorTree`](#2132-postdominatortree)
+  - [21.3.3 Control Dependence](#2133-control-dependence)
+  - [21.3.4 Invalidation and `PreservedAnalyses`](#2134-invalidation-and-preservedanalyses)
+- [21.4 Natural Loops: `LoopInfo`, Headers, Latches, Exits](#214-natural-loops-loopinfo-headers-latches-exits)
+  - [21.4.1 LLVM's Definition of a Natural Loop](#2141-llvms-definition-of-a-natural-loop)
+  - [21.4.2 Querying `LoopInfo`](#2142-querying-loopinfo)
+  - [21.4.3 Checking Dominance in a Loop Pass](#2143-checking-dominance-in-a-loop-pass)
+- [21.5 Loop Terminology in LLVM](#215-loop-terminology-in-llvm)
+  - [21.5.1 Header](#2151-header)
+  - [21.5.2 Latch](#2152-latch)
+  - [21.5.3 Exiting Block and Exit Block](#2153-exiting-block-and-exit-block)
+  - [21.5.4 Preheader](#2154-preheader)
+  - [21.5.5 Rotated Loop](#2155-rotated-loop)
+- [21.6 `LoopSimplify`: Normalizing Loops for Optimization](#216-loopsimplify-normalizing-loops-for-optimization)
+  - [21.6.1 What `LoopSimplify` Does](#2161-what-loopsimplify-does)
+  - [21.6.2 Why Simplification Is Required](#2162-why-simplification-is-required)
+  - [21.6.3 The Annotated Loop CFG](#2163-the-annotated-loop-cfg)
+- [21.7 `LoopNest`: Perfect Loop Nests](#217-loopnest-perfect-loop-nests)
+  - [21.7.1 The `LoopNest` Class](#2171-the-loopnest-class)
+  - [21.7.2 Perfect Loop Nests](#2172-perfect-loop-nests)
+  - [21.7.3 Use in Vectorization and Tiling](#2173-use-in-vectorization-and-tiling)
+- [21.8 Cycle Terminology and Irreducible CFGs](#218-cycle-terminology-and-irreducible-cfgs)
+  - [21.8.1 Reducibility](#2181-reducibility)
+  - [21.8.2 `CycleInfo` and `CycleAnalysis`](#2182-cycleinfo-and-cycleanalysis)
+  - [21.8.3 Interaction with Existing Passes](#2183-interaction-with-existing-passes)
+- [21.9 Iterated Dominance Frontier: Infrastructure Details](#219-iterated-dominance-frontier-infrastructure-details)
+  - [21.9.1 `IDFCalculator`](#2191-idfcalculator)
+  - [21.9.2 `DominanceFrontier` Analysis](#2192-dominancefrontier-analysis)
+  - [21.9.3 SSA Verification](#2193-ssa-verification)
+- [21.10 Chapter Summary](#2110-chapter-summary)
+
+---
+
 ## 21.1 SSA in LLVM IR: How Clang Generates It
 
 ### 21.1.1 The Alloca-First Strategy

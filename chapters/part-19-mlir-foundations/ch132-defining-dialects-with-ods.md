@@ -6,6 +6,42 @@ ODS — the Operation Definition Specification — is MLIR's TableGen-based syst
 
 ---
 
+## Table of Contents
+
+- [132.1 ODS (Operation Definition Specification)](#1321-ods-operation-definition-specification)
+  - [What ODS Is](#what-ods-is)
+  - [Why ODS Instead of Pure C++](#why-ods-instead-of-pure-c)
+- [132.2 Dialect Definition](#1322-dialect-definition)
+  - [TableGen Dialect Record](#tablegen-dialect-record)
+  - [Generated C++ Dialect Class](#generated-c-dialect-class)
+  - [Registering the Dialect](#registering-the-dialect)
+- [132.3 Operation Definition](#1323-operation-definition)
+  - [Minimal Op](#minimal-op)
+  - [Arguments and Results](#arguments-and-results)
+  - [Generated Accessors](#generated-accessors)
+- [132.4 Traits and Constraints](#1324-traits-and-constraints)
+  - [Common Traits](#common-traits)
+  - [Defining a Verifier](#defining-a-verifier)
+  - [Defining a Canonicalizer (Folder)](#defining-a-canonicalizer-folder)
+- [132.5 Assembly Format DSL](#1325-assembly-format-dsl)
+  - [Basic Tokens](#basic-tokens)
+  - [Examples](#examples)
+  - [Optional Groups](#optional-groups)
+  - [Type Inference](#type-inference)
+  - [Custom Assembly Format](#custom-assembly-format)
+- [132.6 Type and Attribute ODS Definitions](#1326-type-and-attribute-ods-definitions)
+  - [Type Constraints in ODS](#type-constraints-in-ods)
+  - [Attribute Constraints in ODS](#attribute-constraints-in-ods)
+- [132.7 Building and Using ODS-Defined Ops](#1327-building-and-using-ods-defined-ops)
+  - [CMake Integration](#cmake-integration)
+  - [Including Generated Code](#including-generated-code)
+  - [Using ODS-Defined Ops](#using-ods-defined-ops)
+  - [Dialect Registration in Context](#dialect-registration-in-context)
+- [132.8 End-to-End: A Complete Toy Dialect](#1328-end-to-end-a-complete-toy-dialect)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 132.1 ODS (Operation Definition Specification)
 
 ### What ODS Is

@@ -4,6 +4,31 @@
 
 After register allocation completes, the MIR still contains several abstractions that must be concretized before assembly emission: frame indices must become SP/FP-relative offsets, branches may be redundant and removable, predicated execution opportunities may exist, and the instruction schedule may be further improved by knowledge of the actual physical register assignments. This chapter covers the sequence of post-RA transformation passes — prologue/epilogue insertion, frame index elimination, branch folding, tail duplication, if-conversion, post-RA scheduling, function splitting for cold code, and Control Flow Guard instrumentation — collectively responsible for bridging register-allocated MIR to the final, emit-ready instruction sequence.
 
+## Table of Contents
+
+- [93.1 PrologueEpilogueInserter](#931-prologueepilogueinserter)
+  - [93.1.1 Callee-Saved Register Determination](#9311-callee-saved-register-determination)
+  - [93.1.2 Stack Frame Layout](#9312-stack-frame-layout)
+  - [93.1.3 Prologue Generation](#9313-prologue-generation)
+  - [93.1.4 Frame Index Elimination](#9314-frame-index-elimination)
+- [93.2 BranchFolding](#932-branchfolding)
+  - [93.2.1 Fall-Through Elimination](#9321-fall-through-elimination)
+  - [93.2.2 Identical Successor Merging](#9322-identical-successor-merging)
+  - [93.2.3 Block Tail Merging](#9323-block-tail-merging)
+- [93.3 TailDuplication](#933-tailduplication)
+- [93.4 IfConversion](#934-ifconversion)
+  - [93.4.1 Triangle Pattern](#9341-triangle-pattern)
+  - [93.4.2 Diamond Pattern](#9342-diamond-pattern)
+- [93.5 Post-RA Scheduling](#935-post-ra-scheduling)
+  - [93.5.1 Hazard Detection](#9351-hazard-detection)
+  - [93.5.2 Register Anti-Dependence Breaking](#9352-register-anti-dependence-breaking)
+  - [93.5.3 Machine Trace Metrics](#9353-machine-trace-metrics)
+- [93.6 MachineFunctionSplitter](#936-machinefunctionsplitter)
+- [93.7 CFGuard](#937-cfguard)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 93.1 PrologueEpilogueInserter
 
 `PrologueEpilogueInserter` (`llvm/lib/CodeGen/PrologEpilogInserter.cpp`) is the most consequential post-RA pass. It assigns concrete stack offsets to every frame object and emits the function prologue and epilogue.

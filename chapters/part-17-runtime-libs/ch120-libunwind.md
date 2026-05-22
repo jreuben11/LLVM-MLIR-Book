@@ -6,6 +6,39 @@ libunwind is the LLVM implementation of the stack-unwinding ABI: the low-level i
 
 ---
 
+## Table of Contents
+
+- [20.1 The Unwinding ABI: _Unwind_RaiseException](#201-the-unwinding-abi-unwindraiseexception)
+- [20.2 LLVM libunwind Architecture](#202-llvm-libunwind-architecture)
+  - [20.2.1 Repository Layout](#2021-repository-layout)
+  - [20.2.2 UnwindCursor](#2022-unwindcursor)
+- [20.3 DWARF Call Frame Information](#203-dwarf-call-frame-information)
+  - [20.3.1 CFI Structure](#2031-cfi-structure)
+  - [20.3.2 CFI Opcodes](#2032-cfi-opcodes)
+  - [20.3.3 Example: x86_64 Function Prologue](#2033-example-x8664-function-prologue)
+- [20.4 Register Contexts Per Architecture](#204-register-contexts-per-architecture)
+  - [20.4.1 x86_64](#2041-x8664)
+  - [20.4.2 AArch64](#2042-aarch64)
+  - [20.4.3 ARM EHABI](#2043-arm-ehabi)
+  - [20.4.4 .eh_frame_hdr and Binary Search Index](#2044-ehframehdr-and-binary-search-index)
+  - [20.4.5 Signal Frame Handling](#2045-signal-frame-handling)
+- [20.5 SEH Unwinding on Windows](#205-seh-unwinding-on-windows)
+  - [20.5.1 Structured Exception Handling](#2051-structured-exception-handling)
+  - [20.5.2 libunwind SEH Implementation](#2052-libunwind-seh-implementation)
+- [20.6 macOS Compact Unwind](#206-macos-compact-unwind)
+- [20.7 Backtrace API](#207-backtrace-api)
+- [20.8 Bare-Metal and Freestanding libunwind](#208-bare-metal-and-freestanding-libunwind)
+  - [20.8.1 Disabling Dynamic Lookup](#2081-disabling-dynamic-lookup)
+  - [20.8.2 OS-Less Environments](#2082-os-less-environments)
+- [20.9 _Unwind_Backtrace and Sanitizers](#209-unwindbacktrace-and-sanitizers)
+- [20.10 Leaf Frames and No-Unwind Annotations](#2010-leaf-frames-and-no-unwind-annotations)
+  - [20.10.1 Leaf Frames](#20101-leaf-frames)
+  - [20.10.2 -fno-exceptions and -fno-unwind-tables](#20102-fno-exceptions-and-fno-unwind-tables)
+- [20.11 Relationship to libc++abi](#2011-relationship-to-libcabi)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 20.1 The Unwinding ABI: _Unwind_RaiseException
 
 The Itanium C++ ABI defines a language-independent unwinding interface. The key entry point is `_Unwind_RaiseException`:

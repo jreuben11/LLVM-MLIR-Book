@@ -6,6 +6,47 @@ GPU programming stacks have stratified into a hierarchy of abstraction layers, a
 
 ---
 
+## Table of Contents
+
+- [209.1 The GPU Parallel Primitives Stack](#2091-the-gpu-parallel-primitives-stack)
+- [209.2 Thrust: GPU Algorithms as a Standard Library](#2092-thrust-gpu-algorithms-as-a-standard-library)
+  - [209.2.1 Device and Host Vectors](#20921-device-and-host-vectors)
+  - [209.2.2 Core Algorithms](#20922-core-algorithms)
+  - [209.2.3 Execution Policies and Backend Switching](#20923-execution-policies-and-backend-switching)
+  - [209.2.4 Attention Score Statistics via Thrust](#20924-attention-score-statistics-via-thrust)
+  - [209.2.5 When Thrust Suffices, When It Doesn't](#20925-when-thrust-suffices-when-it-doesnt)
+- [209.3 CUTLASS: Template-Metaprogramming GEMM](#2093-cutlass-template-metaprogramming-gemm)
+  - [209.3.1 CUTLASS 2.x: The Template Signature Problem](#20931-cutlass-2x-the-template-signature-problem)
+  - [209.3.2 Why CUTLASS 3.x Exists](#20932-why-cutlass-3x-exists)
+- [209.4 CuTe: Layout Algebra for Typed Tensor Operations](#2094-cute-layout-algebra-for-typed-tensor-operations)
+  - [209.4.1 Layouts as Compile-Time Types](#20941-layouts-as-compile-time-types)
+  - [209.4.2 Layout Composition](#20942-layout-composition)
+  - [209.4.3 Layout Complementation and Tiling](#20943-layout-complementation-and-tiling)
+  - [209.4.4 Tensors: Typed Tile Views](#20944-tensors-typed-tile-views)
+  - [209.4.5 TiledMMA and ThrMMA: Warp-Collective Partitioning](#20945-tiledmma-and-thrmma-warp-collective-partitioning)
+  - [209.4.6 TiledCopy: Efficient Tile Loading](#20946-tiledcopy-efficient-tile-loading)
+  - [209.4.7 CuTe DSL: Python-Level Layout Algebra (CUTLASS 4.x)](#20947-cute-dsl-python-level-layout-algebra-cutlass-4x)
+  - [209.4.8 Connection to PTX Hardware Instructions](#20948-connection-to-ptx-hardware-instructions)
+- [209.5 Linear Layouts and the F₂ Foundation](#2095-linear-layouts-and-the-f-foundation)
+  - [209.5.1 F₂-Linear Maps as a Unification](#20951-f-linear-maps-as-a-unification)
+  - [209.5.2 F₂ Encoding of Concrete Layouts](#20952-f-encoding-of-concrete-layouts)
+  - [209.5.3 Interoperability Implications](#20953-interoperability-implications)
+  - [209.5.4 Categorical Foundations](#20954-categorical-foundations)
+- [209.6 TileIR: Tiled Computation as a First-Class MLIR Dialect](#2096-tileir-tiled-computation-as-a-first-class-mlir-dialect)
+  - [209.6.1 Tile IR Op Surface](#20961-tile-ir-op-surface)
+  - [209.6.2 Lowering Path: TileIR → GPU Dialect → LLVM](#20962-lowering-path-tileir-gpu-dialect-llvm)
+  - [209.6.3 TileIR Verification and Error Reporting](#20963-tileir-verification-and-error-reporting)
+  - [209.6.4 Relationship to CuTe](#20964-relationship-to-cute)
+  - [209.6.5 Attention via TileIR](#20965-attention-via-tileir)
+- [209.7 Layout Algebra as a Type System for Self-Modification](#2097-layout-algebra-as-a-type-system-for-self-modification)
+  - [209.7.1 Layout Types as Compile-Time Constraints](#20971-layout-types-as-compile-time-constraints)
+  - [209.7.2 Searching Over Layout Spaces](#20972-searching-over-layout-spaces)
+  - [209.7.3 Register Pressure as a Layout Constraint](#20973-register-pressure-as-a-layout-constraint)
+  - [209.7.4 Connection to Evolutionary Architecture Search](#20974-connection-to-evolutionary-architecture-search)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 209.1 The GPU Parallel Primitives Stack
 
 The modern NVIDIA GPU programming stack decomposes into five layers:

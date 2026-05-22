@@ -6,6 +6,58 @@ The Linux kernel shipped for decades with GCC as its only supported compiler. Th
 
 ---
 
+## Table of Contents
+
+- [1. The ClangBuiltLinux Project](#1-the-clangbuiltlinux-project)
+  - [1.1 History and Motivation](#11-history-and-motivation)
+  - [1.2 Kernel Tree Support](#12-kernel-tree-support)
+  - [1.3 The `LLVM=1` Build Variable](#13-the-llvm1-build-variable)
+- [2. Kernel-Specific Clang Flags](#2-kernel-specific-clang-flags)
+  - [2.1 Type Aliasing and Null Pointer Handling](#21-type-aliasing-and-null-pointer-handling)
+  - [2.2 Linkage and Stack Security](#22-linkage-and-stack-security)
+  - [2.3 Floating-Point and Position](#23-floating-point-and-position)
+  - [2.4 Dead Code Elimination and Warning Suppression](#24-dead-code-elimination-and-warning-suppression)
+- [3. Clang CFI for the Kernel](#3-clang-cfi-for-the-kernel)
+  - [3.1 kCFI: Per-Module CFI Without LTO](#31-kcfi-per-module-cfi-without-lto)
+  - [3.2 CFI-icall with ThinLTO](#32-cfi-icall-with-thinlto)
+  - [3.3 The `noinstr` Annotation](#33-the-noinstr-annotation)
+- [4. ThinLTO for the Kernel](#4-thinlto-for-the-kernel)
+  - [4.1 Configuration and Workflow](#41-configuration-and-workflow)
+  - [4.2 Interaction with CONFIG_MODVERSIONS](#42-interaction-with-configmodversions)
+  - [4.3 Verifying ThinLTO Output](#43-verifying-thinlto-output)
+- [5. BPF Program Compilation](#5-bpf-program-compilation)
+  - [5.1 The BPF Target Triple](#51-the-bpf-target-triple)
+  - [5.2 CO-RE: Compile Once, Run Everywhere](#52-co-re-compile-once-run-everywhere)
+  - [5.3 BTF Generation](#53-btf-generation)
+  - [5.4 Verifier Constraints Affecting Compilation](#54-verifier-constraints-affecting-compilation)
+- [6. Kernel Sanitizers via Clang](#6-kernel-sanitizers-via-clang)
+  - [6.1 KASAN: Kernel Address Sanitizer](#61-kasan-kernel-address-sanitizer)
+  - [6.2 KMSAN: Kernel Memory Sanitizer](#62-kmsan-kernel-memory-sanitizer)
+  - [6.3 KCSAN: Kernel Concurrency Sanitizer](#63-kcsan-kernel-concurrency-sanitizer)
+- [7. objtool: Post-Compilation Binary Validation](#7-objtool-post-compilation-binary-validation)
+  - [7.1 Role and Architecture](#71-role-and-architecture)
+  - [7.2 ORC: The DWARF Replacement](#72-orc-the-dwarf-replacement)
+  - [7.3 Stack Frame Requirements for Clang Output](#73-stack-frame-requirements-for-clang-output)
+- [8. Android GKI and ABI Stability](#8-android-gki-and-abi-stability)
+  - [8.1 Generic Kernel Image Mandate](#81-generic-kernel-image-mandate)
+  - [8.2 GKI Symbol List and ABI Monitoring](#82-gki-symbol-list-and-abi-monitoring)
+  - [8.3 Symbol Visibility and randstruct](#83-symbol-visibility-and-randstruct)
+  - [8.4 Module ABI Compatibility: GCC vs Clang Modules](#84-module-abi-compatibility-gcc-vs-clang-modules)
+- [9. Practical Workflow: Full LLVM Kernel Build with kCFI and ThinLTO](#9-practical-workflow-full-llvm-kernel-build-with-kcfi-and-thinlto)
+  - [9.1 Prerequisites](#91-prerequisites)
+  - [9.2 Enabling ThinLTO and kCFI in the Config](#92-enabling-thinlto-and-kcfi-in-the-config)
+  - [9.3 Full Build Command](#93-full-build-command)
+  - [9.4 Verifying CFI and ThinLTO Are Active](#94-verifying-cfi-and-thinlto-are-active)
+  - [9.5 Building an Out-of-Tree Module Against a kCFI + ThinLTO Kernel](#95-building-an-out-of-tree-module-against-a-kcfi-thinlto-kernel)
+- [10. Linux Kernel Live Patching and Runtime Code Modification](#10-linux-kernel-live-patching-and-runtime-code-modification)
+  - [10.1 The Livepatch Subsystem](#101-the-livepatch-subsystem)
+  - [10.2 `text_poke_bp()` — Atomic Instruction Replacement](#102-textpokebp-atomic-instruction-replacement)
+  - [10.3 ftrace-Based Function Redirection](#103-ftrace-based-function-redirection)
+  - [10.4 Userspace Dynamic Probes](#104-userspace-dynamic-probes)
+- [11. Chapter Summary](#11-chapter-summary)
+
+---
+
 ## 1. The ClangBuiltLinux Project
 
 ### 1.1 History and Motivation

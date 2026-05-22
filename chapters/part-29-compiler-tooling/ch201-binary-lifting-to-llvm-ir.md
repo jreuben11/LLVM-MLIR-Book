@@ -8,6 +8,48 @@ This chapter walks through the complete lifting pipeline, the major open-source 
 
 ---
 
+## Table of Contents
+
+- [1. Motivation and Use Cases](#1-motivation-and-use-cases)
+- [2. The Lifting Pipeline](#2-the-lifting-pipeline)
+  - [2.1 Disassembly](#21-disassembly)
+  - [2.2 CFG Recovery](#22-cfg-recovery)
+  - [2.3 Type Recovery](#23-type-recovery)
+  - [2.4 Semantic Lifting](#24-semantic-lifting)
+- [3. Remill — Instruction Semantics as LLVM IR](#3-remill-instruction-semantics-as-llvm-ir)
+  - [3.1 The State Struct](#31-the-state-struct)
+  - [3.2 The Memory Model](#32-the-memory-model)
+  - [3.3 Control-Flow Escape Hatches](#33-control-flow-escape-hatches)
+  - [3.4 The Instruction Semantics Library](#34-the-instruction-semantics-library)
+  - [3.5 The Lifter Classes](#35-the-lifter-classes)
+- [4. McSema — Binary-Level Lifting](#4-mcsema-binary-level-lifting)
+  - [4.1 Workflow](#41-workflow)
+  - [4.2 External Function Handling](#42-external-function-handling)
+  - [4.3 Data Sections and Relocations](#43-data-sections-and-relocations)
+- [5. RetDec — A Complete Decompiler](#5-retdec-a-complete-decompiler)
+  - [5.1 Architecture and Tool Usage](#51-architecture-and-tool-usage)
+  - [5.2 Type Reconstruction](#52-type-reconstruction)
+  - [5.3 The `llvmir2hll` Backend](#53-the-llvmir2hll-backend)
+  - [5.4 Limitations](#54-limitations)
+- [6. Lifting Challenges](#6-lifting-challenges)
+  - [6.1 Indirect Branches and Computed Jumps](#61-indirect-branches-and-computed-jumps)
+  - [6.2 Self-Modifying Code](#62-self-modifying-code)
+  - [6.3 Calling Convention Inference](#63-calling-convention-inference)
+  - [6.4 `noalias` and Pointer Provenance in Lifted IR](#64-noalias-and-pointer-provenance-in-lifted-ir)
+  - [6.5 Exception Handler Discovery](#65-exception-handler-discovery)
+  - [6.6 C++ Virtual Dispatch Recovery](#66-c-virtual-dispatch-recovery)
+- [7. Post-Lifting Optimization](#7-post-lifting-optimization)
+- [8. Alive2 for Translation Validation](#8-alive2-for-translation-validation)
+- [9. Related Tools and IRs](#9-related-tools-and-irs)
+  - [9.1 B2R2](#91-b2r2)
+  - [9.2 Ghidra and P-Code](#92-ghidra-and-p-code)
+  - [9.3 angr and VEX IR](#93-angr-and-vex-ir)
+  - [9.4 Binary Ninja MLIL/HLIL](#94-binary-ninja-mlilhlil)
+  - [9.5 Summary Comparison](#95-summary-comparison)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 1. Motivation and Use Cases
 
 Binary lifting targets several distinct engineering goals, each with different precision requirements.

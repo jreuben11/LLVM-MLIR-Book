@@ -4,6 +4,33 @@
 
 The LLVM backend translates LLVM IR into machine code through a pipeline of machine-level passes. Where the middle end (Part X) operates on SSA values and abstract types, the backend must grapple with real hardware constraints: a fixed set of registers with specific types and sizes, instruction sets where not every operation is directly supported for every type, calling conventions that dictate exactly how arguments are passed, and binary encodings that must be precise to the bit. This chapter describes the backend pipeline from IR input to object code output, the three type systems the backend uses (IR types, LLT, and MVT/EVT), and the coexistence of the two instruction selection frameworks (SelectionDAG and GlobalISel).
 
+## Table of Contents
+
+- [81.1 The Backend Pipeline](#811-the-backend-pipeline)
+  - [81.1.1 Overview](#8111-overview)
+  - [81.1.2 Target Machine and Pass Config](#8112-target-machine-and-pass-config)
+- [81.2 Type Systems in the Backend](#812-type-systems-in-the-backend)
+  - [81.2.1 LLVM IR Types](#8121-llvm-ir-types)
+  - [81.2.2 MVT: Machine Value Type](#8122-mvt-machine-value-type)
+  - [81.2.3 LLT: Low-Level Type](#8123-llt-low-level-type)
+  - [81.2.4 Type System Transition Points](#8124-type-system-transition-points)
+- [81.3 SelectionDAG: The Traditional Framework](#813-selectiondag-the-traditional-framework)
+  - [81.3.1 The SelectionDAG](#8131-the-selectiondag)
+  - [81.3.2 Four Phases of SelectionDAG](#8132-four-phases-of-selectiondag)
+  - [81.3.3 SelectionDAG Advantages and Disadvantages](#8133-selectiondag-advantages-and-disadvantages)
+- [81.4 GlobalISel: The New Framework](#814-globalisel-the-new-framework)
+  - [81.4.1 Motivation](#8141-motivation)
+  - [81.4.2 GlobalISel Pipeline](#8142-globalisel-pipeline)
+  - [81.4.3 G_ Generic Opcodes](#8143-g-generic-opcodes)
+  - [81.4.4 SDAG vs GlobalISel Coexistence](#8144-sdag-vs-globalisel-coexistence)
+- [81.5 MachineFunction and the Machine IR](#815-machinefunction-and-the-machine-ir)
+  - [81.5.1 MachineFunction Structure](#8151-machinefunction-structure)
+  - [81.5.2 Virtual Registers](#8152-virtual-registers)
+  - [81.5.3 Machine Properties](#8153-machine-properties)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 81.1 The Backend Pipeline
 
 ### 81.1.1 Overview

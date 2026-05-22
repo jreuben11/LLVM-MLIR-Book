@@ -6,6 +6,48 @@ The final chapter of Part XX collects five dialects that each address a distinct
 
 ---
 
+## Table of Contents
+
+- [146.1 The `async` Dialect](#1461-the-async-dialect)
+  - [146.1.1 Design and Model](#14611-design-and-model)
+  - [146.1.2 Core Operations](#14612-core-operations)
+  - [146.1.3 Lowering Pipeline](#14613-lowering-pipeline)
+  - [146.1.4 Runtime Infrastructure](#14614-runtime-infrastructure)
+- [146.2 The `omp` Dialect](#1462-the-omp-dialect)
+  - [146.2.1 OpenMP in MLIR](#14621-openmp-in-mlir)
+  - [146.2.2 Parallel and Work Distribution](#14622-parallel-and-work-distribution)
+  - [146.2.3 Synchronization and Data Sharing](#14623-synchronization-and-data-sharing)
+  - [146.2.4 Reduction](#14624-reduction)
+  - [146.2.5 Task Model](#14625-task-model)
+  - [146.2.6 Target Offload](#14626-target-offload)
+  - [146.2.7 Lowering](#14627-lowering)
+- [146.3 The `acc` Dialect](#1463-the-acc-dialect)
+  - [146.3.1 OpenACC in MLIR](#14631-openacc-in-mlir)
+  - [146.3.2 Compute Constructs](#14632-compute-constructs)
+  - [146.3.3 Data Management](#14633-data-management)
+  - [146.3.4 Routine Annotations](#14634-routine-annotations)
+  - [146.3.5 Device Memory Declarations](#14635-device-memory-declarations)
+  - [146.3.6 Lowering](#14636-lowering)
+- [146.4 The DLTI Dialect](#1464-the-dlti-dialect)
+  - [146.4.1 Purpose](#14641-purpose)
+  - [146.4.2 Data Layout Attributes](#14642-data-layout-attributes)
+  - [146.4.3 GPU Target Device Spec](#14643-gpu-target-device-spec)
+  - [146.4.4 `DataLayout` API](#14644-datalayout-api)
+- [146.5 The `emitc` Dialect](#1465-the-emitc-dialect)
+  - [146.5.1 C Code Generation](#14651-c-code-generation)
+  - [146.5.2 Basic Operations](#14652-basic-operations)
+  - [146.5.3 Control Flow and Expressions](#14653-control-flow-and-expressions)
+  - [146.5.4 C Operators and Casts](#14654-c-operators-and-casts)
+  - [146.5.5 Opaque Calls and Verbatim](#14655-opaque-calls-and-verbatim)
+  - [146.5.6 EmitC Types](#14656-emitc-types)
+  - [146.5.7 Variable Assignment](#14657-variable-assignment)
+  - [146.5.8 Lowering and Translation](#14658-lowering-and-translation)
+  - [146.5.9 Lowering Higher-Level Dialects to EmitC](#14659-lowering-higher-level-dialects-to-emitc)
+- [146.6 Dialect Interplay](#1466-dialect-interplay)
+- [Chapter 146 Summary](#chapter-146-summary)
+
+---
+
 ## 146.1 The `async` Dialect
 
 ### 146.1.1 Design and Model

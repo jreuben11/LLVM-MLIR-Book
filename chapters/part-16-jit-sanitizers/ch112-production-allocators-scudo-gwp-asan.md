@@ -6,6 +6,50 @@ A heap allocator is not just a performance component — it is a security bounda
 
 ---
 
+## Table of Contents
+
+- [112.1 Production Allocator Requirements](#1121-production-allocator-requirements)
+  - [112.1.1 Why Standard Allocators Are Insufficient](#11211-why-standard-allocators-are-insufficient)
+  - [112.1.2 Threat Model for Scudo](#11212-threat-model-for-scudo)
+- [112.2 Scudo Architecture](#1122-scudo-architecture)
+  - [112.2.1 Two-Level Allocator](#11221-two-level-allocator)
+  - [112.2.2 Per-CPU and Per-Thread Caches](#11222-per-cpu-and-per-thread-caches)
+  - [112.2.3 Primary Slab Layout](#11223-primary-slab-layout)
+- [112.3 Scudo Security Features](#1123-scudo-security-features)
+  - [112.3.1 Header Checksum](#11231-header-checksum)
+  - [112.3.2 Random Region Base Addresses](#11232-random-region-base-addresses)
+  - [112.3.3 Quarantine](#11233-quarantine)
+  - [112.3.4 Canaries](#11234-canaries)
+  - [112.3.5 Out-of-Line Metadata (Secondary)](#11235-out-of-line-metadata-secondary)
+- [112.4 Scudo + MTE Integration](#1124-scudo-mte-integration)
+  - [112.4.1 Tag-Per-Allocation](#11241-tag-per-allocation)
+  - [112.4.2 MTE and Scudo Performance](#11242-mte-and-scudo-performance)
+- [112.5 Scudo Configuration and Deployment](#1125-scudo-configuration-and-deployment)
+  - [112.5.1 Compile-Time Configuration](#11251-compile-time-configuration)
+  - [112.5.2 Deployment Options](#11252-deployment-options)
+  - [112.5.3 Android Integration Details](#11253-android-integration-details)
+- [112.6 GWP-ASan Architecture](#1126-gwp-asan-architecture)
+  - [112.6.1 Core Concept: Probabilistic Guard Pages](#11261-core-concept-probabilistic-guard-pages)
+  - [112.6.2 GWP-ASan Pool Structure](#11262-gwp-asan-pool-structure)
+  - [112.6.3 Sampling and Slot Allocation](#11263-sampling-and-slot-allocation)
+  - [112.6.4 Fault Handling](#11264-fault-handling)
+- [112.7 GWP-ASan Integration](#1127-gwp-asan-integration)
+  - [112.7.1 Allocator Integration](#11271-allocator-integration)
+  - [112.7.2 Android Integration](#11272-android-integration)
+  - [112.7.3 Chrome Integration](#11273-chrome-integration)
+  - [112.7.4 GWP-ASan Configuration Options](#11274-gwp-asan-configuration-options)
+- [112.8 Stack Traces in Production](#1128-stack-traces-in-production)
+  - [112.8.1 Fast Unwind: Frame Pointer Chain](#11281-fast-unwind-frame-pointer-chain)
+  - [112.8.2 DWARF CFI Unwind](#11282-dwarf-cfi-unwind)
+  - [112.8.3 Compressed Stack Traces](#11283-compressed-stack-traces)
+  - [112.8.4 Symbolization](#11284-symbolization)
+- [112.9 Comparing Scudo, GWP-ASan, and ASan](#1129-comparing-scudo-gwp-asan-and-asan)
+  - [112.9.1 Full Comparison Table](#11291-full-comparison-table)
+  - [112.9.2 Deployment Architecture](#11292-deployment-architecture)
+- [Chapter 112 Summary](#chapter-112-summary)
+
+---
+
 ## 112.1 Production Allocator Requirements
 
 ### 112.1.1 Why Standard Allocators Are Insufficient

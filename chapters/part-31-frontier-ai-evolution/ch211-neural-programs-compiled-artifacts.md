@@ -10,6 +10,47 @@ Cross-references: [Chapter 108 — The ORC JIT](../part-16-jit-sanitizers/ch108-
 
 ---
 
+## Table of Contents
+
+- [211.1 The Stack Is the Substrate](#2111-the-stack-is-the-substrate)
+  - [The Homoiconic jaxpr](#the-homoiconic-jaxpr)
+- [211.2 The IR Chain: Seven Layers of Introspection](#2112-the-ir-chain-seven-layers-of-introspection)
+  - [Layer 0 — Python/Flax Source](#layer-0-pythonflax-source)
+  - [Layer 1 — jaxpr](#layer-1-jaxpr)
+  - [Layer 2 — StableHLO](#layer-2-stablehlo)
+  - [Layer 3 — MLIR Linalg/Tensor](#layer-3-mlir-linalgtensor)
+  - [Layer 4 — LLVM IR](#layer-4-llvm-ir)
+  - [Layer 5 — PTX](#layer-5-ptx)
+  - [Layer 6 — SASS](#layer-6-sass)
+- [211.3 Weight Checkpoints as Compiled Binaries](#2113-weight-checkpoints-as-compiled-binaries)
+  - [ELF, SafeTensors, and GGUF Side by Side](#elf-safetensors-and-gguf-side-by-side)
+  - [Zero-Copy Weight Loading via mmap](#zero-copy-weight-loading-via-mmap)
+- [211.4 XLA HLO as a Homoiconic Computation Graph](#2114-xla-hlo-as-a-homoiconic-computation-graph)
+  - [Core HLO Operations in a Transformer](#core-hlo-operations-in-a-transformer)
+  - [Extracting the StableHLO Module](#extracting-the-stablehlo-module)
+  - [Reading StableHLO Text](#reading-stablehlo-text)
+  - [The Homoiconic Backward Pass](#the-homoiconic-backward-pass)
+  - [Structural Analysis via HLO Inspection](#structural-analysis-via-hlo-inspection)
+- [211.5 The Self-Aware Feedback Loop](#2115-the-self-aware-feedback-loop)
+  - [Step 1 — Infer](#step-1-infer)
+  - [Step 2 — Profile](#step-2-profile)
+  - [Step 3 — Introspect](#step-3-introspect)
+  - [Step 4 — Modify](#step-4-modify)
+  - [Step 5 — Recompile](#step-5-recompile)
+- [211.6 MLIR as a Universal Analysis Layer](#2116-mlir-as-a-universal-analysis-layer)
+  - [Applying Passes via Python Bindings](#applying-passes-via-python-bindings)
+  - [DOT Graph Visualisation](#dot-graph-visualisation)
+  - [MLIR Dialects as a Semantic Stratification](#mlir-dialects-as-a-semantic-stratification)
+  - [Standalone Pass Experimentation with mlir-opt](#standalone-pass-experimentation-with-mlir-opt)
+- [211.7 Tiered Recompilation: Neural Networks and JIT](#2117-tiered-recompilation-neural-networks-and-jit)
+  - [ORC JIT ReOptimizeLayer](#orc-jit-reoptimizelayer)
+  - [The Neural Tier-0 / Tier-1 Cycle](#the-neural-tier-0-tier-1-cycle)
+  - [The Critical Difference: Data vs. Code](#the-critical-difference-data-vs-code)
+  - [Connecting to jax.jit's Static/Dynamic Axis](#connecting-to-jaxjits-staticdynamic-axis)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 211.1 The Stack Is the Substrate
 
 The conventional understanding of a compiled program distinguishes three phases that are cleanly separated in time: compilation (source → binary), loading (binary → process memory), and execution (instructions → side effects). The compiler is a development-time artifact; the binary is a deployment-time artifact; the runtime is an execution-time artifact. Self-modification in this model means either rewriting source and recompiling (expensive, requires the toolchain at runtime) or patching binary instructions (fragile, architecture-specific, rarely correct for complex programs).

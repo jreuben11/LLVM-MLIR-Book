@@ -4,6 +4,24 @@
 
 ClangIR (CIR) is a high-level MLIR dialect that interposes between the Clang AST and LLVM IR. Where CodeGenModule collapses C++ abstractions into flat SSA immediately, CIR keeps them: stack slots remain named allocas, structured loops remain loop ops, exceptions remain try/catch regions. The payoff is a level of representation that supports source-level analyses—lifetime checking, idiom recognition, C++ ABI-independent optimizations—without re-implementing them on top of the already-lowered LLVM IR. This chapter explains why CIR exists, how it slots into the compilation pipeline, and how the MLIR foundation enables analyses that the classic Clang-to-LLVM path cannot easily express.
 
+## Table of Contents
+
+- [52.1 Motivation and Design Goals](#521-motivation-and-design-goals)
+  - [52.1.1 Comparison with Classic CodeGen](#5211-comparison-with-classic-codegen)
+  - [52.1.2 Origin and Upstreaming](#5212-origin-and-upstreaming)
+- [52.2 The CIR Dialect in MLIR Terms](#522-the-cir-dialect-in-mlir-terms)
+  - [52.2.1 Types](#5221-types)
+  - [52.2.2 Operations](#5222-operations)
+  - [52.2.3 Attributes](#5223-attributes)
+- [52.3 Pipeline Position](#523-pipeline-position)
+- [52.4 The CIR Pass Pipeline](#524-the-cir-pass-pipeline)
+- [52.5 Lowering to LLVM](#525-lowering-to-llvm)
+- [52.6 Tooling and Debugging](#526-tooling-and-debugging)
+- [52.7 Upstreaming Status (LLVM 22.1)](#527-upstreaming-status-llvm-221)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 52.1 Motivation and Design Goals
 
 The traditional Clang pipeline has a representation gap. Between the typed, structured, C++-aware AST and the untyped, flat LLVM IR there is no persistent intermediate form. Any analysis that needs source structure—e.g., "does this pointer escape its lexical scope?"—either runs entirely on the AST (where all implicit code is not yet emitted) or on LLVM IR (where scopes, names, and C++ semantics have been erased). Many important transformations fall into the gap.

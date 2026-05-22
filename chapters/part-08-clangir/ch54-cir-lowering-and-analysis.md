@@ -4,6 +4,33 @@
 
 CIR generation (Chapter 53) produces a structured, type-rich MLIR module. That module must ultimately become LLVM IR — but the journey from CIR to LLVM IR is where CIR's value is extracted. This chapter covers the two lowering paths in detail, the CIR-to-CIR passes that run before lowering, and the analysis capabilities — lifetime checking, idiom recognition, ABI handling — that justify CIR's existence in the compilation pipeline.
 
+## Table of Contents
+
+- [54.1 The Pre-Lowering Pass Pipeline](#541-the-pre-lowering-pass-pipeline)
+  - [54.1.1 CIRCanonicalizePass](#5411-circanonicalizepass)
+  - [54.1.2 CIRSimplifyPass](#5412-cirsimplifypass)
+  - [54.1.3 CXXABILoweringPass](#5413-cxxabiloweringpass)
+  - [54.1.4 HoistAllocasPass](#5414-hoistallocaspass)
+  - [54.1.5 LoweringPreparePass](#5415-loweringpreparepass)
+  - [54.1.6 GotoSolverPass](#5416-gotosolverpass)
+  - [54.1.7 CIRFlattenCFGPass](#5417-cirflattencfgpass)
+- [54.2 Direct Lowering: CIR → LLVM Dialect](#542-direct-lowering-cir-llvm-dialect)
+- [54.3 Through-MLIR Lowering](#543-through-mlir-lowering)
+- [54.4 The Lifetime Checker](#544-the-lifetime-checker)
+- [54.5 Idiom Recognition](#545-idiom-recognition)
+  - [54.5.1 Loop Idiom Recognition](#5451-loop-idiom-recognition)
+  - [54.5.2 Range-Based For Simplification](#5452-range-based-for-simplification)
+  - [54.5.3 Copy Elision (NRVO)](#5453-copy-elision-nrvo)
+- [54.6 ABI Lowering Details](#546-abi-lowering-details)
+  - [54.6.1 vtable Emission](#5461-vtable-emission)
+  - [54.6.2 `dynamic_cast` Lowering](#5462-dynamiccast-lowering)
+  - [54.6.3 Exception Lowering](#5463-exception-lowering)
+- [54.7 Integrating CIR into a Build](#547-integrating-cir-into-a-build)
+- [54.8 Future Directions](#548-future-directions)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 54.1 The Pre-Lowering Pass Pipeline
 
 Before lowering to LLVM IR, a sequence of CIR-to-CIR passes refines the module. These passes operate entirely within the CIR dialect, using MLIR's pass infrastructure. The sequence is assembled by `populateCIRPreLoweringPasses` and run by `runCIRToCIRPasses` (declared in

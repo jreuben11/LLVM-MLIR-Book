@@ -6,6 +6,40 @@ OpenMP is the dominant portable shared-memory and offload programming model for 
 
 ---
 
+## Table of Contents
+
+- [24.1 Repository Layout](#241-repository-layout)
+- [24.2 libomp: The Host Runtime](#242-libomp-the-host-runtime)
+  - [24.2.1 Thread Pool Architecture](#2421-thread-pool-architecture)
+  - [24.2.2 Work Sharing: for Loops](#2422-work-sharing-for-loops)
+  - [24.2.3 Tasking](#2423-tasking)
+  - [24.2.4 Thread Affinity](#2424-thread-affinity)
+- [24.3 The `_OPENMP` Macro Version Matrix](#243-the-openmp-macro-version-matrix)
+- [24.4 OpenMP Offload Architecture](#244-openmp-offload-architecture)
+  - [24.4.1 The Compilation Pipeline](#2441-the-compilation-pipeline)
+  - [24.4.2 liboffload: The New Unified API (LLVM 22)](#2442-liboffload-the-new-unified-api-llvm-22)
+  - [24.4.3 Plugin Architecture (NextGen)](#2443-plugin-architecture-nextgen)
+- [24.5 Device Runtime Library (DeviceRTL)](#245-device-runtime-library-devicertl)
+  - [24.5.1 Thread Hierarchy](#2451-thread-hierarchy)
+  - [24.5.2 SPMD vs Generic Execution Mode](#2452-spmd-vs-generic-execution-mode)
+- [24.6 Data Environment and Memory Management](#246-data-environment-and-memory-management)
+  - [24.6.1 map Clauses](#2461-map-clauses)
+  - [24.6.2 Unified Shared Memory](#2462-unified-shared-memory)
+- [24.7 Reductions: Host and Device](#247-reductions-host-and-device)
+  - [24.7.1 Host Reduction Implementation](#2471-host-reduction-implementation)
+  - [24.7.2 Device Reduction](#2472-device-reduction)
+  - [24.7.3 User-Defined Reductions](#2473-user-defined-reductions)
+- [24.8 The `requires` Directive](#248-the-requires-directive)
+- [24.9 Environment Variables Reference](#249-environment-variables-reference)
+- [24.10 Compilation Flags](#2410-compilation-flags)
+- [24.11 Debugging and Profiling](#2411-debugging-and-profiling)
+  - [24.9.1 Runtime Diagnostics](#2491-runtime-diagnostics)
+  - [24.9.2 OMPT: OpenMP Tools Interface](#2492-ompt-openmp-tools-interface)
+- [24.12 liboffload Direct API Usage](#2412-liboffload-direct-api-usage)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 24.1 Repository Layout
 
 ```

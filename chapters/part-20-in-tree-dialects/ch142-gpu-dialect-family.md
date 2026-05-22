@@ -6,6 +6,35 @@ GPU programming in MLIR is expressed through a family of dialects that together 
 
 ---
 
+## Table of Contents
+
+- [142.1 The `gpu` Dialect](#1421-the-gpu-dialect)
+  - [142.1.1 Execution Model](#14211-execution-model)
+  - [142.1.2 `gpu.module` and `gpu.func`](#14212-gpumodule-and-gpufunc)
+  - [142.1.3 `gpu.launch`](#14213-gpulaunch)
+  - [142.1.4 `gpu.launch_func`](#14214-gpulaunchfunc)
+  - [142.1.5 Synchronization](#14215-synchronization)
+- [142.2 GPU Memory Model](#1422-gpu-memory-model)
+  - [142.2.1 Address Spaces](#14221-address-spaces)
+  - [142.2.2 Device Memory Operations](#14222-device-memory-operations)
+- [142.3 NVGPU Dialect](#1423-nvgpu-dialect)
+  - [142.3.1 Tensor Core Operations](#14231-tensor-core-operations)
+  - [142.3.2 Asynchronous Copies (Ampere)](#14232-asynchronous-copies-ampere)
+  - [142.3.3 Hopper Features (WGMMA and TMA)](#14233-hopper-features-wgmma-and-tma)
+- [142.4 GPU Lowering Pipeline](#1424-gpu-lowering-pipeline)
+  - [142.4.1 Kernel Outlining](#14241-kernel-outlining)
+  - [142.4.2 NVIDIA Path (NVPTX)](#14242-nvidia-path-nvptx)
+  - [142.4.3 AMD Path (ROCDL/AMDGPU)](#14243-amd-path-rocdlamdgpu)
+  - [142.4.4 Host-Side Lowering](#14244-host-side-lowering)
+  - [142.4.5 Complete End-to-End Pipeline](#14245-complete-end-to-end-pipeline)
+  - [142.4.6 `GpuToLLVMConversionPass`](#14246-gputollvmconversionpass)
+- [142.5 GPU Address Spaces and Type Conversion](#1425-gpu-address-spaces-and-type-conversion)
+  - [142.5.1 Address Space in Lowering](#14251-address-space-in-lowering)
+  - [142.5.2 The `nvvm` Dialect](#14252-the-nvvm-dialect)
+- [Chapter 142 Summary](#chapter-142-summary)
+
+---
+
 ## 142.1 The `gpu` Dialect
 
 ### 142.1.1 Execution Model

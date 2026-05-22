@@ -6,6 +6,63 @@ AArch64 (the 64-bit execution state of the ARMv8-A and later architectures) has 
 
 ---
 
+## Table of Contents
+
+- [96.1 AAPCS64 Calling Convention](#961-aapcs64-calling-convention)
+  - [96.1.1 Register Assignment Rules](#9611-register-assignment-rules)
+  - [96.1.2 Homogeneous Floating-Point and Vector Aggregates](#9612-homogeneous-floating-point-and-vector-aggregates)
+  - [96.1.3 Stack Alignment and Varargs](#9613-stack-alignment-and-varargs)
+- [96.2 Register Model: XN/WN GPR Pairs](#962-register-model-xnwn-gpr-pairs)
+  - [96.2.1 General-Purpose Registers](#9621-general-purpose-registers)
+  - [96.2.2 Floating-Point and SIMD Registers](#9622-floating-point-and-simd-registers)
+- [96.3 NEON: 128-bit Advanced SIMD](#963-neon-128-bit-advanced-simd)
+  - [96.3.1 Element Types and Operations](#9631-element-types-and-operations)
+  - [96.3.2 NEON Instruction Selection Patterns](#9632-neon-instruction-selection-patterns)
+  - [96.3.3 Shuffle Lowering](#9633-shuffle-lowering)
+  - [96.3.4 Dot Products and ML Instructions](#9634-dot-products-and-ml-instructions)
+  - [96.3.5 NEON Intrinsics API](#9635-neon-intrinsics-api)
+- [96.4 SVE and SVE2: Scalable Vector Extensions](#964-sve-and-sve2-scalable-vector-extensions)
+  - [96.4.1 Architecture Overview](#9641-architecture-overview)
+  - [96.4.2 TableGen Patterns for SVE Instructions](#9642-tablegen-patterns-for-sve-instructions)
+  - [96.4.3 SVE Loop Vectorization](#9643-sve-loop-vectorization)
+  - [96.4.4 Gather/Scatter Operations](#9644-gatherscatter-operations)
+  - [96.4.5 SVE2 Additional Operations](#9645-sve2-additional-operations)
+- [96.5 SME: Scalable Matrix Extension](#965-sme-scalable-matrix-extension)
+  - [96.5.1 ZA Tile Architecture](#9651-za-tile-architecture)
+  - [96.5.2 Streaming SVE Mode](#9652-streaming-sve-mode)
+  - [96.5.3 ZA ABI](#9653-za-abi)
+- [96.6 Pointer Authentication (PAuth)](#966-pointer-authentication-pauth)
+  - [96.6.1 PAC Architecture](#9661-pac-architecture)
+  - [96.6.2 LLVM PAuth Instrumentation](#9662-llvm-pauth-instrumentation)
+  - [96.6.3 PAuth ABI for Function Pointers](#9663-pauth-abi-for-function-pointers)
+- [96.7 Branch Target Identification (BTI)](#967-branch-target-identification-bti)
+  - [96.7.1 BTI Landing Pads](#9671-bti-landing-pads)
+  - [96.7.2 LLVM BTI Generation](#9672-llvm-bti-generation)
+- [96.8 LSE Atomics](#968-lse-atomics)
+  - [96.8.1 LL/SC vs LSE](#9681-llsc-vs-lse)
+  - [96.8.2 LSE Single-Instruction Atomics](#9682-lse-single-instruction-atomics)
+- [96.9 Memory Tagging Extension (MTE)](#969-memory-tagging-extension-mte)
+  - [96.9.1 Tag Architecture](#9691-tag-architecture)
+  - [96.9.2 MTE Instructions](#9692-mte-instructions)
+  - [96.9.3 MTE in LLVM](#9693-mte-in-llvm)
+- [96.10 Apple Silicon Specifics](#9610-apple-silicon-specifics)
+  - [96.10.1 AMX and Neural Engine](#96101-amx-and-neural-engine)
+  - [96.10.2 commpage](#96102-commpage)
+  - [96.10.3 CPU-Specific Scheduling Models](#96103-cpu-specific-scheduling-models)
+- [96.11 AArch64 Outliner](#9611-aarch64-outliner)
+  - [96.11.1 LR Preservation in Outlined Functions](#96111-lr-preservation-in-outlined-functions)
+  - [96.11.2 BTI and PAuth Interaction](#96112-bti-and-pauth-interaction)
+- [96.12 Register Bank Selection and GlobalISel](#9612-register-bank-selection-and-globalisel)
+  - [96.12.1 GlobalISel Pipeline on AArch64](#96121-globalisel-pipeline-on-aarch64)
+  - [96.12.2 Register Bank Decisions](#96122-register-bank-decisions)
+  - [96.12.3 GlobalISel Legalization Examples](#96123-globalisel-legalization-examples)
+- [96.13 AArch64 Scheduling and Target Info](#9613-aarch64-scheduling-and-target-info)
+  - [96.13.1 Available Scheduling Models](#96131-available-scheduling-models)
+  - [96.13.2 Using llc for AArch64](#96132-using-llc-for-aarch64)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 96.1 AAPCS64 Calling Convention
 
 ### 96.1.1 Register Assignment Rules

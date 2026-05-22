@@ -4,6 +4,39 @@
 
 With a typed AST in hand (Chapter 55), the frontend's next step is generating LLVM IR. `IRBuilder<>` is the primary tool: a typed instruction factory that maintains an insertion point within a function and issues correctly-formed LLVM instructions. This chapter builds an IR emitter for the Cal expression language, covering every major pattern: expression lowering, control flow with phi nodes, the alloca-then-mem2reg idiom for mutable variables, and debug information emission.
 
+## Table of Contents
+
+- [56.1 IRBuilder Fundamentals](#561-irbuilder-fundamentals)
+  - [56.1.1 Construction and State](#5611-construction-and-state)
+  - [56.1.2 Type Helpers](#5612-type-helpers)
+- [56.2 The IR Emitter Structure](#562-the-ir-emitter-structure)
+  - [56.2.1 Type Mapping](#5621-type-mapping)
+- [56.3 Emitting Expressions](#563-emitting-expressions)
+  - [56.3.1 Literals](#5631-literals)
+  - [56.3.2 Variable References](#5632-variable-references)
+  - [56.3.3 Binary Operations](#5633-binary-operations)
+  - [56.3.4 Unary Operations](#5634-unary-operations)
+  - [56.3.5 Function Calls](#5635-function-calls)
+- [56.4 Control Flow with Phi Nodes](#564-control-flow-with-phi-nodes)
+  - [56.4.1 Loop Emission](#5641-loop-emission)
+- [56.5 The Alloca-then-mem2reg Idiom](#565-the-alloca-then-mem2reg-idiom)
+  - [56.5.1 Creating Allocas at Function Entry](#5651-creating-allocas-at-function-entry)
+  - [56.5.2 Running mem2reg](#5652-running-mem2reg)
+  - [56.5.3 When mem2reg Cannot Promote](#5653-when-mem2reg-cannot-promote)
+- [56.6 Function Emission](#566-function-emission)
+  - [56.6.1 Function Declaration](#5661-function-declaration)
+- [56.7 Debug Information Emission](#567-debug-information-emission)
+  - [56.7.1 Setting Up DIBuilder](#5671-setting-up-dibuilder)
+  - [56.7.2 Function Debug Info](#5672-function-debug-info)
+  - [56.7.3 Variable Debug Info](#5673-variable-debug-info)
+  - [56.7.4 Instruction Locations](#5674-instruction-locations)
+  - [56.7.5 Finalizing Debug Info](#5675-finalizing-debug-info)
+- [56.8 Module Verification and Output](#568-module-verification-and-output)
+- [56.9 End-to-End Example](#569-end-to-end-example)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 56.1 IRBuilder Fundamentals
 
 `IRBuilder<>` is defined in

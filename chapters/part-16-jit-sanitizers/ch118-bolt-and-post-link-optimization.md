@@ -6,6 +6,55 @@ Most compiler optimizations operate before linking: the compiler processes indiv
 
 ---
 
+## Table of Contents
+
+- [118.1 BOLT Overview](#1181-bolt-overview)
+  - [What Post-Link Optimization Is](#what-post-link-optimization-is)
+  - [What BOLT Optimizes](#what-bolt-optimizes)
+  - [Production Use](#production-use)
+- [118.2 BOLT Pipeline](#1182-bolt-pipeline)
+  - [Pipeline Stages](#pipeline-stages)
+  - [Source Organization](#source-organization)
+- [118.3 The BinaryContext](#1183-the-binarycontext)
+  - [BinaryContext](#binarycontext)
+  - [BinaryFunction](#binaryfunction)
+  - [BinaryBasicBlock](#binarybasicblock)
+  - [CFG Reconstruction](#cfg-reconstruction)
+- [118.4 Profile Collection and Processing](#1184-profile-collection-and-processing)
+  - [Linux perf with LBR](#linux-perf-with-lbr)
+  - [BOLT Instrumentation](#bolt-instrumentation)
+  - [Profile Inference](#profile-inference)
+- [118.5 Function Reordering (HFSort)](#1185-function-reordering-hfsort)
+  - [The Problem](#the-problem)
+  - [HFSort Algorithm](#hfsort-algorithm)
+  - [HFSort+ and CDSort](#hfsort-and-cdsort)
+  - [Hot/Cold Split](#hotcold-split)
+- [118.6 Basic Block Reordering](#1186-basic-block-reordering)
+  - [The Fallthrough Opportunity](#the-fallthrough-opportunity)
+  - [ReorderBlocks Pass](#reorderblocks-pass)
+  - [Split Functions Pass](#split-functions-pass)
+- [118.7 Code Transformations](#1187-code-transformations)
+  - [Peephole Optimizations](#peephole-optimizations)
+  - [Identical Code Folding (ICF)](#identical-code-folding-icf)
+  - [Inline Small Functions](#inline-small-functions)
+  - [SimplifyRODataLoads](#simplifyrodataloads)
+- [118.8 Linker Considerations](#1188-linker-considerations)
+  - [Relocation Requirements](#relocation-requirements)
+  - [LLD Integration](#lld-integration)
+  - [BOLT + LTO](#bolt-lto)
+  - [BOLT + PGO](#bolt-pgo)
+- [118.9 BOLT Results and Measurement](#1189-bolt-results-and-measurement)
+  - [Profile Coverage Statistics](#profile-coverage-statistics)
+  - [Before/After Benchmarking](#beforeafter-benchmarking)
+  - [Binary Size Impact](#binary-size-impact)
+- [118.10 BOLT for Clang/LLVM Itself](#11810-bolt-for-clangllvm-itself)
+  - [Self-Optimization](#self-optimization)
+  - [Measured Results](#measured-results)
+  - [Integration with the LLVM Build System](#integration-with-the-llvm-build-system)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 118.1 BOLT Overview
 
 ### What Post-Link Optimization Is

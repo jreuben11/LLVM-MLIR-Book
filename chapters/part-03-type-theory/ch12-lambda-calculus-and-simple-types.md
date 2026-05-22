@@ -20,6 +20,59 @@ All formal material is grounded in the canonical references: Pierce, *Types and 
 
 ---
 
+## Table of Contents
+
+- [1. Untyped Lambda Calculus: Syntax and Variables](#1-untyped-lambda-calculus-syntax-and-variables)
+  - [The Grammar](#the-grammar)
+  - [Free and Bound Variables](#free-and-bound-variables)
+  - [The Barendregt Variable Convention](#the-barendregt-variable-convention)
+  - [De Bruijn Indices](#de-bruijn-indices)
+  - [Church Encodings](#church-encodings)
+- [2. Substitution and α-Equivalence](#2-substitution-and-equivalence)
+  - [Capture-Avoiding Substitution](#capture-avoiding-substitution)
+  - [α-Equivalence](#equivalence)
+  - [The Substitution Lemma (Untyped)](#the-substitution-lemma-untyped)
+- [3. β-Reduction and Reduction Strategies](#3-reduction-and-reduction-strategies)
+  - [β-Reduction](#reduction)
+  - [η-Reduction](#reduction)
+  - [Reduction Strategies](#reduction-strategies)
+- [4. Church-Rosser Confluence](#4-church-rosser-confluence)
+  - [The Diamond Property and Confluence](#the-diamond-property-and-confluence)
+  - [The Church-Rosser Theorem](#the-church-rosser-theorem)
+  - [Consequences of Confluence](#consequences-of-confluence)
+- [5. Normalization: Weak, Strong, and the Ω Divergent Term](#5-normalization-weak-strong-and-the-divergent-term)
+  - [Weak and Strong Normalization](#weak-and-strong-normalization)
+  - [The Ω Combinator: Divergence in the Untyped Calculus](#the-combinator-divergence-in-the-untyped-calculus)
+  - [Normalizable Terms with Non-Terminating Strategies](#normalizable-terms-with-non-terminating-strategies)
+- [6. Simply Typed Lambda Calculus: Types and Typing Rules](#6-simply-typed-lambda-calculus-types-and-typing-rules)
+  - [Types](#types)
+  - [Extensions: Products, Sums, and Base Types](#extensions-products-sums-and-base-types)
+  - [Church-Style vs. Curry-Style](#church-style-vs-curry-style)
+  - [Typing Contexts and the Typing Judgment](#typing-contexts-and-the-typing-judgment)
+  - [Type Uniqueness](#type-uniqueness)
+  - [Strong Normalization of STLC](#strong-normalization-of-stlc)
+- [7. Type Safety: Preservation and Progress](#7-type-safety-preservation-and-progress)
+  - [The Substitution Lemma](#the-substitution-lemma)
+  - [Preservation (Subject Reduction)](#preservation-subject-reduction)
+  - [Canonical Forms Lemma](#canonical-forms-lemma)
+  - [Progress](#progress)
+  - [Type Soundness](#type-soundness)
+- [8. The Curry-Howard Correspondence](#8-the-curry-howard-correspondence)
+  - [The Correspondence](#the-correspondence)
+  - [Intuitionistic vs. Classical Logic](#intuitionistic-vs-classical-logic)
+  - [Propositions as Types in Detail](#propositions-as-types-in-detail)
+  - [Product Types, Sum Types, and Units](#product-types-sum-types-and-units)
+  - [Inhabitation Equals Provability](#inhabitation-equals-provability)
+  - [The Extension to Dependent Types: Preview](#the-extension-to-dependent-types-preview)
+  - [Why Coq and Lean Use Dependent Types](#why-coq-and-lean-use-dependent-types)
+  - [β-Reduction as Proof Simplification](#reduction-as-proof-simplification)
+  - [The Sequent Calculus Side](#the-sequent-calculus-side)
+  - [Negative Types and Control Operators](#negative-types-and-control-operators)
+  - [The Lambda Calculus as Intermediate Representation](#the-lambda-calculus-as-intermediate-representation)
+- [9. Chapter Summary](#9-chapter-summary)
+
+---
+
 ## 1. Untyped Lambda Calculus: Syntax and Variables
 
 ### The Grammar

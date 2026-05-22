@@ -4,6 +4,35 @@
 
 A language frontend does not end at IR emission. The runtime environment — memory management, thread-local storage, atomic operations, signal safety, and machine-level stack metadata — must be designed and wired into the IR explicitly. LLVM provides hooks for all of these: GC roots and statepoints for garbage collection, TLS lowering models for thread-local variables, the C11/C++11 memory model for atomics, stack maps for runtime inspection, and signal-safety constraints that affect code placement. This chapter covers each concern from the frontend author's perspective.
 
+## Table of Contents
+
+- [58.1 Garbage Collection Strategies](#581-garbage-collection-strategies)
+  - [58.1.1 Registering a GC Strategy](#5811-registering-a-gc-strategy)
+  - [58.1.2 The gc.root Model](#5812-the-gcroot-model)
+  - [58.1.3 The Statepoint Model (Recommended)](#5813-the-statepoint-model-recommended)
+  - [58.1.4 Stack Maps](#5814-stack-maps)
+- [58.2 Thread-Local Storage Lowering](#582-thread-local-storage-lowering)
+  - [58.2.1 TLS Models](#5821-tls-models)
+  - [58.2.2 Emitting Thread-Local Globals](#5822-emitting-thread-local-globals)
+  - [58.2.3 TLS Access Intrinsics](#5823-tls-access-intrinsics)
+- [58.3 Atomics and the C/C++ Memory Model](#583-atomics-and-the-cc-memory-model)
+  - [58.3.1 Atomic Orderings](#5831-atomic-orderings)
+  - [58.3.2 Atomic Load and Store](#5832-atomic-load-and-store)
+  - [58.3.3 Atomic RMW Operations](#5833-atomic-rmw-operations)
+  - [58.3.4 Compare-and-Exchange](#5834-compare-and-exchange)
+  - [58.3.5 Fences](#5835-fences)
+  - [58.3.6 Volatile Accesses](#5836-volatile-accesses)
+- [58.4 Stack Maps and Patchpoints](#584-stack-maps-and-patchpoints)
+  - [58.4.1 The Complete Code-Mutation Workflow](#5841-the-complete-code-mutation-workflow)
+  - [58.4.2 Guard IR Patterns](#5842-guard-ir-patterns)
+- [58.5 Signal Safety](#585-signal-safety)
+  - [58.5.1 Async-Signal-Safe Code in IR](#5851-async-signal-safe-code-in-ir)
+  - [58.5.2 `setjmp`/`longjmp`](#5852-setjmplongjmp)
+- [58.6 Putting It Together: Runtime Design Checklist](#586-putting-it-together-runtime-design-checklist)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 58.1 Garbage Collection Strategies
 
 LLVM supports two main GC strategies: the **gc.root** model (legacy) and the **statepoint** model (recommended). The strategy is selected per-function via the `gc` attribute and the registered `GCStrategy` subclass.

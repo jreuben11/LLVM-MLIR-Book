@@ -4,6 +4,35 @@
 
 Between SelectionDAG lowering and final assembly emission lies the Machine IR (MIR) — LLVM's target-aware intermediate representation that carries instructions from isel through register allocation, scheduling, and all post-isel transformations to the MC layer. Where LLVM IR is intentionally target-agnostic, Machine IR is intimately aware of register classes, calling conventions, stack frames, and instruction encoding details. Understanding MIR in depth is essential for writing backend passes, debugging codegen failures, and reading the output of `llc --stop-after`. This chapter dissects the MIR data structures, the textual `.mir` format used in regression testing, and the MachineVerifier invariants that keep the representation consistent.
 
+## Table of Contents
+
+- [88.1 MachineFunction](#881-machinefunction)
+  - [88.1.1 MachineFrameInfo](#8811-machineframeinfo)
+  - [88.1.2 MachineRegisterInfo](#8812-machineregisterinfo)
+  - [88.1.3 MachineConstantPool](#8813-machineconstantpool)
+- [88.2 MachineBasicBlock](#882-machinebasicblock)
+  - [88.2.1 Predecessor/Successor Lists](#8821-predecessorsuccessor-lists)
+  - [88.2.2 Liveness Sets](#8822-liveness-sets)
+- [88.3 MachineInstr](#883-machineinstr)
+  - [88.3.1 Opcode and MCInstrDesc](#8831-opcode-and-mcinstrdesc)
+  - [88.3.2 Instruction Flags](#8832-instruction-flags)
+- [88.4 MachineOperand Types](#884-machineoperand-types)
+  - [88.4.1 Register Operands: Virtual vs Physical](#8841-register-operands-virtual-vs-physical)
+- [88.5 MachineMemOperand](#885-machinememoperand)
+  - [88.5.1 PseudoSourceValue](#8851-pseudosourcevalue)
+- [88.6 The MIR Text Format](#886-the-mir-text-format)
+  - [88.6.1 File Structure](#8861-file-structure)
+  - [88.6.2 MBB Syntax](#8862-mbb-syntax)
+  - [88.6.3 MachineInstr Syntax](#8863-machineinstr-syntax)
+  - [88.6.4 Producing and Consuming .mir Files](#8864-producing-and-consuming-mir-files)
+  - [88.6.5 Writing .mir-Based Tests](#8865-writing-mir-based-tests)
+- [88.7 MachineVerifier](#887-machineverifier)
+  - [88.7.1 Invariants Checked](#8871-invariants-checked)
+  - [88.7.2 Invoking the Verifier](#8872-invoking-the-verifier)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 88.1 MachineFunction
 
 `MachineFunction` is the root container for a function's machine-level representation. It owns all subsidiary structures and is created by `MachineModuleInfo` during the codegen pipeline. The key data structures it aggregates:

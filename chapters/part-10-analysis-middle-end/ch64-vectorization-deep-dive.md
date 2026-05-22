@@ -4,6 +4,28 @@
 
 Vectorization transforms scalar loops and instruction groups into SIMD operations, exploiting data-level parallelism on hardware that supports SSE, AVX-512, NEON, SVE, or RISC-V Vector. LLVM provides two vectorization passes — the Loop Vectorizer and the SLP (Superword-Level Parallelism) Vectorizer — each targeting different program structures. This chapter covers the loop vectorizer's four-phase design, VPlan's role, the SLP vectorizer's bottom-up tree construction, cost modeling, scalable vectorization, and predication for loop tails.
 
+## Table of Contents
+
+- [64.1 The Loop Vectorizer](#641-the-loop-vectorizer)
+  - [64.1.1 Four-Phase Architecture](#6411-four-phase-architecture)
+  - [64.1.2 Loop Vectorizer Hints](#6412-loop-vectorizer-hints)
+- [64.2 VPlan: The Vectorization Plan](#642-vplan-the-vectorization-plan)
+  - [64.2.1 VPlan Structure](#6421-vplan-structure)
+  - [64.2.2 VPlan and VF Selection](#6422-vplan-and-vf-selection)
+- [64.3 Scalable Vectorization (SVE, RVV)](#643-scalable-vectorization-sve-rvv)
+  - [64.3.1 EVL (Explicit Vector Length) Intrinsics](#6431-evl-explicit-vector-length-intrinsics)
+- [64.4 Predication and Tail Folding](#644-predication-and-tail-folding)
+  - [64.4.1 Scalar Remainder Loop](#6441-scalar-remainder-loop)
+  - [64.4.2 Tail Folding (Predicated Vectorization)](#6442-tail-folding-predicated-vectorization)
+- [64.5 Reductions and First-Order Recurrences](#645-reductions-and-first-order-recurrences)
+- [64.6 SLP Vectorizer](#646-slp-vectorizer)
+  - [64.6.1 Bottom-Up Tree Construction](#6461-bottom-up-tree-construction)
+  - [64.6.2 Differences from Loop Vectorization](#6462-differences-from-loop-vectorization)
+- [64.7 TargetTransformInfo: The Cost Model](#647-targettransforminfo-the-cost-model)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 64.1 The Loop Vectorizer
 
 `LoopVectorizePass` (in `llvm/Transforms/Vectorize/LoopVectorize.h`) widens innermost loops by a vectorization factor (VF), transforming scalar iterations into vector iterations. A loop with VF=4 runs four iterations of the scalar loop per vector iteration.

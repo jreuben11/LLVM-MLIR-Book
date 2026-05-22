@@ -6,6 +6,43 @@ Polyhedral compilation (Chapters 131–132) is the most principled framework for
 
 ---
 
+## Table of Contents
+
+- [227.1 The Polyhedral Parameter Selection Problem](#2271-the-polyhedral-parameter-selection-problem)
+  - [What Polyhedral Compilation Gives You](#what-polyhedral-compilation-gives-you)
+  - [The Parameter Space](#the-parameter-space)
+  - [Why Analytical Cost Models Fail](#why-analytical-cost-models-fail)
+- [227.2 LOOPer: Deep Learning Cost Models for Affine Transformations](#2272-looper-deep-learning-cost-models-for-affine-transformations)
+  - [Architecture](#architecture)
+  - [Feature Vector Construction](#feature-vector-construction)
+  - [Training Data Collection](#training-data-collection)
+  - [Using LOOPer for Schedule Selection](#using-looper-for-schedule-selection)
+  - [Empirical Results](#empirical-results)
+- [227.3 Agentic Auto-Scheduling with Empirical Feedback](#2273-agentic-auto-scheduling-with-empirical-feedback)
+  - [The Agentic Loop](#the-agentic-loop)
+  - [LLM Prompting Strategy](#llm-prompting-strategy)
+  - [Convergence Behavior](#convergence-behavior)
+- [227.4 Integration with Polly](#2274-integration-with-polly)
+  - [Polly's Schedule Representation](#pollys-schedule-representation)
+  - [Setting the Schedule](#setting-the-schedule)
+  - [Fallback Chain](#fallback-chain)
+- [227.5 Integration with MLIR Affine Dialect](#2275-integration-with-mlir-affine-dialect)
+  - [Affine Loop Transformation Passes](#affine-loop-transformation-passes)
+  - [Advantages Over Polly for Agentic Optimization](#advantages-over-polly-for-agentic-optimization)
+- [227.6 Comparison with Ansor/AutoTVM and Halide Autoscheduler](#2276-comparison-with-ansorautotvm-and-halide-autoscheduler)
+  - [Ansor (TVM, arXiv 2006.06762)](#ansor-tvm-arxiv-200606762)
+  - [Halide Autoscheduler (Li et al. 2021)](#halide-autoscheduler-li-et-al-2021)
+  - [Comparison Table](#comparison-table)
+- [227.7 Limitations and Open Problems](#2277-limitations-and-open-problems)
+  - [Evaluation Cost](#evaluation-cost)
+  - [Redundant Proposals](#redundant-proposals)
+  - [Hardware Generalization](#hardware-generalization)
+  - [Legality at Scale](#legality-at-scale)
+  - [The Last-Mile Problem](#the-last-mile-problem)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 227.1 The Polyhedral Parameter Selection Problem
 
 ### What Polyhedral Compilation Gives You

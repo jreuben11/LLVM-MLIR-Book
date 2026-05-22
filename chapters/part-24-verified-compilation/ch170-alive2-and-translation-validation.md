@@ -6,6 +6,44 @@ Proving a compiler correct by construction — as CompCert does — requires imm
 
 ---
 
+## Table of Contents
+
+- [170.1 The Miscompilation Problem](#1701-the-miscompilation-problem)
+  - [Scale and Frequency](#scale-and-frequency)
+  - [Why Testing Is Insufficient](#why-testing-is-insufficient)
+  - [Translation Validation as a Solution](#translation-validation-as-a-solution)
+- [170.2 Alive (Original)](#1702-alive-original)
+  - [Motivation and Design](#motivation-and-design)
+  - [Example Alive Specification](#example-alive-specification)
+  - [Alive's Impact](#alives-impact)
+- [170.3 Alive2 Architecture](#1703-alive2-architecture)
+  - [Rewrite in C++](#rewrite-in-c)
+  - [Components](#components)
+  - [Intercept Mode](#intercept-mode)
+- [170.4 The Refinement Relation](#1704-the-refinement-relation)
+  - [Behavioral Semantics](#behavioral-semantics)
+  - [The Refinement Ordering](#the-refinement-ordering)
+  - [The Direction Matters](#the-direction-matters)
+  - [Refinement with Poison](#refinement-with-poison)
+- [170.5 Memory Model in Alive2](#1705-memory-model-in-alive2)
+  - [Abstract Memory Representation](#abstract-memory-representation)
+  - [Alias Analysis Integration](#alias-analysis-integration)
+  - [Undefined Behavior in Memory Operations](#undefined-behavior-in-memory-operations)
+- [170.6 Finding Real Bugs with Alive2](#1706-finding-real-bugs-with-alive2)
+  - [Systematic Deployment](#systematic-deployment)
+  - [Notable Bug Classes](#notable-bug-classes)
+  - [Bug Report Format](#bug-report-format)
+- [170.7 Practical Translation Validation](#1707-practical-translation-validation)
+  - [alive-tv: Before/After Validation](#alive-tv-beforeafter-validation)
+  - [alive-tv in LLVM CI](#alive-tv-in-llvm-ci)
+  - [llvm-mc-alive: Machine Code Validation](#llvm-mc-alive-machine-code-validation)
+  - [Performance and Limitations](#performance-and-limitations)
+  - [Integration with MLIR](#integration-with-mlir)
+- [Chapter Summary](#chapter-summary)
+  - [References](#references)
+
+---
+
 ## 170.1 The Miscompilation Problem
 
 ### Scale and Frequency

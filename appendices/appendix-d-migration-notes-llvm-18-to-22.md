@@ -6,6 +6,41 @@ This appendix catalogs breaking API changes, behavioral changes, and deprecation
 
 ---
 
+## Table of Contents
+
+- [D.1 LLVM 18 → 19](#d1-llvm-18-19)
+  - [Opaque Pointers Now Default](#opaque-pointers-now-default)
+  - [New Pass Manager: Legacy PM Further Removed](#new-pass-manager-legacy-pm-further-removed)
+  - [`scf.foreach_thread` → `scf.forall` (MLIR)](#scfforeachthread-scfforall-mlir)
+  - [AArch64 SME (Scalable Matrix Extension)](#aarch64-sme-scalable-matrix-extension)
+  - [Other Changes](#other-changes)
+- [D.2 LLVM 19 → 20](#d2-llvm-19-20)
+  - [`freeze` Instruction Canonicalization](#freeze-instruction-canonicalization)
+  - [`nsw`/`nuw` Propagation Through InstCombine](#nswnuw-propagation-through-instcombine)
+  - [GlobalISel: x86-64 Stable](#globalisel-x86-64-stable)
+  - [AArch64 PAC/BTI (Pointer Authentication / Branch Target Identification)](#aarch64-pacbti-pointer-authentication-branch-target-identification)
+  - [MLIR: Properties System](#mlir-properties-system)
+  - [Other Changes](#other-changes)
+- [D.3 LLVM 20 → 21](#d3-llvm-20-21)
+  - [`llvm::Function::getEntryCount()` Deprecated](#llvmfunctiongetentrycount-deprecated)
+  - [`DIBuilder` DWARF 5 Name Index Changes](#dibuilder-dwarf-5-name-index-changes)
+  - [MLIR Properties: Deprecation of Some `attr-dict` Patterns](#mlir-properties-deprecation-of-some-attr-dict-patterns)
+  - [NVPTX PTX 8.5 and WGMMA Intrinsics](#nvptx-ptx-85-and-wgmma-intrinsics)
+  - [AMDGPU GFX12 (RDNA4)](#amdgpu-gfx12-rdna4)
+  - [Other Changes](#other-changes)
+- [D.4 LLVM 21 → 22](#d4-llvm-21-22)
+  - [`SelectionDAGTargetInfo` API Changes](#selectiondagtargetinfo-api-changes)
+  - [`LLVMContext::enableOpaquePointers()` Removed](#llvmcontextenableopaquepointers-removed)
+  - [MLIR Bytecode Version 6](#mlir-bytecode-version-6)
+  - [Flang: HLFIR Fully Default; `-emit-fir` Deprecated](#flang-hlfir-fully-default-emit-fir-deprecated)
+  - [Xtensa Target Merged](#xtensa-target-merged)
+  - [`MachineInstr::getDebugVariable()` API Change](#machineinstrgetdebugvariable-api-change)
+  - [Other Changes](#other-changes)
+- [D.5 Compatibility Matrix](#d5-compatibility-matrix)
+- [D.6 Automated Migration Aids](#d6-automated-migration-aids)
+
+---
+
 ## D.1 LLVM 18 → 19
 
 ### Opaque Pointers Now Default

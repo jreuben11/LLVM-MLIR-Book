@@ -4,6 +4,42 @@
 
 The polyhedral model — used by Polly, MLIR's Affine dialect, and every production affine loop optimizer — rests on three mathematical pillars: the geometry of convex polyhedra, the arithmetic of integer lattices, and the logic of Presburger arithmetic. A loop nest's iteration space is a polyhedron. Its dependences are constraints between polyhedra. Its transformations are linear maps over those polyhedra. The algorithms that test legality, compute schedules, and generate new loop bounds all reduce to questions in integer linear programming and Presburger arithmetic. This chapter builds that foundation: from the definitions of polyhedra through the simplex method, the Omega test, and the algorithmic core of ISL — the library that implements these operations for Polly and MLIR.
 
+## Table of Contents
+
+- [70.1 Convex Polyhedra](#701-convex-polyhedra)
+  - [70.1.1 Definitions](#7011-definitions)
+  - [70.1.2 Faces, Facets, and Vertices](#7012-faces-facets-and-vertices)
+  - [70.1.3 The Farkas Lemma](#7013-the-farkas-lemma)
+- [70.2 Integer Lattices](#702-integer-lattices)
+  - [70.2.1 Lattices](#7021-lattices)
+  - [70.2.2 Hermite Normal Form](#7022-hermite-normal-form)
+  - [70.2.3 Smith Normal Form](#7023-smith-normal-form)
+- [70.3 Linear Programming](#703-linear-programming)
+  - [70.3.1 The Linear Program](#7031-the-linear-program)
+  - [70.3.2 The Simplex Method](#7032-the-simplex-method)
+  - [70.3.3 Fourier-Motzkin Elimination](#7033-fourier-motzkin-elimination)
+- [70.4 Integer Linear Programming](#704-integer-linear-programming)
+  - [70.4.1 The ILP Problem](#7041-the-ilp-problem)
+  - [70.4.2 Branch and Bound](#7042-branch-and-bound)
+  - [70.4.3 Gomory Cuts](#7043-gomory-cuts)
+- [70.5 Presburger Arithmetic](#705-presburger-arithmetic)
+  - [70.5.1 Definition](#7051-definition)
+  - [70.5.2 Syntax](#7052-syntax)
+  - [70.5.3 Quantifier Elimination](#7053-quantifier-elimination)
+  - [70.5.4 The Omega Test](#7054-the-omega-test)
+- [70.6 ISL: The Integer Set Library](#706-isl-the-integer-set-library)
+  - [70.6.1 Overview](#7061-overview)
+  - [70.6.2 ISL Data Types](#7062-isl-data-types)
+  - [70.6.3 ISL Set Operations](#7063-isl-set-operations)
+  - [70.6.4 ISL Maps for Dependences](#7064-isl-maps-for-dependences)
+  - [70.6.5 Parametric Integer Programming](#7065-parametric-integer-programming)
+- [70.7 Complexity and Practical Considerations](#707-complexity-and-practical-considerations)
+  - [70.7.1 Theoretical Complexity](#7071-theoretical-complexity)
+  - [70.7.2 Practical Bounds](#7072-practical-bounds)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 70.1 Convex Polyhedra
 
 ### 70.1.1 Definitions

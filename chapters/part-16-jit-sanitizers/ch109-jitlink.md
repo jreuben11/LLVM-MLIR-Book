@@ -6,6 +6,51 @@ When ORC v2 needed a linker, it could not simply reuse `RuntimeDyld`. That code 
 
 ---
 
+## Table of Contents
+
+- [109.1 Motivation: Replacing RuntimeDyld](#1091-motivation-replacing-runtimedyld)
+  - [109.1.1 RuntimeDyld's Limitations](#10911-runtimedylds-limitations)
+  - [109.1.2 JITLink's Design Goals](#10912-jitlinks-design-goals)
+- [109.2 The LinkGraph Model](#1092-the-linkgraph-model)
+  - [109.2.1 Overview](#10921-overview)
+  - [109.2.2 Section and Block](#10922-section-and-block)
+  - [109.2.3 Symbol](#10923-symbol)
+  - [109.2.4 Edge](#10924-edge)
+  - [109.2.5 Graph Traversal](#10925-graph-traversal)
+- [109.3 JITLink Pipeline](#1093-jitlink-pipeline)
+  - [109.3.1 Phase 1: Parsing](#10931-phase-1-parsing)
+  - [109.3.2 Phase 3: Dead-Stripping (Pruning)](#10932-phase-3-dead-stripping-pruning)
+  - [109.3.3 Phase 4: Post-Prune Passes](#10933-phase-4-post-prune-passes)
+- [109.4 GOT and PLT Synthesis](#1094-got-and-plt-synthesis)
+  - [109.4.1 Why JIT Needs GOT/PLT](#10941-why-jit-needs-gotplt)
+  - [109.4.2 GOT Entry Creation](#10942-got-entry-creation)
+  - [109.4.3 PLT Stub Creation](#10943-plt-stub-creation)
+  - [109.4.4 GOT Relaxation](#10944-got-relaxation)
+- [109.5 Memory Management](#1095-memory-management)
+  - [109.5.1 JITLinkMemoryManager Interface](#10951-jitlinkmemorymanager-interface)
+  - [109.5.2 InProcessMemoryManager](#10952-inprocessmemorymanager)
+  - [109.5.3 W^X Compliance on Apple Silicon](#10953-wx-compliance-on-apple-silicon)
+  - [109.5.4 MapperJITLinkMemoryManager](#10954-mapperjitlinkmemorymanager)
+- [109.6 Platform-Specific Support](#1096-platform-specific-support)
+  - [109.6.1 ELF x86_64](#10961-elf-x8664)
+  - [109.6.2 ELF AArch64](#10962-elf-aarch64)
+  - [109.6.3 RISC-V](#10963-risc-v)
+  - [109.6.4 COFF/PE (Windows)](#10964-coffpe-windows)
+  - [109.6.5 MachO arm64](#10965-macho-arm64)
+- [109.7 Plugin Architecture](#1097-plugin-architecture)
+  - [109.7.1 JITLinkPlugin Interface](#10971-jitlinkplugin-interface)
+  - [109.7.2 EHFrameRegistrationPlugin](#10972-ehframeregistrationplugin)
+  - [109.7.3 DebugObjectManagerPlugin](#10973-debugobjectmanagerplugin)
+  - [109.7.4 PerfSupportPlugin](#10974-perfsupportplugin)
+  - [109.7.5 Writing a Custom Plugin](#10975-writing-a-custom-plugin)
+- [109.8 JITLink vs RuntimeDyld](#1098-jitlink-vs-runtimedyld)
+  - [109.8.1 Feature Comparison](#10981-feature-comparison)
+  - [109.8.2 Migration from RuntimeDyld](#10982-migration-from-runtimedyld)
+  - [109.8.3 Using llvm-jitlink](#10983-using-llvm-jitlink)
+- [Chapter 109 Summary](#chapter-109-summary)
+
+---
+
 ## 109.1 Motivation: Replacing RuntimeDyld
 
 ### 109.1.1 RuntimeDyld's Limitations

@@ -4,6 +4,54 @@
 
 Semantic analysis is where a stream of syntactic constructs acquires meaning: types are resolved, names are bound to declarations, expressions are checked for well-formedness, and implicit conversions are inserted wherever the language mandates them. In Clang, all of this machinery lives in a single class, `Sema`, which serves as the "actions" object driven by the Parser. This chapter dissects the name-resolution and conversion half of `Sema`'s responsibilities — the subsystems a compiler writer touches first when adding a new language construct or diagnosing a subtle type mismatch. Templates and overload deduction are deferred to Chapter 34; the persistent AST node hierarchy is examined in Chapter 36.
 
+## Table of Contents
+
+- [The `Sema` Class](#the-sema-class)
+  - [Decomposition into Sub-Objects](#decomposition-into-sub-objects)
+- [Scopes and Scope Management](#scopes-and-scope-management)
+  - [The `Scope` Type](#the-scope-type)
+  - [Scope Chains and Shortcut Pointers](#scope-chains-and-shortcut-pointers)
+- [`DeclContext` and Declaration Containers](#declcontext-and-declaration-containers)
+  - [Iterating and Searching](#iterating-and-searching)
+  - [`CurContext` Management](#curcontext-management)
+- [Name Lookup Machinery](#name-lookup-machinery)
+  - [`LookupResult`](#lookupresult)
+  - [`LookupNameKind`](#lookupnamekind)
+  - [Unqualified Lookup](#unqualified-lookup)
+  - [Qualified Lookup](#qualified-lookup)
+  - [The `IdentifierResolver` Shadow Chain](#the-identifierresolver-shadow-chain)
+- [Argument-Dependent Lookup](#argument-dependent-lookup)
+- [Overload Resolution](#overload-resolution)
+  - [Building the Candidate Set](#building-the-candidate-set)
+  - [Implicit Conversion Sequences](#implicit-conversion-sequences)
+  - [Best Viable Function Selection](#best-viable-function-selection)
+  - [Error Reporting](#error-reporting)
+- [Implicit Conversions](#implicit-conversions)
+  - [Standard Conversion Sequences](#standard-conversion-sequences)
+  - [Qualification Conversions](#qualification-conversions)
+- [Usual Arithmetic Conversions](#usual-arithmetic-conversions)
+- [User-Defined Conversions](#user-defined-conversions)
+  - [Conversion Constructors](#conversion-constructors)
+  - [Conversion Functions](#conversion-functions)
+  - [The One User-Defined Conversion Rule](#the-one-user-defined-conversion-rule)
+- [Typo Correction](#typo-correction)
+  - [Architecture](#architecture)
+  - [Candidate Collection and Scoring](#candidate-collection-and-scoring)
+- [Name Hiding and Redeclaration](#name-hiding-and-redeclaration)
+  - [Inner-Scope Hiding](#inner-scope-hiding)
+  - [Redeclaration Merging](#redeclaration-merging)
+  - [`CheckRedeclaration` Infrastructure](#checkredeclaration-infrastructure)
+- [`using` Declarations and `using`-Directives](#using-declarations-and-using-directives)
+  - [`UsingDecl` and Shadow Decls](#usingdecl-and-shadow-decls)
+  - [`UsingDirectiveDecl`](#usingdirectivedecl)
+  - [Namespace Aliases and `using enum`](#namespace-aliases-and-using-enum)
+- [Putting It Together: A Name Lookup Trace](#putting-it-together-a-name-lookup-trace)
+- [Chapter Summary](#chapter-summary)
+- [Cross-References](#cross-references)
+- [Reference Links](#reference-links)
+
+---
+
 ## The `Sema` Class
 
 `Sema` is defined in [`clang/include/clang/Sema/Sema.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/include/clang/Sema/Sema.h) and implemented across roughly twenty translation units under `clang/lib/Sema/`. The header alone exceeds 14,000 lines. Rather than a monolithic object file, the implementation is partitioned by concern:

@@ -6,6 +6,41 @@ MLIR's Python bindings provide a first-class interface for constructing, transfo
 
 ---
 
+## Table of Contents
+
+- [160.1 Architecture of the Python Bindings](#1601-architecture-of-the-python-bindings)
+- [160.2 Core IR Objects](#1602-core-ir-objects)
+  - [160.2.1 Context](#16021-context)
+  - [160.2.2 Module](#16022-module)
+  - [160.2.3 Operations](#16023-operations)
+  - [160.2.4 Types](#16024-types)
+  - [160.2.5 Attributes](#16025-attributes)
+- [160.3 Building IR with InsertionPoint](#1603-building-ir-with-insertionpoint)
+  - [160.3.1 Location Tracking](#16031-location-tracking)
+- [160.4 Dialect-Specific Python Bindings](#1604-dialect-specific-python-bindings)
+  - [160.4.1 Arith Dialect](#16041-arith-dialect)
+  - [160.4.2 Func Dialect](#16042-func-dialect)
+  - [160.4.3 Linalg Dialect](#16043-linalg-dialect)
+- [160.5 The Pass Manager](#1605-the-pass-manager)
+  - [160.5.1 Pass Configuration](#16051-pass-configuration)
+  - [160.5.2 Custom Python Passes](#16052-custom-python-passes)
+- [160.6 MLIR Execution Engine](#1606-mlir-execution-engine)
+  - [160.6.1 Calling Conventions](#16061-calling-conventions)
+- [160.7 NumPy/MLIR Bridge](#1607-numpymlir-bridge)
+  - [160.7.1 numpy → DenseElementsAttr](#16071-numpy-denseelementsattr)
+  - [160.7.2 memref ↔ numpy round-trip](#16072-memref-numpy-round-trip)
+- [160.8 Generating Dialect Bindings](#1608-generating-dialect-bindings)
+- [160.9 Real-World Usage Patterns](#1609-real-world-usage-patterns)
+  - [160.9.1 JAX's Use of MLIR Python Bindings](#16091-jaxs-use-of-mlir-python-bindings)
+  - [160.9.2 IREE's Use](#16092-irees-use)
+  - [160.9.3 Interactive Development](#16093-interactive-development)
+- [160.10 Performance Considerations](#16010-performance-considerations)
+  - [160.10.1 Batching IR Construction](#160101-batching-ir-construction)
+  - [160.10.2 Memory Management](#160102-memory-management)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 160.1 Architecture of the Python Bindings
 
 The binding stack:

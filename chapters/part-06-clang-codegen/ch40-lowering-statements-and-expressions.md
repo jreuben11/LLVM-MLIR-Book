@@ -8,6 +8,62 @@ The chapter follows the organization of `clang/lib/CodeGen/`: `CGStmt.cpp` for s
 
 ---
 
+## Table of Contents
+
+- [Statement Visitor Dispatch](#statement-visitor-dispatch)
+  - [EmitStmt and the Central Switch](#emitstmt-and-the-central-switch)
+  - [Conditional Statements](#conditional-statements)
+  - [Loop Statements](#loop-statements)
+  - [Switch Statements](#switch-statements)
+  - [Return Statements](#return-statements)
+- [Break, Continue, and Goto](#break-continue-and-goto)
+  - [BreakContinueStack](#breakcontinuestack)
+  - [Forward Goto and Label Resolution](#forward-goto-and-label-resolution)
+  - [Indirect Goto and BlockAddress](#indirect-goto-and-blockaddress)
+- [Expression Codegen Visitors](#expression-codegen-visitors)
+  - [Three Scalar Families](#three-scalar-families)
+  - [AggValueSlot](#aggvalueslot)
+- [Arithmetic and Bitwise Operations](#arithmetic-and-bitwise-operations)
+  - [ScalarExprEmitter::VisitBinaryOperator](#scalarexpremittervisitbinaryoperator)
+  - [Sanitizer-Instrumented Arithmetic](#sanitizer-instrumented-arithmetic)
+  - [Division and Remainder](#division-and-remainder)
+  - [Shift Operations](#shift-operations)
+- [Comparison and Logical Operators](#comparison-and-logical-operators)
+  - [Integer and Floating-Point Comparison](#integer-and-floating-point-comparison)
+  - [Short-Circuit Logical Operators](#short-circuit-logical-operators)
+  - [Ternary Operator](#ternary-operator)
+  - [Spaceship Operator](#spaceship-operator)
+- [Cast Lowering](#cast-lowering)
+  - [ScalarExprEmitter::VisitCastExpr](#scalarexpremittervisitcastexpr)
+- [LValue Emission](#lvalue-emission)
+  - [EmitLValue Dispatch](#emitlvalue-dispatch)
+- [Aggregate Expressions](#aggregate-expressions)
+  - [AggExprEmitter::Visit](#aggexpremittervisit)
+  - [Union Initialization](#union-initialization)
+  - [Trivial vs Non-Trivial Aggregates](#trivial-vs-non-trivial-aggregates)
+- [Complex Numbers](#complex-numbers)
+  - [ComplexExprEmitter Layout and Arithmetic](#complexexpremitter-layout-and-arithmetic)
+  - [Complex Multiplication and Compiler Flags](#complex-multiplication-and-compiler-flags)
+- [C++ Expression Lowering](#c-expression-lowering)
+  - [CXXConstructExpr](#cxxconstructexpr)
+  - [CXXNewExpr: operator new + constructor](#cxxnewexpr-operator-new-constructor)
+  - [CXXDeleteExpr: destructor + operator delete](#cxxdeleteexpr-destructor-operator-delete)
+  - [CXXThrowExpr](#cxxthrowexpr)
+  - [LambdaExpr: Capture Struct Construction](#lambdaexpr-capture-struct-construction)
+  - [MaterializeTemporaryExpr and Lifetime Extension](#materializetemporaryexpr-and-lifetime-extension)
+- [Cleanups and Exception Handling in Codegen](#cleanups-and-exception-handling-in-codegen)
+  - [EHScopeStack Architecture](#ehscopestack-architecture)
+  - [RunCleanupsScope](#runcleanupsscope)
+  - [invoke vs call Selection](#invoke-vs-call-selection)
+  - [EmitReturnStmt and Cleanup Chains](#emitreturnstmt-and-cleanup-chains)
+- [Vector and Matrix Expressions](#vector-and-matrix-expressions)
+  - [Vector Type Element Access](#vector-type-element-access)
+  - [ExtVectorElementExpr and Swizzle](#extvectorelementexpr-and-swizzle)
+  - [Matrix Type Subscript](#matrix-type-subscript)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## Statement Visitor Dispatch
 
 ### EmitStmt and the Central Switch

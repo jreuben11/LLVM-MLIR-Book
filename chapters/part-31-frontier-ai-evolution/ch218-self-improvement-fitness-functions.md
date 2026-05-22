@@ -8,6 +8,55 @@ Cross-references: [Chapter 207 — Reflective Code, Open Problems, and Build Roa
 
 ---
 
+## Table of Contents
+
+- [218.1 The Oracle Problem](#2181-the-oracle-problem)
+  - [Formal Specification of "Improvement"](#formal-specification-of-improvement)
+  - [The Self-Referential Evaluation Problem](#the-self-referential-evaluation-problem)
+  - [Goodhart's Law and Proxy Drift](#goodharts-law-and-proxy-drift)
+- [218.2 Capability Probing as Self-Assessment](#2182-capability-probing-as-self-assessment)
+  - [Probing on Frozen Activations](#probing-on-frozen-activations)
+  - [Depth-Accuracy Profiles as Capability Maps](#depth-accuracy-profiles-as-capability-maps)
+  - [SAE Features as Capability Indicators](#sae-features-as-capability-indicators)
+- [218.3 Process Reward Models as Structured Fitness](#2183-process-reward-models-as-structured-fitness)
+  - [PRM800K: Per-Step Correctness Data](#prm800k-per-step-correctness-data)
+  - [Architecture and Training](#architecture-and-training)
+  - [PRM Scoring Loop](#prm-scoring-loop)
+  - [PRMs as Evolutionary Fitness](#prms-as-evolutionary-fitness)
+  - [Monte Carlo Tree Search with PRM Guidance](#monte-carlo-tree-search-with-prm-guidance)
+- [218.4 Self-Generated Fitness Signals](#2184-self-generated-fitness-signals)
+  - [Self-Play Adversarial Evaluation](#self-play-adversarial-evaluation)
+  - [The Self-Evaluation Loop](#the-self-evaluation-loop)
+  - [Capability Boundary Estimation](#capability-boundary-estimation)
+- [218.5 Dynamic Benchmark Generation and LiveBench](#2185-dynamic-benchmark-generation-and-livebench)
+  - [Benchmark Saturation and Contamination](#benchmark-saturation-and-contamination)
+  - [LiveBench Design Principles](#livebench-design-principles)
+  - [Model-Generated Evaluation](#model-generated-evaluation)
+- [218.6 Interpretability-as-Evaluation](#2186-interpretability-as-evaluation)
+  - [Comparing SAE Activations Before and After Modification](#comparing-sae-activations-before-and-after-modification)
+  - [Attribution Graphs as Capability Maps](#attribution-graphs-as-capability-maps)
+  - [Feature Sparsity as a Health Metric](#feature-sparsity-as-a-health-metric)
+- [218.7 Automated Capability Regression Testing](#2187-automated-capability-regression-testing)
+  - [Design of the Regression Suite](#design-of-the-regression-suite)
+  - [Running the Suite](#running-the-suite)
+  - [Connection to Verified Compilation](#connection-to-verified-compilation)
+- [218.8 Fitness Landscape Topology](#2188-fitness-landscape-topology)
+  - [Sharpness, Basin Width, and Generalisation](#sharpness-basin-width-and-generalisation)
+  - [Computing Loss Curvature](#computing-loss-curvature)
+  - [MAP-Elites and the Fitness Landscape](#map-elites-and-the-fitness-landscape)
+  - [Filter-Normalised Landscape Visualisation](#filter-normalised-landscape-visualisation)
+  - [Sharpness-Aware Minimisation as Fitness Regularisation](#sharpness-aware-minimisation-as-fitness-regularisation)
+- [218.9 Intrinsic vs Extrinsic Fitness](#2189-intrinsic-vs-extrinsic-fitness)
+  - [Hybrid Fitness](#hybrid-fitness)
+  - [The Bootstrapping Problem](#the-bootstrapping-problem)
+  - [Signal Aggregation and Calibration](#signal-aggregation-and-calibration)
+- [218.10 Synthesis: The Full Self-Improvement Loop](#21810-synthesis-the-full-self-improvement-loop)
+  - [Relationship to Self-Reflection](#relationship-to-self-reflection)
+  - [Open Problems](#open-problems)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 218.1 The Oracle Problem
 
 A fitness function is an oracle: given a candidate system, it returns a score that is supposed to rank candidates by quality. The oracle problem is that every feasible fitness function is, at best, a proxy for the capability you actually care about. That proxy relationship creates three compounding failure modes — underfitting, overfitting, and Goodhart drift — and no formal theory has closed all three simultaneously.

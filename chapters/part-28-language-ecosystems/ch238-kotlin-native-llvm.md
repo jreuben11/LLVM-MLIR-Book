@@ -6,6 +6,37 @@ Kotlin/Native compiles Kotlin source into native binaries — executables, share
 
 ---
 
+## Table of Contents
+
+- [238.1 KonanBackend, K2 FIR, and KonanTarget](#2381-konanbackend-k2-fir-and-konantarget)
+  - [K2 compiler pipeline](#k2-compiler-pipeline)
+  - [KonanTarget enum](#konantarget-enum)
+- [238.2 IR Lowerings, Interop, and LTO](#2382-ir-lowerings-interop-and-lto)
+  - [Kotlin IR lowering passes](#kotlin-ir-lowering-passes)
+  - [ModuleBitcodeOptimization and LTOBitcodeOptimization](#modulebitcodeoptimization-and-ltobitcodeoptimization)
+- [238.3 CodeGenerator.kt and the Custom LLVM Fork](#2383-codegeneratorkt-and-the-custom-llvm-fork)
+  - [Function attributes for K/N calling convention](#function-attributes-for-kn-calling-convention)
+- [238.4 Memory Manager: ARC/Freeze to Concurrent GC](#2384-memory-manager-arcfreeze-to-concurrent-gc)
+  - [Pre-1.7.20: Strict ARC with thread isolation](#pre-1720-strict-arc-with-thread-isolation)
+  - [1.7.20+: Concurrent mark-and-sweep GC](#1720-concurrent-mark-and-sweep-gc)
+- [238.5 GC Safepoints and Stack Maps](#2385-gc-safepoints-and-stack-maps)
+- [238.6 C Interop with cinterop Tool and .def Files](#2386-c-interop-with-cinterop-tool-and-def-files)
+  - [.def files](#def-files)
+  - [Using the interop library](#using-the-interop-library)
+  - [kotlinx.cinterop type hierarchy](#kotlinxcinterop-type-hierarchy)
+- [238.7 Objective-C and Swift Interop](#2387-objective-c-and-swift-interop)
+  - [Calling ObjC from Kotlin](#calling-objc-from-kotlin)
+  - [@ObjCName and @ExportObjCClass](#objcname-and-exportobjcclass)
+  - [Swift interop via generated headers](#swift-interop-via-generated-headers)
+- [238.8 KonanTarget Output Modes and XCFramework](#2388-konantarget-output-modes-and-xcframework)
+  - [Output modes via -produce flag](#output-modes-via-produce-flag)
+  - [XCFramework](#xcframework)
+  - [@CName for C-visible exports](#cname-for-c-visible-exports)
+  - [Debugging LLVM IR generation](#debugging-llvm-ir-generation)
+- [Summary](#summary)
+
+---
+
 ## 238.1 KonanBackend, K2 FIR, and KonanTarget
 
 ### K2 compiler pipeline

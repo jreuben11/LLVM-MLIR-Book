@@ -6,6 +6,40 @@ Every approach to ML-guided compilation faces the same fundamental problem: how 
 
 ---
 
+## Table of Contents
+
+- [223.1 The Verification-in-the-Loop Architecture](#2231-the-verification-in-the-loop-architecture)
+  - [Why Alive2 is Uniquely Suited as a Gate](#why-alive2-is-uniquely-suited-as-a-gate)
+  - [Comparison with RLHF](#comparison-with-rlhf)
+- [223.2 Alive2 as a Reward Signal](#2232-alive2-as-a-reward-signal)
+  - [The Refinement Relation as Binary Gate](#the-refinement-relation-as-binary-gate)
+  - [Reward Shaping Extensions](#reward-shaping-extensions)
+  - [Latency Constraint: Batching Z3 Calls](#latency-constraint-batching-z3-calls)
+- [223.3 The LLM-VeriOpt System (CGO 2026)](#2233-the-llm-veriopt-system-cgo-2026)
+  - [Architecture](#architecture)
+  - [Policy Model: Qwen-3B](#policy-model-qwen-3b)
+  - [Pass Vocabulary](#pass-vocabulary)
+  - [State Representation](#state-representation)
+  - [Training Results (CGO 2026)](#training-results-cgo-2026)
+- [223.4 Pass Ordering as an RL MDP](#2234-pass-ordering-as-an-rl-mdp)
+  - [Formal MDP Definition](#formal-mdp-definition)
+  - [The Sparse Reward Problem](#the-sparse-reward-problem)
+  - [PassManager as the Transition Function](#passmanager-as-the-transition-function)
+- [223.5 AlphaVerus: Tree Search for Verified Code Generation](#2235-alphaverus-tree-search-for-verified-code-generation)
+  - [Treefinement Algorithm](#treefinement-algorithm)
+  - [Application to LLVM IR Generation](#application-to-llvm-ir-generation)
+- [223.6 Integration with LLVM's CI](#2236-integration-with-llvms-ci)
+- [223.7 Extending to Verified Self-Modification](#2237-extending-to-verified-self-modification)
+  - [ResourceTracker Integration](#resourcetracker-integration)
+- [223.8 Practical Constraints and Open Problems](#2238-practical-constraints-and-open-problems)
+  - [Alive2 Coverage Gaps](#alive2-coverage-gaps)
+  - [Undefined Behaviour in Input IR](#undefined-behaviour-in-input-ir)
+  - [LLM Pass Vocabulary Limitations](#llm-pass-vocabulary-limitations)
+  - [Scalability: Whole-Program Alive2](#scalability-whole-program-alive2)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 223.1 The Verification-in-the-Loop Architecture
 
 The standard RL-for-compiler-optimization loop measures performance:

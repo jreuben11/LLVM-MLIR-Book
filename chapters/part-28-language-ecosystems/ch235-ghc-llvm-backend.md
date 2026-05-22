@@ -4,6 +4,38 @@
 
 The Glasgow Haskell Compiler (GHC) occupies a unique position in the LLVM ecosystem: it is the most elaborate example of a typed functional language compiling through LLVM IR, and the only production compiler that maintains rich type-theoretic structure (System FC coercion proofs) through multiple intermediate representations before erasing them at the LLVM boundary. GHC's `-fllvm` backend routes code through the LLVM optimizer instead of GHC's own native code generator (NCG), gaining access to LLVM's vectorizer, instruction combiner, and target-specific lowering—at the cost of longer compilation times. This chapter traces the full pipeline from Haskell source through GHC Core, STG, Cmm, and into LLVM IR, with particular attention to GHC's custom `ghccc` calling convention, the virtual register mapping, and the approach to precise garbage collection without LLVM's statepoint infrastructure.
 
+## Table of Contents
+
+- [235.1 The GHC Compilation Pipeline](#2351-the-ghc-compilation-pipeline)
+- [235.2 GHC Core and System FC](#2352-ghc-core-and-system-fc)
+  - [Coercion Proofs](#coercion-proofs)
+  - [Core Lint](#core-lint)
+  - [Key Core-to-Core Passes](#key-core-to-core-passes)
+- [235.3 The STG Machine](#2353-the-stg-machine)
+  - [STG Constructs](#stg-constructs)
+  - [Heap Allocation and Entry Conventions](#heap-allocation-and-entry-conventions)
+- [235.4 Cmm (C--)](#2354-cmm-c)
+  - [GenCmmDecl and CmmProc](#gencmmdecl-and-cmmproc)
+  - [Stack Layout in Cmm](#stack-layout-in-cmm)
+  - [SRT (Static Reference Table)](#srt-static-reference-table)
+- [235.5 LlvmCodeGen Module](#2355-llvmcodegen-module)
+  - [LlvmM Monad](#llvmm-monad)
+  - [LlvmType](#llvmtype)
+- [235.6 The `ghccc` Calling Convention](#2356-the-ghccc-calling-convention)
+  - [Virtual Register Mapping](#virtual-register-mapping)
+  - [Tail Calls](#tail-calls)
+- [235.7 GC Integration](#2357-gc-integration)
+  - [stgTBAA: Alias Analysis Metadata](#stgtbaa-alias-analysis-metadata)
+  - [Interaction with LLVM GC Features](#interaction-with-llvm-gc-features)
+- [235.8 `-fllvm` vs. the Native Code Generator](#2358-fllvm-vs-the-native-code-generator)
+  - [When `-fllvm` Wins](#when-fllvm-wins)
+  - [Supported LLVM Versions](#supported-llvm-versions)
+  - [Using `-fllvm`](#using-fllvm)
+  - [Debugging the LLVM Backend](#debugging-the-llvm-backend)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 235.1 The GHC Compilation Pipeline
 
 GHC transforms Haskell through a sequence of progressively lower-level intermediate representations:

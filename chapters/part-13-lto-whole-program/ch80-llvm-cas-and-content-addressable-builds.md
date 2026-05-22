@@ -4,6 +4,41 @@
 
 The LLVM Content-Addressable Store (llvm-cas) is an infrastructure layer for reproducible, hermetic, and incrementally-efficient builds. Rather than identifying build artifacts by file path and timestamp, CAS identifies them by their cryptographic hash — their **content address**. This approach enables sharing of identical artifacts across build machines and build sessions, safe parallel execution of compilation steps, and elimination of redundant recompilation when inputs have not changed. This chapter covers the CAS object model, integration with Clang for module reuse, the CASFS virtual filesystem, and the CAS plugin API.
 
+## Table of Contents
+
+- [80.1 Motivation: Problems with Path-Based Builds](#801-motivation-problems-with-path-based-builds)
+  - [80.1.1 Non-Determinism in Conventional Builds](#8011-non-determinism-in-conventional-builds)
+  - [80.1.2 Content-Addressable Storage](#8012-content-addressable-storage)
+- [80.2 The LLVM CAS Object Model](#802-the-llvm-cas-object-model)
+  - [80.2.1 CAS Objects](#8021-cas-objects)
+  - [80.2.2 The CASID](#8022-the-casid)
+  - [80.2.3 The On-Disk Store](#8023-the-on-disk-store)
+- [80.3 Integration with Clang: Module Reuse](#803-integration-with-clang-module-reuse)
+  - [80.3.1 C++ Module Caching](#8031-c-module-caching)
+  - [80.3.2 Action Cache](#8032-action-cache)
+- [80.4 CASFS: Hermetic Virtual Filesystem](#804-casfs-hermetic-virtual-filesystem)
+  - [80.4.1 The Problem: Implicit Inputs](#8041-the-problem-implicit-inputs)
+  - [80.4.2 CASFS: A Content-Addressed Filesystem View](#8042-casfs-a-content-addressed-filesystem-view)
+  - [80.4.3 Distributed Hermetic Builds](#8043-distributed-hermetic-builds)
+- [80.5 The CAS Plugin API](#805-the-cas-plugin-api)
+  - [80.5.1 Plugin Interface](#8051-plugin-interface)
+  - [80.5.2 LLVM CAS and Apple's Xcode](#8052-llvm-cas-and-apples-xcode)
+- [80.6 CAS in the Build Pipeline](#806-cas-in-the-build-pipeline)
+  - [80.6.1 Integration Points](#8061-integration-points)
+  - [80.6.2 Cache Statistics](#8062-cache-statistics)
+  - [80.6.3 Remote Cache Service](#8063-remote-cache-service)
+- [Reproducible Builds and Toolchain Supply-Chain Security](#reproducible-builds-and-toolchain-supply-chain-security)
+  - [The Trusting Trust Problem](#the-trusting-trust-problem)
+  - [Reproducibility Requirements for Compilers](#reproducibility-requirements-for-compilers)
+  - [SOURCE_DATE_EPOCH and Clang's Reproducibility Flags](#sourcedateepoch-and-clangs-reproducibility-flags)
+  - [llvm-cas as a Reproducibility Primitive](#llvm-cas-as-a-reproducibility-primitive)
+  - [Verifying Reproducibility: diffoscope](#verifying-reproducibility-diffoscope)
+  - [Bootstrappable Builds](#bootstrappable-builds)
+  - [SBOMs and Signed Toolchain Releases](#sboms-and-signed-toolchain-releases)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 80.1 Motivation: Problems with Path-Based Builds
 
 ### 80.1.1 Non-Determinism in Conventional Builds

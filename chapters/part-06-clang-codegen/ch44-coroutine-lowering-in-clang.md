@@ -6,6 +6,59 @@ C++20 coroutines introduce a suspension model that is fundamentally unlike any o
 
 ---
 
+## Table of Contents
+
+- [44.1 The C++20 Coroutine Model](#441-the-c20-coroutine-model)
+  - [44.1.1 The Promise Protocol](#4411-the-promise-protocol)
+  - [44.1.2 The Awaitable Protocol](#4412-the-awaitable-protocol)
+  - [44.1.3 The Coroutine Handle](#4413-the-coroutine-handle)
+- [44.2 Clang's Coroutine AST Nodes](#442-clangs-coroutine-ast-nodes)
+  - [44.2.1 CoroutineBodyStmt](#4421-coroutinebodystmt)
+  - [44.2.2 CoroutineSuspendExpr and Its Subclasses](#4422-coroutinesuspendexpr-and-its-subclasses)
+  - [44.2.3 CoreturnStmt](#4423-coreturnstmt)
+  - [44.2.4 Parameter Copies and Lifetime Safety](#4424-parameter-copies-and-lifetime-safety)
+- [44.3 Sema Coroutine Processing](#443-sema-coroutine-processing)
+  - [44.3.1 Marking the Function as a Coroutine](#4431-marking-the-function-as-a-coroutine)
+  - [44.3.2 Promise Type Lookup](#4432-promise-type-lookup)
+  - [44.3.3 Building the CoroutineBodyStmt](#4433-building-the-coroutinebodystmt)
+  - [44.3.4 await_transform Support](#4434-awaittransform-support)
+  - [44.3.5 The OpaqueValueExpr Binding](#4435-the-opaquevalueexpr-binding)
+- [44.4 Codegen Entry: EmitCoroutineBody()](#444-codegen-entry-emitcoroutinebody)
+  - [44.4.1 Phase 1: Prologue](#4441-phase-1-prologue)
+  - [44.4.2 Phase 2: Initial Suspend](#4442-phase-2-initial-suspend)
+  - [44.4.3 Phase 3: Body with Suspension Points](#4443-phase-3-body-with-suspension-points)
+  - [44.4.4 Phase 4: Final Suspend](#4444-phase-4-final-suspend)
+- [44.5 co_await Lowering](#445-coawait-lowering)
+  - [44.5.1 The Three-Way Branch](#4451-the-three-way-branch)
+  - [44.5.2 End-to-End: count_up Generator Walkthrough](#4452-end-to-end-countup-generator-walkthrough)
+  - [44.5.3 The await_suspend Wrapper](#4453-the-awaitsuspend-wrapper)
+  - [44.5.4 std::suspend_always and std::suspend_never](#4454-stdsuspendalways-and-stdsuspendnever)
+- [44.6 co_yield Lowering](#446-coyield-lowering)
+- [44.7 co_return Lowering](#447-coreturn-lowering)
+  - [44.7.1 Exception Handling Around the Body](#4471-exception-handling-around-the-body)
+- [44.8 The Coroutine Frame Before CoroSplit](#448-the-coroutine-frame-before-corosplit)
+- [44.9 CoroSplit and Resume/Destroy Functions](#449-corosplit-and-resumedestroy-functions)
+  - [44.9.1 Pass Infrastructure](#4491-pass-infrastructure)
+  - [44.9.2 Three Outlined Functions](#4492-three-outlined-functions)
+  - [44.9.3 The Resume Switch](#4493-the-resume-switch)
+- [44.10 Heap Allocation Elision Optimization (HALO)](#4410-heap-allocation-elision-optimization-halo)
+  - [44.10.1 Eligibility Conditions](#44101-eligibility-conditions)
+  - [44.10.2 When Elision Fails](#44102-when-elision-fails)
+  - [44.10.3 The .noalloc Variant and CoroAnnotationElide](#44103-the-noalloc-variant-and-coroannotationelide)
+- [44.11 Symmetric Transfer and std::generator](#4411-symmetric-transfer-and-stdgenerator)
+  - [44.11.1 Musttail Call Generation](#44111-musttail-call-generation)
+  - [44.11.2 std::generator](#44112-stdgenerator)
+- [44.12 Diagnostics and Restrictions](#4412-diagnostics-and-restrictions)
+  - [44.12.1 Structural Restrictions](#44121-structural-restrictions)
+  - [44.12.2 Promise Type Errors](#44122-promise-type-errors)
+  - [44.12.3 The [[clang::coro_return_type]] Attribute](#44123-the-clangcororeturntype-attribute)
+  - [44.12.4 -fcoro-aligned-allocation](#44124-fcoro-aligned-allocation)
+  - [44.12.5 Debugging Coroutines](#44125-debugging-coroutines)
+- [44.13 The Complete Pass Pipeline](#4413-the-complete-pass-pipeline)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 44.1 The C++20 Coroutine Model
 
 A function is a coroutine if its body contains at least one of `co_await`, `co_yield`, or `co_return`. The standard ([dcl.fct.def.coroutine]) specifies behavior through two interacting protocol families.

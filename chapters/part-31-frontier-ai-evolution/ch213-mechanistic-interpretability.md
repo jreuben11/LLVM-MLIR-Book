@@ -8,6 +8,49 @@ Cross-references: [Chapter 212 — Weights as Programming Substrate](ch212-weigh
 
 ---
 
+## Table of Contents
+
+- [213.1 Interpretability as Decompilation](#2131-interpretability-as-decompilation)
+- [213.2 The Superposition Hypothesis](#2132-the-superposition-hypothesis)
+  - [The Core Claim](#the-core-claim)
+  - [The Toy Model Demonstration](#the-toy-model-demonstration)
+  - [Register Allocation as an Analogy](#register-allocation-as-an-analogy)
+  - [Implications for Interpretability](#implications-for-interpretability)
+- [213.3 Sparse Autoencoders: Neural Decompilation](#2133-sparse-autoencoders-neural-decompilation)
+  - [Architecture](#architecture)
+  - [The Training Objective](#the-training-objective)
+  - [The `sae_lens` Library](#the-saelens-library)
+  - [What SAEs Find: The Feature Taxonomy](#what-saes-find-the-feature-taxonomy)
+- [213.4 Circuit Analysis](#2134-circuit-analysis)
+  - [The Residual Stream as Typed Dataflow Graph](#the-residual-stream-as-typed-dataflow-graph)
+  - [Q-K-V Decomposition and the OV/QK Circuits](#q-k-v-decomposition-and-the-ovqk-circuits)
+  - [The IOI Circuit: A Case Study in Reverse Engineering](#the-ioi-circuit-a-case-study-in-reverse-engineering)
+- [213.5 Activation Patching and Causal Tracing](#2135-activation-patching-and-causal-tracing)
+  - [The Core Operation](#the-core-operation)
+  - [ROME-Style Causal Tracing](#rome-style-causal-tracing)
+  - [TransformerLens: Surgical Access to the Residual Stream](#transformerlens-surgical-access-to-the-residual-stream)
+  - [Path Patching](#path-patching)
+- [213.6 nnsight: Remote and Large-Model Interventions](#2136-nnsight-remote-and-large-model-interventions)
+  - [Architecture](#architecture)
+  - [Remote Execution](#remote-execution)
+  - [Comparison with TransformerLens](#comparison-with-transformerlens)
+- [213.7 Attribution Graphs: Circuit Analysis at Scale](#2137-attribution-graphs-circuit-analysis-at-scale)
+  - [From Toy Models to Production Scale](#from-toy-models-to-production-scale)
+  - [Computing Attribution Scores](#computing-attribution-scores)
+  - [Feature Absorption and Cross-Layer Geometry](#feature-absorption-and-cross-layer-geometry)
+  - [Neuronpedia Integration](#neuronpedia-integration)
+- [213.8 Representation Engineering](#2138-representation-engineering)
+  - [Concept Vectors as Linear Directions](#concept-vectors-as-linear-directions)
+  - [Identifying Concept Directions](#identifying-concept-directions)
+  - [Steering vs Weight Editing](#steering-vs-weight-editing)
+  - [The Linear Representation Hypothesis at Scale](#the-linear-representation-hypothesis-at-scale)
+- [213.9 Interpretability as Capability Mapping](#2139-interpretability-as-capability-mapping)
+  - [The Capability Inventory](#the-capability-inventory)
+  - [Feedback into the Self-Improvement Loop](#feedback-into-the-self-improvement-loop)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 213.1 Interpretability as Decompilation
 
 A modern transformer trained on a trillion tokens is, in one sense, just a matrix multiplication pipeline. In another sense, it is the most compact encoding of a large fraction of human knowledge ever produced. The tension between these descriptions is not philosophical: it is the same tension that exists between a stripped x86 binary and the C++ source that produced it. The binary is semantically complete — it runs correctly — but its structure encodes nothing a human would call "intent". Recovery of that intent is the decompiler's job.

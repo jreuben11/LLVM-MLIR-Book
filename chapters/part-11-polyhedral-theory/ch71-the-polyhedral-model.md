@@ -4,6 +4,42 @@
 
 The polyhedral model is a mathematical framework for reasoning about programs whose control flow and memory accesses are expressible as affine functions of loop induction variables and symbolic constants. Within this model, a loop nest becomes a polyhedron (the iteration space), each array access becomes an affine map from iteration space to memory space, and the dependences between statements become integer relations between polyhedra. Transformations — loop tiling, fusion, interchange, parallelization — are legal changes to the iteration order that preserve all dependence relations. This chapter develops the polyhedral model rigorously: the Static Control Part (SCoP) abstraction, iteration spaces, access functions, dependence polyhedra, and the affine schedule space that encompasses all valid loop transformations.
 
+## Table of Contents
+
+- [71.1 The Static Control Part (SCoP)](#711-the-static-control-part-scop)
+  - [71.1.1 Definition](#7111-definition)
+  - [71.1.2 The Affine Restriction](#7112-the-affine-restriction)
+  - [71.1.3 SCoP Examples](#7113-scop-examples)
+- [71.2 Iteration Spaces as Polyhedra](#712-iteration-spaces-as-polyhedra)
+  - [71.2.1 The Iteration Space](#7121-the-iteration-space)
+  - [71.2.2 Parametric Polytopes](#7122-parametric-polytopes)
+  - [71.2.3 Multiple Statements](#7123-multiple-statements)
+- [71.3 Access Functions](#713-access-functions)
+  - [71.3.1 Definition](#7131-definition)
+  - [71.3.2 The Access Relation](#7132-the-access-relation)
+  - [71.3.3 Image Computation](#7133-image-computation)
+- [71.4 Dependence Analysis](#714-dependence-analysis)
+  - [71.4.1 Types of Dependences](#7141-types-of-dependences)
+  - [71.4.2 Dependence Polyhedra](#7142-dependence-polyhedra)
+  - [71.4.3 Exact vs. Approximate Dependences](#7143-exact-vs-approximate-dependences)
+  - [71.4.4 Dependence Distance Vectors](#7144-dependence-distance-vectors)
+- [71.5 The Affine Schedule Space](#715-the-affine-schedule-space)
+  - [71.5.1 Schedules](#7151-schedules)
+  - [71.5.2 Schedule Legality](#7152-schedule-legality)
+  - [71.5.3 The Affine Schedule Space](#7153-the-affine-schedule-space)
+  - [71.5.4 Multidimensional Schedules and Statement Order](#7154-multidimensional-schedules-and-statement-order)
+- [71.6 Transformations as Schedule Changes](#716-transformations-as-schedule-changes)
+  - [71.6.1 Loop Interchange](#7161-loop-interchange)
+  - [71.6.2 Loop Tiling](#7162-loop-tiling)
+  - [71.6.3 Loop Skewing](#7163-loop-skewing)
+  - [71.6.4 Loop Fusion and Distribution](#7164-loop-fusion-and-distribution)
+- [71.7 Parallelism and Tileability](#717-parallelism-and-tileability)
+  - [71.7.1 Parallelism Conditions](#7171-parallelism-conditions)
+  - [71.7.2 The Permutability Condition](#7172-the-permutability-condition)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 71.1 The Static Control Part (SCoP)
 
 ### 71.1.1 Definition

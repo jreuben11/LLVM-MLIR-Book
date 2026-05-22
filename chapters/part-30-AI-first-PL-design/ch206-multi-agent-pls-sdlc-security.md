@@ -8,6 +8,38 @@ Cross-references: [Chapter 203 — AI-First PL Principles](ch203-ai-first-pl-pri
 
 ---
 
+## Table of Contents
+
+- [206.1 Multi-Agent Coordination PLs](#2061-multi-agent-coordination-pls)
+  - [The Python Framework Gap](#the-python-framework-gap)
+  - [Five Architecturally Critical Design Properties](#five-architecturally-critical-design-properties)
+  - [Language Survey](#language-survey)
+  - [The Gap Table](#the-gap-table)
+- [206.2 AI-First SDLC and the Meta-PL](#2062-ai-first-sdlc-and-the-meta-pl)
+  - [Human-Centric Infrastructure](#human-centric-infrastructure)
+  - [Work Items as Formal Specifications](#work-items-as-formal-specifications)
+  - [Commits as Type-Context Deltas](#commits-as-type-context-deltas)
+  - [Deployment Manifests Derived from Types](#deployment-manifests-derived-from-types)
+  - [Proof-Gated CI/CD](#proof-gated-cicd)
+  - [Tool Profiles](#tool-profiles)
+- [206.3 Capability Safety and Information-Flow Types](#2063-capability-safety-and-information-flow-types)
+  - [Why Generated Code Needs a Security Layer](#why-generated-code-needs-a-security-layer)
+  - [Pony: Reference Capabilities for Data-Race-Free Concurrency](#pony-reference-capabilities-for-data-race-free-concurrency)
+  - [Principle A — No Ambient Authority (E Language)](#principle-a-no-ambient-authority-e-language)
+  - [Principle B — Information-Flow Labels as Types (Jif/DLM)](#principle-b-information-flow-labels-as-types-jifdlm)
+  - [Principle C — Level Polymorphism (Flow Caml)](#principle-c-level-polymorphism-flow-caml)
+  - [The Security Gap Table](#the-security-gap-table)
+- [206.4 Paradigm Failures Reconsidered](#2064-paradigm-failures-reconsidered)
+  - [The Canonical Failures at a Glance](#the-canonical-failures-at-a-glance)
+  - [1 — No Compilable Spec / "No Silver Bullet"](#1-no-compilable-spec-no-silver-bullet)
+  - [2 — No Round-Trip SRS → HLD → Code](#2-no-round-trip-srs-hld-code)
+  - [3 — Formal Methods → BDD: The Retreat Was Temporary](#3-formal-methods-bdd-the-retreat-was-temporary)
+  - [4 — UML Round-Trip: 14 Diagram Types, No Unified Semantics](#4-uml-round-trip-14-diagram-types-no-unified-semantics)
+  - [5 — KISS Reconsidered: Keep Invariants Simple, Statically Verified](#5-kiss-reconsidered-keep-invariants-simple-statically-verified)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 206.1 Multi-Agent Coordination PLs
 
 ### The Python Framework Gap

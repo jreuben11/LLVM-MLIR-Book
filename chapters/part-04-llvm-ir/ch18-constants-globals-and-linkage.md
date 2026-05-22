@@ -8,6 +8,48 @@ We begin with the constant hierarchy in memory (`ConstantExpr`, `ConstantData`, 
 
 ---
 
+## Table of Contents
+
+- [1. Constant Expressions and ConstantData](#1-constant-expressions-and-constantdata)
+  - [The `Value` Hierarchy for Constants](#the-value-hierarchy-for-constants)
+  - [`ConstantExpr`: Constant-Folded Expressions](#constantexpr-constant-folded-expressions)
+  - [`ConstantInt` and `APInt`](#constantint-and-apint)
+  - [`ConstantFP` and `APFloat`](#constantfp-and-apfloat)
+  - [Aggregate Constants](#aggregate-constants)
+- [2. Special Constants: `undef`, `poison`, and `zeroinitializer`](#2-special-constants-undef-poison-and-zeroinitializer)
+  - [`UndefValue`](#undefvalue)
+  - [`PoisonValue` and the `freeze` Instruction](#poisonvalue-and-the-freeze-instruction)
+- [3. Global Variables: Declarations, Definitions, and Properties](#3-global-variables-declarations-definitions-and-properties)
+  - [Syntax and Anatomy](#syntax-and-anatomy)
+  - [`isConstant()` and the `constant` Keyword](#isconstant-and-the-constant-keyword)
+  - [`hasInitializer()` vs. External Declarations](#hasinitializer-vs-external-declarations)
+  - [`unnamed_addr` and `local_unnamed_addr`](#unnamedaddr-and-localunnamedaddr)
+  - [Address Space, Section, and Alignment](#address-space-section-and-alignment)
+  - [Visibility: `default`, `hidden`, and `protected`](#visibility-default-hidden-and-protected)
+- [4. Aliases and Indirect Functions](#4-aliases-and-indirect-functions)
+  - [`GlobalAlias`](#globalalias)
+  - [`GlobalIFunc`](#globalifunc)
+- [5. Thread-Local Storage: The Four ELF TLS Models](#5-thread-local-storage-the-four-elf-tls-models)
+  - [The ELF TLS ABI Background](#the-elf-tls-abi-background)
+  - [General Dynamic (GD) — Default](#general-dynamic-gd-default)
+  - [Local Dynamic (LD)](#local-dynamic-ld)
+  - [Initial Executable (IE)](#initial-executable-ie)
+  - [Local Executable (LE) — Fastest](#local-executable-le-fastest)
+  - [TLS Model Selection Summary](#tls-model-selection-summary)
+- [6. The Full Linkage Taxonomy](#6-the-full-linkage-taxonomy)
+  - [Linkage Types Reference](#linkage-types-reference)
+  - [Details and ABI Implications](#details-and-abi-implications)
+- [7. `dso_local`, `dllimport`, and `dllexport`](#7-dsolocal-dllimport-and-dllexport)
+  - [`dso_local`](#dsolocal)
+  - [`dllimport` and `dllexport`](#dllimport-and-dllexport)
+- [8. Comdats](#8-comdats)
+  - [What Comdats Are](#what-comdats-are)
+  - [Comdat Selection Kinds](#comdat-selection-kinds)
+  - [C++ Use Cases in Detail](#c-use-cases-in-detail)
+- [9. Chapter Summary](#9-chapter-summary)
+
+---
+
 ## 1. Constant Expressions and ConstantData
 
 ### The `Value` Hierarchy for Constants

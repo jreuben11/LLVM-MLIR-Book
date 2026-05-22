@@ -6,6 +6,55 @@ The 32-bit ARM backend in LLVM spans the widest ISA diversity of any supported t
 
 ---
 
+## Table of Contents
+
+- [97.1 A32, Thumb, and Thumb-2 ISA Mix](#971-a32-thumb-and-thumb-2-isa-mix)
+  - [97.1.1 A32 (Classic ARM)](#9711-a32-classic-arm)
+  - [97.1.2 Thumb-1](#9712-thumb-1)
+  - [97.1.3 Thumb-2](#9713-thumb-2)
+  - [97.1.4 ISA Selection in ARMSubtarget](#9714-isa-selection-in-armsubtarget)
+- [97.2 Thumb Interworking](#972-thumb-interworking)
+  - [97.2.1 State Bit in the PC](#9721-state-bit-in-the-pc)
+  - [97.2.2 Interworking Veneers](#9722-interworking-veneers)
+  - [97.2.3 Function Pointer LSB](#9723-function-pointer-lsb)
+- [97.3 AAPCS Calling Convention](#973-aapcs-calling-convention)
+  - [97.3.1 Integer Arguments and Return](#9731-integer-arguments-and-return)
+  - [97.3.2 FP ABI Variants](#9732-fp-abi-variants)
+  - [97.3.3 Stack Alignment](#9733-stack-alignment)
+- [97.4 VFP and NEON Coprocessors](#974-vfp-and-neon-coprocessors)
+  - [97.4.1 VFP Register File](#9741-vfp-register-file)
+  - [97.4.2 NEON Advanced SIMD for A-Profile](#9742-neon-advanced-simd-for-a-profile)
+  - [97.4.3 NEON Intrinsics](#9743-neon-intrinsics)
+- [97.5 ARMv7-A vs ARMv7-M (Cortex-M) Constraints](#975-armv7-a-vs-armv7-m-cortex-m-constraints)
+  - [97.5.1 M-Profile Architecture Differences](#9751-m-profile-architecture-differences)
+  - [97.5.2 Cortex-M0/M0+](#9752-cortex-m0m0)
+  - [97.5.3 Cortex-M3 and M4](#9753-cortex-m3-and-m4)
+  - [97.5.4 Cortex-M7](#9754-cortex-m7)
+  - [97.5.5 NVIC and Exception Frame](#9755-nvic-and-exception-frame)
+- [97.6 arm-none-eabi Bare-Metal Toolchain](#976-arm-none-eabi-bare-metal-toolchain)
+  - [97.6.1 Startup and Linker Scripts](#9761-startup-and-linker-scripts)
+  - [97.6.2 Semihosting and Retargeting](#9762-semihosting-and-retargeting)
+  - [97.6.3 compiler-rt for Bare-Metal](#9763-compiler-rt-for-bare-metal)
+- [97.7 Frame Pointer Chains](#977-frame-pointer-chains)
+  - [97.7.1 R11 as Frame Pointer](#9771-r11-as-frame-pointer)
+  - [97.7.2 Frame Omission](#9772-frame-omission)
+- [97.8 Thumb-2 IT Blocks](#978-thumb-2-it-blocks)
+  - [97.8.1 IT Block Encoding](#9781-it-block-encoding)
+  - [97.8.2 ARMv8 Deprecation](#9782-armv8-deprecation)
+- [97.9 ARM SelectionDAG and GlobalISel Status](#979-arm-selectiondag-and-globalisel-status)
+  - [97.9.1 SelectionDAG Path](#9791-selectiondag-path)
+  - [97.9.2 LLVM Peephole and Combines](#9792-llvm-peephole-and-combines)
+  - [97.9.3 GlobalISel on ARM](#9793-globalisel-on-arm)
+- [97.10 Inline Assembly Constraints](#9710-inline-assembly-constraints)
+  - [97.10.1 Constraint Letters](#97101-constraint-letters)
+  - [97.10.2 Inline Assembly Examples](#97102-inline-assembly-examples)
+- [97.11 ARMv8-A AArch32 Mode](#9711-armv8-a-aarch32-mode)
+  - [97.11.1 Differences from ARMv7-A](#97111-differences-from-armv7-a)
+- [97.12 Scheduling Models](#9712-scheduling-models)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 97.1 A32, Thumb, and Thumb-2 ISA Mix
 
 ### 97.1.1 A32 (Classic ARM)

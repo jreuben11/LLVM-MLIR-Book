@@ -6,6 +6,28 @@ The Go toolchain from `golang.org/dl` compiles to a garbage-collected, goroutine
 
 ---
 
+## Table of Contents
+
+- [237.1 Design Goals and the go/ssa Frontend](#2371-design-goals-and-the-gossa-frontend)
+- [237.2 Compilation Pipeline: compiler.go to LLVM IR](#2372-compilation-pipeline-compilergo-to-llvm-ir)
+- [237.3 The go-llvm Wrapper and Custom DataLayout](#2373-the-go-llvm-wrapper-and-custom-datalayout)
+  - [Custom DataLayout per target](#custom-datalayout-per-target)
+- [237.4 Garbage Collector Options](#2374-garbage-collector-options)
+  - [Conservative GC internals](#conservative-gc-internals)
+  - [Precise GC internals](#precise-gc-internals)
+- [237.5 Goroutines as LLVM Coroutines](#2375-goroutines-as-llvm-coroutines)
+  - [Transformation pipeline](#transformation-pipeline)
+- [237.6 Interface Lowering](#2376-interface-lowering)
+- [237.7 Target JSON Files](#2377-target-json-files)
+- [237.8 Standard Library Subset, go:linkname, and FFI](#2378-standard-library-subset-golinkname-and-ffi)
+  - [stdlib subset](#stdlib-subset)
+  - [go:linkname for runtime intrinsics](#golinkname-for-runtime-intrinsics)
+  - [Exporting Go functions to C](#exporting-go-functions-to-c)
+  - [wasm_exec.js and WASI](#wasmexecjs-and-wasi)
+- [Summary](#summary)
+
+---
+
 ## 237.1 Design Goals and the go/ssa Frontend
 
 TinyGo is not a re-implementation of the Go specification from scratch. It reuses two major components of the standard Go toolchain:

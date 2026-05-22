@@ -6,6 +6,37 @@ PJRT (Pretty Just a Runtime — the acronym is self-deprecating) is XLA's device
 
 ---
 
+## Table of Contents
+
+- [157.1 PJRT Design Philosophy](#1571-pjrt-design-philosophy)
+- [157.2 PJRT Core Concepts](#1572-pjrt-core-concepts)
+  - [157.2.1 PjRtClient](#15721-pjrtclient)
+  - [157.2.2 PjRtDevice](#15722-pjrtdevice)
+  - [157.2.3 PjRtBuffer](#15723-pjrtbuffer)
+  - [157.2.4 PjRtLoadedExecutable](#15724-pjrtloadedexecutable)
+- [157.3 PJRT Plugin Model](#1573-pjrt-plugin-model)
+  - [157.3.1 Plugin Loading](#15731-plugin-loading)
+  - [157.3.2 Built-in Plugins](#15732-built-in-plugins)
+  - [157.3.3 Capability Versioning](#15733-capability-versioning)
+- [157.4 Compilation Flow](#1574-compilation-flow)
+  - [157.4.1 Compilation from MLIR](#15741-compilation-from-mlir)
+  - [157.4.2 Compilation from XlaComputation](#15742-compilation-from-xlacomputation)
+- [157.5 Buffer Management](#1575-buffer-management)
+  - [157.5.1 Host to Device Transfer](#15751-host-to-device-transfer)
+  - [157.5.2 Device to Host Transfer](#15752-device-to-host-transfer)
+  - [157.5.3 Cross-Device Copies](#15753-cross-device-copies)
+- [157.6 Execution](#1576-execution)
+  - [157.6.1 Single-Device Execution](#15761-single-device-execution)
+  - [157.6.2 Multi-Device SPMD Execution](#15762-multi-device-spmd-execution)
+- [157.7 IFRT: The Distributed Runtime Interface](#1577-ifrt-the-distributed-runtime-interface)
+  - [157.7.1 IFRT Concepts](#15771-ifrt-concepts)
+  - [157.7.2 JAX's Use of IFRT](#15772-jaxs-use-of-ifrt)
+- [157.8 Custom Call Integration with PJRT](#1578-custom-call-integration-with-pjrt)
+- [157.9 Performance Profiling via PJRT](#1579-performance-profiling-via-pjrt)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 157.1 PJRT Design Philosophy
 
 Before PJRT, adding a new hardware backend to JAX required modifying JAX itself and linking against the backend's proprietary C++ libraries. PJRT inverts this dependency: the framework defines a stable C API, and backends implement it. The framework loads the backend as a shared library at runtime.

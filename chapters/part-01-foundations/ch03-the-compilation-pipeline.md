@@ -6,6 +6,56 @@ Every compiler claim reduces to a question about some pipeline stage: "does the 
 
 ---
 
+## Table of Contents
+
+- [3.1 The Compilation Pipeline at 10,000 Feet](#31-the-compilation-pipeline-at-10000-feet)
+- [3.2 Tools and Their Roles](#32-tools-and-their-roles)
+  - [The clang Driver](#the-clang-driver)
+  - [cc1: The Real Compiler](#cc1-the-real-compiler)
+  - [opt](#opt)
+  - [llc](#llc)
+  - [llvm-as and llvm-dis](#llvm-as-and-llvm-dis)
+  - [lld](#lld)
+  - [llvm-link](#llvm-link)
+  - [llvm-ar](#llvm-ar)
+  - [mlir-opt and mlir-translate](#mlir-opt-and-mlir-translate)
+  - [lli](#lli)
+  - [llvm-mc](#llvm-mc)
+  - [Supporting Tools](#supporting-tools)
+- [3.3 The Driver and cc1: Peeling Back the Layers](#33-the-driver-and-cc1-peeling-back-the-layers)
+- [3.4 Observing Each Stage](#34-observing-each-stage)
+  - [Stage 0: Preprocessed Source](#stage-0-preprocessed-source)
+  - [Stage 1: The AST](#stage-1-the-ast)
+  - [Stage 2: LLVM IR (Unoptimised)](#stage-2-llvm-ir-unoptimised)
+  - [Stage 2b: Bitcode](#stage-2b-bitcode)
+  - [Stage 3: Optimised IR](#stage-3-optimised-ir)
+  - [Stage 4: MachineIR](#stage-4-machineir)
+  - [Stage 5: Assembly and Object Code](#stage-5-assembly-and-object-code)
+- [3.5 The C/C++ Pipeline in Detail](#35-the-cc-pipeline-in-detail)
+  - [Deferred Emission](#deferred-emission)
+  - [The `-save-temps` Flag](#the-save-temps-flag)
+- [3.6 LTO and ThinLTO Pipelines](#36-lto-and-thinlto-pipelines)
+  - [Monolithic LTO (`-flto`)](#monolithic-lto-flto)
+  - [ThinLTO (`-flto=thin`)](#thinlto-fltothin)
+  - [Monolithic vs ThinLTO: Which to Use](#monolithic-vs-thinlto-which-to-use)
+  - [Distributed ThinLTO](#distributed-thinlto)
+- [3.7 Offload Compilation: CUDA, HIP, OpenMP](#37-offload-compilation-cuda-hip-openmp)
+  - [The Single-Source Split](#the-single-source-split)
+  - [The New Offload Driver Model](#the-new-offload-driver-model)
+- [3.8 The MLIR and Flang Pipelines](#38-the-mlir-and-flang-pipelines)
+  - [The MLIR Pipeline](#the-mlir-pipeline)
+  - [MLIR Pass Pipelines: Structure and Debugging](#mlir-pass-pipelines-structure-and-debugging)
+  - [The Flang Pipeline](#the-flang-pipeline)
+- [3.9 JIT Compilation with ORC](#39-jit-compilation-with-orc)
+  - [ORC Architecture](#orc-architecture)
+  - [Lazy Compilation](#lazy-compilation)
+  - [The llvm-jitlink Tool](#the-llvm-jitlink-tool)
+  - [Language Runtime JIT Use Cases](#language-runtime-jit-use-cases)
+- [3.10 Intermediate Representations: A Comparative Summary](#310-intermediate-representations-a-comparative-summary)
+- [3.11 Chapter Summary](#311-chapter-summary)
+
+---
+
 ## 3.1 The Compilation Pipeline at 10,000 Feet
 
 The canonical C/C++ path through the LLVM toolchain traverses seven layers of representation. Two parallel paths exist for instruction selection: the classic SelectionDAG path and the newer GlobalISel path. The high-level picture:

@@ -6,6 +6,51 @@ Compiler verification demands a precise mathematical account of what programs me
 
 ---
 
+## Table of Contents
+
+- [167.1 Operational Semantics](#1671-operational-semantics)
+  - [Small-Step (Structural Operational Semantics)](#small-step-structural-operational-semantics)
+  - [Big-Step (Natural) Semantics](#big-step-natural-semantics)
+  - [Reduction Strategies](#reduction-strategies)
+  - [Progress and Preservation (Type Safety)](#progress-and-preservation-type-safety)
+  - [Labeled Transition Systems](#labeled-transition-systems)
+  - [Contextual Equivalence](#contextual-equivalence)
+- [167.2 Hoare Logic](#1672-hoare-logic)
+  - [Hoare Triples and Partial Correctness](#hoare-triples-and-partial-correctness)
+  - [Total Correctness](#total-correctness)
+  - [Weakest Preconditions](#weakest-preconditions)
+  - [The Frame Rule](#the-frame-rule)
+- [167.3 Separation Logic](#1673-separation-logic)
+  - [Points-To and Separating Conjunction](#points-to-and-separating-conjunction)
+  - [Magic Wand](#magic-wand)
+  - [Inductive Data Structures](#inductive-data-structures)
+  - [Soundness of the Frame Rule in Separation Logic](#soundness-of-the-frame-rule-in-separation-logic)
+  - [Bi-Abduction and Automated Verification](#bi-abduction-and-automated-verification)
+- [167.4 Concurrent Separation Logic](#1674-concurrent-separation-logic)
+  - [The Parallel Composition Rule](#the-parallel-composition-rule)
+  - [Ownership Transfer](#ownership-transfer)
+  - [Fractional Permissions](#fractional-permissions)
+  - [Iris: A Modern Concurrent Separation Logic](#iris-a-modern-concurrent-separation-logic)
+  - [RustBelt: Formal Semantics of Rust Ownership](#rustbelt-formal-semantics-of-rust-ownership)
+- [167.5 Bisimulation and Simulation](#1675-bisimulation-and-simulation)
+  - [Strong Bisimulation](#strong-bisimulation)
+  - [Weak Bisimulation](#weak-bisimulation)
+  - [Forward Simulation](#forward-simulation)
+  - [Backward Simulation](#backward-simulation)
+  - [Compiler Correctness as Simulation](#compiler-correctness-as-simulation)
+- [167.6 SMT Solvers in Compiler Verification](#1676-smt-solvers-in-compiler-verification)
+  - [SAT and SMT](#sat-and-smt)
+  - [Core Theories](#core-theories)
+  - [Primary SMT Solvers](#primary-smt-solvers)
+  - [LLVM IR Bitvector Semantics](#llvm-ir-bitvector-semantics)
+  - [Bounded Model Checking](#bounded-model-checking)
+  - [Alive2 and Z3](#alive2-and-z3)
+  - [Decision Procedures and Undecidability](#decision-procedures-and-undecidability)
+- [Chapter Summary](#chapter-summary)
+  - [References](#references)
+
+---
+
 ## 167.1 Operational Semantics
 
 Operational semantics defines the meaning of a program by specifying, precisely, how it executes. Unlike denotational semantics (which maps programs to mathematical objects) or axiomatic semantics (which uses logical assertions), operational semantics describes execution as a transition relation on configurations — pairs of a program fragment and a machine state. The resulting definition is executable, close to implementation intuitions, and well-suited to inductive proof techniques.

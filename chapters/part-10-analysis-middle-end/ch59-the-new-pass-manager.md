@@ -4,6 +4,27 @@
 
 LLVM's pass infrastructure evolved through two generations. The legacy pass manager (LPM) used virtual inheritance, explicit pass IDs, and a global pass registry that made composing passes complex and limited scheduling flexibility. The new pass manager (NPM), enabled by default since LLVM 13, replaces it with a value-semantics design: passes and analyses are plain C++ types with `run()` methods, and the manager owns them by value, enabling aggressive inlining and eliminating virtual dispatch on the hot path. This chapter explains the NPM's design, the `AnalysisManager` invalidation protocol, pipeline textual specification, instrumentation, and the `default<O3>` pipeline composition.
 
+## Table of Contents
+
+- [59.1 Design Philosophy](#591-design-philosophy)
+  - [59.1.1 IR Units](#5911-ir-units)
+- [59.2 Analysis Passes](#592-analysis-passes)
+  - [59.2.1 The `AnalysisInfoMixin`](#5921-the-analysisinfomixin)
+  - [59.2.2 Requesting Analyses](#5922-requesting-analyses)
+  - [59.2.3 `PreservedAnalyses`](#5923-preservedanalyses)
+  - [59.2.4 Analysis Invalidation](#5924-analysis-invalidation)
+- [59.3 Transform Passes](#593-transform-passes)
+- [59.4 Pass Adaptors](#594-pass-adaptors)
+- [59.5 `PassBuilder` and Pipeline Construction](#595-passbuilder-and-pipeline-construction)
+  - [59.5.1 Building Standard Pipelines](#5951-building-standard-pipelines)
+  - [59.5.2 Textual Pipeline Specification](#5952-textual-pipeline-specification)
+- [59.6 Pass Instrumentation](#596-pass-instrumentation)
+- [59.7 The Default<O3> Pipeline Internals](#597-the-defaulto3-pipeline-internals)
+- [59.8 The Legacy Pass Manager (LPM) Compatibility](#598-the-legacy-pass-manager-lpm-compatibility)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 59.1 Design Philosophy
 
 The NPM is built on one key insight from Sean Parent's "Inheritance Is The Base Class of Evil" talk: polymorphism through type erasure rather than inheritance. A pass is anything with a `run(IRUnit&, AnalysisManager&)` method. The `PassManager` type-erases it via a template:

@@ -4,6 +4,33 @@
 
 Code size is a critical metric in embedded systems, mobile applications, and any environment where instruction cache footprint determines performance. The Machine Outliner addresses code size by detecting repeated sequences of machine instructions across functions and replacing them with calls to a shared outlined function. Unlike IR-level function merging, the Machine Outliner operates after register allocation, where the exact instruction sequences are known, making its size estimates accurate and its transformations safe. This chapter covers the suffix tree algorithm used to find repeated sequences, the cost model for deciding what to outline, the per-target hooks that govern correctness, and the practical impact of outlining in AArch64 production code.
 
+## Table of Contents
+
+- [92.1 The Machine Outliner Pass](#921-the-machine-outliner-pass)
+  - [92.1.1 Pass Placement in the Pipeline](#9211-pass-placement-in-the-pipeline)
+  - [92.1.2 High-Level Algorithm](#9212-high-level-algorithm)
+- [92.2 Suffix Tree Construction](#922-suffix-tree-construction)
+  - [92.2.1 Instruction Tokenisation](#9221-instruction-tokenisation)
+  - [92.2.2 The Suffix Tree](#9222-the-suffix-tree)
+- [92.3 Candidate Selection](#923-candidate-selection)
+  - [92.3.1 Benefit Formula](#9231-benefit-formula)
+  - [92.3.2 Greedy Selection](#9232-greedy-selection)
+- [92.4 Target Hooks](#924-target-hooks)
+  - [92.4.1 MachineOutlinerInfo](#9241-machineoutlinerinfo)
+  - [92.4.2 getOutliningType](#9242-getoutliningtype)
+  - [92.4.3 buildOutlinedFrame](#9243-buildoutlinedframe)
+- [92.5 AArch64 Outlining](#925-aarch64-outlining)
+  - [92.5.1 Link Register Saving](#9251-link-register-saving)
+  - [92.5.2 BTI Landing Pads](#9252-bti-landing-pads)
+  - [92.5.3 PC-Relative Addressing Constraints](#9253-pc-relative-addressing-constraints)
+- [92.6 Size vs. Performance Trade-offs](#926-size-vs-performance-trade-offs)
+  - [92.6.1 Optimisation Level Integration](#9261-optimisation-level-integration)
+  - [92.6.2 Interaction with LTO](#9262-interaction-with-lto)
+  - [92.6.3 Interaction with Profile Data](#9263-interaction-with-profile-data)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 92.1 The Machine Outliner Pass
 
 `MachineOutliner` (`llvm/lib/CodeGen/MachineOutliner.cpp`) is a `ModuleMachinePass` — it operates on all `MachineFunction`s in a module simultaneously, since finding repeated sequences requires a global view. The pass runs after register allocation and frame lowering, so it sees the final physical register assignments and stack frame structure.

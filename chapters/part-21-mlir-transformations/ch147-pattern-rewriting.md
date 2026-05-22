@@ -6,6 +6,43 @@ Pattern rewriting is the primary mechanism through which MLIR transforms program
 
 ---
 
+## Table of Contents
+
+- [147.1 The Rewriting Model](#1471-the-rewriting-model)
+  - [Why pattern rewriting rather than explicit traversals?](#why-pattern-rewriting-rather-than-explicit-traversals)
+  - [Pattern benefit](#pattern-benefit)
+- [147.2 Writing a RewritePattern](#1472-writing-a-rewritepattern)
+  - [PatternRewriter mutation API](#patternrewriter-mutation-api)
+  - [Registering patterns](#registering-patterns)
+- [147.3 The Greedy Driver](#1473-the-greedy-driver)
+  - [Entry point](#entry-point)
+  - [GreedyRewriteConfig](#greedyrewriteconfig)
+  - [Worklist semantics](#worklist-semantics)
+  - [Strict mode](#strict-mode)
+- [147.4 Canonicalization](#1474-canonicalization)
+  - [The `fold` method](#the-fold-method)
+  - [Running canonicalization](#running-canonicalization)
+- [147.5 Pattern Matching Utilities](#1475-pattern-matching-utilities)
+  - [Scalar matchers](#scalar-matchers)
+  - [Recursive matchers](#recursive-matchers)
+  - [Tensor/vector matchers](#tensorvector-matchers)
+- [147.6 Region Inlining](#1476-region-inlining)
+  - [InlinerInterface](#inlinerinterface)
+  - [Running the inliner](#running-the-inliner)
+  - [Manual region inlining via PatternRewriter](#manual-region-inlining-via-patternrewriter)
+- [147.7 Debugging Patterns](#1477-debugging-patterns)
+  - [Debug flags](#debug-flags)
+  - [RewriterListener](#rewriterlistener)
+  - [Common mistakes](#common-mistakes)
+  - [Pattern benefit pitfalls](#pattern-benefit-pitfalls)
+- [147.8 Advanced Topics](#1478-advanced-topics)
+  - [Notifying the driver of external IR changes](#notifying-the-driver-of-external-ir-changes)
+  - [Pattern application to specific ops](#pattern-application-to-specific-ops)
+  - [Combining patterns with analyses](#combining-patterns-with-analyses)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 147.1 The Rewriting Model
 
 MLIR's transformation model treats the IR as a directed acyclic graph of operations connected by SSA def-use edges. A transformation identifies a subgraph matching some pattern and replaces it with a semantically equivalent subgraph. Repeating this process until no further patterns apply reaches a **fixpoint** representing the fully simplified or lowered program.

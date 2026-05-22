@@ -6,6 +6,60 @@ Julia achieves C-level performance in a dynamically typed language through a dec
 
 ---
 
+## Table of Contents
+
+- [193.1 The Specialization Model](#1931-the-specialization-model)
+  - [Type-Specialization on Demand](#type-specialization-on-demand)
+  - [MethodInstance Caching and Precompilation](#methodinstance-caching-and-precompilation)
+  - [The Four Introspection Macros](#the-four-introspection-macros)
+- [193.2 Julia's Intermediate Representation Levels](#1932-julias-intermediate-representation-levels)
+  - [Surface AST](#surface-ast)
+  - [Lowered IR (`Core.CodeInfo`)](#lowered-ir-corecodeinfo)
+  - [Typed IR](#typed-ir)
+  - [LLVM IR](#llvm-ir)
+- [193.3 Type Inference: Abstract Interpretation over the Type Lattice](#1933-type-inference-abstract-interpretation-over-the-type-lattice)
+  - [The Type Lattice](#the-type-lattice)
+  - [The Fixed-Point Algorithm](#the-fixed-point-algorithm)
+  - [Inter-Procedural Inference](#inter-procedural-inference)
+  - [Inference Caching and the World Age System](#inference-caching-and-the-world-age-system)
+- [193.4 Multiple Dispatch and Method Specialization](#1934-multiple-dispatch-and-method-specialization)
+  - [Method Tables and Dispatch](#method-tables-and-dispatch)
+  - [`@nospecialize` and `@specialize`](#nospecialize-and-specialize)
+  - [Method Ambiguity](#method-ambiguity)
+- [193.5 LLVM IR Generation in `src/codegen.cpp`](#1935-llvm-ir-generation-in-srccodegencpp)
+  - [The Code Generation Entry Point](#the-code-generation-entry-point)
+  - [Value Representation](#value-representation)
+  - [GC Root Placement and Statepoints](#gc-root-placement-and-statepoints)
+  - [The LLVM Context and Module](#the-llvm-context-and-module)
+- [193.6 The Julia GC](#1936-the-julia-gc)
+  - [Generational Architecture](#generational-architecture)
+  - [C Embedding API](#c-embedding-api)
+  - [Conservative vs. Precise Stack Scanning](#conservative-vs-precise-stack-scanning)
+- [193.7 GPU Compilation with GPUCompiler.jl](#1937-gpu-compilation-with-gpucompilerjl)
+  - [The Architecture](#the-architecture)
+  - [CUDA.jl and the `@cuda` Macro](#cudajl-and-the-cuda-macro)
+  - [GPU Constraints Enforced by GPUCompiler.jl](#gpu-constraints-enforced-by-gpucompilerjl)
+  - [ROCm, Metal, and KernelAbstractions.jl](#rocm-metal-and-kernelabstractionsjl)
+- [193.8 Performance Engineering](#1938-performance-engineering)
+  - [The Union-Splitting Optimization](#the-union-splitting-optimization)
+  - [Diagnosing Type Instability](#diagnosing-type-instability)
+  - [Loop Annotations](#loop-annotations)
+  - [StaticArrays.jl](#staticarraysjl)
+- [193.9 Automatic Differentiation at the IR Level](#1939-automatic-differentiation-at-the-ir-level)
+  - [Zygote.jl: Source-to-Source AD](#zygotejl-source-to-source-ad)
+  - [The `AbstractInterpreter` Interface](#the-abstractinterpreter-interface)
+  - [Enzyme.jl: LLVM-Level Differentiation](#enzymejl-llvm-level-differentiation)
+  - [Diffractor.jl](#diffractorjl)
+- [193.10 Julia's Relationship to the LLVM Ecosystem](#19310-julias-relationship-to-the-llvm-ecosystem)
+  - [The `@generated` Function Mechanism](#the-generated-function-mechanism)
+  - [What Julia Uses (and Doesn't Use)](#what-julia-uses-and-doesnt-use)
+  - [Custom LLVM Patches](#custom-llvm-patches)
+  - [Versioning and Stability](#versioning-and-stability)
+  - [Threading and the LLVM Context](#threading-and-the-llvm-context)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 193.1 The Specialization Model
 
 ### Type-Specialization on Demand

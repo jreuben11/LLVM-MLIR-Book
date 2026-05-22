@@ -4,6 +4,35 @@
 
 GraalVM is Oracle's polyglot virtual machine platform that unifies language implementation, JIT compilation, and ahead-of-time native compilation under a single framework. Its three pillars—the Graal JIT compiler written in Java, the Truffle language implementation framework, and SubstrateVM (Native Image)—enable a workflow where a language implementer writes a simple AST interpreter and receives an optimizing JIT, an ahead-of-time compiler, and interoperability with every other Truffle language at no extra cost. GraalVM's connection to LLVM is direct: Sulong executes LLVM bitcode on Truffle, making GraalVM a consumer of LLVM IR. This chapter covers the architecture of each layer, the mechanics of partial evaluation that makes Truffle fast, the closed-world assumption behind Native Image, and the Polyglot API that crosses language boundaries.
 
+## Table of Contents
+
+- [231.1 Architecture Overview](#2311-architecture-overview)
+- [231.2 Truffle Framework: AST Interpretation and Specialization](#2312-truffle-framework-ast-interpretation-and-specialization)
+  - [Node Specialization with @Specialization](#node-specialization-with-specialization)
+  - [Assumptions and Deoptimization](#assumptions-and-deoptimization)
+- [231.3 Partial Evaluation, Sea-of-Nodes IR, and JVMCI](#2313-partial-evaluation-sea-of-nodes-ir-and-jvmci)
+  - [Partial Evaluation Mechanics](#partial-evaluation-mechanics)
+  - [Sea-of-Nodes IR](#sea-of-nodes-ir)
+  - [JVMCI: Java-Level Compiler Interface](#jvmci-java-level-compiler-interface)
+- [231.4 SubstrateVM and Native Image](#2314-substratevm-and-native-image)
+  - [Build-Time Pipeline](#build-time-pipeline)
+  - [Points-to Analysis](#points-to-analysis)
+  - [Heap Snapshotting](#heap-snapshotting)
+  - [Limitations](#limitations)
+- [231.5 Building a Language on Truffle](#2315-building-a-language-on-truffle)
+  - [Frame Layout](#frame-layout)
+- [231.6 GraalPy, TruffleRuby, GraalJS](#2316-graalpy-truffleruby-graaljs)
+  - [Performance Characteristics](#performance-characteristics)
+- [231.7 Polyglot API: Cross-Language Interoperability](#2317-polyglot-api-cross-language-interoperability)
+  - [Interop Protocol](#interop-protocol)
+- [231.8 Sulong: LLVM Bitcode on Truffle](#2318-sulong-llvm-bitcode-on-truffle)
+  - [How Sulong Works](#how-sulong-works)
+  - [Running LLVM Bitcode](#running-llvm-bitcode)
+  - [Memory and Pointer Model](#memory-and-pointer-model)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 231.1 Architecture Overview
 
 GraalVM Community Edition ([github.com/oracle/graal](https://github.com/oracle/graal)) stacks four layers:

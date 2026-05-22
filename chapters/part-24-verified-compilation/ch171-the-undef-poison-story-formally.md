@@ -6,6 +6,45 @@ No aspect of LLVM IR semantics has generated more confusion, more bugs, and more
 
 ---
 
+## Table of Contents
+
+- [171.1 Why Undef Exists](#1711-why-undef-exists)
+  - [The Optimization Motivation](#the-optimization-motivation)
+  - [Pre-LLVM-10 Design](#pre-llvm-10-design)
+- [171.2 The `undef` Semantics](#1712-the-undef-semantics)
+  - [The Formal Model](#the-formal-model)
+  - [The Core Problem: Non-Compositionality](#the-core-problem-non-compositionality)
+  - [What "Freeze-Free" Undef Enables and Breaks](#what-freeze-free-undef-enables-and-breaks)
+- [171.3 The `poison` Value](#1713-the-poison-value)
+  - [The Design of Poison](#the-design-of-poison)
+  - [When Poison Is Produced](#when-poison-is-produced)
+  - [When Poison Triggers UB](#when-poison-triggers-ub)
+  - [Poison Propagation](#poison-propagation)
+  - [Compositionality of Poison](#compositionality-of-poison)
+- [171.4 The `freeze` Instruction](#1714-the-freeze-instruction)
+  - [The Problem with Undef/Poison in Loop Optimization](#the-problem-with-undefpoison-in-loop-optimization)
+  - [Freeze Semantics](#freeze-semantics)
+  - [freeze in Practice](#freeze-in-practice)
+  - [C++ API for freeze](#c-api-for-freeze)
+- [171.5 The Historical Evolution](#1715-the-historical-evolution)
+  - [Pre-LLVM-10: The Wild West](#pre-llvm-10-the-wild-west)
+  - [LLVM 10–12: The Migration](#llvm-1012-the-migration)
+  - [LLVM 13+: The Settled State](#llvm-13-the-settled-state)
+- [171.6 Formal Models](#1716-formal-models)
+  - [Lee et al. (PLDI 2017): Taming Undefined Behavior in LLVM](#lee-et-al-pldi-2017-taming-undefined-behavior-in-llvm)
+  - [Alive2 Encoding](#alive2-encoding)
+  - [Vellvm's UVALUE/DVALUE](#vellvms-uvaluedvalue)
+- [171.7 Practical Implications for Pass Authors](#1717-practical-implications-for-pass-authors)
+  - [Producing Poison vs. Undef](#producing-poison-vs-undef)
+  - [When to Use freeze](#when-to-use-freeze)
+  - [The `noundef` Attribute](#the-noundef-attribute)
+  - [Freeze in the C++ API](#freeze-in-the-c-api)
+  - [Summary of UB Taxonomy in LLVM IR](#summary-of-ub-taxonomy-in-llvm-ir)
+- [Chapter Summary](#chapter-summary)
+  - [References](#references)
+
+---
+
 ## 171.1 Why Undef Exists
 
 ### The Optimization Motivation

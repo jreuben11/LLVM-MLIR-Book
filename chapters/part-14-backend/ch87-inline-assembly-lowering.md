@@ -4,6 +4,51 @@
 
 Inline assembly is the escape hatch that allows C and C++ programmers to embed target-specific instructions directly in source code. From the compiler's perspective, inline assembly is a challenge: the compiler must parse constraint strings, assign registers, respect clobbers, thread memory ordering, and ultimately emit the assembly text through the integrated assembler — all without being able to reason about the semantics of the embedded instructions themselves. This chapter traces the full path from an `asm` statement in LLVM IR through constraint parsing, the `ISD::INLINEASM` DAG node, the `INLINEASM` MachineInstr encoding, clobber handling, and final emission through the MC layer.
 
+## Table of Contents
+
+- [87.1 Inline Assembly in LLVM IR](#871-inline-assembly-in-llvm-ir)
+  - [87.1.1 The IR Representation](#8711-the-ir-representation)
+  - [87.1.2 Constraint String Syntax](#8712-constraint-string-syntax)
+- [87.2 SelectionDAGBuilder: Building the INLINEASM Node](#872-selectiondagbuilder-building-the-inlineasm-node)
+  - [87.2.1 visitInlineAsm](#8721-visitinlineasm)
+  - [87.2.2 ParseConstraints](#8722-parseconstraints)
+  - [87.2.3 Constraint → Register Class Mapping](#8723-constraint-register-class-mapping)
+- [87.3 The ISD::INLINEASM DAG Node](#873-the-isdinlineasm-dag-node)
+  - [87.3.1 Node Structure](#8731-node-structure)
+  - [87.3.2 Memory Constraint Representation](#8732-memory-constraint-representation)
+  - [87.3.3 Tied Operands](#8733-tied-operands)
+- [87.4 The INLINEASM MachineInstr](#874-the-inlineasm-machineinstr)
+  - [87.4.1 From SDNode to MachineInstr](#8741-from-sdnode-to-machineinstr)
+  - [87.4.2 Register Allocation and INLINEASM](#8742-register-allocation-and-inlineasm)
+  - [87.4.3 Dumping INLINEASM MachineInstrs](#8743-dumping-inlineasm-machineinstrs)
+- [87.5 Clobbers](#875-clobbers)
+  - [87.5.1 Register Clobbers](#8751-register-clobbers)
+  - [87.5.2 The "memory" Clobber](#8752-the-memory-clobber)
+  - [87.5.3 The "cc" (Condition Code) Clobber](#8753-the-cc-condition-code-clobber)
+- [87.6 Constraint Enforcement: TwoAddressInstruction](#876-constraint-enforcement-twoaddressinstruction)
+  - [87.6.1 Tied Operand Coalescing](#8761-tied-operand-coalescing)
+  - [87.6.2 Early-Clobber Operands](#8762-early-clobber-operands)
+- [87.7 MC Layer: From MachineInstr to Emitted Text](#877-mc-layer-from-machineinstr-to-emitted-text)
+  - [87.7.1 AsmPrinter and Inline Asm](#8771-asmprinter-and-inline-asm)
+  - [87.7.2 Operand Substitution](#8772-operand-substitution)
+  - [87.7.3 The Integrated Assembler](#8773-the-integrated-assembler)
+  - [87.7.4 Inline Asm in Object Files](#8774-inline-asm-in-object-files)
+- [87.8 MS-Style Inline Assembly](#878-ms-style-inline-assembly)
+  - [87.8.1 Intel Dialect](#8781-intel-dialect)
+  - [87.8.2 MS-Style Named Output Operands](#8782-ms-style-named-output-operands)
+  - [87.8.3 Parsing MS-Style Asm in Clang](#8783-parsing-ms-style-asm-in-clang)
+- [87.9 Debugging Inline Assembly](#879-debugging-inline-assembly)
+  - [87.9.1 Printing the INLINEASM MachineInstr](#8791-printing-the-inlineasm-machineinstr)
+  - [87.9.2 Inspecting the INLINEASM DAG Node](#8792-inspecting-the-inlineasm-dag-node)
+  - [87.9.3 Constraint Verification](#8793-constraint-verification)
+  - [87.9.4 End-to-End Example](#8794-end-to-end-example)
+- [87.10 The asm goto Extension](#8710-the-asm-goto-extension)
+  - [87.10.1 ISD::INLINEASM_BR](#87101-isdinlineasmbr)
+  - [87.10.2 Indirect Branch Operands](#87102-indirect-branch-operands)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 87.1 Inline Assembly in LLVM IR
 
 ### 87.1.1 The IR Representation

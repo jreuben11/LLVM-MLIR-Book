@@ -4,6 +4,30 @@
 
 The LLVM target description is the C++ infrastructure that connects the TableGen-generated tables to the backend optimization and code generation passes. It consists of three main C++ classes — `TargetMachine`, `TargetSubtargetInfo`, and `TargetLowering` — plus the register class infrastructure, instruction info tables, calling convention machinery, and scheduling models. This chapter covers each component, its role in the backend pipeline, and the key APIs that pass authors interact with.
 
+## Table of Contents
+
+- [83.1 TargetMachine](#831-targetmachine)
+  - [83.1.1 Overview](#8311-overview)
+  - [83.1.2 Per-Function Subtarget](#8312-per-function-subtarget)
+- [83.2 TargetSubtargetInfo](#832-targetsubtargetinfo)
+- [83.3 TargetLowering](#833-targetlowering)
+  - [83.3.1 Operation and Type Actions](#8331-operation-and-type-actions)
+  - [83.3.2 LowerOperation](#8332-loweroperation)
+  - [83.3.3 Calling Convention Lowering](#8333-calling-convention-lowering)
+  - [83.3.4 FastISel](#8334-fastisel)
+- [83.4 Register Classes](#834-register-classes)
+  - [83.4.1 RegisterClass Definition](#8341-registerclass-definition)
+  - [83.4.2 Register Banks](#8342-register-banks)
+- [83.5 SchedMachineModel and Instruction Itineraries](#835-schedmachinemodel-and-instruction-itineraries)
+  - [83.5.1 The Scheduling Model](#8351-the-scheduling-model)
+  - [83.5.2 Instruction Itineraries (Legacy)](#8352-instruction-itineraries-legacy)
+- [83.6 Predicates and Features](#836-predicates-and-features)
+  - [83.6.1 SubtargetFeature](#8361-subtargetfeature)
+  - [83.6.2 Function-Level Feature Override](#8362-function-level-feature-override)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 83.1 TargetMachine
 
 ### 83.1.1 Overview

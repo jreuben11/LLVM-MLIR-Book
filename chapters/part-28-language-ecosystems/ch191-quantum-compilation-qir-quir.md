@@ -8,6 +8,55 @@ Readers should be comfortable with LLVM IR ([Chapter 20 — Instructions II — 
 
 ---
 
+## Table of Contents
+
+- [191.1 The Quantum Compilation Stack](#1911-the-quantum-compilation-stack)
+  - [191.1.1 The Unique Constraints](#19111-the-unique-constraints)
+  - [191.1.2 The Compilation Pipeline](#19112-the-compilation-pipeline)
+- [191.2 QIR — Quantum Intermediate Representation](#1912-qir-quantum-intermediate-representation)
+  - [191.2.1 Design Philosophy](#19121-design-philosophy)
+  - [191.2.2 Opaque Types: `%Qubit` and `%Result`](#19122-opaque-types-qubit-and-result)
+  - [191.2.3 Quantum Operations as LLVM Externals](#19123-quantum-operations-as-llvm-externals)
+  - [191.2.4 Bell State in QIR](#19124-bell-state-in-qir)
+  - [191.2.5 Adaptive QIR Profile](#19125-adaptive-qir-profile)
+- [191.3 OpenQASM 3](#1913-openqasm-3)
+  - [191.3.1 Language Overview](#19131-language-overview)
+  - [191.3.2 Bell State in OpenQASM 3](#19132-bell-state-in-openqasm-3)
+  - [191.3.3 Pulse-Level Calibration with `defcal`](#19133-pulse-level-calibration-with-defcal)
+- [191.4 QUIR — Quantum Unified IR](#1914-quir-quantum-unified-ir)
+  - [191.4.1 Architecture](#19141-architecture)
+  - [191.4.2 The `quir` Dialect](#19142-the-quir-dialect)
+  - [191.4.3 Timing Types](#19143-timing-types)
+  - [191.4.4 Role in the Qiskit Runtime Pipeline](#19144-role-in-the-qiskit-runtime-pipeline)
+- [191.5 Catalyst: PennyLane's MLIR Stack](#1915-catalyst-pennylanes-mlir-stack)
+  - [191.5.1 Design Goals](#19151-design-goals)
+  - [191.5.2 The `quantum` Dialect](#19152-the-quantum-dialect)
+  - [191.5.3 Gradient Dialects and Differentiation Methods](#19153-gradient-dialects-and-differentiation-methods)
+  - [191.5.4 Execution Path](#19154-execution-path)
+  - [191.5.5 Other MLIR Quantum Research Dialects](#19155-other-mlir-quantum-research-dialects)
+- [191.6 Comparison: QIR, QUIR, and Catalyst](#1916-comparison-qir-quir-and-catalyst)
+- [191.7 Circuit Optimization](#1917-circuit-optimization)
+  - [191.7.1 The Clifford+T Gate Set](#19171-the-cliffordt-gate-set)
+  - [191.7.2 T-Count Minimization](#19172-t-count-minimization)
+  - [191.7.3 ZX-Calculus](#19173-zx-calculus)
+  - [191.7.4 The Solovay-Kitaev Theorem](#19174-the-solovay-kitaev-theorem)
+- [191.8 Physical Qubit Mapping and Routing](#1918-physical-qubit-mapping-and-routing)
+  - [191.8.1 Connectivity Constraints by Platform](#19181-connectivity-constraints-by-platform)
+  - [191.8.2 SWAP Insertion: SABRE Algorithm](#19182-swap-insertion-sabre-algorithm)
+  - [191.8.3 TKET Routing](#19183-tket-routing)
+- [191.9 Error Correction and Fault Tolerance](#1919-error-correction-and-fault-tolerance)
+  - [191.9.1 Logical vs Physical Qubits](#19191-logical-vs-physical-qubits)
+  - [191.9.2 The Surface Code](#19192-the-surface-code)
+  - [191.9.3 The T-Factory](#19193-the-t-factory)
+  - [191.9.4 Topological Qubit Approach](#19194-topological-qubit-approach)
+- [191.10 Backend Targets and Simulation](#19110-backend-targets-and-simulation)
+  - [191.10.1 Hardware Backends](#191101-hardware-backends)
+  - [191.10.2 Simulation](#191102-simulation)
+- [191.11 ZX-Calculus as Categorical Rewriting](#19111-zx-calculus-as-categorical-rewriting)
+- [191.12 Chapter Summary](#19112-chapter-summary)
+
+---
+
 ## 191.1 The Quantum Compilation Stack
 
 ### 191.1.1 The Unique Constraints

@@ -6,6 +6,44 @@ Writing MLIR passes, dialect implementations, and lowering pipelines requires fl
 
 ---
 
+## Table of Contents
+
+- [134.1 Context and Dialects](#1341-context-and-dialects)
+  - [MLIRContext](#mlircontext)
+  - [Accessing the Context](#accessing-the-context)
+- [134.2 Building Operations with OpBuilder](#1342-building-operations-with-opbuilder)
+  - [OpBuilder Basics](#opbuilder-basics)
+  - [Setting the Insertion Point](#setting-the-insertion-point)
+  - [Creating Operations](#creating-operations)
+  - [Builder Block/Region Creation](#builder-blockregion-creation)
+- [134.3 Module and Function Creation](#1343-module-and-function-creation)
+  - [Building a Module from Scratch](#building-a-module-from-scratch)
+- [134.4 Type and Attribute Construction](#1344-type-and-attribute-construction)
+  - [Common Type Builders](#common-type-builders)
+  - [Common Attribute Builders](#common-attribute-builders)
+  - [Setting Attributes on an Op](#setting-attributes-on-an-op)
+- [134.5 Pattern Rewriting API](#1345-pattern-rewriting-api)
+  - [RewritePatternSet and PatternRewriter](#rewritepatternset-and-patternrewriter)
+  - [Registering and Applying Patterns](#registering-and-applying-patterns)
+  - [PatternRewriter Operations](#patternrewriter-operations)
+  - [ConversionPattern and Dialect Conversion](#conversionpattern-and-dialect-conversion)
+- [134.6 Pass Infrastructure API](#1346-pass-infrastructure-api)
+  - [PassManager](#passmanager)
+  - [Writing a Pass](#writing-a-pass)
+  - [Pass Options](#pass-options)
+  - [Pipeline Specification Strings](#pipeline-specification-strings)
+- [134.7 Walking and Visitors](#1347-walking-and-visitors)
+  - [Walk API](#walk-api)
+  - [Dominator and Use-Def Traversal](#dominator-and-use-def-traversal)
+- [134.8 The mlir-opt Tool](#1348-the-mlir-opt-tool)
+  - [Basic Usage](#basic-usage)
+  - [FileCheck Testing with mlir-opt](#filecheck-testing-with-mlir-opt)
+  - [Translating to LLVM IR](#translating-to-llvm-ir)
+- [134.9 Diagnostics](#1349-diagnostics)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 134.1 Context and Dialects
 
 ### MLIRContext

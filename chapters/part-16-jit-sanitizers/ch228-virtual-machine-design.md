@@ -6,6 +6,61 @@ A virtual machine is a software interpreter that executes programs expressed in 
 
 ---
 
+## Table of Contents
+
+- [228.1 Stack VM vs Register VM](#2281-stack-vm-vs-register-vm)
+  - [Stack-Based Architecture](#stack-based-architecture)
+  - [Register-Based Architecture](#register-based-architecture)
+  - [The Instruction Count Trade-off](#the-instruction-count-trade-off)
+- [228.2 Bytecode Instruction Set Design](#2282-bytecode-instruction-set-design)
+  - [Opcode Width and Encoding](#opcode-width-and-encoding)
+  - [Constant Pool](#constant-pool)
+  - [Superinstructions](#superinstructions)
+- [228.3 Interpreter Dispatch Strategies](#2283-interpreter-dispatch-strategies)
+  - [Switch Dispatch](#switch-dispatch)
+  - [Computed Goto / Direct Threading](#computed-goto-direct-threading)
+  - [Indirect Threading](#indirect-threading)
+  - [Copy-and-Patch JIT (CPython 3.13)](#copy-and-patch-jit-cpython-313)
+- [228.4 Object Representation and Memory Layout](#2284-object-representation-and-memory-layout)
+  - [Tagged Pointers](#tagged-pointers)
+  - [NaN-Boxing](#nan-boxing)
+  - [Object Header Word](#object-header-word)
+  - [Hidden Classes (Shapes)](#hidden-classes-shapes)
+- [228.5 Garbage Collection Strategies](#2285-garbage-collection-strategies)
+  - [Mark-Sweep](#mark-sweep)
+  - [Semi-Space Copying](#semi-space-copying)
+  - [Generational GC](#generational-gc)
+  - [Tri-Color Concurrent Marking](#tri-color-concurrent-marking)
+  - [Reference Counting with Cycle Collection](#reference-counting-with-cycle-collection)
+- [228.6 GC Roots and Precise vs Conservative Scanning](#2286-gc-roots-and-precise-vs-conservative-scanning)
+  - [Precise Scanning](#precise-scanning)
+  - [Conservative Scanning](#conservative-scanning)
+  - [Safepoints](#safepoints)
+- [228.7 Method Dispatch and Polymorphic Inline Caches](#2287-method-dispatch-and-polymorphic-inline-caches)
+  - [Virtual Dispatch via Vtable](#virtual-dispatch-via-vtable)
+  - [Polymorphic Inline Cache](#polymorphic-inline-cache)
+  - [`invokedynamic` and Method Handles (JVM)](#invokedynamic-and-method-handles-jvm)
+- [228.8 Frame Layout and Calling Conventions for Interpreted Code](#2288-frame-layout-and-calling-conventions-for-interpreted-code)
+  - [Interpreter Frame Structure](#interpreter-frame-structure)
+  - [CPython Frame Evolution](#cpython-frame-evolution)
+  - [Coexistence of JIT and Interpreted Frames](#coexistence-of-jit-and-interpreted-frames)
+- [228.9 Connecting the Interpreter to ORC JIT for Tiered Compilation](#2289-connecting-the-interpreter-to-orc-jit-for-tiered-compilation)
+  - [The Tiering Architecture](#the-tiering-architecture)
+  - [Call Count Instrumentation](#call-count-instrumentation)
+  - [Emitting LLVM IR from the Interpreter's IR](#emitting-llvm-ir-from-the-interpreters-ir)
+  - [Loading into ORC and Redirecting](#loading-into-orc-and-redirecting)
+  - [Per-Function vs Tracing JIT](#per-function-vs-tracing-jit)
+- [228.10 Reference VM Architectures](#22810-reference-vm-architectures)
+  - [CPython](#cpython)
+  - [Lua 5.4](#lua-54)
+  - [Ruby YARV](#ruby-yarv)
+  - [HotSpot JVM](#hotspot-jvm)
+  - [SpiderMonkey](#spidermonkey)
+  - [Comparison Table](#comparison-table)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 228.1 Stack VM vs Register VM
 
 The fundamental architectural choice is where operands live during evaluation.

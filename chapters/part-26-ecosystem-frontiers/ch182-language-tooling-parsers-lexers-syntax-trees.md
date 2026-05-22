@@ -8,6 +8,33 @@ This chapter maps the Rust-centric lexing and parsing ecosystem, alongside ANTLR
 
 ---
 
+## Table of Contents
+
+- [182.1 The Tooling-vs-Compilation Axis](#1821-the-tooling-vs-compilation-axis)
+- [182.2 Logos: Lexer Generation in Rust](#1822-logos-lexer-generation-in-rust)
+- [182.3 PEG Parsers](#1823-peg-parsers)
+  - [Pest: Grammar Files with a Rich Visitor API](#pest-grammar-files-with-a-rich-visitor-api)
+  - [peg: Inline PEG via proc-macro](#peg-inline-peg-via-proc-macro)
+  - [pom: Operator-Overloaded Combinators](#pom-operator-overloaded-combinators)
+- [182.4 Parser Combinators](#1824-parser-combinators)
+  - [Winnow: High-Performance Parsing with Structured Errors](#winnow-high-performance-parsing-with-structured-errors)
+  - [combine: Parsec-Style Streaming Combinators](#combine-parsec-style-streaming-combinators)
+  - [chumsky: Rich Error Recovery and Built-in Pratt Parsing](#chumsky-rich-error-recovery-and-built-in-pratt-parsing)
+- [182.5 LR and LL Parser Generators](#1825-lr-and-ll-parser-generators)
+  - [LALRPOP: Grammar-First LR Parsing in Rust](#lalrpop-grammar-first-lr-parsing-in-rust)
+  - [Parol: LL(k)/LALR Hybrid](#parol-llklalr-hybrid)
+  - [Grmtools: YACC-Compatible LR Parsing](#grmtools-yacc-compatible-lr-parsing)
+- [182.6 Lossless Syntax Trees: Rowan](#1826-lossless-syntax-trees-rowan)
+- [182.7 ANTLR4: Cross-Language Parser Generation](#1827-antlr4-cross-language-parser-generation)
+- [182.8 TreeSitter: Error-Tolerant Incremental Parsing](#1828-treesitter-error-tolerant-incremental-parsing)
+  - [Grammar Authoring](#grammar-authoring)
+  - [Rust Bindings and Query API](#rust-bindings-and-query-api)
+  - [Why TreeSitter Is Not a Compiler Front End](#why-treesitter-is-not-a-compiler-front-end)
+- [182.9 The Decision Guide](#1829-the-decision-guide)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 182.1 The Tooling-vs-Compilation Axis
 
 The spectrum from hand-written to generated spans four broad positions, each making different tradeoffs:

@@ -6,6 +6,44 @@ Between the high-level array abstractions of `linalg` and `tensor` and the low-l
 
 ---
 
+## Table of Contents
+
+- [140.1 The `affine` Dialect](#1401-the-affine-dialect)
+  - [140.1.1 Polyhedral Representation in MLIR](#14011-polyhedral-representation-in-mlir)
+  - [140.1.2 `affine.for`](#14012-affinefor)
+  - [140.1.3 `affine.load` and `affine.store`](#14013-affineload-and-affinestore)
+  - [140.1.4 `affine.if`](#14014-affineif)
+  - [140.1.5 `affine.apply`, `affine.min`, `affine.max`](#14015-affineapply-affinemin-affinemax)
+  - [140.1.6 `affine.parallel`](#14016-affineparallel)
+- [140.2 Affine Analysis](#1402-affine-analysis)
+  - [140.2.1 Dependence Analysis](#14021-dependence-analysis)
+  - [140.2.2 Built-in Transformation Passes](#14022-built-in-transformation-passes)
+  - [140.2.3 `AffineLoopBandNestResult`](#14023-affineloopbandnestresult)
+  - [140.2.4 Lowering Affine](#14024-lowering-affine)
+- [140.3 The `scf` Dialect (Structured Control Flow)](#1403-the-scf-dialect-structured-control-flow)
+  - [140.3.1 Design Philosophy](#14031-design-philosophy)
+  - [140.3.2 `scf.for`](#14032-scffor)
+  - [140.3.3 `scf.while`](#14033-scfwhile)
+  - [140.3.4 `scf.if`](#14034-scfif)
+  - [140.3.5 `scf.parallel` and `scf.reduce`](#14035-scfparallel-and-scfreduce)
+  - [140.3.6 `scf.forall`](#14036-scfforall)
+  - [140.3.7 `scf.index_switch`](#14037-scfindexswitch)
+- [140.4 SCF Passes and Transformations](#1404-scf-passes-and-transformations)
+  - [140.4.1 Loop Transformations on SCF](#14041-loop-transformations-on-scf)
+  - [140.4.2 `--convert-scf-to-cf`](#14042-convert-scf-to-cf)
+  - [140.4.3 Loop-Carried Value Pattern in Detail](#14043-loop-carried-value-pattern-in-detail)
+- [140.5 Affine vs SCF Decision Guide](#1405-affine-vs-scf-decision-guide)
+- [The MLIR Presburger Arithmetic Library](#the-mlir-presburger-arithmetic-library)
+  - [What Presburger Arithmetic Is](#what-presburger-arithmetic-is)
+  - [Core Data Structures](#core-data-structures)
+  - [The Omega Test Implementation](#the-omega-test-implementation)
+  - [Use in Affine Dependence Analysis](#use-in-affine-dependence-analysis)
+  - [Use in Loop Fusion Legality](#use-in-loop-fusion-legality)
+  - [Comparison with ISL](#comparison-with-isl)
+- [Chapter 140 Summary](#chapter-140-summary)
+
+---
+
 ## 140.1 The `affine` Dialect
 
 ### 140.1.1 Polyhedral Representation in MLIR

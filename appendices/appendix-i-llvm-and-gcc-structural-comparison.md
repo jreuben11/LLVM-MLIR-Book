@@ -4,6 +4,52 @@ Chapter 1 introduced the LLVM project with a brief comparison to GCC. This appen
 
 ---
 
+## Table of Contents
+
+- [I.1 Design Philosophy and Architecture](#i1-design-philosophy-and-architecture)
+  - [The Library Model versus the Monolithic Model](#the-library-model-versus-the-monolithic-model)
+  - [API Stability](#api-stability)
+  - [Licensing: Apache 2.0 with LLVM Exception versus GPLv3](#licensing-apache-20-with-llvm-exception-versus-gplv3)
+  - [Monorepo versus Multi-Repo](#monorepo-versus-multi-repo)
+- [I.2 Intermediate Representation Comparison](#i2-intermediate-representation-comparison)
+  - [GCC's Four-Level IR Stack](#gccs-four-level-ir-stack)
+  - [LLVM's Single Typed SSA IR](#llvms-single-typed-ssa-ir)
+  - [GIMPLE versus LLVM IR: Key Differences](#gimple-versus-llvm-ir-key-differences)
+  - [RTL versus MachineIR](#rtl-versus-machineir)
+- [I.3 Pass Infrastructure](#i3-pass-infrastructure)
+  - [GCC's Pass Registry](#gccs-pass-registry)
+  - [LLVM's PassManager](#llvms-passmanager)
+  - [Analysis Caching and Invalidation](#analysis-caching-and-invalidation)
+- [I.4 Backend and Target Description](#i4-backend-and-target-description)
+  - [Machine Description: `.md` Files versus TableGen](#machine-description-md-files-versus-tablegen)
+  - [Register Allocation](#register-allocation)
+  - [Instruction Selection](#instruction-selection)
+- [I.5 Frontend and Diagnostic Quality](#i5-frontend-and-diagnostic-quality)
+  - [AST Architecture](#ast-architecture)
+  - [C++ Template Instantiation](#c-template-instantiation)
+  - [Diagnostic Quality](#diagnostic-quality)
+  - [Language Server Protocol](#language-server-protocol)
+  - [GNU Extension Compatibility](#gnu-extension-compatibility)
+- [I.6 Toolchain Ecosystem](#i6-toolchain-ecosystem)
+  - [Linker Comparison: GNU ld versus LLD](#linker-comparison-gnu-ld-versus-lld)
+  - [Sanitizer Comparison](#sanitizer-comparison)
+  - [PGO and BOLT](#pgo-and-bolt)
+- [I.7 Optimization Capability Comparison](#i7-optimization-capability-comparison)
+  - [Shared Optimizations](#shared-optimizations)
+  - [GCC-Specific Strengths](#gcc-specific-strengths)
+  - [LLVM-Specific Strengths](#llvm-specific-strengths)
+- [I.8 Language and Target Support Matrix](#i8-language-and-target-support-matrix)
+  - [Language Support](#language-support)
+  - [Target Architecture Support](#target-architecture-support)
+- [I.9 ABI Interoperability](#i9-abi-interoperability)
+  - [Linking GCC and Clang Objects](#linking-gcc-and-clang-objects)
+  - [Known ABI Divergences](#known-abi-divergences)
+  - [Mixed Toolchain in Practice: ClangBuiltLinux](#mixed-toolchain-in-practice-clangbuiltlinux)
+  - [`rustc_codegen_gcc` and `libgccjit`](#rustccodegengcc-and-libgccjit)
+- [Summary](#summary)
+
+---
+
 ## I.1 Design Philosophy and Architecture
 
 ### The Library Model versus the Monolithic Model

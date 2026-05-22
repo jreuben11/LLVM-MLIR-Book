@@ -6,6 +6,59 @@ Apache TVM occupies a singular position in the ML compiler landscape: it is the 
 
 ---
 
+## Table of Contents
+
+- [1. TVM's Place in the ML Compiler Ecosystem](#1-tvms-place-in-the-ml-compiler-ecosystem)
+- [2. The TVM IR Hierarchy](#2-the-tvm-ir-hierarchy)
+  - [2.1 Relay — Typed Functional Graph IR](#21-relay-typed-functional-graph-ir)
+  - [2.2 TIR / TVMScript — Loop-Level Imperative IR](#22-tir-tvmscript-loop-level-imperative-ir)
+  - [2.3 Tensor Expression (TE) — The Legacy Scheduling API](#23-tensor-expression-te-the-legacy-scheduling-api)
+- [3. Schedule Primitives](#3-schedule-primitives)
+  - [3.1 Primitive Catalogue](#31-primitive-catalogue)
+  - [3.2 Complete AVX2 Matmul Schedule](#32-complete-avx2-matmul-schedule)
+  - [3.3 GPU Schedule: Shared Memory Tiling](#33-gpu-schedule-shared-memory-tiling)
+- [4. AutoTVM — Template-Guided Search](#4-autotvm-template-guided-search)
+  - [4.1 Writing a Tunable Template](#41-writing-a-tunable-template)
+  - [4.2 Running the Tuner](#42-running-the-tuner)
+  - [4.3 Supported Tuners](#43-supported-tuners)
+  - [4.4 RPC Measurement on Remote Devices](#44-rpc-measurement-on-remote-devices)
+- [5. Ansor and Meta-Schedule — Template-Free Search](#5-ansor-and-meta-schedule-template-free-search)
+  - [5.1 Ansor — Automatic Sketch Generation](#51-ansor-automatic-sketch-generation)
+  - [5.2 Meta-Schedule — Modular Search Infrastructure](#52-meta-schedule-modular-search-infrastructure)
+  - [5.3 Custom Search Space Rules in Meta-Schedule](#53-custom-search-space-rules-in-meta-schedule)
+- [6. BYOC — Bring Your Own Codegen](#6-byoc-bring-your-own-codegen)
+  - [6.1 Pattern Matching in Relay](#61-pattern-matching-in-relay)
+  - [6.2 Registering an External Codegen](#62-registering-an-external-codegen)
+  - [6.3 Runtime Integration](#63-runtime-integration)
+  - [6.4 Production BYOC Backends](#64-production-byoc-backends)
+- [7. Relax — The Unified IR (TVM Unity)](#7-relax-the-unified-ir-tvm-unity)
+  - [7.1 Relax IR Structure](#71-relax-ir-structure)
+  - [7.2 Relax Transformations](#72-relax-transformations)
+  - [7.3 Building and Running](#73-building-and-running)
+  - [7.4 Relax vs. Relay: Architectural Differences](#74-relax-vs-relay-architectural-differences)
+- [8. Compilation Targets](#8-compilation-targets)
+  - [8.1 CUDA / GPU Targets](#81-cuda-gpu-targets)
+  - [8.2 Arm CPU Targets](#82-arm-cpu-targets)
+  - [8.3 microTVM AOT Target](#83-microtvm-aot-target)
+  - [8.4 OpenCL and Vulkan Targets](#84-opencl-and-vulkan-targets)
+- [9. microTVM — Bare-Metal Deployment](#9-microtvm-bare-metal-deployment)
+  - [9.1 Constraints and Design Choices](#91-constraints-and-design-choices)
+  - [9.2 Compilation from the Command Line](#92-compilation-from-the-command-line)
+  - [9.3 Python API for AOT Build](#93-python-api-for-aot-build)
+  - [9.4 CMSIS-NN Integration](#94-cmsis-nn-integration)
+  - [9.5 The AOT Executor C Output](#95-the-aot-executor-c-output)
+- [10. The TVM Runtime](#10-the-tvm-runtime)
+  - [10.1 Module and NDArray](#101-module-and-ndarray)
+  - [10.2 PackedFunc — The Universal Calling Convention](#102-packedfunc-the-universal-calling-convention)
+  - [10.3 Executor Variants](#103-executor-variants)
+  - [10.4 Profiling and Debugging](#104-profiling-and-debugging)
+- [11. Comparison: IREE vs XLA vs TVM vs Triton](#11-comparison-iree-vs-xla-vs-tvm-vs-triton)
+  - [11.1 When to Choose TVM](#111-when-to-choose-tvm)
+- [12. TVM in Practice: LLM Compilation with MLC-LLM](#12-tvm-in-practice-llm-compilation-with-mlc-llm)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 1. TVM's Place in the ML Compiler Ecosystem
 
 The ML compiler space converged on three architectural philosophies between 2018 and 2024, each optimizing for a different primary tension.

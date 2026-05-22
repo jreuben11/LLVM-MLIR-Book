@@ -6,6 +6,55 @@ Where CUDA and HIP bind programmers to a single vendor's runtime, OpenCL, SYCL, 
 
 ---
 
+## Table of Contents
+
+- [50.1 OpenCL in Clang](#501-opencl-in-clang)
+  - [50.1.1 Language Mode Selection](#5011-language-mode-selection)
+  - [50.1.2 Predefined Macros and OpenCL 3.0 Feature Macros](#5012-predefined-macros-and-opencl-30-feature-macros)
+  - [50.1.3 Address Space Model](#5013-address-space-model)
+  - [50.1.4 Built-in Functions and the OpenCL Builtins Database](#5014-built-in-functions-and-the-opencl-builtins-database)
+  - [50.1.5 Clang as the OpenCL Front End for Compute Runtimes](#5015-clang-as-the-opencl-front-end-for-compute-runtimes)
+- [50.2 SPIR and SPIR-V Generation](#502-spir-and-spir-v-generation)
+  - [50.2.1 SPIR (LLVM Bitcode Subset)](#5021-spir-llvm-bitcode-subset)
+  - [50.2.2 SPIR-V Generation via the In-Tree Backend](#5022-spir-v-generation-via-the-in-tree-backend)
+  - [50.2.3 SPIR-V via the SPIRV-LLVM Translator](#5023-spir-v-via-the-spirv-llvm-translator)
+  - [50.2.4 OpenCL C++ and Template Kernels](#5024-opencl-c-and-template-kernels)
+- [50.3 OpenMP Target Offloading](#503-openmp-target-offloading)
+  - [50.3.1 Driver and Compilation Model](#5031-driver-and-compilation-model)
+  - [50.3.2 AST Nodes for Target Directives](#5032-ast-nodes-for-target-directives)
+  - [50.3.3 OpenMP Codegen Infrastructure](#5033-openmp-codegen-infrastructure)
+  - [50.3.4 Target Region Outlining and Naming](#5034-target-region-outlining-and-naming)
+  - [50.3.5 Map Clauses and the Data Movement API](#5035-map-clauses-and-the-data-movement-api)
+  - [50.3.6 GPU Thread Mapping and Device Codegen](#5036-gpu-thread-mapping-and-device-codegen)
+  - [50.3.7 `__builtin_omp_required_simd_align` and SIMD Offload](#5037-builtinomprequiredsimdalign-and-simd-offload)
+- [50.4 OpenMP Device-Side Optimisations](#504-openmp-device-side-optimisations)
+  - [50.4.1 The OpenMPOpt LLVM Pass](#5041-the-openmpopt-llvm-pass)
+  - [50.4.2 Unified Shared Memory and Device Allocation](#5042-unified-shared-memory-and-device-allocation)
+  - [50.4.3 Declare Target and Diagnostics](#5043-declare-target-and-diagnostics)
+- [50.5 SYCL in Clang](#505-sycl-in-clang)
+  - [50.5.1 SYCL Implementation Architecture](#5051-sycl-implementation-architecture)
+  - [50.5.2 SYCL Attributes and LangAS Extension](#5052-sycl-attributes-and-langas-extension)
+  - [50.5.3 Kernel Extraction and the Kernel Integration Header](#5053-kernel-extraction-and-the-kernel-integration-header)
+  - [50.5.4 Specialisation Constants](#5054-specialisation-constants)
+  - [50.5.5 AdaptiveCpp / OpenSYCL](#5055-adaptivecpp-opensycl)
+- [50.6 `clang-offload-packager` and `clang-offload-bundler`](#506-clang-offload-packager-and-clang-offload-bundler)
+  - [50.6.1 clang-offload-bundler](#5061-clang-offload-bundler)
+  - [50.6.2 clang-offload-packager (LLVM 15+)](#5062-clang-offload-packager-llvm-15)
+  - [50.6.3 clang-offload-wrapper](#5063-clang-offload-wrapper)
+  - [50.6.4 offload-arch Tool](#5064-offload-arch-tool)
+  - [50.6.5 libomptarget Plugin Architecture](#5065-libomptarget-plugin-architecture)
+- [50.7 Compilation Database and Multi-Target Builds](#507-compilation-database-and-multi-target-builds)
+  - [50.7.1 Multi-Target Fat Binaries](#5071-multi-target-fat-binaries)
+  - [50.7.2 --offload-arch=native](#5072-offload-archnative)
+  - [50.7.3 CMake Integration and Device Bitcode Libraries](#5073-cmake-integration-and-device-bitcode-libraries)
+  - [50.7.4 -fno-offload-uniformity-analysis](#5074-fno-offload-uniformity-analysis)
+- [50.8 Cross-Model Interoperability](#508-cross-model-interoperability)
+  - [50.8.1 HIP + OpenMP Coexistence](#5081-hip-openmp-coexistence)
+  - [50.8.2 SYCL Interoperability with Underlying Native APIs](#5082-sycl-interoperability-with-underlying-native-apis)
+- [50.9 Summary](#509-summary)
+
+---
+
 ## 50.1 OpenCL in Clang
 
 ### 50.1.1 Language Mode Selection

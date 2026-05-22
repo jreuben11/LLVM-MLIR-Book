@@ -10,6 +10,58 @@ All IR examples are verified against LLVM 22.1.3. Cross-references to later chap
 
 ---
 
+## Table of Contents
+
+- [23.1 Function Attributes: Comprehensive Reference](#231-function-attributes-comprehensive-reference)
+  - [23.1.1 Memory-Effect Attributes](#2311-memory-effect-attributes)
+  - [23.1.2 Control-Flow Attributes](#2312-control-flow-attributes)
+  - [23.1.3 Inlining and Optimization Hint Attributes](#2313-inlining-and-optimization-hint-attributes)
+  - [23.1.4 Prologue and Stack Attributes](#2314-prologue-and-stack-attributes)
+  - [23.1.5 Target Feature and Alignment Attributes](#2315-target-feature-and-alignment-attributes)
+  - [23.1.6 Sanitizer Attributes](#2316-sanitizer-attributes)
+  - [23.1.7 A Complete Function Definition](#2317-a-complete-function-definition)
+- [23.2 Parameter and Return Attributes](#232-parameter-and-return-attributes)
+  - [23.2.1 Nullability and Definedness](#2321-nullability-and-definedness)
+  - [23.2.2 Aliasing Attributes](#2322-aliasing-attributes)
+  - [23.2.3 Struct-Passing Attributes](#2323-struct-passing-attributes)
+  - [23.2.4 Register and Extension Attributes](#2324-register-and-extension-attributes)
+  - [23.2.5 Swift-Specific Attributes](#2325-swift-specific-attributes)
+- [23.3 Call Site Attributes](#233-call-site-attributes)
+- [23.4 Attribute Groups](#234-attribute-groups)
+  - [23.4.1 Syntax](#2341-syntax)
+  - [23.4.2 Grouping Policy in Clang](#2342-grouping-policy-in-clang)
+  - [23.4.3 Attribute Groups vs. Function Attributes in the C++ API](#2343-attribute-groups-vs-function-attributes-in-the-c-api)
+- [23.5 Calling Conventions: The Complete Catalogue](#235-calling-conventions-the-complete-catalogue)
+  - [23.5.1 General-Purpose Conventions](#2351-general-purpose-conventions)
+  - [23.5.2 WebKit and JavaScript Conventions](#2352-webkit-and-javascript-conventions)
+  - [23.5.3 Apple Swift Conventions](#2353-apple-swift-conventions)
+  - [23.5.4 x86 ABI Variants](#2354-x86-abi-variants)
+  - [23.5.5 Windows x64](#2355-windows-x64)
+  - [23.5.6 GPU and Compute Conventions](#2356-gpu-and-compute-conventions)
+  - [23.5.7 Choosing a Calling Convention](#2357-choosing-a-calling-convention)
+- [23.6 The ABI Lowering Boundary](#236-the-abi-lowering-boundary)
+  - [23.6.1 What "ABI" Means in the LLVM IR Context](#2361-what-abi-means-in-the-llvm-ir-context)
+  - [23.6.2 The ABI Lowering Pipeline](#2362-the-abi-lowering-pipeline)
+  - [23.6.3 `TargetLowering` and `CCAssignFn`](#2363-targetlowering-and-ccassignfn)
+  - [23.6.4 Pre-ABI and Post-ABI Passes](#2364-pre-abi-and-post-abi-passes)
+  - [23.6.5 Clang's Role: Generating the ABI-Correct IR](#2365-clangs-role-generating-the-abi-correct-ir)
+- [23.7 `sret`, `byval`, and `byref`: The Struct-Passing Nuances](#237-sret-byval-and-byref-the-struct-passing-nuances)
+  - [23.7.1 `sret(T)` — Struct Return](#2371-srett-struct-return)
+  - [23.7.2 `byval(T)` — Pass by Value (Copy Semantics)](#2372-byvalt-pass-by-value-copy-semantics)
+  - [23.7.3 `byref(T)` — Pass by Reference (No Copy)](#2373-byreft-pass-by-reference-no-copy)
+  - [23.7.4 `byval` in IR vs. `byval` in the C ABI: The Name Collision](#2374-byval-in-ir-vs-byval-in-the-c-abi-the-name-collision)
+  - [23.7.5 `inalloca(T)` — In-Place Allocation for Non-Trivial Destructors](#2375-inallocat-in-place-allocation-for-non-trivial-destructors)
+- [23.8 Practical Examples](#238-practical-examples)
+  - [23.8.0 The `noundef` Attribute and Optimizer Implications](#2380-the-noundef-attribute-and-optimizer-implications)
+  - [23.8.1 Verifying Attribute Emission from Clang](#2381-verifying-attribute-emission-from-clang)
+  - [23.8.2 Reading Attribute Effects in `opt` Pipelines](#2382-reading-attribute-effects-in-opt-pipelines)
+  - [23.8.3 Calling Convention in Optimized IR](#2383-calling-convention-in-optimized-ir)
+  - [23.8.4 Inspecting Calling Convention Lowering](#2384-inspecting-calling-convention-lowering)
+  - [23.8.5 Cross-Language ABI Compatibility](#2385-cross-language-abi-compatibility)
+- [23.9 Chapter Summary](#239-chapter-summary)
+
+---
+
 ## 23.1 Function Attributes: Comprehensive Reference
 
 Function attributes appear between the `define`/`declare` keyword and the function body (or after the function signature). They express facts about the function that the optimizer can rely on, and constraints on what the function is permitted to do. An incorrect attribute is not a runtime error: it is undefined behavior that the optimizer is entitled to exploit.

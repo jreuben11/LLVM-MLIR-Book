@@ -6,6 +6,33 @@ Alphabetical glossary of technical terms used throughout this book. Entries are 
 
 ---
 
+## Table of Contents
+
+- [A](#a)
+- [B](#b)
+- [C](#c)
+- [D](#d)
+- [E](#e)
+- [F](#f)
+- [G](#g)
+- [H](#h)
+- [I](#i)
+- [J](#j)
+- [L](#l)
+- [M](#m)
+- [N](#n)
+- [O](#o)
+- [P](#p)
+- [R](#r)
+- [S](#s)
+- [T](#t)
+- [U](#u)
+- [V](#v)
+- [W](#w)
+- [Additional Abbreviations](#additional-abbreviations)
+
+---
+
 ## A
 
 **Abstract interpretation** — A formal framework for static analysis in which program semantics are approximated by computing over an abstract domain (e.g., sign, interval, pointer points-to sets). Soundness requires the abstraction to be a Galois connection with the concrete semantics. See [Chapter 10 — Dataflow Analysis](../chapters/part-02-compiler-theory/ch10-dataflow-analysis.md).

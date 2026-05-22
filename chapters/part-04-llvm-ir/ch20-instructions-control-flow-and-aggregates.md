@@ -10,6 +10,47 @@ All LLVM IR examples are verified against LLVM 22.1.3 (`llvm-as` at `/usr/lib/ll
 
 ---
 
+## Table of Contents
+
+- [20.1 Control Flow Terminators: `br`, `switch`, `indirectbr`, `callbr`](#201-control-flow-terminators-br-switch-indirectbr-callbr)
+  - [20.1.1 `br` — Conditional and Unconditional Branch](#2011-br-conditional-and-unconditional-branch)
+  - [20.1.2 `switch` — Multi-Way Branch](#2012-switch-multi-way-branch)
+  - [20.1.3 `indirectbr` — Computed Goto](#2013-indirectbr-computed-goto)
+  - [20.1.4 `callbr` — Inline Assembly with Jump Targets](#2014-callbr-inline-assembly-with-jump-targets)
+- [20.2 Function Calls: `call`, `invoke`, and Tail Calls](#202-function-calls-call-invoke-and-tail-calls)
+  - [20.2.1 `call` — Normal Function Call](#2021-call-normal-function-call)
+  - [20.2.2 `invoke` — Call with Exception Unwind](#2022-invoke-call-with-exception-unwind)
+  - [20.2.3 Tail Call Attributes: `tail`, `musttail`, `notail`](#2023-tail-call-attributes-tail-musttail-notail)
+- [20.3 The `phi` Instruction](#203-the-phi-instruction)
+  - [20.3.1 Syntax and Semantics](#2031-syntax-and-semantics)
+  - [20.3.2 The phi-Based Implementation of `max`](#2032-the-phi-based-implementation-of-max)
+  - [20.3.3 Domination Requirement](#2033-domination-requirement)
+  - [20.3.4 Phi Cycles: Mutually Recursive Phis](#2034-phi-cycles-mutually-recursive-phis)
+  - [20.3.5 The Alternative Without `phi`: `alloca` / `load` / `store`](#2035-the-alternative-without-phi-alloca-load-store)
+  - [20.3.6 MLIR Block Arguments](#2036-mlir-block-arguments)
+- [20.4 `select`: Branchless Conditionals](#204-select-branchless-conditionals)
+  - [20.4.1 Syntax and Semantics](#2041-syntax-and-semantics)
+  - [20.4.2 Difference from `br` + `phi`](#2042-difference-from-br-phi)
+  - [20.4.3 Interaction with `freeze` and Poison](#2043-interaction-with-freeze-and-poison)
+- [20.5 Aggregate Operations: `extractvalue` and `insertvalue`](#205-aggregate-operations-extractvalue-and-insertvalue)
+  - [20.5.1 `extractvalue` — Reading a Field](#2051-extractvalue-reading-a-field)
+  - [20.5.2 `insertvalue` — Producing a Modified Aggregate](#2052-insertvalue-producing-a-modified-aggregate)
+- [20.6 Vector Operations: `extractelement`, `insertelement`, `shufflevector`](#206-vector-operations-extractelement-insertelement-shufflevector)
+  - [20.6.1 `extractelement` — Extracting a Lane](#2061-extractelement-extracting-a-lane)
+  - [20.6.2 `insertelement` — Setting a Lane](#2062-insertelement-setting-a-lane)
+  - [20.6.3 `shufflevector` — Permutation, Broadcast, and Interleave](#2063-shufflevector-permutation-broadcast-and-interleave)
+- [20.7 Exception Handling Instructions](#207-exception-handling-instructions)
+  - [20.7.1 The Itanium EH Model Overview](#2071-the-itanium-eh-model-overview)
+  - [20.7.2 `landingpad` — Receiving an Exception](#2072-landingpad-receiving-an-exception)
+  - [20.7.3 `resume` — Re-propagating an Exception](#2073-resume-re-propagating-an-exception)
+  - [20.7.4 The Funclet EH Model: `catchswitch`, `catchpad`, `cleanuppad`](#2074-the-funclet-eh-model-catchswitch-catchpad-cleanuppad)
+- [20.8 `ret`, `resume`, and `unreachable`](#208-ret-resume-and-unreachable)
+  - [20.8.1 `ret` — Return from a Function](#2081-ret-return-from-a-function)
+  - [20.8.2 `unreachable` — Dead Code Marker](#2082-unreachable-dead-code-marker)
+- [20.9 Chapter Summary](#209-chapter-summary)
+
+---
+
 ## 20.1 Control Flow Terminators: `br`, `switch`, `indirectbr`, `callbr`
 
 Every basic block must end with exactly one terminator instruction. Terminators are the only instructions that transfer control to another block; they are also the only instructions that define the CFG successor relation used by all analyses.

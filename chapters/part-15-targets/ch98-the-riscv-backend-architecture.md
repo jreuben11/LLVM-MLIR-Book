@@ -6,6 +6,50 @@ RISC-V is an open, modular ISA designed for extensibility. Its standard base plu
 
 ---
 
+## Table of Contents
+
+- [98.1 Base ISA and Extension Alphabet](#981-base-isa-and-extension-alphabet)
+  - [98.1.1 RV32I and RV64I](#9811-rv32i-and-rv64i)
+  - [98.1.2 Standard Extension Alphabet](#9812-standard-extension-alphabet)
+  - [98.1.3 The 'G' Shorthand](#9813-the-g-shorthand)
+- [98.2 Calling Conventions](#982-calling-conventions)
+  - [98.2.1 ABI Variants](#9821-abi-variants)
+  - [98.2.2 LP64D Register Assignment](#9822-lp64d-register-assignment)
+  - [98.2.3 Struct and Aggregate Passing](#9823-struct-and-aggregate-passing)
+- [98.3 Pseudo-Instruction Lowering](#983-pseudo-instruction-lowering)
+  - [98.3.1 `LI`: Load Immediate](#9831-li-load-immediate)
+  - [98.3.2 `LA`: Load Address](#9832-la-load-address)
+  - [98.3.3 `CALL` and `TAIL` Pseudos](#9833-call-and-tail-pseudos)
+  - [98.3.4 Addressing Mode Pseudos](#9834-addressing-mode-pseudos)
+- [98.4 The RISC-V Relaxation Pipeline](#984-the-risc-v-relaxation-pipeline)
+  - [98.4.1 Linker Relaxation Overview](#9841-linker-relaxation-overview)
+  - [98.4.2 Relaxation Cases](#9842-relaxation-cases)
+  - [98.4.3 GP-Relative Relaxation](#9843-gp-relative-relaxation)
+  - [98.4.4 RISCVInsertVSETVLI Pass](#9844-riscvinsertvsetvli-pass)
+- [98.5 Subtarget Feature Flags and Profiles](#985-subtarget-feature-flags-and-profiles)
+  - [98.5.1 Feature Flags in LLVM](#9851-feature-flags-in-llvm)
+  - [98.5.2 RVA22 and RVA23 Profiles](#9852-rva22-and-rva23-profiles)
+- [98.6 Compressed (C Extension) Instruction Selection](#986-compressed-c-extension-instruction-selection)
+  - [98.6.1 C Extension Instruction Classes](#9861-c-extension-instruction-classes)
+  - [98.6.2 Encoding Selection](#9862-encoding-selection)
+  - [98.6.3 C.JAL and C.J](#9863-cjal-and-cj)
+- [98.7 RISC-V Scheduling Models](#987-risc-v-scheduling-models)
+  - [98.7.1 Rocket Core Model](#9871-rocket-core-model)
+  - [98.7.2 SiFive U7 (Out-of-Order)](#9872-sifive-u7-out-of-order)
+  - [98.7.3 SiFive U74 (JH7110/VisionFive2)](#9873-sifive-u74-jh7110visionfive2)
+  - [98.7.4 Xiangshan (OpenSource High-Performance)](#9874-xiangshan-opensource-high-performance)
+- [98.8 GlobalISel on RISC-V](#988-globalisel-on-risc-v)
+  - [98.8.1 Production Status](#9881-production-status)
+  - [98.8.2 Legalizer Rules](#9882-legalizer-rules)
+  - [98.8.3 Register Bank Assignment](#9883-register-bank-assignment)
+- [98.9 RISC-V ABI Nuances](#989-risc-v-abi-nuances)
+  - [98.9.1 Stack Frame Layout](#9891-stack-frame-layout)
+  - [98.9.2 TLS Access Patterns](#9892-tls-access-patterns)
+- [98.10 Complete Compilation Example](#9810-complete-compilation-example)
+- [Chapter Summary](#chapter-summary)
+
+---
+
 ## 98.1 Base ISA and Extension Alphabet
 
 ### 98.1.1 RV32I and RV64I
