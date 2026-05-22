@@ -139,7 +139,7 @@
 - [x] Ch93 — Post-RegAlloc and Pre-Emit
 - [x] Ch94 — The MC Layer and MIR Test Infrastructure
 
-## Part XV — Targets *(~250 pp, 13 ch)*
+## Part XV — Targets *(~262 pp, 14 ch)*
 - [x] Ch95 — The X86 Backend
 - [x] Ch96 — The AArch64 Backend
 - [x] Ch97 — The 32-bit ARM Backend
@@ -153,8 +153,9 @@
 - [x] Ch105 — DXIL and DirectX Shader Compilation
 - [x] Ch106 — WebAssembly and BPF
 - [x] Ch107 — Embedded Targets
+- [ ] Ch233 — Emscripten: C/C++ to WebAssembly via LLVM (~12 pages; §233.1 architecture/target triple/system libs, §233.2 memory model/ALLOW_MEMORY_GROWTH, §233.3 JS interop EM_JS/EM_ASM/ccall, §233.4 Embind C++↔JS bindings, §233.5 Asyncify stack unwind/rewind, §233.6 ports/SDL2/WebGL/event loop, §233.7 Wasm threads/SharedArrayBuffer/pthreads, §233.8 output pipeline/wasm-opt/DWARF)
 
-## Part XVI — JIT, Sanitizers, and Diagnostic Tools *(~282 pp, 17 ch)*
+## Part XVI — JIT, Sanitizers, and Diagnostic Tools *(~294 pp, 18 ch)*
 - [x] Ch108 — The ORC JIT
 - [x] Ch109 — JITLink
 - [x] Ch110 — User-Space Sanitizers
@@ -171,6 +172,7 @@
 - [x] Ch221 — Speculative Optimization, Inline Caches, and Deoptimization (~12 pages; §221.1 speculative model, §221.2 inline caches, §221.3 guard IR, §221.4 @llvm.deoptimize/deopt bundles, §221.5 stackmap frame reconstruction, §221.6 OSR deep-dive, §221.7 V8 tiering, §221.8 HotSpot tiering, §221.9 ORC ReOptimizeLayer connection)
 - [x] Ch222 — Plugin Architecture, Dynamic Loading, and ABI Stability (~12 pages; §222.1 POSIX dlopen, §222.2 ABI stability contract, §222.3 type-safe C++ interfaces, §222.4 plugin discovery, §222.5 Windows/macOS, §222.6 llvm::sys::DynamicLibrary, §222.7 real-world architectures, §222.8 security model, §222.9 ORC interaction)
 - [x] Ch228 — Virtual Machine Design: Bytecode Interpreters, GC Strategies, and Object Models (~14 pages; §228.1 stack vs register VM, §228.2 bytecode instruction set design, §228.3 dispatch strategies incl. copy-and-patch, §228.4 object representation/NaN-boxing/hidden classes, §228.5 GC strategies mark-sweep/generational/concurrent, §228.6 GC roots and precise vs conservative scanning, §228.7 method dispatch and PICs, §228.8 frame layout and calling conventions, §228.9 ORC JIT tiered compilation integration, §228.10 reference VM architectures CPython/Lua/YARV/HotSpot)
+- [ ] Ch232 — LLVM XRay: Low-Overhead Function Tracing (~12 pages; §232.1 design goals vs perf/gprof/valgrind, §232.2 NOP sled instrumentation/xray_patch/xray_instr_map, §232.3 basic/flight-recorder/custom modes, §232.4 custom handlers/flame-graph collector, §232.5 llvm-xray tool suite account/convert/stack/graph, §232.6 LTO integration/instruction-threshold, §232.7 selective tracing attributes/per-function patch, §232.8 production patterns/eBPF comparison)
 
 ## Part XVII — Runtime Libraries *(~110 pp, 6 ch)* ✓ COMPLETE
 - [x] Ch119 — compiler-rt Builtins
@@ -248,7 +250,7 @@
 - [x] Ch175 — Language Bindings
 - [x] Ch176 — Contributing to LLVM
 
-## Part XXVI — Ecosystem and Frontiers *(~108 pp, 7 ch)*
+## Part XXVI — Ecosystem and Frontiers *(~122 pp, 8 ch)*
 - [x] Ch177 — rustc: Architecture, MIR, and Codegen Backends
 - [x] Ch178 — The Rust Compiler Ecosystem
 - [x] Ch179 — LLVM/MLIR for AI: The Full Stack
@@ -256,6 +258,7 @@
 - [x] Ch181 — Formal Verification in Practice
 - [x] Ch182 — Language Tooling: Parsers, Lexers, and Syntax Trees
 - [x] Ch183 — Modern C++ for Compiler Development: C++23, Contracts, and Reflection
+- [ ] Ch229 — torch.compile: TorchDynamo, AOTAutograd, and TorchInductor (~14 pages; §229.1 PyTorch 2.0 compilation model eager vs compiled, §229.2 TorchDynamo PEP-523 frame hook/proxy tensors/guards, §229.3 FX graph IR node types/passes, §229.4 AOTAutograd joint fwd-bwd tracing/decompositions, §229.5 TorchInductor GPU→Triton/CPU→C++, §229.6 torch.export/ExportedProgram/ExecuTorch, §229.7 guard system recompilation/dynamic shapes, §229.8 backends/stability PyTorch 2.4-2.6)
 
 ## Part XXVII — Mathematical Foundations and Verified Systems *(~120 pp, 6 ch)* [THEORETICAL]
 - [x] Ch184 — Proof Assistant Internals: Lean 4, Coq/Rocq, and Isabelle/HOL
@@ -265,7 +268,7 @@
 - [x] Ch188 — Category Theory for Compiler Engineers
 - [x] Ch189 — Denotational Semantics and Domain Theory
 
-## Part XXVIII — Language Ecosystems, Emerging Targets, and Engineering Practice *(~86 pp, 7 ch)*
+## Part XXVIII — Language Ecosystems, Emerging Targets, and Engineering Practice *(~110 pp, 9 ch)*
 - [x] Ch190 — CIRCT: Circuit IR Compilers and Tools
 - [x] Ch191 — Quantum Compilation: QIR, QUIR, and MLIR Quantum Dialects
 - [x] Ch192 — Swift SIL: Ownership, Optimization, and Influence on MLIR
@@ -273,6 +276,8 @@
 - [x] Ch194 — Zig: Comptime Metaprogramming and LLVM IR Generation
 - [x] Ch195 — Safety-Critical Toolchain Qualification: DO-178C, ISO 26262, and Ferrocene
 - [x] Ch196 — Cross-Language ABI Interoperability: Binding Generators and UniFFI
+- [ ] Ch230 — Cranelift: A Lightweight JIT for WebAssembly and Rust (~12 pages; §230.1 design philosophy/speed vs quality tradeoffs, §230.2 CLIF IR SSA/block-parameters/types, §230.3 FunctionBuilder frontend, §230.4 ISLE instruction selection DSL, §230.5 regalloc2 live-range splitting, §230.6 Wasmtime/Winch integration, §230.7 rustc_codegen_cranelift, §230.8 comparison table vs LLVM/QBE/Baseline)
+- [ ] Ch231 — GraalVM: Native Image, Truffle Interpreters, and Polyglot Runtimes (~14 pages; §231.1 architecture JVM substrate/Graal JIT/Truffle/SubstrateVM, §231.2 Truffle @Specialization state machine, §231.3 partial evaluation/sea-of-nodes/JVMCI, §231.4 Native Image points-to analysis/closed-world/heap snapshot, §231.5 building a Truffle language, §231.6 GraalPy/TruffleRuby/GraalJS production languages, §231.7 polyglot API, §231.8 Sulong LLVM bitcode on Truffle)
 
 ## Part XXIX — Compiler Tooling, Kernel Integration, and Binary Analysis *(~72 pp, 6 ch)*
 - [x] Ch197 — Clang Plugin System
@@ -339,8 +344,8 @@
 ---
 
 ## Stats
-- Total chapters: 234 + 10 appendices = 244 items (+ 10 existing chapter expansions complete) = 254 tracked items
-- Completed: 254 / 254 (all chapters and appendices written)
+- Total chapters: 239 + 10 appendices = 249 items (+ 10 existing chapter expansions complete) = 259 tracked items
+- Completed: 254 / 259 (ch229, ch230, ch231, ch232, ch233 not yet written)
 - Estimated pages written: ~2,900 (original) + ~108 (Part XXVI) + ~120 (Part XXVII) + ~86 (Part XXVIII) + ~72 (Part XXIX) + ~35 (7 ch expansions) + ~60 (Part XXX) + ~132 (Part XXXI Ch208–Ch218) + ~108 (Part XVI Ch219–Ch222) = ~3,621 total written; ~3,681 when ch223–ch227 complete
 - Part XXX complete: Ch203–Ch207 all written (2026-05-03)
 - 2026-05-16: added 3 self-modifying-code expansion items (Ch58, Ch108, Ch200) covering OSR, ReOptimizeLayer, kernel live patching, W^X dual-mapping, homoiconic examples
