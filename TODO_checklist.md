@@ -1,5 +1,5 @@
 # Book Progress Checklist
-*Last updated: 2026-05-22 (Ch234–Ch238 planned, not yet written). 259 / 264 items complete.*
+*Last updated: 2026-05-22 (Ch234–Ch238 written and committed). 264 / 264 items complete.*
 
 ## Status Legend
 - `[ ]` Not started
@@ -9,10 +9,7 @@
 ---
 
 ## Current Focus
-**Gap-fill chapters: Ch234–Ch238** (5 new chapters across 3 parts)
-- Ch234 (Part XXIX) — KLEE Symbolic Execution; Ch235, Ch237, Ch238 (Part XXVIII) — GHC LLVM backend, TinyGo, Kotlin/Native; Ch236 (Part XV) — Android NDK
-- All independent, can be written in parallel
-- Recommended order: Ch234+Ch235+Ch237+Ch238+Ch236 all in one pass (no cross-references between them)
+**COMPLETE — All 264 chapters written and committed.**
 
 ---
 
@@ -152,7 +149,7 @@
 - [x] Ch105 — DXIL and DirectX Shader Compilation
 - [x] Ch106 — WebAssembly and BPF
 - [x] Ch107 — Embedded Targets
-- [ ] Ch236 — Android NDK: Cross-Compiling C/C++ for Android with LLVM (~12 pages; §236.1 NDK architecture/toolchain layout/LLD default, §236.2 target triples and API levels, §236.3 sysroot structure/stub libraries, §236.4 CMake integration/ANDROID_ABI/ANDROID_PLATFORM, §236.5 Bionic libc differences/x18 register/missing APIs, §236.6 multi-ABI APK layout, §236.7 sanitizers/HWASan/wrap.sh, §236.8 Android LLVM fork/GKI requirement)
+- [x] Ch236 — Android NDK: Cross-Compiling C/C++ for Android with LLVM (~12 pages; §236.1 NDK architecture/toolchain layout/LLD default, §236.2 target triples and API levels, §236.3 sysroot structure/stub libraries, §236.4 CMake integration/ANDROID_ABI/ANDROID_PLATFORM, §236.5 Bionic libc differences/x18 register/missing APIs, §236.6 multi-ABI APK layout, §236.7 sanitizers/HWASan/wrap.sh, §236.8 Android LLVM fork/GKI requirement)
 - [x] Ch233 — Emscripten: C/C++ to WebAssembly via LLVM (~12 pages; §233.1 architecture/target triple/system libs, §233.2 memory model/ALLOW_MEMORY_GROWTH, §233.3 JS interop EM_JS/EM_ASM/ccall, §233.4 Embind C++↔JS bindings, §233.5 Asyncify stack unwind/rewind, §233.6 ports/SDL2/WebGL/event loop, §233.7 Wasm threads/SharedArrayBuffer/pthreads, §233.8 output pipeline/wasm-opt/DWARF)
 
 ## Part XVI — JIT, Sanitizers, and Diagnostic Tools *(~294 pp, 18 ch)*
@@ -278,9 +275,9 @@
 - [x] Ch196 — Cross-Language ABI Interoperability: Binding Generators and UniFFI
 - [x] Ch230 — Cranelift: A Lightweight JIT for WebAssembly and Rust (~12 pages; §230.1 design philosophy/speed vs quality tradeoffs, §230.2 CLIF IR SSA/block-parameters/types, §230.3 FunctionBuilder frontend, §230.4 ISLE instruction selection DSL, §230.5 regalloc2 live-range splitting, §230.6 Wasmtime/Winch integration, §230.7 rustc_codegen_cranelift, §230.8 comparison table vs LLVM/QBE/Baseline)
 - [x] Ch231 — GraalVM: Native Image, Truffle Interpreters, and Polyglot Runtimes (~14 pages; §231.1 architecture JVM substrate/Graal JIT/Truffle/SubstrateVM, §231.2 Truffle @Specialization state machine, §231.3 partial evaluation/sea-of-nodes/JVMCI, §231.4 Native Image points-to analysis/closed-world/heap snapshot, §231.5 building a Truffle language, §231.6 GraalPy/TruffleRuby/GraalJS production languages, §231.7 polyglot API, §231.8 Sulong LLVM bitcode on Truffle)
-- [ ] Ch235 — GHC's LLVM Backend: Haskell to Native via LLVM (~14 pages; §235.1 GHC pipeline Haskell→Core→STG→Cmm→LLVM IR, §235.2 GHC Core/System FC/coercion proofs/Core Lint, §235.3 STG Machine/thunks/closures/info tables/heap allocation, §235.4 Cmm GenCmmDecl/CmmProc/SRT/stack layout, §235.5 LlvmCodeGen/LlvmM monad/LlvmType, §235.6 ghccc CC10/R1-R10/Sp/Hp/alwaysLive registers, §235.7 GC integration/stgTBAA/info-table root discovery, §235.8 -fllvm vs NCG/supported LLVM 13-22/when LLVM wins)
-- [ ] Ch237 — TinyGo: Compiling Go for Embedded Systems and WebAssembly via LLVM (~12 pages; §237.1 design/go/ssa frontend/vs gc toolchain, §237.2 pipeline compiler.go→LLVM IR, §237.3 go-llvm wrapper/custom datalayout, §237.4 GC options -gc=none/leaking/conservative/precise, §237.5 goroutines as LLVM coroutines/llvm.coro.*/cooperative scheduling, §237.6 interface lowering typeID+data pairs, §237.7 target JSON files/Cortex-M/RV32/AVR/wasm, §237.8 stdlib subset/go:linkname/export FFI/wasm_exec.js)
-- [ ] Ch238 — Kotlin/Native: Compiling Kotlin to Native via LLVM (~12 pages; §238.1 KonanBackend/K2 FIR→KIR→LLVM/KonanTarget enum, §238.2 InteropLowering/ModuleBitcodeOptimization/LTOBitcodeOptimization, §238.3 CodeGenerator.kt/custom LLVM fork/-Xsave-llvm-ir-after, §238.4 ARC/freeze→concurrent GC 1.7.20+, §238.5 safepoints/stack maps/Instruments integration, §238.6 cinterop tool/.def files/kotlinx.cinterop/CPointer, §238.7 ObjC/Swift interop/@ObjCName/@ExportObjCClass, §238.8 KonanTarget enum/framework/static/XCFramework/@CName)
+- [x] Ch235 — GHC's LLVM Backend: Haskell to Native via LLVM (~14 pages; §235.1 GHC pipeline Haskell→Core→STG→Cmm→LLVM IR, §235.2 GHC Core/System FC/coercion proofs/Core Lint, §235.3 STG Machine/thunks/closures/info tables/heap allocation, §235.4 Cmm GenCmmDecl/CmmProc/SRT/stack layout, §235.5 LlvmCodeGen/LlvmM monad/LlvmType, §235.6 ghccc CC10/R1-R10/Sp/Hp/alwaysLive registers, §235.7 GC integration/stgTBAA/info-table root discovery, §235.8 -fllvm vs NCG/supported LLVM 13-22/when LLVM wins)
+- [x] Ch237 — TinyGo: Compiling Go for Embedded Systems and WebAssembly via LLVM (~12 pages; §237.1 design/go/ssa frontend/vs gc toolchain, §237.2 pipeline compiler.go→LLVM IR, §237.3 go-llvm wrapper/custom datalayout, §237.4 GC options -gc=none/leaking/conservative/precise, §237.5 goroutines as LLVM coroutines/llvm.coro.*/cooperative scheduling, §237.6 interface lowering typeID+data pairs, §237.7 target JSON files/Cortex-M/RV32/AVR/wasm, §237.8 stdlib subset/go:linkname/export FFI/wasm_exec.js)
+- [x] Ch238 — Kotlin/Native: Compiling Kotlin to Native via LLVM (~12 pages; §238.1 KonanBackend/K2 FIR→KIR→LLVM/KonanTarget enum, §238.2 InteropLowering/ModuleBitcodeOptimization/LTOBitcodeOptimization, §238.3 CodeGenerator.kt/custom LLVM fork/-Xsave-llvm-ir-after, §238.4 ARC/freeze→concurrent GC 1.7.20+, §238.5 safepoints/stack maps/Instruments integration, §238.6 cinterop tool/.def files/kotlinx.cinterop/CPointer, §238.7 ObjC/Swift interop/@ObjCName/@ExportObjCClass, §238.8 KonanTarget enum/framework/static/XCFramework/@CName)
 
 ## Part XXIX — Compiler Tooling, Kernel Integration, and Binary Analysis *(~84 pp, 7 ch)*
 - [x] Ch197 — Clang Plugin System
@@ -289,7 +286,7 @@
 - [x] Ch200 — Linux Kernel Compilation with LLVM/Clang
 - [x] Ch201 — Binary Lifting to LLVM IR
 - [x] Ch202 — Apache TVM: An ML Operator Compiler
-- [ ] Ch234 — KLEE: Symbolic Execution of LLVM IR (~12 pages; §234.1 design goals/scope vs fuzzing/concolic, §234.2 KModule/KFunction/KInstruction shadow layer, §234.3 ExecutionState/pc/stack/addressSpace/ConstraintSet, §234.4 MemoryObject/ObjectState/concreteStore/knownSymbolics, §234.5 Searcher classes DFS/BFS/WeightedRandom/CoveringNew, §234.6 SolverChain/Query/Z3+STP+CVC5 backends/TimingSolver, §234.7 klee_make_symbolic/uclibc/POSIX model/KTest format, §234.8 clang -emit-llvm -g; klee --libc=uclibc --posix-runtime; extensions/seeding/SCKLEE)
+- [x] Ch234 — KLEE: Symbolic Execution of LLVM IR (~12 pages; §234.1 design goals/scope vs fuzzing/concolic, §234.2 KModule/KFunction/KInstruction shadow layer, §234.3 ExecutionState/pc/stack/addressSpace/ConstraintSet, §234.4 MemoryObject/ObjectState/concreteStore/knownSymbolics, §234.5 Searcher classes DFS/BFS/WeightedRandom/CoveringNew, §234.6 SolverChain/Query/Z3+STP+CVC5 backends/TimingSolver, §234.7 klee_make_symbolic/uclibc/POSIX model/KTest format, §234.8 clang -emit-llvm -g; klee --libc=uclibc --posix-runtime; extensions/seeding/SCKLEE)
 
 ## Existing Chapter Expansions (planned, not yet written)
 - [x] Ch79 expansion — linker relaxation in depth (RISC-V, AArch64, x86 GOTPCRELX, TLS chains)
