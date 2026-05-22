@@ -300,7 +300,7 @@
 - [x] Ch206 — Multi-Agent PLs, AI-First SDLC, Security, and Paradigm Failures
 - [x] Ch207 — Reflective Code, Open Problems, and Build Roadmap
 
-## Part XXXI — Frontier AI Evolution *(~132 pp, 11 ch)*
+## Part XXXI — Frontier AI Evolution *(~192 pp, 16 ch)*
 - [x] Ch208 — GPU Kernel DSLs: Triton, Helion, and Gluon
 - [x] Ch209 — CUTLASS, Thrust, CuTe, and TileIR: GPU Parallel Primitives and Layout Algebra
 - [x] Ch210 — The JAX Ecosystem: A Functional Neural Compilation Stack
@@ -312,6 +312,11 @@
 - [x] Ch216 — Formal Self-Improvement Theory
 - [x] Ch217 — Self-Reflective Inference and Architecture Introspection
 - [x] Ch218 — Self-Improvement Fitness Functions and Capability Assessment
+- [x] Ch223 — Verification-Guided Pass Selection: LLM-VeriOpt and the Alive2 Reward Loop (~12 pp; §223.1 verification-in-loop architecture, §223.2 Alive2 as reward signal, §223.3 LLM-VeriOpt system, §223.4 pass ordering MDP, §223.5 AlphaVerus tree search, §223.6 LLVM CI integration, §223.7 verified self-modification, §223.8 constraints/open problems)
+- [x] Ch224 — Imitation Learning for Compiler Heuristics: BC-Max and Behavioral Cloning (~12 pp; §224.1 why RL is hard, §224.2 inlining as heuristic decision, §224.3 BC-Max framework, §224.4 feature engineering/MLGO, §224.5 register allocator eviction, §224.6 offline vs online deployment, §224.7 RL vs IL comparison, §224.8 generalizing to other heuristics)
+- [x] Ch225 — Knowledge-Infused Evolutionary Search: Pass Synergy Graphs and ECCO (~12 pp; §225.1 beyond blind operators, §225.2 pass behavioral vectors, §225.3 pass synergy graphs, §225.4 knowledge-guided genetic operators, §225.5 ECCO causal reasoning, §225.6 hybrid framework, §225.7 ORC ReOptimizeLayer integration)
+- [x] Ch226 — Hierarchical RL for Register Allocation and Code Optimization (~12 pp; §226.1 register allocation as MDP, §226.2 RL4ReAL decomposition, §226.3 hierarchical agent architecture, §226.4 Pearl generalized RL, §226.5 GNN-based IR representation, §226.6 training infrastructure, §226.7 comparison with classical approaches)
+- [x] Ch227 — LLM-Guided Polyhedral Optimization: LOOPer and Agentic Auto-Scheduling (~12 pp; §227.1 polyhedral parameter selection problem, §227.2 LOOPer deep learning cost models, §227.3 agentic auto-scheduling, §227.4 Polly integration, §227.5 MLIR affine dialect integration, §227.6 comparison with Ansor/Halide, §227.7 limitations)
 
 ## Appendices
 - [x] Appendix A — LLVM IR Quick Reference
@@ -332,9 +337,9 @@
 ---
 
 ## Stats
-- Total chapters: 218 + 8 appendices = 226 items (+ 10 existing chapter expansions complete) = 227 tracked items
-- Completed: 227 / 227 (all chapters written)
-- Estimated pages written: ~2,900 (original) + ~108 (Part XXVI) + ~120 (Part XXVII) + ~86 (Part XXVIII) + ~72 (Part XXIX) + ~35 (7 ch expansions) + ~60 (Part XXX) + ~132 (Part XXXI Ch208–Ch218) = ~3,513 total written
+- Total chapters: 227 + 8 appendices = 235 items (+ 10 existing chapter expansions complete) = 245 tracked items
+- Completed: 245 / 245 (all chapters written)
+- Estimated pages written: ~2,900 (original) + ~108 (Part XXVI) + ~120 (Part XXVII) + ~86 (Part XXVIII) + ~72 (Part XXIX) + ~35 (7 ch expansions) + ~60 (Part XXX) + ~132 (Part XXXI Ch208–Ch218) + ~108 (Part XVI Ch219–Ch222) = ~3,621 total written; ~3,681 when ch223–ch227 complete
 - Part XXX complete: Ch203–Ch207 all written (2026-05-03)
 - 2026-05-16: added 3 self-modifying-code expansion items (Ch58, Ch108, Ch200) covering OSR, ReOptimizeLayer, kernel live patching, W^X dual-mapping, homoiconic examples
 - 2026-05-16: added Part XXXI — Frontier AI Evolution (Ch208–Ch218, 11 chapters, ~132 pp) to plan and TODO
