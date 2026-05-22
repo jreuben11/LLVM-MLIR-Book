@@ -8,7 +8,7 @@
 
 ## About This Book
 
-~2,774 pages of expert-level material spanning 218 chapters and 8 appendices across 31 parts. The book is organised around **five structural arcs**:
+~3,050 pages of expert-level material spanning 239 chapters and 10 appendices across 31 parts. The book is organised around **five structural arcs**:
 
 1. **LLVM and Clang implementation** (Parts I, IV–XVIII, XXV) — the compiler infrastructure itself: LLVM IR (Part IV), the analysis and middle-end pass pipeline (Part X), LTO/ThinLTO and LLD (Part XIII), SelectionDAG, GlobalISel, the backend, and all target ports including NVPTX/AMDGPU/RISC-V (Parts XIV–XV), JIT (ORC/JITLink), sanitizers, BOLT, and diagnostic tools (Part XVI), runtime libraries — compiler-rt, libunwind, libc++, OpenMP (Part XVII); Clang's full internals: driver, SourceManager, preprocessor, parser, Sema, modules, AST, CodeGen, and C++ ABI (Parts V–VI); Clang as a multi-language compiler for CUDA, HIP, SYCL, OpenCL, HLSL, and the static analyzer (Part VII); ClangIR (CIR) — the Clang-level MLIR dialect (Part VIII); building your own language frontend with LLVM (Part IX); Flang — the LLVM Fortran compiler (Part XVIII); and compiler tooling, operations, language bindings, and contributing to LLVM (Part XXV).
 2. **Compiler theory** (Part II, ~120 pp) — lexical analysis, parsing theory, SSA construction, the lattice-based dataflow framework, and classical optimization theory. Anchored to Aho/Lam/Sethi/Ullman (*Dragon Book* 2e), Cooper & Torczon (*Engineering a Compiler* 3e), Appel (*Modern Compiler Implementation*), and Muchnick.
@@ -21,20 +21,20 @@
 | Volume | Parts | Pages |
 |--------|-------|-------|
 | Vol 1 — Foundations and Theory | I, II, III, IX, XI | ~445 pp |
-| Vol 2 — LLVM Core | IV, X, XII–XVI | ~1,115 pp |
+| Vol 2 — LLVM Core | IV, X, XII–XVI | ~1,211 pp |
 | Vol 3 — Clang and Runtimes | V–VIII, XVII–XVIII | ~870 pp |
 | Vol 4 — MLIR and ML Compilation | XIX–XXIII | ~730 pp |
-| Vol 5 — Verified Compilation + Operations + Ecosystem + Appendices | XXIV–XXVI + A–H | ~413 pp |
-| Vol 6 — Mathematical Foundations + Language Ecosystems + Tooling + AI-First PLs + Frontier AI | XXVII–XXXI | ~565 pp |
-| **Total** | **31 parts + 8 appendices** | **~4,138 pp target** |
+| Vol 5 — Verified Compilation + Operations + Ecosystem + Appendices | XXIV–XXVI + A–J | ~445 pp |
+| Vol 6 — Mathematical Foundations + Language Ecosystems + Tooling + AI-First PLs + Frontier AI | XXVII–XXXI | ~709 pp |
+| **Total** | **31 parts + 10 appendices** | **~4,412 pp target** |
 
 | | |
 |-|-|
 | Parts | 31 |
-| Chapters | 218 |
-| Appendices | 8 |
-| Total items | 226 |
-| Estimated pages | ~2,774 |
+| Chapters | 239 |
+| Appendices | 10 |
+| Total items | 249 |
+| Estimated pages | ~3,050 |
 | LLVM version | 22.1.x |
 | Rust edition | 2024 (1.85+) |
 | License | [CC BY 4.0](LICENSE) |
@@ -221,7 +221,7 @@ Expert audience. Assumed: C++ proficiency, familiarity with compilers at the lev
 | 93 | [Post-RegAlloc and Pre-Emit](chapters/part-14-backend/ch93-post-regalloc-and-pre-emit.md) |
 | 94 | [The MC Layer and MIR Test Infrastructure](chapters/part-14-backend/ch94-the-mc-layer-and-mir-test-infrastructure.md) |
 
-### Part XV — Targets *(~250 pp)*
+### Part XV — Targets *(~274 pp)*
 
 | # | Chapter |
 |---|---------|
@@ -238,8 +238,10 @@ Expert audience. Assumed: C++ proficiency, familiarity with compilers at the lev
 | 105 | [DXIL and DirectX Shader Compilation](chapters/part-15-targets/ch105-dxil-and-directx-shader-compilation.md) |
 | 106 | [WebAssembly and BPF](chapters/part-15-targets/ch106-webassembly-and-bpf.md) |
 | 107 | [Embedded Targets](chapters/part-15-targets/ch107-embedded-targets.md) |
+| 233 | [Emscripten: C/C++ to WebAssembly via LLVM](chapters/part-15-targets/ch233-emscripten-c-cpp-to-webassembly.md) |
+| 236 | [Android NDK: Cross-Compiling C/C++ for Android with LLVM](chapters/part-15-targets/ch236-android-ndk-cross-compiling.md) |
 
-### Part XVI — JIT, Sanitizers, and Diagnostic Tools *(~210 pp)*
+### Part XVI — JIT, Sanitizers, and Diagnostic Tools *(~282 pp)*
 
 | # | Chapter |
 |---|---------|
@@ -254,6 +256,12 @@ Expert audience. Assumed: C++ proficiency, familiarity with compilers at the lev
 | 116 | [LLDB Architecture](chapters/part-16-jit-sanitizers/ch116-lldb-architecture.md) |
 | 117 | [DWARF and Debug Info](chapters/part-16-jit-sanitizers/ch117-dwarf-and-debug-info.md) |
 | 118 | [BOLT and Post-Link Optimization](chapters/part-16-jit-sanitizers/ch118-bolt-and-post-link-optimization.md) |
+| 219 | [ORC JIT in Production: clang-repl, LLDB, PostgreSQL, Numba, and Halide](chapters/part-16-jit-sanitizers/ch219-orc-jit-in-production.md) |
+| 220 | [Runtime Self-Modification: Source Introspection, Incremental Recompilation, and ORC Hot-Loading](chapters/part-16-jit-sanitizers/ch220-runtime-self-modification.md) |
+| 221 | [Speculative Optimization, Inline Caches, and Deoptimization](chapters/part-16-jit-sanitizers/ch221-speculative-optimization-inline-caches.md) |
+| 222 | [Plugin Architecture, Dynamic Loading, and ABI Stability](chapters/part-16-jit-sanitizers/ch222-plugin-architecture-dynamic-loading.md) |
+| 228 | [Virtual Machine Design: Bytecode Interpreters, GC Strategies, and Object Models](chapters/part-16-jit-sanitizers/ch228-virtual-machine-design.md) |
+| 232 | [LLVM XRay: Low-Overhead Function Tracing](chapters/part-16-jit-sanitizers/ch232-llvm-xray-function-tracing.md) |
 
 ### Part XVII — Runtime Libraries *(~110 pp)*
 
@@ -358,7 +366,7 @@ Expert audience. Assumed: C++ proficiency, familiarity with compilers at the lev
 | 175 | [Language Bindings](chapters/part-25-operations-contribution/ch175-language-bindings.md) |
 | 176 | [Contributing to LLVM](chapters/part-25-operations-contribution/ch176-contributing-to-llvm.md) |
 
-### Part XXVI — Ecosystem and Frontiers *(~108 pp)*
+### Part XXVI — Ecosystem and Frontiers *(~120 pp)*
 
 | # | Chapter |
 |---|---------|
@@ -369,6 +377,7 @@ Expert audience. Assumed: C++ proficiency, familiarity with compilers at the lev
 | 181 | [Formal Verification in Practice](chapters/part-26-ecosystem-frontiers/ch181-formal-verification-in-practice.md) |
 | 182 | [Language Tooling: Parsers, Lexers, and Syntax Trees](chapters/part-26-ecosystem-frontiers/ch182-language-tooling-parsers-lexers-syntax-trees.md) |
 | 183 | [Modern C++ for Compiler Development: C++23, Contracts, and Reflection](chapters/part-26-ecosystem-frontiers/ch183-modern-cpp-for-compiler-development.md) |
+| 229 | [torch.compile: TorchDynamo, AOTAutograd, and TorchInductor](chapters/part-26-ecosystem-frontiers/ch229-torch-compile-torchdynamo-aotautograd-torchinductor.md) |
 
 ### Part XXVII — Mathematical Foundations and Verified Systems *(~120 pp)* `[THEORETICAL]`
 
@@ -381,7 +390,7 @@ Expert audience. Assumed: C++ proficiency, familiarity with compilers at the lev
 | 188 | [Category Theory for Compiler Engineers](chapters/part-27-mathematical-foundations/ch188-category-theory-compiler-engineers.md) |
 | 189 | [Denotational Semantics and Domain Theory](chapters/part-27-mathematical-foundations/ch189-denotational-semantics-domain-theory.md) |
 
-### Part XXVIII — Language Ecosystems and Engineering Practice *(~84 pp)*
+### Part XXVIII — Language Ecosystems and Engineering Practice *(~156 pp)*
 
 | # | Chapter |
 |---|---------|
@@ -392,8 +401,14 @@ Expert audience. Assumed: C++ proficiency, familiarity with compilers at the lev
 | 194 | [Zig: Comptime Metaprogramming and LLVM IR Generation](chapters/part-28-language-ecosystems/ch194-zig-comptime-llvm.md) |
 | 195 | [Safety-Critical Toolchain Qualification: DO-178C, ISO 26262, and Ferrocene](chapters/part-28-language-ecosystems/ch195-safety-critical-qualification.md) |
 | 196 | [Cross-Language ABI Interoperability: Binding Generators and UniFFI](chapters/part-28-language-ecosystems/ch196-cross-language-abi.md) |
+| 230 | [Cranelift: A Lightweight JIT for WebAssembly and Rust](chapters/part-28-language-ecosystems/ch230-cranelift-lightweight-jit.md) |
+| 231 | [GraalVM: Native Image, Truffle Interpreters, and Polyglot Runtimes](chapters/part-28-language-ecosystems/ch231-graalvm-native-image-truffle.md) |
+| 235 | [GHC's LLVM Backend: Haskell to Native via LLVM](chapters/part-28-language-ecosystems/ch235-ghc-llvm-backend.md) |
+| 237 | [TinyGo: Compiling Go for Embedded Systems and WebAssembly via LLVM](chapters/part-28-language-ecosystems/ch237-tinygo-go-embedded-llvm.md) |
+| 238 | [Kotlin/Native: Compiling Kotlin to Native Code via LLVM](chapters/part-28-language-ecosystems/ch238-kotlin-native-llvm.md) |
+| 239 | [ISPC: An SPMD Compiler for CPU SIMD via LLVM](chapters/part-28-language-ecosystems/ch239-ispc-spmd-compiler.md) |
 
-### Part XXIX — Compiler Tooling, Kernel Integration, and Binary Analysis *(~72 pp)*
+### Part XXIX — Compiler Tooling, Kernel Integration, and Binary Analysis *(~84 pp)*
 
 | # | Chapter |
 |---|---------|
@@ -403,6 +418,7 @@ Expert audience. Assumed: C++ proficiency, familiarity with compilers at the lev
 | 200 | [Linux Kernel Compilation with LLVM/Clang](chapters/part-29-compiler-tooling/ch200-linux-kernel-compilation-llvm-clang.md) |
 | 201 | [Binary Lifting to LLVM IR](chapters/part-29-compiler-tooling/ch201-binary-lifting-to-llvm-ir.md) |
 | 202 | [Apache TVM: ML Operator Compiler](chapters/part-29-compiler-tooling/ch202-apache-tvm-ml-operator-compiler.md) |
+| 234 | [KLEE: Symbolic Execution of LLVM IR](chapters/part-29-compiler-tooling/ch234-klee-symbolic-execution.md) |
 
 ### Part XXX — AI-First Programming Language Design *(~60 pp)*
 
@@ -414,7 +430,7 @@ Expert audience. Assumed: C++ proficiency, familiarity with compilers at the lev
 | 206 | [Multi-Agent PLs, AI-First SDLC, Security, and Paradigm Failures](chapters/part-30-AI-first-PL-design/ch206-multi-agent-pls-sdlc-security.md) |
 | 207 | [Reflective Code, Open Problems, and Build Roadmap](chapters/part-30-AI-first-PL-design/ch207-reflective-code-open-problems-roadmap.md) |
 
-### Part XXXI — Frontier AI Evolution *(~132 pp)*
+### Part XXXI — Frontier AI Evolution *(~192 pp)*
 
 | # | Chapter |
 |---|---------|
@@ -429,10 +445,15 @@ Expert audience. Assumed: C++ proficiency, familiarity with compilers at the lev
 | 216 | [Formal Self-Improvement Theory](chapters/part-31-frontier-ai-evolution/ch216-formal-self-improvement-theory.md) |
 | 217 | [Self-Reflective Inference and Architecture Introspection](chapters/part-31-frontier-ai-evolution/ch217-self-reflective-inference.md) |
 | 218 | [Self-Improvement Fitness Functions and Capability Assessment](chapters/part-31-frontier-ai-evolution/ch218-self-improvement-fitness-functions.md) |
+| 223 | [Verification-Guided Pass Selection: LLM-VeriOpt and the Alive2 Reward Loop](chapters/part-31-frontier-ai-evolution/ch223-verification-guided-pass-selection.md) |
+| 224 | [Imitation Learning for Compiler Heuristics: BC-Max and Behavioral Cloning](chapters/part-31-frontier-ai-evolution/ch224-imitation-learning-compiler-heuristics.md) |
+| 225 | [Knowledge-Infused Evolutionary Search: Pass Synergy Graphs and ECCO](chapters/part-31-frontier-ai-evolution/ch225-knowledge-infused-evolutionary-search.md) |
+| 226 | [Hierarchical Reinforcement Learning for Register Allocation and Code Optimization](chapters/part-31-frontier-ai-evolution/ch226-hierarchical-rl-register-allocation.md) |
+| 227 | [LLM-Guided Polyhedral Optimization: LOOPer and Agentic Auto-Scheduling](chapters/part-31-frontier-ai-evolution/ch227-llm-guided-polyhedral-optimization.md) |
 
 ---
 
-### Appendices *(~95 pp)*
+### Appendices *(~115 pp)*
 
 | | Appendix |
 |-|---------|
@@ -444,6 +465,8 @@ Expert audience. Assumed: C++ proficiency, familiarity with compilers at the lev
 | F | [Object File Format Reference](appendices/appendix-f-object-file-format-reference.md) |
 | G | [DWARF Debug Info Reference](appendices/appendix-g-dwarf-debug-info-reference.md) |
 | H | [The C++ ABI: Itanium and Microsoft](appendices/appendix-h-the-cpp-abi-itanium-and-microsoft.md) |
+| I | [LLVM and GCC: A Structural Comparison](appendices/appendix-i-llvm-and-gcc-structural-comparison.md) |
+| J | [Grammar Notation Reference: BNF, EBNF, PEG, and Modern Alternatives](appendices/appendix-j-grammar-notation-reference.md) |
 
 ---
 
