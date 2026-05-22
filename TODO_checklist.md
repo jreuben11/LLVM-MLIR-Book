@@ -1,5 +1,5 @@
 # Book Progress Checklist
-*Last updated: 2026-05-22 (Ch234–Ch238 written and committed). 264 / 264 items complete.*
+*Last updated: 2026-05-22 (Ch239 ISPC written and committed). 265 / 265 items complete.*
 
 ## Status Legend
 - `[ ]` Not started
@@ -9,7 +9,7 @@
 ---
 
 ## Current Focus
-**COMPLETE — All 264 chapters written and committed.**
+**COMPLETE — All 265 chapters written and committed.**
 
 ---
 
@@ -277,7 +277,8 @@
 - [x] Ch231 — GraalVM: Native Image, Truffle Interpreters, and Polyglot Runtimes (~14 pages; §231.1 architecture JVM substrate/Graal JIT/Truffle/SubstrateVM, §231.2 Truffle @Specialization state machine, §231.3 partial evaluation/sea-of-nodes/JVMCI, §231.4 Native Image points-to analysis/closed-world/heap snapshot, §231.5 building a Truffle language, §231.6 GraalPy/TruffleRuby/GraalJS production languages, §231.7 polyglot API, §231.8 Sulong LLVM bitcode on Truffle)
 - [x] Ch235 — GHC's LLVM Backend: Haskell to Native via LLVM (~14 pages; §235.1 GHC pipeline Haskell→Core→STG→Cmm→LLVM IR, §235.2 GHC Core/System FC/coercion proofs/Core Lint, §235.3 STG Machine/thunks/closures/info tables/heap allocation, §235.4 Cmm GenCmmDecl/CmmProc/SRT/stack layout, §235.5 LlvmCodeGen/LlvmM monad/LlvmType, §235.6 ghccc CC10/R1-R10/Sp/Hp/alwaysLive registers, §235.7 GC integration/stgTBAA/info-table root discovery, §235.8 -fllvm vs NCG/supported LLVM 13-22/when LLVM wins)
 - [x] Ch237 — TinyGo: Compiling Go for Embedded Systems and WebAssembly via LLVM (~12 pages; §237.1 design/go/ssa frontend/vs gc toolchain, §237.2 pipeline compiler.go→LLVM IR, §237.3 go-llvm wrapper/custom datalayout, §237.4 GC options -gc=none/leaking/conservative/precise, §237.5 goroutines as LLVM coroutines/llvm.coro.*/cooperative scheduling, §237.6 interface lowering typeID+data pairs, §237.7 target JSON files/Cortex-M/RV32/AVR/wasm, §237.8 stdlib subset/go:linkname/export FFI/wasm_exec.js)
-- [x] Ch238 — Kotlin/Native: Compiling Kotlin to Native via LLVM (~12 pages; §238.1 KonanBackend/K2 FIR→KIR→LLVM/KonanTarget enum, §238.2 InteropLowering/ModuleBitcodeOptimization/LTOBitcodeOptimization, §238.3 CodeGenerator.kt/custom LLVM fork/-Xsave-llvm-ir-after, §238.4 ARC/freeze→concurrent GC 1.7.20+, §238.5 safepoints/stack maps/Instruments integration, §238.6 cinterop tool/.def files/kotlinx.cinterop/CPointer, §238.7 ObjC/Swift interop/@ObjCName/@ExportObjCClass, §238.8 KonanTarget enum/framework/static/XCFramework/@CName)
+- [x] Ch238 — Kotlin/Native: Compiling Kotlin to Native via LLVM
+- [x] Ch239 — ISPC: An SPMD Compiler for CPU SIMD via LLVM (~12 pages; §239.1 SPMD model/gang width/programIndex/Embree-OSPRay usage, §239.2 Variability type system/uniform-varying-SOA/LLVM type mapping, §239.3 masking/predicated execution/foreach/foreach_active, §239.4 Module/ForeachStmt AST/BinaryExpr variability propagation, §239.5 FunctionEmitContext/mask alloca/gather-scatter emission, §239.6 ISPCTarget enum/multi-target CPUID dispatch, §239.7 task-launch-sync/ISPCAlloc-ISPCLaunch-ISPCSync/TBB-OMP runtimes, §239.8 C/C++ interop/SOA interleaving/production Embree-OSPRay) (~12 pages; §238.1 KonanBackend/K2 FIR→KIR→LLVM/KonanTarget enum, §238.2 InteropLowering/ModuleBitcodeOptimization/LTOBitcodeOptimization, §238.3 CodeGenerator.kt/custom LLVM fork/-Xsave-llvm-ir-after, §238.4 ARC/freeze→concurrent GC 1.7.20+, §238.5 safepoints/stack maps/Instruments integration, §238.6 cinterop tool/.def files/kotlinx.cinterop/CPointer, §238.7 ObjC/Swift interop/@ObjCName/@ExportObjCClass, §238.8 KonanTarget enum/framework/static/XCFramework/@CName)
 
 ## Part XXIX — Compiler Tooling, Kernel Integration, and Binary Analysis *(~84 pp, 7 ch)*
 - [x] Ch197 — Clang Plugin System
