@@ -20,7 +20,7 @@
 - [x] Ch04 — The LLVM C++ API
 - [x] Ch05 — LLVM as a Library
 
-## Part II — Compiler Theory and Foundations *(~120 pp, 6 ch)* [THEORETICAL]
+## Part II — Compiler Theory *(~120 pp, 6 ch)* [THEORETICAL]
 - [x] Ch06 — Lexical Analysis
 - [x] Ch07 — Parsing Theory
 - [x] Ch08 — Semantic Analysis Foundations
@@ -69,7 +69,7 @@
 - [x] Ch43 — C++ ABI Lowering: Microsoft
 - [x] Ch44 — Coroutine Lowering in Clang
 
-## Part VII — Clang as a Multi-Language Compiler *(~140 pp, 7 ch)*
+## Part VII — Clang Tooling and Heterogeneous Compilation *(~140 pp, 7 ch)*
 - [x] Ch45 — The Static Analyzer
 - [x] Ch46 — libtooling and AST Matchers
 - [x] Ch47 — clangd, clang-tidy, clang-format, clang-refactor
@@ -83,7 +83,7 @@
 - [x] Ch53 — CIR Generation from AST
 - [x] Ch54 — CIR Lowering and Analysis
 
-## Part IX — Frontend Authoring (Building Your Own) *(~80 pp, 4 ch)*
+## Part IX — Building a Custom Compiler Frontend *(~80 pp, 4 ch)*
 - [x] Ch55 — Building a Frontend
 - [x] Ch56 — Lowering AST to IR
 - [x] Ch57 — Lowering High-Level Constructs
@@ -223,7 +223,7 @@
 - [x] Ch157 — PJRT — The Plugin Runtime Interface
 - [x] Ch158 — SPMD, GSPMD, and Auto-Sharding
 
-## Part XXIII — MLIR in Production *(~160 pp, 8 ch)*
+## Part XXIII — MLIR and ML Compilation Frameworks *(~160 pp, 8 ch)*
 - [x] Ch159 — Building a Domain-Specific Compiler
 - [x] Ch160 — MLIR Python Bindings
 - [x] Ch161 — torch-mlir, ONNX-MLIR, and JAX/TF Bridges
@@ -240,14 +240,14 @@
 - [x] Ch170 — Alive2 and Translation Validation
 - [x] Ch171 — The Undef/Poison Story Formally
 
-## Part XXV — Operations, Bindings, and Contribution *(~100 pp, 5 ch)* ✓ COMPLETE
+## Part XXV — Tooling, Bindings, and Contributing *(~100 pp, 5 ch)* ✓ COMPLETE
 - [x] Ch172 — Testing in LLVM and MLIR
 - [x] Ch173 — Debugging the Compiler
 - [x] Ch174 — Performance Engineering
 - [x] Ch175 — Language Bindings
 - [x] Ch176 — Contributing to LLVM
 
-## Part XXVI — Ecosystem and Frontiers *(~122 pp, 8 ch)*
+## Part XXVI — Adjacent Ecosystems *(~122 pp, 8 ch)*
 - [x] Ch177 — rustc: Architecture, MIR, and Codegen Backends
 - [x] Ch178 — The Rust Compiler Ecosystem
 - [x] Ch179 — LLVM/MLIR for AI: The Full Stack
@@ -257,7 +257,7 @@
 - [x] Ch183 — Modern C++ for Compiler Development: C++23, Contracts, and Reflection
 - [x] Ch229 — torch.compile: TorchDynamo, AOTAutograd, and TorchInductor (~14 pages; §229.1 PyTorch 2.0 compilation model eager vs compiled, §229.2 TorchDynamo PEP-523 frame hook/proxy tensors/guards, §229.3 FX graph IR node types/passes, §229.4 AOTAutograd joint fwd-bwd tracing/decompositions, §229.5 TorchInductor GPU→Triton/CPU→C++, §229.6 torch.export/ExportedProgram/ExecuTorch, §229.7 guard system recompilation/dynamic shapes, §229.8 backends/stability PyTorch 2.4-2.6)
 
-## Part XXVII — Mathematical Foundations and Verified Systems *(~120 pp, 6 ch)* [THEORETICAL]
+## Part XXVII — Mathematical Foundations for Compiler Engineers *(~120 pp, 6 ch)* [THEORETICAL]
 - [x] Ch184 — Proof Assistant Internals: Lean 4, Coq/Rocq, and Isabelle/HOL
 - [x] Ch185 — Mathematical Logic and Model Theory for Compiler Engineers
 - [x] Ch186 — Verified Hardware: CHERI Capabilities and the seL4 Microkernel
@@ -308,7 +308,7 @@
 - [x] Ch206 — Multi-Agent PLs, AI-First SDLC, Security, and Paradigm Failures
 - [x] Ch207 — Reflective Code, Open Problems, and Build Roadmap
 
-## Part XXXI — Frontier AI Evolution *(~192 pp, 16 ch)*
+## Part XXXI — AI-Native Compilation and Frontier Systems *(~192 pp, 16 ch)*
 - [x] Ch208 — GPU Kernel DSLs: Triton, Helion, and Gluon
 - [x] Ch209 — CUTLASS, Thrust, CuTe, and TileIR: GPU Parallel Primitives and Layout Algebra
 - [x] Ch210 — The JAX Ecosystem: A Functional Neural Compilation Stack

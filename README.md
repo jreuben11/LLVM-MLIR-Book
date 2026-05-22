@@ -10,11 +10,11 @@
 
 ~3,050 pages of expert-level material spanning 239 chapters and 10 appendices across 31 parts. The book is organised around **five structural arcs**:
 
-1. **LLVM and Clang implementation** (Parts I, IV–XVIII, XXV) — the compiler infrastructure itself: LLVM IR (Part IV), the analysis and middle-end pass pipeline (Part X), LTO/ThinLTO and LLD (Part XIII), SelectionDAG, GlobalISel, the backend, and all target ports including NVPTX/AMDGPU/RISC-V (Parts XIV–XV), JIT (ORC/JITLink), sanitizers, BOLT, and diagnostic tools (Part XVI), runtime libraries — compiler-rt, libunwind, libc++, OpenMP (Part XVII); Clang's full internals: driver, SourceManager, preprocessor, parser, Sema, modules, AST, CodeGen, and C++ ABI (Parts V–VI); Clang as a multi-language compiler for CUDA, HIP, SYCL, OpenCL, HLSL, and the static analyzer (Part VII); ClangIR (CIR) — the Clang-level MLIR dialect (Part VIII); building your own language frontend with LLVM (Part IX); Flang — the LLVM Fortran compiler (Part XVIII); and compiler tooling, operations, language bindings, and contributing to LLVM (Part XXV).
+1. **LLVM and Clang implementation** (Parts I, IV–XVIII, XXV) — the compiler infrastructure itself: LLVM IR (Part IV), the analysis and middle-end pass pipeline (Part X), LTO/ThinLTO and LLD (Part XIII), SelectionDAG, GlobalISel, the backend, and all target ports including NVPTX/AMDGPU/RISC-V (Parts XIV–XV), JIT (ORC/JITLink), sanitizers, BOLT, and diagnostic tools (Part XVI), runtime libraries — compiler-rt, libunwind, libc++, OpenMP (Part XVII); Clang's full internals: driver, SourceManager, preprocessor, parser, Sema, modules, AST, CodeGen, and C++ ABI (Parts V–VI); Clang tooling and heterogeneous compilation — CUDA, HIP, SYCL, OpenCL, HLSL, the static analyzer, libtooling, and clangd (Part VII); ClangIR (CIR) — the Clang-level MLIR dialect (Part VIII); building a custom compiler frontend with LLVM (Part IX); Flang — the LLVM Fortran compiler (Part XVIII); and tooling, language bindings, and contributing to LLVM (Part XXV).
 2. **Compiler theory** (Part II, ~120 pp) — lexical analysis, parsing theory, SSA construction, the lattice-based dataflow framework, and classical optimization theory. Anchored to Aho/Lam/Sethi/Ullman (*Dragon Book* 2e), Cooper & Torczon (*Engineering a Compiler* 3e), Appel (*Modern Compiler Implementation*), and Muchnick.
 3. **Type theory** (Part III, ~80 pp) — lambda calculus, System F, Hindley-Milner and Algorithm W, dependent types (Martin-Löf / CoC), linear and affine types, refinement types, and a capstone chapter mapping theory to LLVM and MLIR. Anchored to Pierce (*TAPL*, *ATTAPL*), Harper (*PFPL*), Mitchell, and Reynolds.
 4. **Polyhedral model and MLIR** (Parts XI–XII, XIX–XXIII) — polyhedral theory from Presburger arithmetic through the Pluto scheduling algorithm and CLooG code generation (Part XI, ~80 pp, anchored to Bondhugula's PhD thesis, Feautrier's papers, Verdoolaege's ISL papers, and Grosser et al.); Polly (Part XII); and the entire MLIR stack: foundations, in-tree dialects, transformations, XLA/OpenXLA, and production deployment including Triton, IREE, torch-mlir, and Mojo (Parts XIX–XXIII, ~730 pp total).
-5. **Verified compilation and ecosystem frontiers** (Parts XXIV–XXXI) — formal semantics, CompCert, Vellvm, Alive2, and the undef/poison story (Part XXIV, ~110 pp, anchored to Leroy's CompCert papers, Zhao/Zdancewic/Nagarakatte on Vellvm, and Lopes/Lee/Hur on Alive2); the Rust compiler ecosystem and LLVM/MLIR for AI (Part XXVI); mathematical foundations including proof assistants, category theory, and denotational semantics (Part XXVII); language ecosystems — CIRCT, quantum compilation, Swift SIL, Julia, Zig, safety-critical toolchains (Part XXVIII); compiler tooling and binary analysis (Part XXIX); AI-first programming language design (Part XXX); and frontier AI evolution — GPU kernel DSLs, JAX ecosystem, weight-space geometry, mechanistic interpretability, evolutionary architecture search, and formal self-improvement theory (Part XXXI).
+5. **Verified compilation and ecosystem frontiers** (Parts XXIV–XXXI) — formal semantics, CompCert, Vellvm, Alive2, and the undef/poison story (Part XXIV, ~110 pp, anchored to Leroy's CompCert papers, Zhao/Zdancewic/Nagarakatte on Vellvm, and Lopes/Lee/Hur on Alive2); adjacent ecosystems — Rust, AI toolchains, formal verification, and language tooling (Part XXVI); mathematical foundations for compiler engineers including proof assistants, category theory, and denotational semantics (Part XXVII); language ecosystems — CIRCT, quantum compilation, Swift SIL, Julia, Zig, safety-critical toolchains (Part XXVIII); compiler tooling and binary analysis (Part XXIX); AI-first programming language design (Part XXX); and AI-native compilation and frontier systems — GPU kernel DSLs, JAX ecosystem, weight-space geometry, mechanistic interpretability, evolutionary architecture search, and formal self-improvement theory (Part XXXI).
 
 ### Estimated Page Distribution
 
@@ -67,7 +67,7 @@ Expert audience. Assumed: C++ proficiency, familiarity with compilers at the lev
 | 4 | [The LLVM C++ API](chapters/part-01-foundations/ch04-the-llvm-cpp-api.md) |
 | 5 | [LLVM as a Library](chapters/part-01-foundations/ch05-llvm-as-a-library.md) |
 
-### Part II — Compiler Theory and Foundations *(~120 pp)* `[THEORETICAL]`
+### Part II — Compiler Theory *(~120 pp)* `[THEORETICAL]`
 
 | # | Chapter |
 |---|---------|
@@ -131,7 +131,7 @@ Expert audience. Assumed: C++ proficiency, familiarity with compilers at the lev
 | 43 | [C++ ABI Lowering: Microsoft](chapters/part-06-clang-codegen/ch43-cpp-abi-lowering-microsoft.md) |
 | 44 | [Coroutine Lowering in Clang](chapters/part-06-clang-codegen/ch44-coroutine-lowering-in-clang.md) |
 
-### Part VII — Clang as a Multi-Language Compiler *(~140 pp)*
+### Part VII — Clang Tooling and Heterogeneous Compilation *(~140 pp)*
 
 | # | Chapter |
 |---|---------|
@@ -151,7 +151,7 @@ Expert audience. Assumed: C++ proficiency, familiarity with compilers at the lev
 | 53 | [CIR Generation from AST](chapters/part-08-clangir/ch53-cir-generation-from-ast.md) |
 | 54 | [CIR Lowering and Analysis](chapters/part-08-clangir/ch54-cir-lowering-and-analysis.md) |
 
-### Part IX — Frontend Authoring (Building Your Own) *(~80 pp)*
+### Part IX — Building a Custom Compiler Frontend *(~80 pp)*
 
 | # | Chapter |
 |---|---------|
@@ -333,7 +333,7 @@ Expert audience. Assumed: C++ proficiency, familiarity with compilers at the lev
 | 157 | [PJRT — The Plugin Runtime Interface](chapters/part-22-xla-openxla/ch157-pjrt-the-plugin-runtime-interface.md) |
 | 158 | [SPMD, GSPMD, and Auto-Sharding](chapters/part-22-xla-openxla/ch158-spmd-gspmd-and-auto-sharding.md) |
 
-### Part XXIII — MLIR in Production *(~160 pp)*
+### Part XXIII — MLIR and ML Compilation Frameworks *(~160 pp)*
 
 | # | Chapter |
 |---|---------|
@@ -356,7 +356,7 @@ Expert audience. Assumed: C++ proficiency, familiarity with compilers at the lev
 | 170 | [Alive2 and Translation Validation](chapters/part-24-verified-compilation/ch170-alive2-and-translation-validation.md) |
 | 171 | [The Undef/Poison Story Formally](chapters/part-24-verified-compilation/ch171-the-undef-poison-story-formally.md) |
 
-### Part XXV — Operations, Bindings, and Contribution *(~100 pp)*
+### Part XXV — Tooling, Bindings, and Contributing *(~100 pp)*
 
 | # | Chapter |
 |---|---------|
@@ -366,7 +366,7 @@ Expert audience. Assumed: C++ proficiency, familiarity with compilers at the lev
 | 175 | [Language Bindings](chapters/part-25-operations-contribution/ch175-language-bindings.md) |
 | 176 | [Contributing to LLVM](chapters/part-25-operations-contribution/ch176-contributing-to-llvm.md) |
 
-### Part XXVI — Ecosystem and Frontiers *(~120 pp)*
+### Part XXVI — Adjacent Ecosystems *(~120 pp)*
 
 | # | Chapter |
 |---|---------|
@@ -379,7 +379,7 @@ Expert audience. Assumed: C++ proficiency, familiarity with compilers at the lev
 | 183 | [Modern C++ for Compiler Development: C++23, Contracts, and Reflection](chapters/part-26-ecosystem-frontiers/ch183-modern-cpp-for-compiler-development.md) |
 | 229 | [torch.compile: TorchDynamo, AOTAutograd, and TorchInductor](chapters/part-26-ecosystem-frontiers/ch229-torch-compile-torchdynamo-aotautograd-torchinductor.md) |
 
-### Part XXVII — Mathematical Foundations and Verified Systems *(~120 pp)* `[THEORETICAL]`
+### Part XXVII — Mathematical Foundations for Compiler Engineers *(~120 pp)* `[THEORETICAL]`
 
 | # | Chapter |
 |---|---------|
@@ -430,7 +430,7 @@ Expert audience. Assumed: C++ proficiency, familiarity with compilers at the lev
 | 206 | [Multi-Agent PLs, AI-First SDLC, Security, and Paradigm Failures](chapters/part-30-AI-first-PL-design/ch206-multi-agent-pls-sdlc-security.md) |
 | 207 | [Reflective Code, Open Problems, and Build Roadmap](chapters/part-30-AI-first-PL-design/ch207-reflective-code-open-problems-roadmap.md) |
 
-### Part XXXI — Frontier AI Evolution *(~192 pp)*
+### Part XXXI — AI-Native Compilation and Frontier Systems *(~192 pp)*
 
 | # | Chapter |
 |---|---------|
