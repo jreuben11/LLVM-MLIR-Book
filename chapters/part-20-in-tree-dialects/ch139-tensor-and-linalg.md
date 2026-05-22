@@ -515,6 +515,269 @@ These invariants are what distinguish `linalg.generic` from a generic `scf.for` 
 
 ---
 
+## 139.7 The TOSA Dialect
+
+TOSA (Tensor Operator Set Architecture) is an MLIR dialect that defines a portable, verifiable set of ML operators positioned one level above `linalg` in the abstraction hierarchy. Where `linalg.generic` is a flexible computation framework, TOSA defines concrete semantics for specific ML operations — convolutions, activations, reductions — in a form that both hardware compilers and portability-focused toolchains can target. Its primary lowering path is `--tosa-to-linalg`, making it a natural companion to the material in §139.2–139.5.
+
+Sources: [`mlir/include/mlir/Dialect/Tosa/IR/TosaOps.td`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/mlir/include/mlir/Dialect/Tosa/IR/TosaOps.td), [`mlir/lib/Dialect/Tosa/`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/mlir/lib/Dialect/Tosa/), and the [TOSA Specification 1.0](https://www.mlplatform.org/tosa/tosa_spec.html).
+
+### 139.7.1 Design Goals and Position in the ML Stack
+
+TOSA was developed by Arm and contributed to MLIR in 2021. Its design goals distinguish it from both `linalg` and higher-level frameworks:
+
+**Portability**: TOSA's ~90 operators have fully specified semantics — including edge cases for overflow, saturation, and out-of-bounds access — so a program in TOSA has identical observable behaviour on any compliant implementation. This is stronger than linalg's guarantee (which specifies structure but defers some semantics to the body region).
+
+**Quantization awareness**: Every TOSA operator natively handles quantized integer tensors alongside floating-point. Integer arithmetic with specified shift-and-scale quantization parameters is a first-class feature, not an afterthought.
+
+**Verifiability**: The `tosa-validate` pass checks that an MLIR module conforms to the TOSA specification (operator constraints, type constraints, shape rules). This enables downstream tools to rely on TOSA as a stable, checked contract.
+
+Position in a typical ML lowering stack:
+
+```
+PyTorch / TensorFlow / ONNX
+        ↓
+  StableHLO / Torch dialect
+        ↓
+      TOSA          ← portable, verifiable ML ops
+        ↓
+  linalg.generic   ← structured loops
+        ↓
+  vector + scf
+        ↓
+    LLVM dialect
+```
+
+TOSA serves as the portability boundary: frontends (TFLite, ONNX-MLIR, torch-mlir) lower to TOSA; backends (IREE, hardware NPU compilers) lower from TOSA to linalg or directly to hardware IR.
+
+### 139.7.2 Type System
+
+TOSA operates exclusively on ranked tensors. The element types are:
+
+| TOSA element type | MLIR type | Notes |
+|-------------------|-----------|-------|
+| `float` | `f32` | 32-bit float |
+| `fp16` | `f16` | 16-bit float |
+| `bf16` | `bf16` | Brain float |
+| `int32` | `i32` | Signed 32-bit |
+| `int16` | `i16` | Signed 16-bit |
+| `int8` | `i8` | Signed 8-bit (common for quantization) |
+| `int4` | `i4` | Signed 4-bit |
+| `bool` | `i1` | Comparison output |
+
+TOSA uses `tensor<shape x element_type>` directly — no custom type wrapper. Quantization information is carried in operator attributes rather than in the type, unlike `quant` dialect types.
+
+**Quantized operations** carry explicit `input_zp` (zero-point) and `weight_zp` attributes:
+
+```mlir
+// Quantized 8-bit convolution
+%output = tosa.conv2d %input, %weight, %bias {
+    pad = array<i64: 0, 0, 0, 0>,
+    stride = array<i64: 1, 1>,
+    dilation = array<i64: 1, 1>,
+    input_zp = -128 : i32,
+    weight_zp = 0 : i32
+} : (tensor<1x8x8x1xi8>, tensor<16x3x3x1xi8>, tensor<16xi32>)
+  -> tensor<1x6x6x16xi32>
+```
+
+The output is `i32` — TOSA mandates 32-bit accumulation for 8-bit convolution to prevent overflow.
+
+### 139.7.3 Operator Taxonomy
+
+TOSA's ~90 operators are organised into functional categories:
+
+**Tensor arithmetic** — elementwise binary and unary ops:
+```mlir
+%add  = tosa.add %a, %b : (tensor<4xf32>, tensor<4xf32>) -> tensor<4xf32>
+%mul  = tosa.mul %a, %b {shift = 0 : i8} : (...) -> tensor<4xf32>
+%sub  = tosa.sub %a, %b : ...
+%abs  = tosa.abs %a : (tensor<4xf32>) -> tensor<4xf32>
+%neg  = tosa.negate %a {input1_zp = 0 : i32, output_zp = 0 : i32} : ...
+%recip = tosa.reciprocal %a : ...
+```
+
+The `shift` attribute on `tosa.mul` is for integer fixed-point multiplication: the product is right-shifted by `shift` bits before storing.
+
+**Activation functions**:
+```mlir
+%relu  = tosa.clamp %x {min_fp = 0.0 : f32, max_fp = 3.4e38 : f32,
+                         min_int = 0 : i64, max_int = 2147483647 : i64}
+                   : (tensor<4xf32>) -> tensor<4xf32>
+%gelu  = tosa.sigmoid %x : (tensor<4xf32>) -> tensor<4xf32>
+%tanh  = tosa.tanh    %x : ...
+%log   = tosa.log     %x : ...
+%exp   = tosa.exp     %x : ...
+```
+
+`tosa.clamp` implements ReLU (clamp to [0, +∞]), ReLU6 (clamp to [0, 6]), and general clamp in one op.
+
+**Convolution and pooling**:
+```mlir
+// 2D convolution: NHWC input, OHWI weight (TOSA canonical layout)
+%out = tosa.conv2d %input, %weight, %bias {
+    pad = array<i64: 1, 1, 1, 1>,
+    stride = array<i64: 1, 1>,
+    dilation = array<i64: 1, 1>
+} : (tensor<1x8x8x3xf32>, tensor<16x3x3x3xf32>, tensor<16xf32>)
+  -> tensor<1x8x8x16xf32>
+
+// Depthwise convolution: NHWC input, HWCM weight
+%dw  = tosa.depthwise_conv2d %input, %weight, %bias { ... }
+     : (tensor<1x8x8x4xf32>, tensor<3x3x4x1xf32>, tensor<4xf32>)
+    -> tensor<1x8x8x4xf32>
+
+// Max pooling
+%pool = tosa.max_pool2d %input {
+    kernel = array<i64: 2, 2>,
+    stride = array<i64: 2, 2>,
+    pad    = array<i64: 0, 0, 0, 0>
+} : (tensor<1x8x8x4xf32>) -> tensor<1x4x4x4xf32>
+```
+
+TOSA mandates NHWC (batch, height, width, channel) layout for activations and OHWI (output-channel, height, width, input-channel) for convolution weights. This differs from PyTorch's default NCHW; framework frontends insert `tosa.transpose` to normalise layout.
+
+**Matrix multiplication**:
+```mlir
+// Batch matmul: [N, H, K] × [N, K, W] → [N, H, W]
+%out = tosa.matmul %lhs, %rhs
+     : (tensor<2x4x8xf32>, tensor<2x8x4xf32>) -> tensor<2x4x4xf32>
+```
+
+**Reduction**:
+```mlir
+%sum  = tosa.reduce_sum  %x {axis = 1 : i32} : (tensor<4x8xf32>) -> tensor<4x1xf32>
+%max  = tosa.reduce_max  %x {axis = 2 : i32} : ...
+%min  = tosa.reduce_min  %x {axis = 0 : i32} : ...
+%mean = tosa.reduce_mean %x {axis = 1 : i32} : ...  // not in TOSA 1.0; use reduce_sum + reciprocal
+```
+
+Note: TOSA 1.0 has no `reduce_mean` — it is expressed as `reduce_sum` followed by `mul` with a reciprocal of the dimension size.
+
+**Shape manipulation**:
+```mlir
+%r = tosa.reshape %x {new_shape = array<i64: 2, 4>}
+   : (tensor<8xf32>) -> tensor<2x4xf32>
+
+%t = tosa.transpose %x {perms = array<i32: 0, 2, 1>}
+   : (tensor<2x3x4xf32>) -> tensor<2x4x3xf32>
+
+%s = tosa.slice %x {start = array<i64: 0, 1>, size = array<i64: 2, 3>}
+   : (tensor<4x5xf32>) -> tensor<2x3xf32>
+
+%p = tosa.pad %x {padding = array<i64: 1, 1, 0, 2>}
+            (tensor<4x5xf32>) -> tensor<6x7xf32>
+```
+
+**Scatter / gather**:
+```mlir
+// Gather: index into dimension 0 of %values
+%out = tosa.gather %values, %indices
+     : (tensor<1x16x4xf32>, tensor<1x8xi32>) -> tensor<1x8x4xf32>
+
+// Scatter: write %src into %values at %indices positions
+%out = tosa.scatter %values_in, %indices, %src
+     : (tensor<1x16x4xf32>, tensor<1x8xi32>, tensor<1x8x4xf32>)
+    -> tensor<1x16x4xf32>
+```
+
+**Data-format / cast**:
+```mlir
+%cast = tosa.cast %x : (tensor<4xi8>) -> tensor<4xf32>   // int→float conversion
+%rs   = tosa.rescale %x {
+    input_zp = -128 : i32, output_zp = 0 : i32,
+    multiplier = array<i32: 1073741824>,
+    shift      = array<i8: 1>,
+    scale32 = true, double_round = true, per_channel = false
+} : (tensor<4xi8>) -> tensor<4xi8>
+```
+
+`tosa.rescale` is the quantization re-scaling operator: it takes an integer tensor, subtracts the input zero-point, multiplies by a fixed-point scale (`multiplier >> shift`), adds the output zero-point, and saturates/rounds. This single op encodes the entire integer requantization step that sits between quantized layers.
+
+### 139.7.4 The tosa-to-linalg Lowering
+
+The primary lowering pass is `--tosa-to-linalg` (elementwise and reductions) plus `--tosa-to-linalg-named` (convolutions and matmul). Together they produce `linalg` IR ready for tiling and vectorization:
+
+```bash
+mlir-opt input.mlir \
+    --tosa-to-linalg-named \
+    --tosa-to-linalg \
+    --linalg-bufferize \
+    --convert-linalg-to-loops \
+    --convert-cf-to-llvm \
+    --convert-arith-to-llvm \
+    --finalize-memref-to-llvm \
+    --reconcile-unrealized-casts \
+    -o output.mlir
+```
+
+**Elementwise ops** (`tosa.add`, `tosa.mul`, etc.) lower to `linalg.map`:
+
+```mlir
+// tosa.add lowers to:
+%out = linalg.map { arith.addf }
+       ins(%a, %b : tensor<4xf32>, tensor<4xf32>)
+       outs(%empty : tensor<4xf32>)
+```
+
+**`tosa.matmul`** lowers to `linalg.batch_matmul`:
+
+```mlir
+%out = linalg.batch_matmul
+       ins(%lhs, %rhs : tensor<2x4x8xf32>, tensor<2x8x4xf32>)
+       outs(%init    : tensor<2x4x4xf32>) -> tensor<2x4x4xf32>
+```
+
+**`tosa.conv2d`** lowers to `linalg.conv_2d_nhwc_ohwi`:
+
+```mlir
+%out = linalg.conv_2d_nhwc_ohwi
+       { dilations = dense<1> : tensor<2xi64>,
+         strides   = dense<1> : tensor<2xi64> }
+       ins(%input, %weight : tensor<1x8x8x3xf32>, tensor<16x3x3x3xf32>)
+       outs(%init          : tensor<1x8x8x16xf32>) -> tensor<1x8x8x16xf32>
+```
+
+**`tosa.reduce_sum`** lowers to `linalg.reduce`:
+
+```mlir
+%out = linalg.reduce { arith.addf }
+       ins(%x    : tensor<4x8xf32>)
+       outs(%init : tensor<4x1xf32>)
+       dimensions = [1]
+```
+
+After `tosa-to-linalg`, the resulting linalg IR is subject to the full tiling, vectorization, and bufferization machinery described in §139.4 and §139.5.
+
+### 139.7.5 Validation and Conformance
+
+The `--tosa-validate` pass checks that a module satisfies TOSA specification constraints — shape rules, type constraints, attribute ranges — and can be run in strict mode to catch spec violations:
+
+```bash
+mlir-opt --tosa-validate="profile=bi level=warning" input.mlir
+```
+
+TOSA defines three profiles that form a conformance hierarchy:
+
+| Profile | Abbreviation | Intended target |
+|---------|-------------|-----------------|
+| Base Inference | `bi` | Inference-only hardware (NPUs) |
+| Main Inference | `mi` | Full inference with all float types |
+| Main Training | `mt` | Training (adds gradient ops) |
+
+The `tosa-check-shapes` pass performs shape inference for dynamically-shaped TOSA programs, propagating static shapes where possible before lowering.
+
+### 139.7.6 Production Usage
+
+**IREE**: TOSA is one of IREE's primary input dialects (`--iree-import-tosa`). TFLite flatbuffers are converted to TOSA by `iree-import-tflite`, which then passes through IREE's flow → stream → HAL lowering chain (covered in [Chapter 162 — IREE](../part-23-mlir-production/ch162-iree-deployment-compiler.md)).
+
+**torch-mlir**: The `--torch-backend-to-tosa-backend-pipeline` lowers PyTorch `torch.aten.*` ops to TOSA for deployment targets that accept TOSA as their interface.
+
+**onnx-mlir**: The `--convert-onnx-to-tosa` pass maps ONNX operators to their TOSA equivalents. ONNX operators without a direct TOSA equivalent are decomposed into sequences of TOSA primitives.
+
+**Arm Ethos NPU SDK**: Uses TOSA as its public compilation interface — the Vela compiler accepts TOSA as input and schedules computation onto the NPU's DMA and MAC array. This is the primary industrial motivation for TOSA's quantization-first design.
+
+---
+
 ## Chapter 139 Summary
 
 - The `tensor` dialect provides value-semantic, aliasing-free dense arrays. Key ops: `tensor.empty` (uninitialized), `tensor.splat` (broadcast scalar), `tensor.extract`/`tensor.insert` (scalar access), `tensor.extract_slice`/`tensor.insert_slice` (sub-tensor slicing), `tensor.pad` (padding with computed values).
@@ -525,6 +788,7 @@ These invariants are what distinguish `linalg.generic` from a generic `scf.for` 
 - Vectorization converts linalg ops to `vector.contract` and `vector.transfer_read`/`vector.transfer_write`, enabling hardware SIMD utilization.
 - The standard lowering path goes linalg → scf → cf → llvm for CPU targets, and linalg → tiled linalg → vectorized vectors → gpu.launch_func for GPU targets.
 - The structural invariants of `linalg.generic` — no aliasing, affine index maps, typed iterator types — are what make it transformable in ways that general loops are not.
+- **TOSA** (Tensor Operator Set Architecture) is a portable, verifiable ML operator dialect positioned above linalg. Its ~90 ops span elementwise arithmetic, activations, convolution, pooling, matmul, reduction, shape manipulation, and scatter/gather, all with fully specified semantics including quantization. `--tosa-to-linalg` and `--tosa-to-linalg-named` lower TOSA to linalg for the standard optimization pipeline. TOSA is used by IREE, torch-mlir, onnx-mlir, and the Arm Ethos NPU SDK as the portability boundary between ML frameworks and hardware backends.
 
 
 ---
