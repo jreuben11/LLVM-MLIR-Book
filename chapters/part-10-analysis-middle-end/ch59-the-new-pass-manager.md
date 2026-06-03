@@ -262,6 +262,8 @@ public:
 }
 ```
 
+> **Os and Oz Deprecation (LLVM 22):** The `-Os` and `-Oz` optimization levels are deprecated in LLVM 22 in favor of using `-O2 -optsize` and `-O2 -minsize` respectively. The old flags remain functional but emit a deprecation warning. Pipeline authors should migrate to the explicit `-optsize`/`-minsize` attributes on functions rather than relying on the global optimization level. This aligns the global pipeline selection with the pre-existing function-attribute approach: a function marked `optsize` is already optimized for size even inside an `-O2` pipeline, so the separate `Os` level adds no new mechanism. The `OptimizationLevel::Os` and `OptimizationLevel::Oz` constants are preserved in the API for backwards compatibility but Clang will warn on `-Os`/`-Oz` when passed as command-line flags.
+
 ### 59.5.2 Textual Pipeline Specification
 
 `PassBuilder::parsePassPipeline` parses a textual pipeline description into a `ModulePassManager`:

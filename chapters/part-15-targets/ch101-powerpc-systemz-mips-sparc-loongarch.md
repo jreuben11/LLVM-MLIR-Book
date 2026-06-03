@@ -37,10 +37,18 @@ Beyond the dominant x86, AArch64, and RISC-V targets, LLVM maintains production-
   - [101.5.4 LoongArch SIMD: LSX and LASX](#10154-loongarch-simd-lsx-and-lasx)
   - [101.5.5 LBT: Binary Translation Helpers](#10155-lbt-binary-translation-helpers)
   - [101.5.6 LLVM LoongArch Maturity](#10156-llvm-loongarch-maturity)
-- [101.6 Cross-Compilation Reference](#1016-cross-compilation-reference)
-  - [101.6.1 Compilation Flags](#10161-compilation-flags)
-  - [101.6.2 Target-Specific IR Inspection](#10162-target-specific-ir-inspection)
-- [101.7 Comparative Architecture Summary](#1017-comparative-architecture-summary)
+- [101.6 LoongArch in Depth](#1016-loongarch-in-depth)
+  - [101.6.1 ISA Overview: LoongArch v1.1](#10161-isa-overview-loongarch-v11)
+  - [101.6.2 TLS Models Including TLSDESC](#10162-tls-models-including-tlsdesc)
+  - [101.6.3 Vector Extensions: LSX and LASX in Detail](#10163-vector-extensions-lsx-and-lasx-in-detail)
+  - [101.6.4 LLD and RuntimeDyld Support](#10164-lld-and-runtimedyld-support)
+  - [101.6.5 Production Status](#10165-production-status)
+- [101.7 VE: NEC SX-Aurora Tsubasa](#1017-ve-nec-sx-aurora-tsubasa)
+- [101.8 SystemZ z/OS Support](#1018-systemz-zos-support)
+- [101.9 Cross-Compilation Reference](#1019-cross-compilation-reference)
+  - [101.9.1 Compilation Flags](#10191-compilation-flags)
+  - [101.9.2 Target-Specific IR Inspection](#10192-target-specific-ir-inspection)
+- [101.10 Comparative Architecture Summary](#10110-comparative-architecture-summary)
 - [Chapter Summary](#chapter-summary)
 
 ---
@@ -542,9 +550,311 @@ clang --target=loongarch64-linux-gnu \
 
 ---
 
-## 101.6 Cross-Compilation Reference
+## 101.6 LoongArch in Depth
 
-### 101.6.1 Compilation Flags
+The LoongArch backend, introduced in LLVM 14 and reaching tier-1 status by LLVM 18, has undergone substantial development in LLVM 22. This section provides the depth missing from §101.5's survey: TLS internals, SIMD coverage, linker details, and JIT support.
+
+### 101.6.1 ISA Overview: LoongArch v1.1
+
+LoongArch v1.1 (published 2023 by the LoongArch International Standards Organization) is the current baseline for production deployments. The ISA has a clean RISC design inspired by MIPS64 and AArch64 but with distinct encoding:
+
+- **Instruction width**: Fixed 32-bit (4-byte aligned). No compressed encoding variant (unlike RISC-V's RVC or ARM Thumb).
+- **Register file**: 32 GPRs (r0–r31), each 64-bit in LA64. r0 is hardwired zero. No HI/LO registers or delay slots inherited from MIPS ancestry.
+- **Addressing modes**: Base+immediate (signed 12-bit), PC-relative (for globals and branches). No complex memory addressing modes.
+- **Branch encoding**: PC-relative, ranging ±128 MB (26-bit offset) for direct branches; 16-bit offset for conditional branches (±128 KB range, extended via `PCADDI` + `JIRL` pattern).
+- **Privileged architecture**: CSR registers (Control and Status Registers) for privilege levels 0 (kernel) through 3 (user), analogous to RISC-V's CSR model.
+
+The LA64 baseline (64-bit) is the only variant shipped in Loongson 3A5000/3A6000 processors. The 32-bit LA32 variant exists in the specification but has no production silicon.
+
+```bash
+# Query LoongArch features on a Loongson 3A6000
+cat /proc/cpuinfo | grep -E "model|Features"
+# Features: cpucfg lam ual fpu lsx lasx complex crypto lbt lvz
+```
+
+The `cpucfg` (CPU configuration) instruction allows software to query available extensions at runtime, analogous to CPUID on x86 or system register reads on AArch64.
+
+### 101.6.2 TLS Models Including TLSDESC
+
+LoongArch supports all four standard ELF TLS access models, plus the TLSDESC (Thread Local Storage Descriptor) model added to the LLVM LoongArch backend in 2024.
+
+**Global Dynamic (GD)**: Standard TLS, requires two GOT entries per variable and a call to `__tls_get_addr`. Suitable for shared libraries where the TLS variable may come from another DSO.
+
+**Local Dynamic (LD)**: Optimized for accessing multiple TLS variables from the same module; a single `__tls_get_addr` call retrieves the module's TLS base, and individual variables are accessed via offsets from it.
+
+**Initial Exec (IE)**: For TLS variables in a DSO loaded at process startup. The TLS offset is stored in the GOT; a single GOT load gives the offset, which is added to the thread pointer (`tp`, r2).
+
+**Local Exec (LE)**: For TLS variables in the main executable. The offset is known at link time; a single add-immediate from the thread pointer suffices. The fastest model.
+
+```asm
+; Local Exec TLS access (fastest path — main executable only)
+lu12i.w  $r4, %le_hi20(var)     ; load upper 20 bits of TLS offset
+ori      $r4, $r4, %le_lo12(var); or in lower 12 bits
+add.d    $r4, $r2, $r4           ; TLS_ptr = thread_ptr + offset
+ld.d     $r0, $r4, 0             ; load TLS variable
+
+; Initial Exec TLS access (DSO, loaded at startup)
+pcaddu12i $r4, %ie_pc_hi20(var) ; PC-relative GOT entry address
+ld.d      $r4, $r4, %ie_lo12(var) ; load TLS offset from GOT
+add.d     $r4, $r2, $r4           ; TLS_ptr = thread_ptr + offset
+```
+
+**TLSDESC (Thread Local Storage Descriptor)**: Added to the LoongArch ABI in 2023 and implemented in the LLVM LoongArch backend in LLVM 18–19, TLSDESC replaces the `__tls_get_addr` call overhead with a descriptor-based lazy-binding mechanism. The TLS descriptor contains a function pointer and a data word; on first access, the dynamic linker fills in the function pointer with a fast resolver; subsequent accesses call the resolver directly without going through `__tls_get_addr`.
+
+```asm
+; TLSDESC TLS access (lazy-binding, lower overhead at runtime)
+pcaddu12i  $r4, %desc_pc_hi20(var)  ; load descriptor GOT entry
+addi.d     $r4, $r4, %desc_lo12(var)
+ld.d       $r12, $r4, %desc_ld(var) ; load descriptor function pointer
+jirl       $r1, $r12, %desc_call(var); call resolver (clobbers r1=ra)
+add.d      $r4, $r2, $r0            ; TLS_ptr = thread_ptr + r0 (return)
+```
+
+TLSDESC requires linker support for the `R_LARCH_TLS_DESC_PC_HI20`, `R_LARCH_TLS_DESC_PC_LO12`, `R_LARCH_TLS_DESC_LD`, and `R_LARCH_TLS_DESC_CALL` relocations, all present in LLD 18+. The GCC LoongArch toolchain added TLSDESC support contemporaneously.
+
+LLVM selects the TLS model based on the `-ftls-model` flag and linkage:
+
+```bash
+# Force TLSDESC for all TLS accesses
+clang --target=loongarch64-linux-gnu \
+    -ftls-model=global-dynamic \
+    -mllvm -loongarch-enable-tlsdesc \
+    -O2 foo.c -o foo.so
+```
+
+### 101.6.3 Vector Extensions: LSX and LASX in Detail
+
+Beyond the instruction-level survey in §101.5.4, the LLVM auto-vectorizer pipeline for LoongArch warrants examination.
+
+**LSX (LoongArch SIMD eXtension, 128-bit)**:
+
+LSX provides 32 vector registers (`vr0`–`vr31`), each 128 bits. The design is clearly influenced by SSE/AVX: element-wise arithmetic, integer saturation, horizontal operations, and byte-level shuffles all have direct equivalents. LLVM's `LoongArchInstrLSX.td` defines approximately 700 LSX instruction patterns.
+
+The auto-vectorizer activates LSX when `+lsx` is in the feature string. Vectorization decisions use the `LoongArchTTI` (Target Transform Info) cost model:
+
+```cpp
+// LoongArchTargetTransformInfo.cpp
+InstructionCost LoongArchTTIImpl::getArithmeticInstrCost(
+    unsigned Opcode, Type *Ty, ...) const {
+  // LSX: v4i32, v4f32 → cost 1
+  // LASX: v8i32, v8f32 → cost 1
+  // i128: not directly supported → scalarize
+}
+```
+
+**LASX (LoongArch Advanced SIMD eXtension, 256-bit)**:
+
+LASX provides 32 wide registers (`xr0`–`xr31`), each 256 bits. The lower 128 bits of each `xr` register alias the corresponding `vr` register — an important detail for mixing LSX and LASX code.
+
+The LLVM vectorizer generates LASX code for target machines with the Loongson 3A6000 CPU model (`-mcpu=la664`). The scheduler model `LoongArchScheduleLA664.td` reflects the 3A6000's 4-issue out-of-order pipeline with dual 256-bit vector execution units.
+
+```bash
+# Verify LASX vectorization of a kernel loop
+clang --target=loongarch64-linux-gnu \
+    -mcpu=la664 -O3 \
+    -Rpass=loop-vectorize \
+    saxpy.c -S -o saxpy.s 2>&1 | head -20
+
+# Inspect generated LASX instructions
+grep -E "^	xv" saxpy.s
+```
+
+### 101.6.4 LLD and RuntimeDyld Support
+
+**LLD LoongArch support** covers:
+- Full static and dynamic ELF linking
+- `R_LARCH_ALIGN` relaxation: LoongArch requires instruction bundles to be naturally aligned; `R_LARCH_ALIGN` allows the assembler to emit NOP padding that the linker later removes during relaxation when sections are compacted
+- GOT/PLT generation for all four TLS models and TLSDESC
+- Relaxation of `PCADDU12I + LD.D` GOT sequences to `PCADDI` + offset when the target is within ±2 GB (medium code model range)
+
+```bash
+# Verify LLD is handling R_LARCH_ALIGN relaxation
+ld.lld --target=loongarch64-linux-gnu \
+    -z relro --hash-style=gnu \
+    -dynamic-linker /lib64/ld-linux-loongarch-lp64d.so.1 \
+    crt1.o crtbegin.o foo.o -lc crtend.o -o foo \
+    --verbose 2>&1 | grep "ALIGN"
+```
+
+**RuntimeDyld LoongArch support** (added in LLVM 18–19): enables the LLVM JIT infrastructure (`lli`, `ExecutionEngine`, and `LLJIT`) to load and execute LoongArch ELF objects dynamically. This is essential for:
+- The `lli` interpreter running LoongArch bitcode
+- LLVM-based JIT compilers (MLIR, Julia, etc.) targeting LoongArch hardware
+- `LLJITBuilder` / `ORCJit` pipelines on Loongson hardware
+
+```cpp
+// Use LLJIT on LoongArch
+auto JITB = LLJITBuilder().create();
+auto &J = *JITB;
+// Add a LoongArch object file to the JIT
+auto ObjBuf = MemoryBuffer::getFile("module.o");
+J.addObjectFile(std::move(*ObjBuf));
+// Look up a function symbol
+auto Sym = J.lookup("my_func");
+// Call it via function pointer
+auto Fn = Sym->toPtr<int(*)(int)>();
+int result = Fn(42);
+```
+
+### 101.6.5 Production Status
+
+As of LLVM 22.1.x, the LoongArch backend has reached tier-1 status:
+
+- **Hardware**: Loongson 3A5000 (la464 microarchitecture, 4-wide OOO), 3A6000 (la664, 6-wide OOO with LASX), shipping in consumer laptops (Lemote 4000, Dragon Laptop) and server blade modules.
+- **OS support**: Linux kernel 6.0+ has full LoongArch support; LoongArch is an official tier-1 architecture in Debian, Gentoo, and Arch Linux.
+- **LLVM features**: SelectionDAG complete; GlobalISel covering basic integer and FP (in-progress for SIMD); LTO via ThinLTO; all four standard sanitizers (ASan, TSan, UBSan, MSan).
+- **LLVM source**: `llvm/lib/Target/LoongArch/` (main backend), `llvm/lib/MC/MCTargetDesc/LoongArch*.cpp` (MC layer), `llvm/lib/Target/LoongArch/LoongArchInstrLSX.td`, `LoongArchInstrLASX.td` (SIMD patterns).
+
+```bash
+# Full LoongArch LA64 + LASX build and check
+clang --target=loongarch64-linux-gnu \
+    -mcpu=la664 \
+    -march=la64+lasx \
+    -O3 -funroll-loops \
+    gemm.c -o gemm_la64
+
+# RuntimeDyld: run LoongArch LLVM IR via lli
+/usr/lib/llvm-22/bin/lli --mtriple=loongarch64-linux-gnu \
+    --march=loongarch64 \
+    --mcpu=la664 \
+    module.ll
+```
+
+---
+
+## 101.7 VE: NEC SX-Aurora Tsubasa
+
+The NEC SX-Aurora Tsubasa is a vector processor architecture designed for HPC and AI inference, implemented in the NEC Vector Engine (VE) accelerator cards. Unlike GPU accelerators, VE is a conventional scalar-vector processor that runs a standard Linux ABI (`ve-linux`) and can execute general-purpose programs with very wide SIMD.
+
+### Architecture Overview
+
+The VE ISA features:
+- **256-element vector registers**: 64 vector registers (v0–v63), each holding 256 64-bit elements (256 × 64-bit = 16 KB per register). This is the widest SIMD register file in any LLVM-supported target.
+- **256-lane scalar-vector execution**: Vector operations process all 256 lanes simultaneously, achieving extremely high throughput for array-heavy numerical codes.
+- **Scalar registers**: 64 general-purpose scalar registers (s0–s63), 64-bit.
+- **Vector mask registers (VM)**: 16 vector mask registers (vm0–vm15), one bit per lane.
+- **512-bit scalar operations**: VE includes 512-bit FP operations for extended precision (not SIMD — single values).
+
+The VE is a PCIe accelerator card; the host CPU (x86) communicates with VE via DMA and the `veoffload` library. Programs execute natively on the VE Linux environment (a separate Linux kernel instance running on the VE).
+
+### LLVM VE Backend
+
+The LLVM VE backend (`llvm/lib/Target/VE/`) was contributed by NEC and merged in LLVM 11. Key features:
+
+- **SelectionDAG**: Complete for scalar and basic vector operations.
+- **Vectorization**: The standard LLVM loop vectorizer generates VE vector instructions; the `VLEN` (vector length) is controlled by `setvl` and tracked via `VL` (Vector Length register).
+- **llvm-ve-rv project**: An independent research project building advanced VE vectorization passes on top of LLVM, providing more aggressive loop transformations than the standard vectorizer.
+
+```bash
+# Compile for NEC SX-Aurora VE
+clang --target=ve-linux \
+    -O3 \
+    -fvectorize \
+    saxpy.c -o saxpy_ve
+
+# Inspect VE vector instructions
+/usr/lib/llvm-22/bin/llc -march=ve \
+    -mattr=+ve \
+    module.ll -o module_ve.s
+grep -E "^	(vld|vst|vaddd|vmulw)" module_ve.s
+```
+
+A representative VE vector add loop (256-element chunks):
+
+```asm
+; VE: saxpy loop (y[i] += a * x[i])
+; Assumes N divisible by 256 for clarity
+.loop:
+    lvl       256             ; set vector length to 256
+    vld       %v0, 8(%s1)    ; load 256 doubles from x[i]
+    vfmadd.d  %v1, %s0, %v0, %v1  ; v1 += a * v0 (fused MA)
+    vst       %v1, 8(%s2)    ; store 256 doubles to y[i]
+    addu.l    %s1, 2048, %s1 ; advance x pointer by 256*8 bytes
+    addu.l    %s2, 2048, %s2 ; advance y pointer
+    subu.l    %s3, %s3, 256  ; decrement count
+    bgt       %s3, %s3, .loop
+```
+
+### Status in LLVM 22
+
+The VE backend is a **tier-3 target** in LLVM 22.1.x. This means:
+- It is maintained and does not break the tree, but is not tested in the main CI pipeline on physical hardware.
+- NEC maintains the backend and provides CI resources.
+- Vectorization support is functional but less aggressively optimized than tier-1 targets.
+- GlobalISel is not implemented; SelectionDAG is the only codegen path.
+
+---
+
+## 101.8 SystemZ z/OS Support
+
+The SystemZ backend in LLVM has historically targeted Linux on IBM Z (s390x-linux-gnu). LLVM 22 extends support to z/OS, IBM's proprietary mainframe operating system, adding the `s390x-ibm-zos` triple and the associated object format and character encoding requirements.
+
+### z/OS Triple and EBCDIC
+
+z/OS uses EBCDIC (Extended Binary Coded Decimal Interchange Code) rather than ASCII for character data. This has a pervasive impact on the compiler:
+
+- **String literals**: A C string `"hello"` compiled for z/OS must encode characters in EBCDIC. `'h'` = 0x88 (EBCDIC) vs 0x68 (ASCII).
+- **`<ctype.h>` tables**: `isalpha()`, `isdigit()`, etc. must use EBCDIC character classification tables.
+- **Clang z/OS string handling**: Clang for `s390x-ibm-zos` emits EBCDIC-encoded string literals. The `ZOSTargetInfo` class in `clang/lib/Basic/Targets/SystemZ.cpp` sets `CharIsSigned = true` and activates the EBCDIC code page translation.
+
+```cpp
+// clang/lib/Basic/Targets/SystemZ.cpp
+class ZOSTargetInfo : public SystemZTargetInfo {
+public:
+  ZOSTargetInfo(const llvm::Triple &Triple, const TargetOptions &Opts)
+      : SystemZTargetInfo(Triple, Opts) {
+    // EBCDIC character set
+    resetDataLayout(
+        "E-m:e-i1:8:16-i8:8:16-i64:64-f128:64-v128:64-a:8:16-n32:64");
+    // z/OS-specific ABI adjustments
+    LongDoubleWidth = LongDoubleAlign = 128;
+  }
+};
+```
+
+### GOFF: Generalized Object File Format
+
+z/OS uses GOFF (Generalized Object File Format) rather than ELF for object files. GOFF is IBM's proprietary object format that has been in use since the OS/390 era. It provides:
+- **External Symbol Dictionary (ESD)**: Declares external symbols and their properties (analogous to ELF symbol tables)
+- **Relocation Dictionary (RLD)**: Describes relocations (analogous to ELF `.rela` sections)
+- **Text (TXT)**: Contains the actual code and data bytes
+
+LLVM 22 includes a basic GOFF object writer in `llvm/lib/MC/GOFFObjectWriter.cpp` (contributed via the IBM z/OS Clang project). The writer handles:
+- GOFF ESD records for function symbols and data symbols
+- GOFF TXT records for code/data sections
+- GOFF RLD records for relocations
+
+```bash
+# Compile a simple file for z/OS (requires z/OS SDK headers)
+clang --target=s390x-ibm-zos \
+    -fno-integrated-as \
+    -mabi=lp64 \
+    hello.c -o hello.o
+
+# Inspect GOFF object (IBM utility, z/OS only)
+# iobind /DUMP HELLO.OBJ
+```
+
+### LLD GOFF Backend
+
+LLD 22 includes the beginning of a GOFF linker backend in `lld/GOFF/`. The implementation in LLVM 22 supports:
+- Linking simple programs with a small number of GOFF object files
+- GOFF symbol resolution and relocation processing
+- Generating a z/OS load module (the z/OS executable format, analogous to an ELF executable)
+
+Full z/OS system library support (linking against `CEE` runtime, `SYS1.CSSLIB`, and `DSNHLI`) requires the IBM z/OS SDK, which provides the system headers and libraries. The LLVM-provided toolchain handles the compilation stage; linking against system libraries requires the IBM-provided binder (`IEWL`) or the LLD GOFF backend with the system libraries accessible.
+
+### z/OS ABI Notes
+
+The z/OS 64-bit ABI (LP64 mode) is largely consistent with the s390x Linux ABI described in §101.2.3, with the following differences:
+- **No POSIX signal handling** in the conventional sense; z/OS uses condition tokens and SRBs (Service Request Blocks) for exception handling.
+- **RENT (re-entrant) code**: z/OS programs are conventionally compiled as re-entrant (`-fno-common`, no writable static storage in the code object). This aligns with LLVM's default behavior.
+- **AMODE 64 / RMODE ANY**: z/OS programs specify addressing mode (64-bit) and residence mode (anywhere in memory) in the object file header, encoded in GOFF ESD records.
+
+---
+
+## 101.9 Cross-Compilation Reference
+
+### 101.9.1 Compilation Flags
 
 ```bash
 # PowerPC POWER10 (little-endian, ELFv2)
@@ -553,11 +863,16 @@ clang --target=powerpc64le-linux-gnu \
     -mcpu=power10 -maltivec -mvsx -mpower10-mma \
     -O3 foo.c -o foo_ppc64le
 
-# SystemZ z15
+# SystemZ z15 (Linux)
 clang --target=s390x-linux-gnu \
     --sysroot=/opt/cross/s390x-sysroot \
     -march=z15 -mvx \
     -O2 foo.c -o foo_z15
+
+# SystemZ z/OS (GOFF output)
+clang --target=s390x-ibm-zos \
+    -mabi=lp64 \
+    -O2 foo.c -o foo_zos.o
 
 # MIPS64 n64 ABI
 clang --target=mips64el-linux-gnuabi64 \
@@ -571,14 +886,20 @@ clang --target=sparc64-linux-gnu \
     -mcpu=ultrasparc3 \
     -O2 foo.c -o foo_sparc64
 
-# LoongArch LA64
+# LoongArch LA64 with LASX and TLSDESC
 clang --target=loongarch64-linux-gnu \
     --sysroot=/opt/cross/la64-sysroot \
     -march=la64+lasx \
+    -ftls-model=global-dynamic \
     -O3 foo.c -o foo_la64
+
+# NEC SX-Aurora VE
+clang --target=ve-linux \
+    -O3 -fvectorize \
+    foo.c -o foo_ve
 ```
 
-### 101.6.2 Target-Specific IR Inspection
+### 101.9.2 Target-Specific IR Inspection
 
 ```bash
 # PowerPC: verify VSX vectorization
@@ -587,7 +908,7 @@ clang --target=loongarch64-linux-gnu \
     test.ll -o test_ppc.s
 grep -E "xvadd|xvmul|vadduwm" test_ppc.s
 
-# SystemZ: verify vector instructions
+# SystemZ Linux: verify vector instructions
 /usr/lib/llvm-22/bin/llc -march=systemz \
     -mcpu=z14 -mattr=+vector \
     test.ll -o test_z.s
@@ -604,19 +925,26 @@ grep -E "addv\.|fmadd\." test_mips.s
     -mattr=+d,+lsx,+lasx \
     test.ll -o test_la.s
 grep -E "^	xv" test_la.s
+
+# NEC VE: verify vector instructions
+/usr/lib/llvm-22/bin/llc -march=ve \
+    test.ll -o test_ve.s
+grep -E "^	v(ld|st|add|mul)" test_ve.s
 ```
 
 ---
 
-## 101.7 Comparative Architecture Summary
+## 101.10 Comparative Architecture Summary
 
 | Target | ISA class | SIMD width | Primary SIMD unit | GlobalISel | OOO scheduling |
 |--------|----------|-----------|------------------|------------|---------------|
 | PowerPC (ppc64le) | RISC | 128–512-bit | AltiVec/VSX/MMA | Partial | POWER8–10 models |
-| SystemZ (s390x) | CISC | 128-bit | VECTOR (z13+) | No | z13–z16 models |
+| SystemZ Linux (s390x) | CISC | 128-bit | VECTOR (z13+) | No | z13–z16 models |
+| SystemZ z/OS (s390x) | CISC | 128-bit | VECTOR (z13+) | No | z13–z16 models |
 | MIPS32/64 | RISC | 128-bit | MSA | No | P5600, I6400 |
 | SPARC64 | RISC | 64-bit | VIS (limited) | No | HyperSPARC |
-| LoongArch LA64 | RISC | 256-bit | LSX/LASX | Partial | Loongson3A5000 |
+| LoongArch LA64 | RISC | 256-bit | LSX/LASX | Partial | Loongson 3A6000 |
+| NEC VE | RISC+Vector | 256-element | 256-lane VR | No | SX-Aurora VE1/VE2 |
 
 ---
 
@@ -628,7 +956,10 @@ grep -E "^	xv" test_la.s
 - SPARC's register-window architecture overlaps caller O registers with callee I registers via `SAVE`/`RESTORE`, passing arguments without memory; LEON3/4 variants target space-qualified embedded SPARC-V8 systems with LLVM workarounds for LEON-specific errata.
 - LoongArch LA64 is a modern clean-slate RISC ISA with LP64D ABI (integer args in a0–a7, FP args in fa0–fa7), 128-bit LSX and 256-bit LASX SIMD, and LBT shadow registers for x86/ARM flag emulation in binary translators; the LLVM backend has been production-ready since LLVM 14.
 - Cross-compilation for all five targets uses `--target=<triple> --sysroot=<path>` with LLVM's integrated assembler; the `llc -march=<arch> -mattr=+<features>` pipeline verifies codegen output for each target.
-- Among these targets, only PowerPC has partial GlobalISel support; the others rely on the mature SelectionDAG path; LoongArch GlobalISel coverage is expanding rapidly with each LLVM release.
+- Among these targets, only PowerPC and LoongArch have partial GlobalISel support; the others rely on the mature SelectionDAG path; LoongArch GlobalISel coverage is expanding rapidly with each LLVM release.
+- LoongArch v1.1 (LA64) is a clean fixed-width RISC ISA with LP64D ABI; beyond the §101.5 survey, TLSDESC (added 2024) provides lazy-binding TLS without `__tls_get_addr` call overhead; 128-bit LSX and 256-bit LASX auto-vectorization targets the Loongson 3A6000 (la664 CPU model); RuntimeDyld support enables LLVM JIT infrastructure on LoongArch; LLD handles `R_LARCH_ALIGN` relaxation and all four TLS models plus TLSDESC.
+- The NEC SX-Aurora VE backend provides the widest SIMD registers in LLVM: 64 × 256-element 64-bit vector registers processed in 256 lanes simultaneously; it is a tier-3 target maintained by NEC; the `llvm-ve-rv` project provides advanced vectorization passes beyond the standard loop vectorizer.
+- SystemZ z/OS support (triple `s390x-ibm-zos`) in LLVM 22 adds EBCDIC string literal encoding, GOFF (Generalized Object File Format) object emission via `llvm/lib/MC/GOFFObjectWriter.cpp`, and the beginning of an LLD GOFF linker backend; z/OS programs are conventionally RENT (re-entrant) and specify AMODE 64 / RMODE ANY in GOFF ESD records.
 
 
 ---

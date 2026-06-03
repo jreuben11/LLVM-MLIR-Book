@@ -320,6 +320,8 @@ LLVM identifies conventions by a numeric enum (`llvm::CallingConv::ID`) defined 
 | `coldcc` | 9 | **Cold calling convention.** Optimized for infrequent invocations. The register allocator minimizes register pressure *at the call site*, spilling caller-saved registers less aggressively than normal. The callee may execute more prologue/epilogue save/restore instructions, but the caller code — which executes every time through the hot path — is leaner. |
 | `tailcc` | 18 | **Tail calling convention.** Guarantees that tail calls within the function can be compiled as actual tail calls (no stack growth). Compatible with `musttail`. All argument registers used by the calling convention must be a subset of those used by the callee. |
 | `ghccc` | 10 | **Glasgow Haskell Compiler calling convention.** All arguments in registers; no stack allocation by the runtime convention (the GHC runtime manages its own stack). Very large numbers of registers may be used; the convention is effectively undefined for a function with more arguments than there are registers. |
+| `preserve_none` | 21 | **Preserve-none calling convention.** The callee may clobber all general-purpose and floating-point registers — the caller must save every live register before the call. This is the opposite of callee-saves conventions; it is designed for runtime stubs (GC write barriers, safepoint polls) that are called so frequently that pushing the save/restore cost entirely onto the callee would bloat hot-path code. Introduced in LLVM 17; identified as `CallingConv::PreserveNone` in [`llvm/include/llvm/IR/CallingConv.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/llvm/include/llvm/IR/CallingConv.h). |
+| `graalcc` | 107 | **GraalVM calling convention.** Reserves two additional registers beyond the platform C ABI for GraalVM's thread-local state (typically the Java thread pointer and heap base). Used when compiling native image GraalVM binaries with LLVM backends. Identified as `CallingConv::GRAAL = 107` in `CallingConv.h`. |
 
 ### 23.5.2 WebKit and JavaScript Conventions
 
@@ -716,6 +718,163 @@ One of the most common ABI portability issues arises when mixing C, C++, and Rus
 The key rule: **attribute disagreement at a call boundary is safe as long as the stricter set is respected at runtime**. If the callee is declared `nonnull` in the IR but the caller passes null, the behavior is undefined regardless of which language compiled each side. The attribute is a promise, not a check.
 
 For C++ exception interoperability with Rust (`extern "C++"` linkage), the calling convention remains `ccc` but the unwinding mechanism requires that both sides agree on the unwind format. LLVM 22 uses Itanium EH on Linux/macOS and SEH on Windows; Rust targets the same formats, making interop tractable without special glue.
+
+---
+
+## The Unified `memory(...)` Attribute: C++ API and Migration
+
+Section 23.1.1 introduced the `memory(...)` attribute syntax for the IR text form. This section covers the underlying C++ API, the full location×access matrix, and the migration path from the pre-LLVM-16 scattered memory attributes.
+
+### Background: The Legacy Scattered Attributes
+
+Before LLVM 16, memory effects were expressed by a collection of independent function attributes:
+
+| Legacy attribute | Meaning |
+|-----------------|---------|
+| `readnone` | No memory access whatsoever |
+| `readonly` | Only reads; no writes to any memory |
+| `writeonly` | Only writes; no reads |
+| `argmemonly` | Accesses only memory pointed to by arguments |
+| `inaccessiblememonly` | Accesses only memory inaccessible to the caller |
+| `inaccessiblemem_or_argmemonly` | Union of the two above |
+
+These attributes were Boolean flags — either all-or-nothing per access kind — and could not express, for example, "reads argument memory but writes only inaccessible memory." They were also mutually exclusive in confusing ways (`argmemonly` plus `readonly` was valid; `argmemonly` plus `writeonly` was also valid; their interaction was a documented special case).
+
+LLVM 16 replaced all of them with `memory(location: access, ...)` and removed the legacy forms from the IR syntax and the `AttributeList` API. The old attribute names are now rejected by `llvm-as`.
+
+### The Location × Access Matrix
+
+The `memory(...)` attribute encodes a 3×2 matrix: three *location kinds* crossed with two *access kinds* (read and write), independently per location.
+
+**Location kinds** (defined in `llvm/include/llvm/Support/ModRef.h` as `IRMemLocation`):
+
+| Location | `IRMemLocation` enumerator | What it covers |
+|----------|--------------------------|----------------|
+| `argmem` | `IRMemLocation::ArgMem` | Memory reachable through pointer arguments to the function |
+| `inaccessiblemem` | `IRMemLocation::InaccessibleMem` | Memory that the caller cannot observe (e.g., a private allocator's internal slab, `errno`) |
+| `other` | `IRMemLocation::Other` | All other globally-reachable memory not accessed via arguments |
+
+**Access kinds** (`ModRefInfo`): `read` (Ref), `write` (Mod), `readwrite` (ModRef), `none` (NoModRef).
+
+The full attribute syntax covers all combinations:
+
+```llvm
+; No memory access at all
+declare i32 @pure_compute(i32 %x) memory(none)
+
+; Reads any memory, writes nothing (replaces readonly)
+declare i32 @read_global(ptr %p) memory(read)
+
+; Only reads argument memory (e.g., strlen)
+declare i64 @strlen_like(ptr %s) memory(argmem: read)
+
+; Reads globals, writes only errno/internal state (inaccessible)
+declare i32 @libc_func(i32 %x) memory(other: read, inaccessiblemem: write)
+
+; Reads and writes argument memory, doesn't touch globals
+declare void @sort_in_place(ptr %arr, i64 %n) memory(argmem: readwrite)
+
+; Writes inaccessible memory (custom allocator tracking),
+; reads argument memory (the size argument is a value, not a pointer,
+; but imagining a cookie pointer):
+declare ptr @allocate(i64 %sz) memory(argmem: read, inaccessiblemem: write)
+```
+
+The shorthand `memory(read)` means "read from any location" (all three location kinds), i.e., `memory(argmem: read, inaccessiblemem: read, other: read)`. Similarly, `memory(write)` means write to all locations.
+
+### The `MemoryEffects` C++ API
+
+The `memory(...)` attribute is represented in the C++ API by `llvm::MemoryEffects`, defined in [`llvm/include/llvm/Support/ModRef.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/llvm/include/llvm/Support/ModRef.h). It is an alias for `MemoryEffectsBase<IRMemLocation>`.
+
+```cpp
+#include "llvm/Support/ModRef.h"
+using namespace llvm;
+
+// --- Query ---
+Function *F = /* ... */;
+MemoryEffects ME = F->getMemoryEffects();
+
+// Does the function read from argument memory?
+bool readsArgs = isModOrRefSet(ME.getModRef(IRMemLocation::ArgMem));
+
+// Does the function access any memory at all?
+bool noMem = ME.doesNotAccessMemory();   // equivalent to memory(none)
+
+// Does the function only read?
+bool readOnly = ME.onlyReadsMemory();    // no writes to any location
+
+// Does the function only access argument pointers?
+bool argOnly = ME.onlyAccessesArgPointees();
+
+// --- Construction ---
+// memory(none)
+MemoryEffects none = MemoryEffects::none();
+
+// memory(read) — all locations read
+MemoryEffects readAll = MemoryEffects::readOnly();
+
+// memory(argmem: read)
+MemoryEffects argRead = MemoryEffects(IRMemLocation::ArgMem, ModRefInfo::Ref);
+
+// memory(argmem: readwrite, inaccessiblemem: write)
+MemoryEffects custom = MemoryEffects::none();
+custom = custom.getWithModRef(IRMemLocation::ArgMem,    ModRefInfo::ModRef);
+custom = custom.getWithModRef(IRMemLocation::InaccessibleMem, ModRefInfo::Mod);
+
+// Apply to function
+F->setMemoryEffects(custom);
+```
+
+For querying the inferred memory effects of a call instruction (combining the declared attribute with alias analysis results), use `AAResults::getMemoryEffects(const CallBase *)`:
+
+```cpp
+#include "llvm/Analysis/AliasAnalysis.h"
+
+// In a pass that requires AAResults:
+AAResults &AA = getAnalysis<AAResultsWrapperPass>().getAAResults();
+MemoryEffects callME = AA.getMemoryEffects(&CI);  // CI is a CallInst
+```
+
+### `getFnMemoryEffects` for Indirect Calls
+
+For an indirect call (where no `Function*` is available), the alias analysis infrastructure provides `getFnMemoryEffects`:
+
+```cpp
+// For a direct call to a known function:
+MemoryEffects ME = F->getMemoryEffects();
+
+// For an indirect call via a function pointer: use AAResults
+MemoryEffects ME = AA.getMemoryEffects(cast<CallBase>(&I));
+```
+
+### Migration Guide: Legacy Attributes → `memory(...)`
+
+| Old IR attribute | New `memory(...)` equivalent |
+|-----------------|------------------------------|
+| `readnone` | `memory(none)` |
+| `readonly` | `memory(read)` |
+| `writeonly` | `memory(write)` |
+| `argmemonly` | `memory(argmem: readwrite)` |
+| `argmemonly readonly` | `memory(argmem: read)` |
+| `argmemonly writeonly` | `memory(argmem: write)` |
+| `inaccessiblememonly` | `memory(inaccessiblemem: readwrite)` |
+| `inaccessiblememonly readonly` | `memory(inaccessiblemem: read)` |
+| `inaccessiblemem_or_argmemonly` | `memory(argmem: readwrite, inaccessiblemem: readwrite)` |
+| (default — no memory attribute) | `memory(readwrite)` (or omit; same semantics) |
+
+In passes that previously pattern-matched `F->hasFnAttribute(Attribute::ReadNone)`, the replacement is:
+
+```cpp
+// Old:
+if (F->hasFnAttribute(Attribute::ReadNone)) { ... }
+
+// New:
+if (F->getMemoryEffects().doesNotAccessMemory()) { ... }
+// Or for read-only:
+if (F->getMemoryEffects().onlyReadsMemory()) { ... }
+```
+
+The `AttributorPass` automatically upgrades any legacy attributes present in old bitcode files when they are parsed by LLVM 22.
 
 ---
 

@@ -744,6 +744,68 @@ The distinction between ABI alignment (`getABITypeAlign`) and preferred alignmen
 
 ---
 
+## Low-Precision ML Floating-Point Types (OCP MX)
+
+The Open Compute Project (OCP) Microscaling (MX) specification defines a family of sub-8-bit floating-point formats that have become the dominant precision tier for large language model inference and training at scale. LLVM 20 introduced `APFloat` support for these formats, enabling the optimizer and backends to reason about their semantics.
+
+The MX formats are defined in the [OCP Microscaling Formats Specification](https://www.opencompute.org/documents/ocp-microscaling-formats-mx-v1-0-spec-final-pdf):
+
+| LLVM type name | Format | Exponent bits | Mantissa bits | Notes |
+|---------------|--------|--------------|--------------|-------|
+| `f6E2M3FNUZ` | FP6 E2M3 | 2 | 3 | No infinity, NaN is max negative (FNUZ) |
+| `f6E3M2FNUZ` | FP6 E3M2 | 3 | 2 | No infinity, NaN is max negative (FNUZ) |
+| `f4E2M1FN` | FP4 E2M1 | 2 | 1 | No infinity, finite-only; exponent bias = 1 |
+
+These formats are *not* IEEE 754 compliant. They omit infinity representations and encode NaN as the maximum negative value (the "FNUZ" convention: Finite-NaN-at-Upper-Zero). The FP4 format (`f4E2M1FN`) is finite-only: there is no NaN encoding, and values outside the range clamp to the representable maximum.
+
+### `APFloat` Support in LLVM 22
+
+The `APFloat` class in [`llvm/include/llvm/ADT/APFloat.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/llvm/include/llvm/ADT/APFloat.h) represents arbitrary-precision floating-point values in any supported format. MX formats are identified by `fltSemantics` structs and accessed through named accessors:
+
+```cpp
+#include "llvm/ADT/APFloat.h"
+using namespace llvm;
+
+// FP6 E2M3: 6-bit, 2-bit exponent, 3-bit mantissa, FNUZ
+const fltSemantics &S6E2M3 = APFloat::Float6E2M3FNUZ();
+
+// FP6 E3M2: 6-bit, 3-bit exponent, 2-bit mantissa, FNUZ
+const fltSemantics &S6E3M2 = APFloat::Float6E3M2FNUZ();
+
+// FP4 E2M1: 4-bit, 2-bit exponent, 1-bit mantissa, finite-only
+const fltSemantics &S4E2M1 = APFloat::Float4E2M1FN();
+
+// Construct an FP6 E2M3 value from a double
+APFloat val(S6E2M3, "1.5");
+
+// Convert a float to FP4 with rounding
+APFloat fp4val(1.75f);
+bool lossy;
+fp4val.convert(S4E2M1, APFloat::rmNearestTiesToEven, &lossy);
+```
+
+### IR Representation
+
+In LLVM IR, MX format values appear as target extension types or, when manipulated individually, as small integers with associated semantic metadata. The canonical storage type is an integer of the appropriate width: `i6` for FP6 formats, `i4` for FP4. Arithmetic on MX format values is not expressed in IR natively — operations are performed at a higher precision (typically `bfloat` or `float`) and the results are quantized to the MX format via LLVM intrinsics or backend-lowered scale operations.
+
+MLIR's `arith` dialect and the `linalg` dialect's named operations provide first-class MX-format support; at the LLVM IR level, MX operands are typically already converted to wider types before reaching the optimizer.
+
+### Target Extension Types for MX Scales
+
+The OCP MX format specifies that each block of values (typically 32 elements) shares a common scale factor, stored in `float8_e8m0` format (8-bit, exponent-only, no mantissa). LLVM expresses the scale vector as a target extension type or a vector of `i8`. See the AMDGPU backend's implementation in [`llvm/lib/Target/AMDGPU/`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/llvm/lib/Target/AMDGPU/) for the lowering of OCP MX dot-product operations to the `v_mfma_*` family of matrix instructions on CDNA3 and CDNA4 hardware.
+
+### The LLVM Byte Type
+
+The LLVM Byte Type is a 2026 proposal (tracking in the LLVM RFC process) to add an explicit `byte` type to the LLVM IR type system alongside the existing integer types. The motivating observation is that `i8` in LLVM IR carries integer semantics — arithmetic, signedness determination per instruction — while many real-world uses of 8-bit storage units are fundamentally *byte* operations: `memcpy`, raw pointer arithmetic, structure layout, and I/O buffers where the bit pattern's integer interpretation is irrelevant.
+
+**Distinction from `i8`:** An `i8` is an integer that happens to be 8 bits wide. A `byte` is an uninterpreted octet. The key practical difference is aliasing: under the C/C++ abstract machine, any object may be accessed as an array of `unsigned char` (bytes), giving byte-typed accesses an omnipotent aliasing capability that integer accesses lack. In LLVM IR, this distinction cannot currently be expressed — `i8` accesses participate in TBAA like any integer, which can be either too conservative (missed alias-analysis opportunities) or incorrect (aliasing violations).
+
+**Status in LLVM 22:** As of LLVM 22.1.3, the Byte Type proposal has not yet landed as a first-class IR type. The current mechanism remains `i8` for byte-level storage, with `!tbaa` metadata using the omnipotent-root access tag to express byte-level aliasing. The `memcpy` / `memmove` / `memset` intrinsics already carry their own special aliasing semantics outside TBAA.
+
+Watch the [LLVM Discourse RFC for the Byte Type](https://discourse.llvm.org/) for the status of this proposal. It is expected to appear as an experimental feature in a future LLVM release.
+
+---
+
 ## 17.9 Chapter Summary
 
 - **`iN` integers** encode any bit width from 1 to 8,388,607 without built-in signedness; signedness is a property of the instruction (`sdiv` vs. `udiv`, `sext` vs. `zext`). The backend legalizes non-native widths to the hardware's native word sizes.

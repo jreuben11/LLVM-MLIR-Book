@@ -68,7 +68,10 @@ The LLVM project's developer tooling ecosystem spans far beyond the compiler its
   - [47.12.3 Timeout and Error Handling](#47123-timeout-and-error-handling)
   - [47.12.4 clangd Configuration File](#47124-clangd-configuration-file)
   - [47.12.5 clangd with Remote Index](#47125-clangd-with-remote-index)
-- [47.13 Summary](#4713-summary)
+- [47.13 Security-Oriented Checks and Experimental Parsers](#4713-security-oriented-checks-and-experimental-parsers)
+  - [47.13.1 Trojan Source Detection](#47131-trojan-source-detection)
+  - [47.13.2 clang-pseudo: Robust C++ Parser](#47132-clang-pseudo-robust-c-parser)
+- [47.14 Summary](#4714-summary)
 
 ---
 
@@ -981,7 +984,140 @@ Index:
 
 ---
 
-## 47.13 Summary
+## 47.13 Security-Oriented Checks and Experimental Parsers
+
+### 47.13.1 Trojan Source Detection
+
+CVE-2021-42574, disclosed by Boucher and Anderson in November 2021, demonstrated that Unicode bidirectional (BIDI) control characters can be embedded in source code string literals and comments in ways that cause the code's visual rendering in editors to differ from its semantic interpretation by compilers. An attacker who can submit a pull request can exploit BIDI overrides to make malicious code — a hidden backdoor, an always-true branch condition — appear visually benign to a human reviewer.
+
+The specific mechanism uses Unicode codepoints such as:
+
+| Codepoint | Name | Effect |
+|-----------|------|--------|
+| U+202A | LEFT-TO-RIGHT EMBEDDING | Begin LTR scope |
+| U+202B | RIGHT-TO-LEFT EMBEDDING | Begin RTL scope |
+| U+202C | POP DIRECTIONAL FORMATTING | End BIDI scope |
+| U+202D | LEFT-TO-RIGHT OVERRIDE (LRO) | Force LTR rendering |
+| U+202E | RIGHT-TO-LEFT OVERRIDE (RLO) | Force RTL rendering |
+| U+2066 | LEFT-TO-RIGHT ISOLATE | |
+| U+2067 | RIGHT-TO-LEFT ISOLATE | |
+| U+2068 | FIRST STRONG ISOLATE | |
+| U+2069 | POP DIRECTIONAL ISOLATE | |
+
+The classic attack embeds RLO inside a comment so that subsequent code appears visually as part of the comment while being parsed normally by the compiler.
+
+**Clang `-Wtrojan-source`** (added Clang 13 / 2021, default-enabled in Clang 22 with `-Wall`):
+
+```bash
+clang++ -Wtrojan-source src/foo.cpp
+```
+
+Clang's lexer detects any BIDI control character in a string literal, character constant, or comment that is not neutralized by a corresponding pop character within the same token. The diagnostic:
+
+```
+foo.cpp:5:12: warning: unicode bidirectional control character in comment
+    [-Wtrojan-source]
+  /* rights ‮ != */ if (isAdmin) {
+           ^
+```
+
+**clang-tidy `misc-misleading-bidirectional`**:
+
+The clang-tidy check in
+[`clang-tools-extra/clang-tidy/misc/MisleadingBidirectionalCheck.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang-tools-extra/clang-tidy/misc/MisleadingBidirectionalCheck.cpp)
+operates on `PPCallbacks` — it fires on every string literal and comment token before AST construction, scanning for unmatched BIDI control characters. This is complementary to `-Wtrojan-source`: the Clang warning fires during the main compilation; the clang-tidy check fires during separate analysis passes, including in clangd's background diagnostics.
+
+The check also detects **Unicode homoglyph attacks** in identifiers: lookalike characters (Cyrillic `а` U+0430 vs. Latin `a` U+0061) that cause two visually identical identifiers to be distinct symbols. The `misc-misleading-identifier` check in Clang 22 (experimental) flags identifiers whose Unicode normalization (NFC) differs from their raw codepoint sequence, which is the normative criterion in the C++23 standard's identifier rules.
+
+A minimal trojan source example and its diagnostic:
+
+```cpp
+// Trojan: the RLO character at position 8 reverses rendering of "false"
+bool isAdmin = /*‮ false */ true;
+//             ^
+// warning: unicode bidirectional control character in comment
+// [-Wtrojan-source]
+```
+
+To produce this in source while keeping the file valid UTF-8, the RLO byte sequence is `\xe2\x80\xae`. Most editors render this file as if the condition were `/* false */`, while the compiler sees `true`.
+
+### 47.13.2 clang-pseudo: Robust C++ Parser
+
+Production Clang parsing is a recursive-descent parser tightly integrated with `Sema`: it aborts with a diagnostic on the first unrecoverable syntax error and requires a complete, valid translation unit to produce a usable AST. This contract is appropriate for compilation but hostile to tooling scenarios where the source is intentionally incomplete — half-typed function signatures in an editor, generated code with placeholder syntax, syntax highlighting for educational displays.
+
+`clang-pseudo` is a separate, experimental parser in
+[`clang/tools/clang-pseudo/`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/tools/clang-pseudo/)
+that addresses this gap. Its design goals are:
+
+- **Never fail**: always produce a parse forest covering the entire input, even for syntactically invalid code.
+- **Ambiguity tolerance**: represent ambiguous parses explicitly as shared packed parse forests (SPPF nodes) rather than choosing a single interpretation.
+- **Grammar-driven**: use a declarative C++ grammar written in a `.bnf`-like pseudo-format, not hand-coded parser logic.
+
+**GLR Parsing**
+
+`clang-pseudo` implements a Generalized LR (GLR) parser. Where a standard LR(1) parser fails on ambiguous shift/reduce conflicts, GLR explores all possibilities in parallel, merging identical stacks. The implementation in
+[`clang/lib/Pseudo/GLR.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/lib/Pseudo/GLR.cpp)
+uses a Graph Structured Stack (GSS) to share common prefixes between parallel parses, keeping worst-case memory proportional to the square of the grammar's LR table size rather than exponential in the input length.
+
+Key classes:
+
+```cpp
+// The grammar, loaded from a .bnf file
+namespace clang::pseudo {
+  class Grammar;        // owns RuleIDs, SymbolIDs, LR tables
+  class GLRParser;      // drives the GSS-based GLR algorithm
+  class ForestNode;     // node in the shared packed parse forest
+}
+```
+
+The grammar file `clang/lib/Pseudo/cxx.bnf` contains the C++ grammar expressed as BNF productions with disambiguation annotations. Productions that are legitimately ambiguous (e.g., `A * B` as multiplication vs. pointer declaration) are kept as ambiguous; the parser produces a `ForestNode` of kind `Ambiguous` with multiple alternatives.
+
+**Usage**
+
+```bash
+# Parse a file and dump the parse forest
+clang-pseudo --grammar=/usr/lib/llvm-22/share/clang/cxx.bnf \
+             --source=foo.cpp \
+             --print-forest
+```
+
+The API, accessible from C++:
+
+```cpp
+#include "clang-pseudo/Grammar.h"
+#include "clang-pseudo/GLR.h"
+
+using namespace clang::pseudo;
+
+// Load grammar
+auto G = Grammar::parseBNF(GrammarText, Diagnostics);
+
+// Lex the source (clang-pseudo uses its own token stream)
+TokenStream Tokens = lex(SourceCode, LangOptions);
+
+// Parse
+ForestArena Arena;
+GSS GSStack;
+const ForestNode *Root = glrParse(Tokens, ParseParams{*G, Arena, GSStack},
+                                  *G->findNonterminal("translation-unit"));
+
+// Inspect the parse forest
+Root->dump(*G, llvm::outs());
+```
+
+**Current Status in Clang 22**
+
+`clang-pseudo` is marked experimental. It does not replace the production recursive-descent parser for compilation. Its primary use cases in Clang 22 are:
+
+1. **Syntax highlighting on malformed input**: LSP servers can use `clang-pseudo` to produce a structurally reasonable parse tree for files that do not compile, enabling token classification for semantic highlighting even in broken files.
+2. **Fuzzing target**: The GLR parser is used as a fuzzing oracle — code that `clang-pseudo` accepts but the production parser rejects (or vice versa) signals a grammar divergence worth investigating.
+3. **Grammar research**: The declarative BNF grammar in `cxx.bnf` is a standalone, human-readable specification of the C++ grammar, useful for language tooling research outside the LLVM project.
+
+The `clang-tools-extra/pseudo/` directory (not to be confused with `clang/tools/clang-pseudo/`) contains clangd integration experiments that use `clang-pseudo` to handle hover and go-to-definition on incomplete files. This integration is not enabled by default in Clang 22.
+
+---
+
+## 47.14 Summary
 
 - `ClangdLSPServer` → `ClangdServer` → `TUScheduler` is the three-layer architecture that decouples transport, semantic coordination, and per-file async parsing. `ASTWorker` threads own preambles and `ParsedAST` caches, reusing unchanged preambles across edits.
 - Inlay hints, call hierarchy, type hierarchy, rename, and workspace symbol are all implemented against `ParsedAST` and the `BackgroundIndex`; rename uses `tooling::Replacements` and is cross-TU only when the index is complete.
@@ -992,6 +1128,8 @@ Index:
 - Cross-TU analysis uses `CrossTranslationUnitContext::getCrossTUDefinition()` to import function bodies from pre-built index files, enabling the static analyzer to inline across TU boundaries.
 - Plugins (`FrontendPluginRegistry`) suit compile-time actions; clang-tidy checks suit code-quality analysis with fix-its. The two mechanisms share Clang's semantic model but differ in lifecycle and distribution.
 - `AllTUsToolExecutor` parallelizes clang-tidy and other tools over entire compilation databases; `compile_commands.json` is the universal source of truth for compiler flags.
+- Trojan source attacks (CVE-2021-42574) use Unicode BIDI control characters to make malicious code visually invisible to reviewers; `-Wtrojan-source` in Clang and `misc-misleading-bidirectional` in clang-tidy detect and reject these characters in string literals, comments, and identifiers.
+- `clang-pseudo` in `clang/tools/clang-pseudo/` is an experimental GLR-based C++ parser that never fails, producing a shared packed parse forest over ambiguous or incomplete input; it is distinct from the production recursive-descent parser and targets IDE/tooling scenarios where compilation-quality error recovery is insufficient.
 
 ---
 
@@ -1014,6 +1152,12 @@ Index:
 - [`clang/include/clang/CrossTU/CrossTranslationUnit.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/include/clang/CrossTU/CrossTranslationUnit.h)
 - [`clang/include/clang/Frontend/FrontendPluginRegistry.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/include/clang/Frontend/FrontendPluginRegistry.h)
 - [`clang/include/clang/Tooling/AllTUsToolExecutor.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/include/clang/Tooling/AllTUsToolExecutor.h)
+- [`clang-tools-extra/clang-tidy/misc/MisleadingBidirectionalCheck.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang-tools-extra/clang-tidy/misc/MisleadingBidirectionalCheck.cpp)
+- [`clang/tools/clang-pseudo/`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/tools/clang-pseudo/)
+- [`clang/lib/Pseudo/GLR.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/lib/Pseudo/GLR.cpp)
+- [`clang/lib/Pseudo/cxx.bnf`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/lib/Pseudo/cxx.bnf)
+- [Boucher, Anderson — "Trojan Source: Invisible Vulnerabilities" (2021)](https://trojansource.codes/trojan-source.pdf)
+- [CVE-2021-42574 — Trojan Source advisory](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-42574)
 
 
 ---

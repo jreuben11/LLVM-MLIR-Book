@@ -30,6 +30,13 @@ Link-time optimization (LTO) defers optimization until all translation units are
 - [77.6 LTO Performance](#776-lto-performance)
   - [77.6.1 Typical Gains](#7761-typical-gains)
   - [77.6.2 Build Time Impact](#7762-build-time-impact)
+- [Unified LTO](#unified-lto)
+  - [The Compile-Time Binary Choice Problem](#the-compile-time-binary-choice-problem)
+  - [UnifiedLTO: One Object, Both Modes](#unifiedlto-one-object-both-modes)
+  - [LLD's Linker-Side Selection](#llds-linker-side-selection)
+  - [Trade-offs: Bitcode Size vs. Flexibility](#trade-offs-bitcode-size-vs-flexibility)
+  - [Build System Implications](#build-system-implications)
+  - [Interaction with Distributed ThinLTO](#interaction-with-distributed-thinlto)
 - [Chapter Summary](#chapter-summary)
 
 ---
@@ -394,6 +401,113 @@ Combined effect (typical): **3–15% performance improvement** and **10–20% bi
 
 ThinLTO with caching typically adds 10–30% to clean build times compared to non-LTO, but provides near-zero overhead for incremental builds of unchanged modules.
 
+## Unified LTO
+
+### The Compile-Time Binary Choice Problem
+
+Before Unified LTO, selecting Full LTO or ThinLTO was a compile-time decision baked into the bitcode format. `-flto` emitted plain LLVM IR bitcode; `-flto=thin` emitted IR plus a ThinLTO summary. These two object file variants were incompatible at link time: the linker had to receive a homogeneous set of objects — all Full LTO or all ThinLTO. Build systems were forced to maintain separate object directories for each LTO mode, doubling storage and compile time for projects that wanted to compare both modes (e.g., CI using ThinLTO for speed, release using Full LTO for maximum optimization).
+
+### UnifiedLTO: One Object, Both Modes
+
+Unified LTO (introduced in LLVM 17, stabilized in LLVM 19–22) solves this by defining a single bitcode format readable by either Full LTO or ThinLTO at link time. A UnifiedLTO object file contains:
+
+1. **The full LLVM IR module** — used by Full LTO which requires the complete IR.
+2. **A ThinLTO module summary** — embedded alongside the full IR; enables ThinLTO's summary-based cross-module analysis.
+
+The linker decides at link time which mode to use; both modes read from the same set of `.o` files.
+
+```bash
+# Compile with UnifiedLTO:
+clang -O2 -funified-lto -c a.cpp -o a.o
+clang -O2 -funified-lto -c b.cpp -o b.o
+
+# Link with Full LTO using the same objects:
+clang -O2 -funified-lto -fuse-ld=lld -Wl,--lto=full a.o b.o -o prog_full
+
+# Link with ThinLTO using the same objects:
+clang -O2 -funified-lto -fuse-ld=lld -Wl,--lto=thin a.o b.o -o prog_thin
+```
+
+The Clang flag `-funified-lto` instructs the frontend to emit both the full IR and the ThinLTO summary into the bitcode file. LLD reads the embedded `!llvm.summary` section to detect UnifiedLTO objects and dispatches to the appropriate backend based on `--lto=full` or `--lto=thin`.
+
+### LLD's Linker-Side Selection
+
+LLD's UnifiedLTO support lives in `lld/ELF/LTO.cpp`. When LLD processes input files and detects the UnifiedLTO format:
+
+```cpp
+// Simplified detection in lld/ELF/LTO.cpp:
+if (Obj->isUnifiedLTO()) {
+  // Object carries both full IR and ThinLTO summary.
+  // Mode selected by --lto= flag from the command line:
+  if (Config->LTOMode == LTOFS_Full)
+    handleFullLTOObject(Obj);
+  else
+    handleThinLTOObject(Obj);  // reads summary, defers IR fetch
+}
+```
+
+If `--lto=full`, LLD materializes the full IR from each object and merges them. If `--lto=thin`, LLD reads only the summaries and proceeds through the standard ThinLTO pipeline (cross-module import analysis → parallel per-module optimization). The full IR in ThinLTO mode is accessed only for functions that are actually imported, not read eagerly.
+
+The LLD flags for mode selection at link time:
+
+```bash
+ld.lld --lto=full  a.o b.o -o prog_full   # Full LTO
+ld.lld --lto=thin  a.o b.o -o prog_thin   # ThinLTO
+# Default (no --lto flag): ThinLTO if ThinLTO summary present, Full LTO otherwise
+```
+
+### Trade-offs: Bitcode Size vs. Flexibility
+
+A UnifiedLTO object is larger than a plain ThinLTO object because it carries both the full IR and the summary:
+
+| Format | Contents | Approx. overhead |
+|--------|----------|------------------|
+| Full LTO (`.bc`) | Full IR only | baseline |
+| ThinLTO (`.bc`) | Full IR + ThinLTO summary | +5–15% (summary overhead) |
+| UnifiedLTO (`.bc`) | Full IR + ThinLTO summary | same as ThinLTO |
+
+The summary overhead is modest — typically 5–15% of the full IR size — because summaries are compact (GUIDs, call graph edges, attribute flags) rather than full function bodies. The flexibility gained (single object works for both CI and release builds) justifies this overhead in most large-project workflows.
+
+### Build System Implications
+
+A key benefit: build systems no longer need two object directories. A typical large project workflow:
+
+```bash
+# Single compile step for all objects:
+cmake -DCMAKE_C_FLAGS="-funified-lto" \
+      -DCMAKE_CXX_FLAGS="-funified-lto" \
+      -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld" ..
+make -j$(nproc)
+
+# CI link: fast ThinLTO
+ld.lld --lto=thin $(find . -name '*.o') -o ci_binary
+
+# Release link: maximum optimization Full LTO
+ld.lld --lto=full $(find . -name '*.o') -o release_binary
+```
+
+Both invocations consume the same `.o` files produced by the single compile step. Incremental rebuilds that change a few source files recompile only those files; the unchanged objects work for both link modes.
+
+### Interaction with Distributed ThinLTO
+
+UnifiedLTO is fully compatible with Distributed ThinLTO (Section 77.4). Because the ThinLTO summary is embedded in every UnifiedLTO object, the summary-generation phase of Distributed ThinLTO requires no changes: LLD reads the embedded summaries directly at the linking stage. The distributed per-module optimization phase then fetches the full IR (also embedded) for modules that need optimization. This means:
+
+- Distributed ThinLTO can be enabled at link time (via `--lto=thin` + cluster dispatch) without any recompilation.
+- Switching from local ThinLTO to distributed ThinLTO to Full LTO requires only a linker flag change, not a rebuild.
+
+```bash
+# Distributed ThinLTO with UnifiedLTO objects:
+# Phase 1: Summary merge and import analysis (link coordinator):
+ld.lld --lto=thin --thinlto-emit-imports-files \
+       -o /dev/null $(find . -name '*.o')
+
+# Phase 2: Distributed per-module optimization (cluster workers):
+clang -O2 -x ir a.o -o a_opt.o -fthinlto-index=merged.thinlto
+
+# Phase 3: Final link:
+ld.lld a_opt.o b_opt.o ... -o program
+```
+
 ---
 
 ## Chapter Summary
@@ -405,6 +519,7 @@ ThinLTO with caching typically adds 10–30% to clean build times compared to no
 - **Distributed ThinLTO** separates the summary phase (compile time) from the optimization phase (link time), enabling the per-module optimization jobs to run on a build cluster; a module cache enables incremental builds.
 - **The `llvm::lto::LTO` API** provides the programmatic interface for both LTO modes; `llvm-lto` is the command-line tool for testing and debugging.
 - LTO typically provides 3–15% performance improvement and 10–20% binary size reduction; ThinLTO with caching adds 10–30% to clean build times with near-zero overhead for incremental builds.
+- **Unified LTO** (`-funified-lto`) embeds both a full LLVM IR module and a ThinLTO summary in a single bitcode object; the linker selects Full LTO or ThinLTO at link time via `--lto=full` / `--lto=thin`, eliminating the need for separate object directories per LTO mode and enabling single-compile CI/release workflows.
 
 
 ---

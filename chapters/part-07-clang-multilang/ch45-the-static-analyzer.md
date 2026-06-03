@@ -68,6 +68,20 @@ Clang's static analyzer transforms the compiler from a code translator into a re
   - [45.12.3 Worklist Strategies and Their Trade-offs](#45123-worklist-strategies-and-their-trade-offs)
   - [45.12.4 `clang --analyze` vs. `clang-tidy`](#45124-clang-analyze-vs-clang-tidy)
   - [45.12.5 Scaling to Large Codebases](#45125-scaling-to-large-codebases)
+- [45.13 Clang Lifetime Safety Analysis](#4513-clang-lifetime-safety-analysis)
+  - [45.13.1 History and Production Graduation](#45131-history-and-production-graduation)
+  - [45.13.2 Five Production Checkers](#45132-five-production-checkers)
+  - [45.13.3 `[[clang::lifetimebound]]` Mechanics](#45133-clanglifetimebound-mechanics)
+  - [45.13.4 Enabling Lifetime Warnings](#45134-enabling-lifetime-warnings)
+  - [45.13.5 Comparison with Rust's Borrow Checker](#45135-comparison-with-rusts-borrow-checker)
+- [45.14 Clang FlowSensitive Dataflow Analysis Framework](#4514-clang-flowsensitive-dataflow-analysis-framework)
+  - [45.14.1 Architectural Distinction from the Path-Sensitive Engine](#45141-architectural-distinction-from-the-path-sensitive-engine)
+  - [45.14.2 Core Abstractions](#45142-core-abstractions)
+  - [45.14.3 Lattice Requirements and Widening](#45143-lattice-requirements-and-widening)
+  - [45.14.4 SAT Solver Integration](#45144-sat-solver-integration)
+  - [45.14.5 Built-in Analysis: `UncheckedOptionalAccessModel`](#45145-built-in-analysis-uncheckedoptionalaccessmodel)
+  - [45.14.6 Writing a Custom FlowSensitive Analysis](#45146-writing-a-custom-flowsensitive-analysis)
+  - [45.14.7 When to Choose FlowSensitive vs. Path-Sensitive](#45147-when-to-choose-flowsensitive-vs-path-sensitive)
 - [Chapter 45 Summary](#chapter-45-summary)
 - [Cross-References](#cross-references)
 - [Reference Links](#reference-links)
@@ -907,6 +921,295 @@ At translation-unit scale, the analyzer is self-contained. Across translation un
 
 ---
 
+## 45.13 Clang Lifetime Safety Analysis
+
+### 45.13.1 History and Production Graduation
+
+Lifetime safety analysis in Clang traces to Herb Sutter's 2018 "Lifetime Safety: Preventing Common Dangling" proposal, which outlined a static analysis approach for detecting dangling references in C++ through a type-and-effects system layered on the existing type system. An experimental implementation landed in Clang in 2019 under the `-Wlifetime` umbrella, initially covering only the simplest dangling-reference patterns. Between 2020 and 2025, the implementation expanded to cover moved-from objects, non-trivially-destructed temporaries, and struct fields holding references to locals. In Clang 22, five checker sub-categories have graduated to production status, enabled by default when building with `-std=c++17` or later and `-Wall`.
+
+### 45.13.2 Five Production Checkers
+
+**UseAfterReturn** detects references or pointers to local variables that are returned from the enclosing function or captured in a lambda that outlives the function's stack frame:
+
+```cpp
+int& bad() {
+  int x = 42;
+  return x;   // warning: address of local variable 'x' returned
+              // [-Wreturn-local-addr]
+}
+
+auto bad_capture() {
+  int x = 0;
+  return [&x]() { return x; };  // warning: reference to local variable 'x'
+                                 // will escape [-Wdangling]
+}
+```
+
+The diagnostic is surfaced via `-Wreturn-local-addr` (long-standing) and, for the lambda capture case, the newer `-Wdangling-capture` added in Clang 18.
+
+**UseAfterMove** detects access to moved-from objects before reinitialization. Clang's flow-sensitive analysis (§45.14) tracks moved-from state through the CFG. When a variable is the operand of `std::move()` and then accessed on a reachable path without an intervening assignment, the checker fires. The `bugprone-use-after-move` clang-tidy check (§47.3.4) provides an AST-level approximation of the same property; the lifetime checker operates at the CFG level and is therefore more precise.
+
+**NonTriviallyDestructedTemporaries** catches temporaries with non-trivial destructors bound to const references:
+
+```cpp
+struct Buffer {
+  Buffer() { data = new char[64]; }
+  ~Buffer() { delete[] data; }
+  char* data;
+};
+
+void bad() {
+  const char* p;
+  {
+    const Buffer& b = Buffer();  // temporary destroyed at end of full-expr
+    p = b.data;
+  }
+  use(p);  // warning: 'p' references destroyed temporary [-Wdangling]
+}
+```
+
+The C++ lifetime-extension rules (binding a temporary to a `const T&` extends its lifetime to the reference's scope) are modeled; only cases outside those rules are flagged.
+
+**FieldReferenceToOutOfScopeLocal** detects struct or class fields declared as references (`T&`) that are initialized with local variables whose lifetime is shorter than the enclosing object's:
+
+```cpp
+struct View {
+  int& ref;
+  View(int& r) : ref(r) {}
+};
+
+View make_view() {
+  int x = 10;
+  return View{x};  // warning: member 'ref' binds to local variable 'x'
+                   // [-Wdangling-field]
+}
+```
+
+**LifetimeboundViolation** enforces `[[clang::lifetimebound]]` annotations (§45.13.3). When a function annotated `[[clang::lifetimebound]]` on a parameter returns a value, and the caller binds the return value to a reference, Clang verifies that the annotated argument outlives the reference.
+
+### 45.13.3 `[[clang::lifetimebound]]` Mechanics
+
+The `[[clang::lifetimebound]]` attribute, declared in
+[`clang/include/clang/Basic/AttrDocs.td`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/include/clang/Basic/AttrDocs.td),
+marks a function parameter (or the implicit `this` parameter for member functions) as a lifetime dependency for the return value:
+
+```cpp
+// Return value's lifetime is bounded by the lifetime of 'c'
+const char* string_data(const std::string& s [[clang::lifetimebound]]);
+
+// Chaining: view's lifetime bounded by the vector
+std::span<int> first_half(std::vector<int>& v [[clang::lifetimebound]]);
+```
+
+Standard library types in LLVM's libc++ carry `[[clang::lifetimebound]]` annotations on `string_view`, `span`, `optional::value()`, and similar APIs. When a call site binds the result to a local reference and the bound argument is a temporary, Clang emits a diagnostic:
+
+```cpp
+std::string_view sv = std::string("hello");
+// warning: object whose reference is captured will be destroyed at the
+// end of the full-expression [-Wdangling]
+```
+
+Fix-it hints suggest adding `auto` storage to give the temporary a name, or using a `std::string` directly. Clang 22 can automatically suggest `[[clang::lifetimebound]]` annotations for user-defined functions via `-Wsuggest-attribute=lifetimebound` (experimental).
+
+### 45.13.4 Enabling Lifetime Warnings
+
+The warnings are organized into two flag groups:
+
+| Flag | Coverage |
+|------|----------|
+| `-Wdangling` | UseAfterReturn, NonTriviallyDestructedTemporaries, FieldReferenceToOutOfScopeLocal, LifetimeboundViolation |
+| `-Wdangling-capture` | Lambda capture of local variables that escape |
+| `-Wdangling-field` | FieldReferenceToOutOfScopeLocal for struct/class fields |
+| `-Wreturn-local-addr` | UseAfterReturn (pointer/reference returns) |
+| `-Wlifetime` | Experimental umbrella (may be incomplete in Clang 22) |
+
+All are included in `-Wall` except `-Wlifetime`. The `cppcoreguidelines-pro-lifetime` clang-tidy checks (part of the `cppcoreguidelines` module) implement a subset of Herb Sutter's original lifetime profile using AST matchers, operating at a coarser granularity than the CFG-based checkers but integrable into CI pipelines via clang-tidy's YAML suppression mechanism.
+
+### 45.13.5 Comparison with Rust's Borrow Checker
+
+Clang's lifetime analysis is deliberately pragmatic: it detects the common-case violations that appear frequently in production C++ without requiring programmers to annotate every function with lifetime parameters. The trade-off versus Rust's borrow checker is substantial:
+
+- **Completeness**: Rust's borrow checker guarantees no dangling references if the program compiles. Clang's warnings are heuristic — false negatives exist, and some patterns that are provably safe are flagged as suspicious.
+- **Annotation burden**: Rust requires explicit lifetime parameters (`'a`) on all reference-returning functions. Clang's `[[clang::lifetimebound]]` is opt-in; unannotated functions receive no checking.
+- **Ownership tracking**: Rust tracks exclusive (`&mut`) vs. shared (`&`) borrows, preventing aliased mutation. Clang's analysis does not model ownership or aliasing between live references.
+- **Integration**: Clang's checker operates on existing C++ code without modification, enabling incremental adoption; Rust's model requires lifetime annotations at every function boundary.
+
+For new code written in modern C++ idioms (`std::span`, `std::string_view`, structured bindings), `-Wdangling` catches the majority of practical lifetime errors. For legacy code with pointer-heavy APIs, false negatives are common.
+
+---
+
+## 45.14 Clang FlowSensitive Dataflow Analysis Framework
+
+### 45.14.1 Architectural Distinction from the Path-Sensitive Engine
+
+The classical static analyzer (§45.1–§45.12) builds an `ExplodedGraph` by forking state at every branch, tracking each feasible path through the function independently. This **path-sensitive** approach achieves high precision — it knows exactly which constraints hold on a given path — but at exponential worst-case cost. Analysis time can grow as 2^N for functions with N independent conditionals, requiring the node-count cutoff (§45.12.2) that abandons analysis on large functions.
+
+The **FlowSensitive** (FS) framework, introduced in 2021 and stabilized in Clang 22, takes a different approach rooted in classical dataflow analysis. Rather than exploring individual paths, it computes a single lattice value per CFG block by joining (merging) information from all predecessor blocks. This is the same foundation as `LiveVariables`, `DominatorTree`, and the SSA construction in the backend — but generalized to user-defined lattices with arbitrary transfer functions. The cost is polynomial: O(N × H) where N is the number of CFG blocks and H is the lattice height.
+
+Source location:
+[`clang/include/clang/Analysis/FlowSensitive/`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/include/clang/Analysis/FlowSensitive/)
+
+### 45.14.2 Core Abstractions
+
+**`DataflowAnalysisContext`** (
+[`clang/include/clang/Analysis/FlowSensitive/DataflowAnalysisContext.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/include/clang/Analysis/FlowSensitive/DataflowAnalysisContext.h))
+owns the infrastructure shared across analyses on a single function: the `WatchedLiteralsSolver` SAT instance, an `Arena` for allocating `Value` and `StorageLocation` objects, and the environment model for variables in scope. It is created once per function analysis and reused across multiple `DataflowAnalysis` instances on the same CFG.
+
+**`DataflowAnalysis<LatticeT>`** (
+[`clang/include/clang/Analysis/FlowSensitive/DataflowAnalysis.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/include/clang/Analysis/FlowSensitive/DataflowAnalysis.h))
+is the CRTP base for user analyses. The type parameter `LatticeT` must satisfy the `JoinSemilattice` concept: it must define `LatticeJoinEffect join(const LatticeT& other)` that computes the least-upper-bound of two lattice elements. The CRTP subclass overrides:
+
+```cpp
+// Transfer function: update lattice element for one CFG element
+void transfer(const CFGElement &Elt,
+              LatticeT &State,
+              Environment &Env);
+```
+
+**`Environment`** (
+[`clang/include/clang/Analysis/FlowSensitive/DataflowEnvironment.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/include/clang/Analysis/FlowSensitive/DataflowEnvironment.h))
+is the FS framework's memory model. It maps `StorageLocation` objects (analogous to `MemRegion` in the path-sensitive engine) to `Value` objects (analogous to `SVal`). Unlike `ProgramState`, `Environment` is mutable during transfer function execution — the immutability is managed at the block level by the fixpoint iterator, which copies the environment before calling `transfer` for each element.
+
+**`TransferOptions`** controls optional framework behaviors: `ContextSensitiveOptions` enables limited inter-procedural analysis by inlining small callees' transfer functions.
+
+### 45.14.3 Lattice Requirements and Widening
+
+Every `LatticeT` must implement `join()`, which computes the merge of two states at CFG join points (e.g., after an `if`/`else`). For finite-height lattices (boolean flags, small enums, sets of bounded size), the fixpoint iteration converges automatically: since `join()` can only raise elements in the lattice order, and the lattice is finite, the algorithm terminates in at most H iterations per block, where H is the lattice height.
+
+For infinite-height lattices (e.g., sets of integers, recursive data structures), the framework provides a **widening** hook:
+
+```cpp
+// Called after join() when a block has been visited more than once
+// and the lattice element has grown. Must over-approximate to ensure
+// termination.
+LatticeJoinEffect widenAndJoin(const LatticeT& Previous, LatticeT& Current);
+```
+
+`widenAndJoin` is the standard widening operator from abstract interpretation: it must return an over-approximation that is larger than both inputs, chosen such that the sequence of widened values converges in a bounded number of iterations. For integer-range lattices, a common widening strategy replaces a growing bound with `+∞`.
+
+### 45.14.4 SAT Solver Integration
+
+A key architectural decision in the FS framework is the integration of a propositional SAT solver for reasoning about boolean implications. The `WatchedLiteralsSolver` (
+[`clang/include/clang/Analysis/FlowSensitive/WatchedLiteralsSolver.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/include/clang/Analysis/FlowSensitive/WatchedLiteralsSolver.h))
+implements the two-watched-literal DPLL algorithm. It is added in 2022 to address a precision problem: without SAT solving, joining states at merge points loses all information about correlations between boolean variables in different paths.
+
+The `Environment` tracks boolean `Value` objects with an `AtomicBoolValue` leaf type. The `DataflowAnalysisContext` maintains a conjunction of `Formula` constraints that relate these atoms. Before each transfer step, the solver checks which atoms are provably true or false given the accumulated constraints, enabling the transfer function to use `Env.proves(BoolValue)` to query proven facts rather than being forced to assume unknown values at join points.
+
+Noreturn destructor support (added 2023): When a CFG block ends with a destructor call on a type whose destructor is marked `[[noreturn]]` (e.g., `std::terminate`-calling destructors), the framework marks the block's post-state as unreachable. The fixpoint iterator skips unreachable blocks at join points, preventing them from contaminating the join result with their bottom-of-lattice states. This is implemented via `Environment::markUnreachable()` and checked in `DataflowAnalysis::runAnalysis()` before calling `join()`.
+
+### 45.14.5 Built-in Analysis: `UncheckedOptionalAccessModel`
+
+The canonical production use of the FS framework is `UncheckedOptionalAccessModel` (
+[`clang/include/clang/Analysis/FlowSensitive/Models/UncheckedOptionalAccessModel.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/include/clang/Analysis/FlowSensitive/Models/UncheckedOptionalAccessModel.h)),
+which detects calls to `optional::value()` (and similar `operator*()` on `optional`) when the optional is known to be empty on the current path.
+
+The lattice element is a map from `StorageLocation*` to `OptionalModel::State` (one of `{Unknown, NonEmpty, Empty}`). The transfer function updates this map on assignments, returns from `make_optional`, and `has_value()` branch conditions. The SAT solver propagates the branch condition's effect through the `Environment`: after an `if (opt.has_value())` true branch, `opt` is constrained to `NonEmpty` without requiring the check to be a direct predecessor in the CFG.
+
+Usage via clang-tidy:
+```bash
+clang-tidy --checks='clang-analyzer-optin.cplusplus.UninitializedObject' \
+  # or, for optional:
+clang-tidy --checks='bugprone-unchecked-optional-access' \
+  -p build/ src/foo.cpp
+```
+
+The clang-tidy check `bugprone-unchecked-optional-access` wraps `UncheckedOptionalAccessModel` and handles both `std::optional`, `absl::optional`, and `llvm::Optional` through a configurable type-name list.
+
+### 45.14.6 Writing a Custom FlowSensitive Analysis
+
+A null-check analysis that tracks which pointer-typed variables are known non-null illustrates the full API:
+
+```cpp
+#include "clang/Analysis/FlowSensitive/DataflowAnalysis.h"
+#include "clang/Analysis/FlowSensitive/DataflowEnvironment.h"
+
+using namespace clang;
+using namespace dataflow;
+
+// Lattice: per-variable nullable state
+struct NullLattice {
+  enum class State { Unknown, NonNull, Null };
+  llvm::DenseMap<const VarDecl*, State> VarStates;
+
+  LatticeJoinEffect join(const NullLattice& Other) {
+    bool Changed = false;
+    for (auto& [VD, S] : Other.VarStates) {
+      auto [It, Inserted] = VarStates.try_emplace(VD, S);
+      if (!Inserted && It->second != S) {
+        It->second = State::Unknown;  // merge: unknown if paths disagree
+        Changed = true;
+      }
+    }
+    return Changed ? LatticeJoinEffect::Changed : LatticeJoinEffect::Unchanged;
+  }
+};
+
+class NullCheckAnalysis
+    : public DataflowAnalysis<NullCheckAnalysis, NullLattice> {
+public:
+  explicit NullCheckAnalysis(ASTContext &Ctx)
+      : DataflowAnalysis<NullCheckAnalysis, NullLattice>(Ctx) {}
+
+  static NullLattice initialElement() { return NullLattice{}; }
+
+  void transfer(const CFGElement &Elt, NullLattice &State,
+                Environment &Env) {
+    if (auto S = Elt.getAs<CFGStmt>()) {
+      const Stmt *St = S->getStmt();
+
+      // Track null assignments: ptr = nullptr;
+      if (const auto *BO = dyn_cast<BinaryOperator>(St)) {
+        if (BO->getOpcode() == BO_Assign) {
+          if (const auto *DRE =
+                  dyn_cast<DeclRefExpr>(BO->getLHS()->IgnoreParenImpCasts()))
+            if (const auto *VD = dyn_cast<VarDecl>(DRE->getDecl())) {
+              if (BO->getRHS()->IgnoreParenImpCasts()->isNullPointerConstant(
+                      getASTContext(), Expr::NPC_ValueDependentIsNull)
+                      != Expr::NPCK_NotNull)
+                State.VarStates[VD] = NullLattice::State::Null;
+              else
+                State.VarStates[VD] = NullLattice::State::NonNull;
+            }
+        }
+      }
+    }
+  }
+};
+
+// Running the analysis:
+void runNullCheck(const FunctionDecl *FD, ASTContext &Ctx) {
+  auto *CFG = Ctx.getAnalysis<CFGStmtMap>(); // simplified
+  DataflowAnalysisContext DACtx(std::make_unique<WatchedLiteralsSolver>());
+  auto Result = runDataflowAnalysis<NullCheckAnalysis>(
+      *CFG, NullCheckAnalysis(Ctx), Environment(DACtx, *FD));
+  if (auto Err = Result.takeError()) {
+    llvm::errs() << "Analysis failed: " << Err << "\n";
+    return;
+  }
+  // Inspect per-block lattice results...
+}
+```
+
+`runDataflowAnalysis` returns `llvm::Expected<std::vector<std::optional<DataflowAnalysisState<LatticeT>>>>` — a vector indexed by CFG block ID, where each element holds the post-state at that block (or `std::nullopt` for unreachable blocks).
+
+### 45.14.7 When to Choose FlowSensitive vs. Path-Sensitive
+
+| Property | Path-Sensitive (`ExplodedGraph`) | FlowSensitive (`DataflowAnalysis`) |
+|----------|----------------------------------|-------------------------------------|
+| Cost | Exponential worst-case | Polynomial (O(N × H)) |
+| Precision | High (tracks per-path constraints) | Moderate (joins at merge points) |
+| Loops | Widening via `LoopWidening.cpp` | Widening via `widenAndJoin()` |
+| Memory model | Full `MemRegion` hierarchy | `StorageLocation` (coarser) |
+| Inter-procedural | Inlining via `CallEnter`/`CallExitEnd` | Limited context-sensitivity option |
+| SAT integration | Z3 (optional) | `WatchedLiteralsSolver` (always) |
+| Best for | Use-after-free, double-free, taint | Optional access, null-safety, type-state |
+
+Choose FlowSensitive when: (a) the property is a per-variable type-state (e.g., initialized/uninitialized, locked/unlocked, null/non-null) that must hold on all paths; (b) scalability to large functions is required; or (c) the checker must integrate with clangd's background analysis, which restricts per-file analysis time.
+
+Choose path-sensitive when: (a) the property requires tracking a precise sequence of events along a specific path (use-after-free in one error path, correct in another); (b) the bug is only present on a subset of paths and merging states would eliminate the signal; or (c) the checker needs the full `MemRegion`/`SVal` machinery for heap modeling.
+
+---
+
 ## Chapter 45 Summary
 
 - The analyzer is a path-sensitive symbolic execution engine built as a Clang `FrontendAction`; `AnalysisConsumer` creates an `AnalysisManager` → `ExprEngine` → `CoreEngine` pipeline for each analyzed function.
@@ -921,6 +1224,8 @@ At translation-unit scale, the analyzer is self-contained. Across translation un
 - Taint analysis uses `taint::addTaint()`/`isTainted()` with configurable YAML source/propagator/sink rules; `TaintTagType` supports multiple independent taint domains.
 - Z3 integration operates either as a full constraint solver (`-analyzer-constraints=z3`) or as a post-hoc refutation filter (`crosscheck-with-z3=true`), eliminating false positives from range-solver imprecision at the cost of solver latency.
 - Scalability levers include `FunctionSummariesTy` caching, the NoRedundancy inlining heuristic, node-count limits, and loop widening; CTU analysis extends the reach across translation-unit boundaries.
+- Clang 22's lifetime safety analysis provides five production checkers — UseAfterReturn, UseAfterMove, NonTriviallyDestructedTemporaries, FieldReferenceToOutOfScopeLocal, and LifetimeboundViolation — enabled under `-Wdangling` and `-Wreturn-local-addr`; `[[clang::lifetimebound]]` annotations propagate lifetime constraints to callers without full borrow-checking overhead.
+- The FlowSensitive framework (`clang/Analysis/FlowSensitive/`) provides a polynomial-cost alternative to the path-sensitive engine, using `DataflowAnalysis<LatticeT>` with a join-semilattice, `WatchedLiteralsSolver` for boolean constraint propagation, and `UncheckedOptionalAccessModel` as its canonical production analysis; widening via `widenAndJoin()` ensures termination on loops with infinite-height lattices.
 
 ---
 
@@ -949,6 +1254,13 @@ At translation-unit scale, the analyzer is self-contained. Across translation un
 - [`clang/include/clang/StaticAnalyzer/Core/PathSensitive/FunctionSummary.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/include/clang/StaticAnalyzer/Core/PathSensitive/FunctionSummary.h)
 - [Reps, Horwitz, Sagiv — "Precise interprocedural dataflow analysis via graph reachability" (1995)](http://portal.acm.org/citation.cfm?id=199462) — theoretical foundation for ExplodedGraph
 - [Kremenek, Engler — "Z3: An Efficient SMT Solver" applied to Clang SA cross-checking](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/lib/StaticAnalyzer/Core/Z3ConstraintManager.cpp)
+- [`clang/include/clang/Analysis/FlowSensitive/DataflowAnalysis.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/include/clang/Analysis/FlowSensitive/DataflowAnalysis.h)
+- [`clang/include/clang/Analysis/FlowSensitive/DataflowAnalysisContext.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/include/clang/Analysis/FlowSensitive/DataflowAnalysisContext.h)
+- [`clang/include/clang/Analysis/FlowSensitive/DataflowEnvironment.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/include/clang/Analysis/FlowSensitive/DataflowEnvironment.h)
+- [`clang/include/clang/Analysis/FlowSensitive/WatchedLiteralsSolver.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/include/clang/Analysis/FlowSensitive/WatchedLiteralsSolver.h)
+- [`clang/include/clang/Analysis/FlowSensitive/Models/UncheckedOptionalAccessModel.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/include/clang/Analysis/FlowSensitive/Models/UncheckedOptionalAccessModel.h)
+- [Herb Sutter — "Lifetime Safety: Preventing Common Dangling" (2018 ISO C++ proposal P1179)](https://herbsutter.com/2018/09/20/lifetime-profile-v1-0-posted/)
+- [`clang/include/clang/Basic/AttrDocs.td` — `lifetimebound` entry](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/include/clang/Basic/AttrDocs.td)
 
 
 ---

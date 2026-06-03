@@ -990,6 +990,245 @@ Reference LLVM 22 source links:
 
 ---
 
+## TypeSanitizer (TySan): Type-Confusion Detection
+
+Type confusion — accessing memory through a pointer of a different type than the one used to allocate it — is among the most exploited vulnerability classes in browser engines and large C++ codebases. A canonical example is writing to a `Base*` that actually points to a `Derived` object and then reading a field that exists only in `Base`, or casting an allocation to an unrelated type via `reinterpret_cast` and accessing fields that overlap in unexpected ways. Union-based type punning is another common vector.
+
+### TySan vs. UBSan -fsanitize=vptr
+
+UBSan's `-fsanitize=vptr` check is narrow: it fires only at virtual dispatch, verifying that the vtable pointer of the object is consistent with the declared static type of the pointer at the call site. It does not track allocations and cannot detect type confusion that does not involve a virtual call — for example, writing through a reinterpreted pointer to a non-polymorphic struct field.
+
+TypeSanitizer (TySan) takes a broader approach. It tracks the *allocation type* of every region of memory and detects any subsequent access through a pointer of a mismatched type, regardless of whether virtual dispatch is involved. The check fires on load and store instructions, not only at call sites.
+
+### Shadow Memory Scheme
+
+TySan uses a shadow memory scheme derived from LLVM debug type information (`DIType`). Each distinct C++ type gets a unique 32-bit *type tag* derived from the type's debug info. For each byte of application memory, TySan maintains a shadow 32-bit slot recording which type tag "owns" that memory.
+
+```
+Shadow address for application byte A:
+  shadow_addr = (A >> 3) * 4 + shadow_base
+  (8-byte application granule → 4-byte shadow tag slot)
+```
+
+On allocation (heap, stack, or global), TySan records the allocating type's tag into the shadow slots covering the allocated region.
+
+### Instrumentation
+
+The TySan instrumentation pass ([`llvm/lib/Transforms/Instrumentation/TypeSanitizer.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/llvm/lib/Transforms/Instrumentation/TypeSanitizer.cpp)) instruments every store to write the type tag of the stored-to pointer's declared type, and every load to compare the actual shadow tag against the expected tag for the pointer's declared type. A mismatch triggers a diagnostic:
+
+```cpp
+// TySan runtime diagnostic (simplified):
+// __tysan_check(ptr, type_tag, access_size, is_write)
+// On tag mismatch:
+// ERROR: TypeSanitizer: type-confusion
+//   ACCESS of type int at 0x... (declared type)
+//   ALLOCATED as float at 0x...
+```
+
+**Special cases** handled by the runtime:
+- `placement new` on an existing allocation: updates the shadow tag to the new type
+- `reinterpret_cast` with an explicit annotation: suppressed if the user has annotated the cast as intentional
+- Union access: TySan uses the most recent store's type to determine the "active member"; accesses to other members fire a diagnostic unless the union is declared `may_alias`
+
+### C++ Union Example
+
+```cpp
+union FloatInt {
+  float f;
+  int   i;
+};
+
+FloatInt u;
+u.f = 3.14f;     // shadow tagged as 'float'
+int x = u.i;    // TySan fires: access as 'int', shadow says 'float'
+```
+
+```bash
+# Compile and run with TySan:
+clang-22 -fsanitize=type -g -O1 tysan_example.cpp -o tysan_example
+./tysan_example
+# ERROR: TypeSanitizer: type-confusion on address 0x7fff...
+#   WRITE of type 'float' at 0x7fff... pc 0x401234
+#   READ  of type 'int'   at 0x7fff... pc 0x401256
+```
+
+### Performance and Comparison
+
+TySan's overhead is typically **2–5× slowdown**, heavier than ASan because it must update type tags on every store (not only on allocation boundary crossings). Memory overhead is roughly 4× due to the 4-byte-per-8-byte-granule shadow.
+
+| Feature | UBSan `-fsanitize=vptr` | TySan `-fsanitize=type` |
+|---------|------------------------|------------------------|
+| Scope | Virtual dispatch only | Any typed memory access |
+| Overhead | ~5–15% | 2–5× |
+| Shadow memory | None | 4 bytes per 8-byte granule |
+| C++ EH compatibility | Yes | Requires `-g` for type info |
+| Shipped since | Clang 3.8 | Clang 19 / 20 |
+
+TySan requires `-g` to generate the `DIType` metadata from which type tags are derived. Without debug info, TySan cannot distinguish types and emits no instrumentation.
+
+---
+
+## alloc-token Sanitizer: Allocator-Metadata UAF Detection
+
+ASan detects use-after-free (UAF) by poisoning quarantined allocations and inserting shadow checks on every access. This works well for the standard allocator, but has gaps:
+- Custom allocators that bypass ASan's interceptors (pool allocators, arena allocators, slab allocators) are invisible to ASan's quarantine
+- When a dangling pointer is accessed, ASan can identify *that* a UAF occurred but may not distinguish *which* original allocation the pointer referred to when allocations are packed tightly
+
+The `alloc-token` sanitizer addresses these gaps with a per-allocation *token*: a small piece of metadata bound to each allocation at creation time and invalidated at deallocation. Any access through a pointer after its token has been invalidated is a UAF.
+
+### sanitize_alloc_token Attribute
+
+Custom allocator functions are annotated to teach the runtime about them:
+
+```cpp
+// Mark a custom allocator's alloc/free functions:
+void *pool_alloc(size_t n)
+    __attribute__((sanitize_alloc_token, returns_nonnull));
+
+void pool_free(void *p)
+    __attribute__((sanitize_alloc_token));
+```
+
+The compiler inserts calls to `__sanitizer_alloc_token_create()` at the exit of `pool_alloc` and `__sanitizer_alloc_token_invalidate()` at the entry of `pool_free`.
+
+### __builtin_infer_alloc_token
+
+The `__builtin_infer_alloc_token(ptr)` builtin (landed in Clang 20) extracts the token associated with a pointer. This is used by generic code that holds a pointer and needs to check its validity later:
+
+```cpp
+// Save token at acquisition time:
+auto token = __builtin_infer_alloc_token(my_ptr);
+
+// ... time passes, my_ptr may be freed ...
+
+// Check validity before use:
+if (__sanitizer_check_alloc_token(token)) {
+    use(my_ptr);  // safe: token still valid → allocation not freed
+} else {
+    abort();      // UAF: token invalidated by pool_free
+}
+```
+
+### How It Differs from ASan
+
+| Aspect | ASan | alloc-token |
+|--------|------|-------------|
+| Detection mechanism | Shadow memory poisoning | Token invalidation |
+| Shadow size | 1 byte per 8 bytes | Per-allocation token (small) |
+| Works with custom allocators | Requires interceptor wrapping | Yes, via attribute annotation |
+| Cross-allocator UAF | Limited | Yes |
+| Overhead | 2–3× CPU, 2× memory | Lower memory; similar CPU |
+
+The token approach is particularly valuable for:
+- **Pool allocators**: when an entire pool is reset, all tokens in it are invalidated at once; stale pointers from any allocation in the pool are caught
+- **Region-based allocators**: similarly, invalidating a region's token catches all stale references to objects within it
+- **Slab allocators**: the token distinguishes between two different allocations that happen to occupy the same slab slot at different times — a capability ASan lacks when a new allocation fills the old slot and the quarantine has been flushed
+
+### Example
+
+```cpp
+// Custom pool allocator with alloc-token annotation:
+struct Pool {
+    char buf[4096];
+    size_t offset = 0;
+};
+
+__attribute__((sanitize_alloc_token))
+void *pool_alloc(Pool *p, size_t n) {
+    void *r = p->buf + p->offset;
+    p->offset += n;
+    return r;
+}
+
+__attribute__((sanitize_alloc_token))
+void pool_reset(Pool *p) {
+    // Invalidates tokens for ALL allocations in the pool:
+    p->offset = 0;
+}
+
+// UAF caught:
+Pool p;
+int *x = (int *)pool_alloc(&p, sizeof(int));
+*x = 42;
+pool_reset(&p);   // x's token is now invalidated
+int y = *x;       // alloc-token fires: UAF
+```
+
+```bash
+clang-22 -fsanitize=alloc-token -g pool_example.cpp -o pool_example
+./pool_example
+# ERROR: alloc-token: use-after-invalidation at 0x...
+#   Access at ...pool_example.cpp:21
+#   Token invalidated at ...pool_example.cpp:17
+```
+
+---
+
+## NumericalStabilitySanitizer (NSan): Floating-Point Instability Detection
+
+Floating-point instability — catastrophic cancellation, order-sensitivity, accumulated rounding error — is difficult to detect with ordinary testing because the program produces numerically plausible but subtly wrong results. NSan addresses this by running a *shadow computation* in higher precision alongside the program's actual floating-point operations.
+
+### Shadow Arithmetic
+
+NSan instruments every floating-point operation to maintain a shadow value in a higher-precision type:
+
+| Actual type | Shadow type |
+|-------------|-------------|
+| `float` (32-bit) | `double` (64-bit) |
+| `double` (64-bit) | `long double` (80-bit on x86) |
+
+The instrumentation pass ([`llvm/lib/Transforms/Instrumentation/NumericalStabilitySanitizer.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/llvm/lib/Transforms/Instrumentation/NumericalStabilitySanitizer.cpp)) inserts shadow operations alongside each FP instruction:
+
+```llvm
+; Source: float r = a + b;
+; NSan shadow instrumentation:
+%shadow_a = load double, ptr shadow(a)    ; shadow of input a
+%shadow_b = load double, ptr shadow(b)    ; shadow of input b
+%shadow_r = fadd double %shadow_a, %shadow_b  ; shadow add in double
+store double %shadow_r, ptr shadow(r)
+
+%r = fadd float %a, %b                    ; actual computation unchanged
+
+; Divergence check: compare float(%shadow_r) to %r
+%shadow_r_f = fptrunc double %shadow_r to float
+%diff = call float @llvm.fabs.f32(float fsub(%r, %shadow_r_f))
+%rel_err = fdiv float %diff, float @llvm.fabs.f32(%shadow_r_f)
+%exceeds = fcmp ogt float %rel_err, 1e-6  ; configurable epsilon
+br i1 %exceeds, label %nsan_report, label %ok
+```
+
+### Divergence Detection
+
+If the shadow (high-precision) result and the actual (low-precision) result diverge by more than a configurable relative epsilon, NSan reports a potential instability. The diagnostic identifies the source line and shows both the actual and shadow values.
+
+```bash
+# Enable NSan:
+clang-22 -fsanitize=numerical -g catastrophic.cpp -o catastrophic
+
+NSAN_OPTIONS=halt_on_error=0 ./catastrophic
+# WARNING: NumericalStabilitySanitizer: floating-point instability
+#   at catastrophic.cpp:8:  r = (a + b) - a
+#   actual result:   0.000000000 (float)
+#   shadow result:   1.000000119e-07 (double)
+#   relative error:  1.0
+```
+
+### Classic Example: Catastrophic Cancellation
+
+```cpp
+// Catastrophic cancellation: (a + b) - a where b << a
+float a = 1e7f;
+float b = 1.0f;
+float r = (a + b) - a;
+// In float: (a+b) rounds to a → r = 0.0 (wrong)
+// In double: 10000001.0 - 10000000.0 = 1.0 (correct)
+// NSan: relative error = 1.0 → reports instability
+```
+
+NSan is **experimental** in LLVM 22. Performance overhead is typically **5–20× slowdown** due to shadow computation, making it unsuitable for continuous integration; it is best run on targeted numerical kernels during development. The epsilon threshold is configurable via `NSAN_OPTIONS=relative_error_threshold=<value>`.
+
+---
+
 ## Chapter 110 Summary
 
 - Sanitizers combine compile-time LLVM pass instrumentation with a `compiler-rt` runtime library; shared infrastructure in `sanitizer_common/` provides stack unwinding, symbolization, and environment-variable flag parsing.

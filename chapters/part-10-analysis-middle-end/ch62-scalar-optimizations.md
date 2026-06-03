@@ -282,6 +282,89 @@ TailCallElim also converts mutual tail recursion to `musttail` when it can prove
 opt -passes='tailcallelim' -S input.ll
 ```
 
+## 62.11 Constraint Elimination (ConstraintElimPass)
+
+Array bounds checks, null pointer guards, and integer range tests inserted by the front end are often redundant after inlining and loop unrolling: the same check appears multiple times, or a prior branch has already established that the condition holds. `ConstraintElimPass` (implemented in [`llvm/lib/Transforms/Scalar/ConstraintElimination.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/llvm/lib/Transforms/Scalar/ConstraintElimination.cpp)) eliminates these redundant integer comparison instructions using a linear arithmetic constraint graph derived from the CFG.
+
+### Problem: Redundant Bounds Checks
+
+Consider a loop that has been unrolled four times. Each unrolled body contains an `i < n` check before the array access. After unrolling, the path condition along the unrolled body already implies successive iterations satisfy `i < n`, `i+1 < n`, `i+2 < n`, `i+3 < n`. Without ConstraintElim, all four checks persist as live comparisons.
+
+Similarly, after inlining a function that accepts a `span<T>`, the caller's check `ptr != nullptr` combined with the inlined assertion `size > 0` may together imply further array accesses within bounds — but only if the pass can reason about linear relationships between values.
+
+### Algorithm
+
+ConstraintElim builds a **linear arithmetic constraint graph** from the conditional branches in the CFG:
+
+1. **Edge annotation:** Each `br i1 %cond, %true_bb, %false_bb` annotates the true-edge with the constraint implied by `%cond` and the false-edge with its negation. For example, `icmp slt i32 %i, %n` annotates the true successor with `i < n` and the false successor with `i >= n`.
+
+2. **System of inequalities:** Constraints are represented as rows in a difference constraint system. Variables are SSA values; each constraint is `a*x + b*y ≤ c` for constants `a`, `b`, `c`. The pass restricts itself to **linear integer constraints** — additions, subtractions, and multiplications by constants.
+
+3. **Forward propagation:** As the pass walks the dominator tree (in dominator order), it accumulates the set of constraints active on the current path. When it encounters a comparison instruction, it queries the constraint system: if the comparison result is already implied by the active constraints, the comparison is replaced with a constant `true` or `false`. Dead branches and their successors are then cleaned up by SimplifyCFG.
+
+4. **Integer arithmetic reasoning:** The system handles derived facts. `i+1 < n` (from unrolled iteration) implies `i < n` (the check for the prior access). `i >= 0` combined with `i < n` implies `0 <= i && i < n`, sufficient to eliminate a bounds check on `a[i]`.
+
+### Example
+
+```c
+// Source: after unrolling by 4, the compiler generates:
+// check: i+0 < n, access a[i]
+// check: i+1 < n, access a[i+1]
+// check: i+2 < n, access a[i+2]
+// check: i+3 < n, access a[i+3]
+```
+
+```llvm
+; Before ConstraintElim (simplified):
+  %c0 = icmp slt i32 %i,   %n    ; loop invariant: always true here
+  %c1 = icmp slt i32 %i1,  %n    ; i+1 < n — implied by i < n-3 at loop header
+  %c2 = icmp slt i32 %i2,  %n
+  %c3 = icmp slt i32 %i3,  %n
+  br i1 %c0, %safe0, %trap
+  ; ... load a[i] ...
+  br i1 %c1, %safe1, %trap
+  ; ... load a[i+1] ...
+
+; After ConstraintElim:
+  ; c1, c2, c3 replaced by `true` — only c0 check remains (or it too is removed
+  ; if the loop trip count proves i+3 < n at entry).
+  %c0 = icmp slt i32 %i, %n
+  br i1 %c0, %safe0, %trap
+  ; ... load a[i], a[i+1], a[i+2], a[i+3] without redundant checks ...
+```
+
+### Pipeline Position and Enabling
+
+ConstraintElimPass is enabled by default at `-O2` and above, having been added to LLVM's default pipeline around LLVM 16. It runs as a function pass after InstCombine and CVP, when value range information is richest:
+
+```bash
+# Run explicitly:
+opt -passes='constraint-elimination' -S input.ll
+
+# Observe ConstraintElimPass in the O2 pipeline:
+opt -passes='default<O2>' -print-pipeline-passes -S /dev/null 2>&1 | grep -i constraint
+```
+
+### Interaction with Sanitizers
+
+When code is compiled with `-fsanitize=address` (ASan) or `-fsanitize=undefined` (UBSan), those sanitizers insert their own instrumented checks into the IR *after* the front-end's bounds checks. ConstraintElimPass is sanitizer-aware: it identifies sanitizer-inserted check sequences (recognizable by their `__ubsan_handle_*` or `__asan_report_*` call patterns) and does **not** eliminate them. The pass treats sanitizer checks as having side effects, just as it treats stores and function calls — they are never proven redundant.
+
+### Debugging
+
+```bash
+# Show constraints added and removed during the pass:
+opt -passes='constraint-elimination' -debug-only=constraint-elimination -S input.ll 2>&1
+```
+
+The debug output prints each constraint added to the system when entering a basic block and each comparison that is proven redundant and removed.
+
+### Limitations
+
+- **Linear integer constraints only.** The pass handles additions, subtractions, and multiplications by compile-time constants. Non-linear expressions (`i * j < n`, `i * i < n`) are not handled; the constraint is conservatively treated as `overdefined`.
+- **No floating-point.** Floating-point comparisons are not represented in the constraint system.
+- **No inter-procedural reasoning.** The pass is a function-level transform; it does not use inter-procedural value range information (that is IPSCCP's domain).
+- **Scalability limit.** The difference constraint system is bounded in size; on functions with very large CFGs the pass may conservatively skip blocks to avoid quadratic blowup.
+
 ---
 
 ## Chapter Summary
@@ -296,6 +379,7 @@ opt -passes='tailcallelim' -S input.ll
 - `CorrelatedValuePropagationPass` uses `LazyValueInfo` to propagate value ranges through conditional branches, simplifying redundant comparisons.
 - `JumpThreadingPass` duplicates blocks to thread known-condition paths, specializing code for specific path predicates.
 - `TailCallEliminationPass` marks tail calls with `tail`/`musttail`, enabling the backend to convert tail recursion to iteration.
+- `ConstraintElimPass` builds a linear arithmetic constraint graph from CFG branch conditions and eliminates comparison instructions that are provably redundant under the path condition; enabled by default at `-O2` and above; limited to linear integer constraints; sanitizer-instrumented checks are never eliminated.
 
 
 ---

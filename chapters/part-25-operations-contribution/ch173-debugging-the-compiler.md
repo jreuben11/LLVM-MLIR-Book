@@ -35,6 +35,13 @@ Debugging a compiler is fundamentally different from debugging application code.
   - [AddressSanitizer for Pass Development](#addresssanitizer-for-pass-development)
   - [UBSan for Pass Development](#ubsan-for-pass-development)
   - [Valgrind and Memory Debugging](#valgrind-and-memory-debugging)
+- [llubi: UB-Aware LLVM IR Interpreter](#llubi-ub-aware-llvm-ir-interpreter)
+  - [Design and Shadow State](#design-and-shadow-state)
+  - [Tracked UB Categories](#tracked-ub-categories)
+  - [Use Cases](#use-cases)
+  - [Comparison with UBSan](#comparison-with-ubsan)
+  - [Status in LLVM 22](#status-in-llvm-22)
+  - [Running llubi](#running-llubi)
 - [MLIR IDE Support: mlir-lsp-server and mlir-query](#mlir-ide-support-mlir-lsp-server-and-mlir-query)
   - [mlir-lsp-server](#mlir-lsp-server)
   - [Architecture](#architecture)
@@ -220,17 +227,9 @@ This is the canonical format for filing Clang bug reports.
 
 ### bugpoint (Legacy)
 
-`bugpoint` is an older automated test case reducer that predates `llvm-reduce`:
+**Note on bugpoint:** The bugpoint tool (previously in LLVM) was removed in LLVM 17. Use llvm-reduce instead. llvm-reduce applies a set of reduction passes iteratively to find a minimal reproducer. Example: `llvm-reduce --test=./crash.sh input.ll`
 
-```bash
-# Find which pass causes a crash
-bugpoint -compile-error -opt-args -O2 crashing.ll
-
-# Find a miscompilation (behavioral difference between -O0 and -O2)
-bugpoint -miscompilation crashing.ll
-```
-
-`bugpoint` is slower than `llvm-reduce` and harder to configure; for new work, prefer `llvm-reduce`.
+For historical reference, `bugpoint` searched for miscompilations by binary-searching over pass orderings and function subsets. Its removal eliminated a significant maintenance burden: `llvm-reduce` achieves the same goal with a simpler interface and better performance.
 
 ---
 
@@ -633,6 +632,82 @@ Reference LLVM 22 source links:
 - [`MlirLspServerMain.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/mlir/include/mlir/Tools/mlir-lsp-server/MlirLspServerMain.h)
 - [`mlir-lsp-server/`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/mlir/tools/mlir-lsp-server/)
 - [`mlir-query/`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/mlir/tools/mlir-query/)
+
+---
+
+## llubi: UB-Aware LLVM IR Interpreter
+
+Alive2 provides static SMT-based verification of LLVM IR transformations ([Chapter 174](../part-24-verified-compilation/ch174-alive2.md)); KLEE performs symbolic execution over LLVM IR to find reachable error states. `llubi` occupies a distinct niche: concrete interpretation of LLVM IR with per-value undefined-behavior tracking. Where Alive2 requires Z3 to discharge refinement queries (and can time out on complex transformations), llubi executes IR on actual inputs and reports UB as it arises, with precise per-instruction provenance.
+
+### Design and Shadow State
+
+`llubi` (the LLVM UB-aware IR Interpreter) executes LLVM IR instruction-by-instruction, maintaining a parallel **UB-tracking shadow** alongside each SSA value. Each shadow records:
+
+- Whether the value carries **poison** (propagated through arithmetic, comparison, GEPs that use poison operands)
+- Whether the value is **uninitialized** (derived from memory loaded before a `llvm.lifetime.start` marker or from an alloca that was never written)
+- Whether any **out-of-bounds GEP** was performed to produce a pointer
+
+The shadow is computed by the interpreter alongside the concrete value; a shadow bit set to "poisoned" or "UB" does not immediately abort execution — it is tracked and reported only when that value reaches a position where UB is observable (e.g., passed to a branch condition, stored to memory and reloaded, or used as a divisor).
+
+### Tracked UB Categories
+
+`llubi` covers the following IR-level UB classes:
+
+| UB Category | Triggering Condition |
+|-------------|---------------------|
+| **GEP out-of-bounds** | `getelementptr` computes a pointer outside the bounds of the allocated object; detected by comparing the concrete pointer against the allocation range tracked per `alloca` / `malloc` call |
+| **Invalid `inttoptr`** | An integer value is cast to a pointer using `inttoptr` where the integer is not a previously valid pointer value; tracked by maintaining a set of live pointer provenance identities |
+| **Uninitialized memory** | Memory is loaded from a range that overlaps with no prior store and is bracketed by `llvm.lifetime.start` / `llvm.lifetime.end` markers; llubi tracks lifetime regions to flag reads of dead allocations |
+| **Poison propagation** | Poison values (from `add nsw` on overflow, from `udiv` by zero before the division is reached, etc.) propagate through operands; llubi tracks the poison shadow through each instruction and reports when poison becomes observable |
+
+### Use Cases
+
+**Debugging UB introduced by passes**: after running a suspect optimization pass, feed the input and output IR to llubi with the same concrete inputs. If the output IR triggers UB that the input IR did not, the pass introduced the UB.
+
+**Validating transformations on concrete inputs**: for cases where Alive2's Z3 backend times out (large loop bodies, floating-point heavy code), llubi provides a lightweight concrete check over a representative test corpus.
+
+**Complement to Alive2**: static and dynamic validation are complementary. Alive2 proves correctness for all inputs but can time out; llubi checks specific inputs quickly and catches UB that static analysis misses due to imprecision in alias reasoning.
+
+### Comparison with UBSan
+
+UBSan instruments C/C++ source code at the Clang front-end level, before optimization. It catches source-level UB: signed integer overflow, null-pointer dereference, array out-of-bounds with known sizes, misaligned loads. Crucially, UBSan runs *before* the optimizer, so it cannot detect UB introduced *by* optimization passes.
+
+`llubi` works at the LLVM IR level post-optimization. It catches:
+- IR-level UB introduced by passes (InstCombine, GVN, LICM, vectorization)
+- Poison propagation through `nsw`/`nuw`/`exact` flags added by passes without proof
+- GEP out-of-bounds arising from strength-reduction or loop transformations that incorrectly infer bounds
+
+### Status in LLVM 22
+
+`llubi` is experimental in LLVM 22, shipped as the `llvm-interp` tool (or as `llubi` in some build configurations). It is not enabled in the default LLVM distribution build; it must be built explicitly:
+
+```bash
+cmake -G Ninja -DLLVM_ENABLE_PROJECTS="llvm" \
+      -DLLVM_BUILD_TOOLS=ON \
+      -DLLVM_TOOL_LLUBI_BUILD=ON \
+      ../llvm
+ninja llvm-interp
+```
+
+### Running llubi
+
+```bash
+# Run a .ll file through llubi; reports UB on first triggering instruction
+llvm-interp input.ll
+
+# Specify entry point and concrete arguments
+llvm-interp --entry-function=main --arg=42 input.ll
+
+# Example UB report output:
+# UB detected in function 'compute' at instruction:
+#   %6 = getelementptr inbounds i32, ptr %arr, i64 %idx
+# GEP out-of-bounds: base=0x7ffd3a000000, size=40 bytes, computed offset=48 bytes
+# Value %idx = 12, base allocation size = 10 elements
+# Shadow trace:
+#   %idx originates from: %3 = load i64, ptr %n_ptr   (possibly untrusted input)
+```
+
+The UB report identifies the exact instruction, the concrete pointer value, the allocation bounds, and the call chain leading to the UB. When combined with `--print-ir-after-all` dumps from `opt`, this pinpoints the pass that introduced the errant GEP.
 
 ---
 

@@ -707,6 +707,81 @@ The pseudo-probe infrastructure is implemented in [`llvm/lib/Transforms/IPO/Samp
 
 ---
 
+## Assignment Tracking: `llvm.dbg.assign`
+
+Traditional LLVM debug variable-location tracking uses `llvm.dbg.declare` (for stack-allocated variables whose address is stable) and `llvm.dbg.value` (for SSA values as a variable changes). Both approaches share a fundamental limitation: they track the *value* of a variable at a particular program point, but not the *assignment* — the act of writing to a source-level variable. When the optimizer moves, eliminates, or sinks stores, the corresponding debug info intrinsics may be invalidated, leading to incorrect or missing variable locations in the debugger.
+
+LLVM 22 includes `llvm.dbg.assign`, introduced experimentally in LLVM 14 and progressively enabled by Clang's `-fexperimental-assignment-tracking=enabled` flag. Assignment tracking changes the representation: instead of tracking where a variable *has a value*, it tracks the assignment operations themselves and then computes variable locations from those assignments.
+
+### The `llvm.dbg.assign` Intrinsic
+
+```llvm
+; llvm.dbg.assign: marks an assignment to a debug variable
+; Signature:
+;   void @llvm.dbg.assign(
+;     Metadata val,          ; the value being assigned (or undef if tracking address)
+;     Metadata varinfo,      ; DILocalVariable metadata node
+;     Metadata expr,         ; DIExpression: how to interpret val
+;     Metadata assignId,     ; DIAssignID: unique ID tying this to the store instruction
+;     Metadata addr,         ; the address of the store (stack slot)
+;     Metadata addrExpr      ; DIExpression for the address operand
+;   )
+
+; Example: assignment `x = a + b` where x is stack-allocated at %x.addr
+%sum = add i32 %a, %b
+store i32 %sum, ptr %x.addr, align 4, !DIAssignID !42
+call void @llvm.dbg.assign(
+    metadata i32 %sum,
+    metadata !12,          ; !12 = DILocalVariable for x
+    metadata !DIExpression(),
+    metadata !42,          ; !42 = distinct !DIAssignID()
+    metadata ptr %x.addr,
+    metadata !DIExpression()
+)
+```
+
+The `!DIAssignID` metadata node is a unique opaque token attached to the `store` instruction. The `llvm.dbg.assign` intrinsic references the same token, creating a *bidirectional link* between the store and the debug annotation. When the optimizer moves or eliminates the store, the assignment tracking analysis can follow the link and update the debug info accordingly.
+
+### `DIAssignID` and the Bidirectional Link
+
+`DIAssignID` is a distinct metadata node — each assignment gets a fresh one. The link between store and `llvm.dbg.assign` is maintained through:
+
+1. **The `!DIAssignID` attachment on the `StoreInst`**: `store i32 %v, ptr %p, align 4, !DIAssignID !N`
+2. **The fourth argument of `llvm.dbg.assign`**: `metadata !N` — the same token
+
+When a pass clones a store (e.g., during loop unrolling or function inlining), it must also clone the `DIAssignID` and patch all `llvm.dbg.assign` calls that reference it. The `llvm::AssignmentTrackingAnalysis` pass (in [`llvm/lib/Transforms/Utils/AssignmentTracking.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/llvm/lib/Transforms/Utils/AssignmentTracking.cpp)) performs this maintenance during the pass pipeline.
+
+### Assignment Tracking Analysis Pass
+
+The `AssignmentTrackingAnalysis` pass computes, for each debug variable, the set of stores that could contribute to its value at each program point. This is a dataflow analysis over the SSA form and the `!DIAssignID` links. The output is a `AssignmentTrackingLowering` result that drives the emission of `DBG_VALUE` / `DBG_DEF` `MachineInstr` nodes by the instruction selector.
+
+The pass is enabled in Clang via:
+
+```bash
+# Enable assignment tracking (experimental):
+clang -fexperimental-assignment-tracking=enabled -g -O2 -emit-llvm -S foo.c -o foo.ll
+```
+
+Or forced regardless of optimization level:
+
+```bash
+clang -fexperimental-assignment-tracking=forced -g -O0 -emit-llvm -S foo.c
+```
+
+### Comparison with `llvm.dbg.declare` and `llvm.dbg.value`
+
+| Mechanism | What it tracks | Optimizer-resilient? |
+|-----------|----------------|----------------------|
+| `llvm.dbg.declare` | Address of stack variable | Partially (address is stable, but value may be stale) |
+| `llvm.dbg.value` | SSA value at a point | No — SSA values disappear after optimizations |
+| `llvm.dbg.assign` | The assignment operation itself | Yes — tied to the store via `DIAssignID` |
+
+`llvm.dbg.assign` is designed to coexist with the RemoveDIs format: the `DbgAssignRecord` struct (analogous to `DbgVariableRecord` for `llvm.dbg.value`) carries the same six fields and replaces the intrinsic call in the post-RemoveDIs world. In LLVM 22, both the intrinsic form and the `DbgRecord` form are supported; Clang emits `DbgRecord` form by default when building with `-glldb` or when the RemoveDIs format is active.
+
+The full debug info pipeline, including how `AssignmentTrackingAnalysis` feeds into DWARF emission, is covered in [Chapter 117 — DWARF in Depth](../part-16-jit-sanitizers/ch117-dwarf.md).
+
+---
+
 ## 22.10 Chapter Summary
 
 - **Metadata is semantically inert** (with the narrow exception of `llvm.dbg.*` intrinsics in the old format). Metadata nodes (`MDTuple`, `MDString`, `ValueAsMetadata`) are typed side-channel annotations keyed by kind IDs registered in `LLVMContext`. Optimizers may freely discard or modify metadata without affecting program correctness; they may also *exploit* metadata to enable transformations that would otherwise require conservative assumptions.

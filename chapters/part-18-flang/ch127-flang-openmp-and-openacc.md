@@ -42,6 +42,13 @@ Parallel and accelerator programming are first-class concerns in modern Fortran.
 - [127.7 Practical Examples](#1277-practical-examples)
   - [Parallel Reduction](#parallel-reduction)
   - [GPU Target Offload](#gpu-target-offload)
+- [MLIR OpenMP GPU Target Offload](#mlir-openmp-gpu-target-offload)
+  - [Pre-2024 Design and Its Limitations](#pre-2024-design-and-its-limitations)
+  - [2024 Redesign: OpenMP_Clause and TableGen-Driven Clauses](#2024-redesign-openmp_clause-and-tablegen-driven-clauses)
+  - [omp.target-to-GPU Lowering Pipeline](#omptarget-to-gpu-lowering-pipeline)
+  - [Fortran Pointer and Allocatable Device Mapping](#fortran-pointer-and-allocatable-device-mapping)
+  - [MLIR → Flang Integration](#mlir--flang-integration)
+  - [Example: Fortran OpenMP Target and Resulting MLIR](#example-fortran-openmp-target-and-resulting-mlir)
 - [Chapter Summary](#chapter-summary)
 
 ---
@@ -565,6 +572,226 @@ flang-new -fopenmp \
   -Xopenmp-target=nvptx64-nvidia-cuda -march=sm_90 \
   -O2 -o saxpy.o saxpy.f90
 ```
+
+---
+
+## MLIR OpenMP GPU Target Offload
+
+The `omp.target` operation in the OpenMP dialect represents a region of computation to be executed on an accelerator device. GPU offload via OpenMP has grown substantially since LLVM 16; LLVM 22 delivers a unified, TableGen-driven clause representation that replaces the ad-hoc attribute approach used through LLVM 15.
+
+### Pre-2024 Design and Its Limitations
+
+Before the 2024 redesign, `omp.target` and related ops stored their clause data as ad-hoc MLIR attributes attached to the operation: the map clause was a flat `ArrayAttr` of pairs, the `if` clause was an `Optional<Value>`, and the device clause was another optional value. Each backend — NVPTX, AMDGPU, the SPIR-V path — handled these attributes independently in its own lowering pass. Adding a new OpenMP clause (e.g., `uses_allocators`, `has_device_addr`) required touching every lowering pass separately, with no single source of truth for clause legality.
+
+### 2024 Redesign: OpenMP_Clause and TableGen-Driven Clauses
+
+The redesign ([`mlir/include/mlir/Dialect/OpenMP/OpenMPClauses.td`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/mlir/include/mlir/Dialect/OpenMP/OpenMPClauses.td)) introduces an `OpenMP_Clause` ODS base class. Each OpenMP clause is a separate ODS-defined entity:
+
+```tablegen
+// OpenMPClauses.td (excerpt)
+def OpenMP_MapClause : OpenMP_Clause<"map"> {
+  let description = "map(type: var) clause for target/target data constructs";
+  let arguments = (ins
+    Variadic<AnyType>:$map_vars,
+    Variadic<AnyType>:$map_types,  // map type per var: to/from/tofrom/alloc/delete
+    OptionalAttr<ArrayAttr>:$map_type_modifiers
+  );
+}
+
+def OpenMP_IfClause : OpenMP_Clause<"if"> {
+  let arguments = (ins Optional<I1>:$if_var);
+}
+
+def OpenMP_NumTeamsClause : OpenMP_Clause<"num_teams"> {
+  let arguments = (ins Optional<Index>:$num_teams_lower,
+                       Optional<Index>:$num_teams_upper);
+}
+```
+
+Ops that support a clause mixin it via ODS `mixin`:
+
+```tablegen
+def OpenMP_TargetOp : OpenMP_Op<"target",
+    [OpenMP_MapClause, OpenMP_IfClause, OpenMP_DeviceClause,
+     OpenMP_NowaitClause, OpenMP_DependClause, ...]> { ... }
+```
+
+The benefits are:
+- **Uniform lowering**: `ConvertOpenMPToGPUPass` iterates over `map_vars` and `map_types` through the clause interface, regardless of which op carries the clause.
+- **Easier new clause addition**: adding a new clause requires only a new `OpenMP_Clause` TableGen record and mixin; no pass-by-pass additions.
+- **Verified clause legality**: verifiers are generated from the TableGen spec, catching illegal clause combinations at parse time.
+
+### omp.target-to-GPU Lowering Pipeline
+
+GPU offload proceeds through four stages:
+
+**Stage 1: OpenMP dialect → GPU dialect**
+
+`ConvertOpenMPToGPUPass` ([`mlir/lib/Conversion/OpenMPToGPU/OpenMPToGPU.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/mlir/lib/Conversion/OpenMPToGPU/OpenMPToGPU.cpp)) lowers `omp.target` + `omp.teams` + `omp.distribute` + `omp.wsloop` into `gpu.launch_func` calls:
+
+```mlir
+// Before: OpenMP dialect
+omp.target {
+  omp.teams num_teams_upper(%c80 : i32) {
+    omp.distribute {
+      omp.loop_nest (%i) : index = (%c0) to (%n) step (%c1) {
+        // kernel body
+        omp.yield
+      }
+      omp.terminator
+    }
+    omp.terminator
+  }
+  omp.terminator
+}
+
+// After: GPU dialect
+gpu.launch_func @kernel_module::@kernel_fn
+    blocks in (%c80, %c1, %c1)
+    threads in (%c256, %c1, %c1)
+    args(%data_ptr : memref<?xf32>, %n : index)
+```
+
+**Stage 2: GPU dialect → NVPTX IR or HSACO**
+
+The `gpu.module` containing `gpu.func` ops is lowered to NVPTX IR via `GpuKernelOutliningPass` + `ConvertGpuOpsToNVVMOps`. The NVPTX IR is then compiled to a `.cubin` or `.ptx` file by the NVPTX backend. For AMD targets, the equivalent ROCDL path produces HSACO.
+
+**Stage 3: Host-side runtime calls**
+
+The host side emits calls to the OpenMP offload runtime:
+
+```llvm
+; Pseudo-LLVM IR for host side
+call void @__tgt_register_lib(%struct.__tgt_bin_desc* @.offload_entries)
+call i32 @__tgt_target_teams_mapper(%ident_t* @src_loc,
+    i64 %device_id, i8* @kernel_name,
+    i32 %num_args, i8** %args_base, i8** %args, i64* %arg_sizes,
+    i64* %arg_types, i64 %num_teams, i64 %thread_limit)
+```
+
+`__tgt_register_lib` registers the device binary (the compiled `.cubin`) with the offload runtime. `__tgt_target_teams_mapper` performs the actual launch, handling map clause semantics: `to` clauses trigger `omp_target_associate_ptr` before the launch, `from` clauses trigger a copy-back after.
+
+**Stage 4: Linker wrapper**
+
+`clang-linker-wrapper` bundles the host object and device binary, calling `nvlink` (for NVPTX) or `lld` (for AMDGPU) to produce the final linked binary. The device binary is embedded as a section in the host ELF.
+
+### Fortran Pointer and Allocatable Device Mapping
+
+Fortran arrays use a descriptor structure (`fir.box`) containing a base pointer, bounds, and strides. Mapping a Fortran array to the device requires mapping both the descriptor and the underlying data:
+
+```mlir
+// Mapping a Fortran assumed-shape array to GPU
+omp.target map_entries(
+    %arr_desc_ref -> %arr_desc_dev : !fir.ref<!fir.box<!fir.array<?xf64>>>,
+    %arr_data_ref -> %arr_data_dev : !fir.ref<!fir.array<?xf64>>
+) {
+  // kernel uses %arr_data_dev for data access
+  omp.terminator
+}
+```
+
+The `FlattenFortranArrayToOffloadPass` handles nested descriptor flattening: for multi-dimensional assumed-shape arrays, it extracts the `base_addr`, `dim` extents, and `dim` strides from the descriptor and maps each as a separate scalar or pointer, avoiding the need to marshal the full Fortran array descriptor into GPU memory.
+
+Fortran allocatable variables require additional care: `ALLOCATABLE` variables may be null on entry; the pass inserts a runtime check (`associated(arr)`) and conditionally performs the map operation.
+
+### MLIR → Flang Integration
+
+The end-to-end Flang GPU offload compilation path:
+
+```
+Fortran source (!$omp target ...)
+    │
+    ▼  flang/lib/Lower/OpenMP/OpenMP.cpp
+    │  genOmpTargetConstruct() → omp.target + map_entries from OpenMP_Clause
+    │
+    ▼  FIR/HLFIR + OpenMP dialect (in-memory MLIR module)
+    │
+    ▼  ConvertOpenMPToGPUPass  →  gpu.launch_func + gpu.module
+    │
+    ▼  GpuKernelOutliningPass  →  outlined gpu.func operations
+    │
+    ▼  NVPTX/ROCDL lowering + LLVM translation  →  device IR
+    │
+    ▼  NVPTX backend  →  .ptx / .cubin
+    │
+    ▼  clang-linker-wrapper  →  final ELF with embedded device binary
+```
+
+```bash
+# Complete Flang GPU offload compilation
+flang-new -fopenmp \
+  -fopenmp-targets=nvptx64-nvidia-cuda \
+  -Xopenmp-target=nvptx64-nvidia-cuda -march=sm_90a \
+  -O2 -o vadd_gpu vadd_omp.f90
+
+# Inspect the generated OpenMP MLIR before GPU lowering:
+flang-new -fopenmp \
+  -fopenmp-targets=nvptx64-nvidia-cuda \
+  -mmlir --mlir-print-ir-after=convert-openmp-to-gpu \
+  -O2 vadd_omp.f90 2>gpu_lowered.mlir
+```
+
+### Example: Fortran OpenMP Target and Resulting MLIR
+
+```fortran
+! vadd_omp.f90
+subroutine vadd(a, b, c, n)
+  real(8), intent(in)  :: a(n), b(n)
+  real(8), intent(out) :: c(n)
+  integer, intent(in)  :: n
+  integer :: i
+
+  !$omp target teams distribute parallel do &
+  !$omp   map(to:a,b) map(from:c)
+  do i = 1, n
+    c(i) = a(i) + b(i)
+  end do
+end subroutine
+```
+
+The Flang lowering produces (simplified):
+
+```mlir
+// After flang/lib/Lower/OpenMP/OpenMP.cpp
+func.func @vadd_(%a : !fir.box<!fir.array<?xf64>>,
+                  %b : !fir.box<!fir.array<?xf64>>,
+                  %c : !fir.box<!fir.array<?xf64>>,
+                  %n : !fir.ref<i32>) {
+  %a_map = omp.map.info var_ptr(%a : !fir.box<!fir.array<?xf64>>)
+      map_clauses(to) capture(ByRef) -> !fir.box<!fir.array<?xf64>>
+  %b_map = omp.map.info var_ptr(%b : !fir.box<!fir.array<?xf64>>)
+      map_clauses(to) capture(ByRef) -> !fir.box<!fir.array<?xf64>>
+  %c_map = omp.map.info var_ptr(%c : !fir.box<!fir.array<?xf64>>)
+      map_clauses(from) capture(ByRef) -> !fir.box<!fir.array<?xf64>>
+
+  omp.target map_entries(%a_map -> %a_dev, %b_map -> %b_dev,
+                          %c_map -> %c_dev :
+                          !fir.box<!fir.array<?xf64>>,
+                          !fir.box<!fir.array<?xf64>>,
+                          !fir.box<!fir.array<?xf64>>) {
+    omp.teams {
+      omp.distribute {
+        omp.loop_nest (%i) : index = (%c1) to (%n_val) step (%c1) {
+          omp.parallel {
+            omp.wsloop {
+              // inner parallel do
+              omp.yield
+            }
+            omp.terminator
+          }
+          omp.yield
+        }
+        omp.terminator
+      }
+      omp.terminator
+    }
+    omp.terminator
+  }
+  return
+}
+```
+
+After `ConvertOpenMPToGPUPass`, the `omp.target` block is replaced by a `gpu.launch_func` call with the loop body outlined into a `gpu.func` within a `gpu.module`.
 
 ---
 

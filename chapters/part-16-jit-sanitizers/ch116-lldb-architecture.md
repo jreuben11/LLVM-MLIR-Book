@@ -754,6 +754,170 @@ class TracedProcess(lldb.ScriptedProcess):
 
 ---
 
+## Intel Processor Trace Integration
+
+Intel Processor Trace (Intel PT) is a hardware-assisted execution tracing facility available on Intel Broadwell and later CPUs. It records every branch taken — conditional branches, indirect calls, returns — with cycle-accurate timing, into a ring buffer in memory. The overhead is low (typically 5–10% CPU slowdown) because recording is performed entirely in hardware without software intervention per branch.
+
+### LLDB Integration
+
+LLDB's Intel PT integration landed in 2022 through the `ProcessPluginLinux/IntelPTDecoder` subsystem. The implementation uses [`libipt`](https://github.com/intel/libipt) — Intel's open-source PT decoder library — to reconstruct the full instruction-level execution trace from the raw hardware packets.
+
+Source location:
+```
+lldb/source/Plugins/Process/Linux/IntelPTDecoder.cpp
+lldb/source/Plugins/Process/Linux/IntelPTDecoder.h
+lldb/source/Plugins/Process/Linux/IntelPTManager.cpp
+```
+
+### Usage
+
+PT tracing is configured via LLDB process plugin settings:
+
+```lldb
+# Enable PT tracing for the current process:
+(lldb) process plugin packet send qLLDBTraceStart:{"type":"intel-pt","threadBufferSize":4096,"processBufferSizeLimit":65536}
+
+# Or use the trace start/stop commands:
+(lldb) trace start --type intel-pt
+(lldb) run
+# ... process runs ...
+(lldb) trace stop
+
+# Dump the reconstructed trace:
+(lldb) thread trace dump instructions --count 50
+# Output: last 50 instructions before the stop, in reverse order
+# thread #1: tid = 12345
+#     [  0] 0x00401234 <main + 48>: call 0x401100   ; call foo
+#     [  1] 0x00401100 <foo + 0>:   push rbp
+#     ...
+```
+
+The `thread trace dump instructions` command replays the PT data through `libipt` and displays the reconstructed instruction stream, enabling "travel-back-in-time" debugging: you can inspect what instructions led to a crash without having set a breakpoint at that location.
+
+### Per-Core vs. Per-Thread Tracing
+
+The PT manager supports two tracing modes:
+
+- **Per-thread tracing**: each thread gets its own ring buffer; tracing is pinned to the thread's current CPU via `perf_event_open(PERF_TYPE_SOFTWARE, PERF_COUNT_SW_DUMMY)` with PT attributes
+- **Per-core tracing**: records all execution on a CPU core regardless of which thread is running; larger buffers required but catches inter-thread interactions
+
+`lldb-server` streams PT data from the remote debug server to the local LLDB client for reconstruction, using LLDB's protocol extension `jLLDBTraceGetBinaryData`.
+
+### Comparison with XRay
+
+[Chapter 232 — LLVM XRay Function Tracing](../part-16-jit-sanitizers/ch232-llvm-xray-function-tracing.md) describes LLVM's software-based function-entry/exit tracing. The key distinction:
+
+| Aspect | XRay | Intel PT |
+|--------|------|----------|
+| Overhead | ~1–10% (software sampling, configurable) | ~5–10% (hardware) |
+| Granularity | Function entry/exit boundaries | Every instruction |
+| Platform | Any LLVM-supported target | Intel x86 only |
+| History depth | Unlimited (log file) | Ring buffer (limited) |
+| Crash analysis | Post-mortem via log | In-LLDB replay |
+
+Intel PT is superior for understanding the exact instruction sequence preceding a crash; XRay is better for whole-program profiling across all threads without ring-buffer limits.
+
+### Limitations
+
+- Intel x86 hardware only (Broadwell and later; some Atom cores excluded)
+- The ring buffer limits history depth: a 4 MB buffer holds roughly 100 million branches; deep event loops can overwrite old data
+- Decoding requires the binary (to map PT branch packets to instruction addresses); position-independent executables require the mapped base address from `/proc/<pid>/maps`
+
+---
+
+## GPU/Hardware Accelerator Debugging
+
+LLVM 22 (2026) introduces a GPU process plugin framework in LLDB, providing an architecture for debugging hardware accelerators with device-specific memory models and execution semantics. This extends LLDB's plugin system beyond CPU-based processes.
+
+### Architecture
+
+`GPUProcessPlugin` extends `ProcessPlugin` with accelerator-specific overrides for:
+
+- **Address space disambiguation**: GPU memory is partitioned into distinct address spaces (global, shared/workgroup-local, thread-local, constant). LLDB's `SBAddress` is extended with an address space tag so that `process.ReadMemory()` correctly routes to device vs. host memory
+- **Thread/work-item mapping**: GPU "threads" are work-items organized into work-groups; LLDB presents them in a hierarchical structure rather than a flat thread list
+- **Register contexts**: each work-item has its own register file; `RegisterContext` is parameterized by work-item coordinates (x, y, z) within a work-group
+
+```cpp
+// GPUProcessPlugin extension point (lldb/source/Plugins/Process/GPU/):
+class GPUProcessPlugin : public ProcessPlugin {
+public:
+    // Returns the address space tag for a device pointer:
+    virtual GPUAddressSpace GetAddressSpace(lldb::addr_t ptr) = 0;
+    
+    // Reads from device global memory:
+    virtual size_t ReadDeviceMemory(lldb::addr_t addr, void *buf,
+                                    size_t size, Status &error) = 0;
+    
+    // Enumerates work-items (analogous to GetNumThreads for CPU):
+    virtual std::vector<WorkItemCoord> GetActiveWorkItems() = 0;
+};
+```
+
+### Supported Targets in LLDB 22
+
+- **AMDGPU**: initial production implementation via `ProcessPluginAMDGPU`; uses ROCm's debug API (`librocm-debug-sdk`) for device process control
+- **NVPTX**: planned for LLDB 23; currently requires NVIDIA's `cuda-gdb` as a backend
+
+### SymbolFile Plugin Extensions
+
+LLDB 22 adds two new `SymbolFile` plugin implementations relevant to specialized debugging scenarios:
+
+**SymbolFileJSON** (2023, mainlined LLDB 17):
+
+A lightweight symbol format using JSON to describe function names, address ranges, and basic type information. Designed for environments where full DWARF is impractical: embedded firmware, JIT-compiled languages, and WebAssembly targets.
+
+```json
+{
+  "symbols": [
+    { "name": "main",    "start": "0x08004000", "size": 256 },
+    { "name": "irq_handler", "start": "0x08004100", "size": 64 }
+  ]
+}
+```
+
+LLDB loads a JSON symbol file via:
+```lldb
+(lldb) target symbols add --symfile symbols.json
+```
+
+**SymbolFileCTF** (2023, mainlined LLDB 17):
+
+CTF (Compact Type Format) is a compact binary type description format used in BSD kernels and DTrace. It encodes struct layouts, typedef chains, and function signatures in a format 5–10× smaller than DWARF for equivalent type information. LLDB's `SymbolFileCTF` plugin reads `.SUNW_ctf` sections from ELF binaries:
+
+```bash
+# Inspect CTF in a FreeBSD kernel:
+llvm-readelf -S /boot/kernel/kernel | grep ctf
+# .SUNW_ctf   PROGBITS  ...
+
+(lldb) target create /boot/kernel/kernel
+# LLDB automatically loads SymbolFileCTF for the .SUNW_ctf section
+(lldb) type lookup struct ifnet
+# struct ifnet { ... }   (from CTF)
+```
+
+**Updated SymbolFile plugin table**:
+
+| Plugin | Format | Primary Use |
+|--------|--------|-------------|
+| `SymbolFileDWARF` | DWARF 2–5 ELF/MachO | General C/C++/Rust/Swift debugging |
+| `SymbolFilePDB` | Microsoft PDB | Windows/MSVC binaries |
+| `SymbolFileBreakpad` | Breakpad `.sym` | Crash reporting (Chromium et al.) |
+| `SymbolFileJSON` | JSON | Embedded, JIT, WebAssembly |
+| `SymbolFileCTF` | Compact Type Format | BSD kernels, DTrace, Solaris |
+| `SymbolFileDWARFDebugMap` | DWARF + object map | macOS dSYM with object file back-links |
+
+### Tree-Sitter Syntax Highlighting
+
+LLDB 22 integrates tree-sitter for syntax highlighting in the `source list` and `disassemble --mixed` commands. GPU kernel languages are covered:
+
+- MLIR (`.mlir` files) — relevant for inspecting compiler-generated GPU kernels
+- HIP (`.hip`, `.cpp` with ROCm headers)
+- CUDA (`.cu`, `.cuh`)
+
+This is primarily a UX improvement for GPU kernel debugging workflows where source is available and the developer needs to correlate highlighted kernel source with device assembly.
+
+---
+
 ## Chapter Summary
 
 - **LLDB's design** is library-first (`liblldb`) with a plugin architecture. Every optional capability — binary format parsing, debug info, disassembly, platform integration, process control — is a plugin.

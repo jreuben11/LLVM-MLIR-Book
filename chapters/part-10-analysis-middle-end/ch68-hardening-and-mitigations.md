@@ -260,6 +260,279 @@ opt -passes='hotcoldsplit' -S input.ll
 clang -O2 -fprofile-use=profile.profdata program.cpp  # enables splitting with PGO
 ```
 
+## 68.11 -Wunsafe-buffer-usage and Safe Buffers
+
+Raw pointer arithmetic is the dominant source of memory safety vulnerabilities in C++ — buffer overruns, out-of-bounds reads, and stale pointer accesses all stem from unconstrained `ptr + i` or `ptr[i]` idioms. Clang's `-Wunsafe-buffer-usage` diagnostic (introduced in Clang 16, hardened in Clang 22) flags these patterns at the source level and nudges developers toward span-based rewrites.
+
+### The Diagnostic
+
+`-Wunsafe-buffer-usage` warns on:
+- Raw pointer arithmetic: `ptr + n`, `ptr - n`, `ptr++`, `ptr--`.
+- Array subscript on raw pointers: `ptr[i]`.
+- Passing a raw pointer to a function that expects `unsafe_buffer_usage` patterns.
+- Returning a raw pointer from a function when a `span<T>` is appropriate.
+
+```cpp
+// Warning: pointer arithmetic on raw pointer
+void process(int *data, int n) {
+  for (int i = 0; i < n; i++)
+    data[i] = 0;   // warning: unsafe buffer access via 'data'
+}
+
+// Suggested rewrite using span:
+void process(std::span<int> data) {
+  for (int &x : data)
+    x = 0;   // no warning — span carries its own bounds
+}
+```
+
+### Fix-It Hints
+
+Clang provides fix-it suggestions when the unsafe usage can be mechanically rewritten:
+
+```
+warning: unsafe buffer access [-Wunsafe-buffer-usage]
+  data[i] = 0;
+  ^~~~~~
+note: rewrite as 'std::span<int>' to use bounds-safe access
+```
+
+The fix-it infrastructure understands common patterns: a function parameter `T *p, size_t n` is a candidate for replacement with `std::span<T>`, and all uses of `p[i]` within the function become `p[i]` on the span (where bounds checking is enforced by the `span::operator[]` debug mode).
+
+### Hardened Builds
+
+`-Wunsafe-buffer-usage` is used in:
+- **Hardened libc++**: the libc++ headers emit `[[clang::unsafe_buffer_usage]]` on unsafe overloads to trigger the diagnostic when callers use them.
+- **Chrome**: Chrome's codebase uses `-Wunsafe-buffer-usage` as part of its memory safety effort, tracking reduction of raw pointer arithmetic over time.
+- **Android**: the Android build system enables the warning in new C++ code as part of its security hardening posture.
+
+### Safe Buffers Inter-Procedural Analysis
+
+A naive implementation of `-Wunsafe-buffer-usage` produces false positives: a function that receives a raw pointer but never does arithmetic on it (just passes it along) would be flagged. Clang's **Safe Buffers analysis** is an inter-procedural check that traces `span<T>` and `array_ref<T>` propagation across function boundaries to reduce false positives. If a pointer flows from a span source through multiple functions without escaping into unsafe arithmetic, those intermediate functions are not flagged.
+
+### -fbounds-safety (Apple Extension)
+
+Apple developed `-fbounds-safety` (Clang 18+) as a complementary, attribute-based bounds safety system for C code — particularly the Darwin kernel and system libraries. It uses `__counted_by`, `__sized_by`, and `__ended_by` attributes on pointer parameters to attach static or dynamic size information:
+
+```c
+void fill(int *__counted_by(n) buf, size_t n);
+```
+
+At call sites, the compiler verifies that the passed array has at least `n` elements. This is distinct from `-Wunsafe-buffer-usage` (which is a warning-only diagnostic) — `-fbounds-safety` adds runtime checks and rejects programs that cannot be statically verified.
+
+### Opt-Out for Intentional Unsafe Code
+
+When a function intentionally performs raw pointer arithmetic (e.g., a custom allocator's `free()`), it can be suppressed with:
+
+```cpp
+[[clang::unsafe_buffer_usage]]
+void dangerous_realloc(char *p, size_t old_size, size_t new_size) {
+  // intentional pointer arithmetic — suppressed
+  memcpy(p + old_size, new_alloc, new_size - old_size);
+}
+```
+
+The attribute also applies to entire headers (`#pragma clang unsafe_buffer_usage begin/end`) to suppress warnings in third-party code that cannot be rewritten.
+
+---
+
+## 68.12 counted_by Attribute for Flexible Array Members
+
+C's flexible array member (FAM) idiom — a struct with a trailing zero-length array — is ubiquitous in the Linux kernel, network protocols, and embedded firmware. The problem is that `__builtin_dynamic_object_size()`, which underpins `FORTIFY_SOURCE` (§68.9) and `BoundsCheckingPass`, cannot determine the size of a FAM without additional annotation: `sizeof(struct foo)` gives the base size, not the allocated size including the array.
+
+```c
+struct packet {
+  uint32_t len;
+  uint8_t  data[];  // FAM — actual size unknown without annotation
+};
+```
+
+Without size information, `__builtin_dynamic_object_size(p->data, 1)` returns `-1ULL` (unknown), and `FORTIFY_SOURCE` cannot check `memcpy` into `p->data`.
+
+### __attribute__((counted_by(field)))
+
+Clang 18 introduced `__attribute__((counted_by(count_field)))` to annotate a FAM with the name of the sibling field holding its element count:
+
+```c
+struct packet {
+  uint32_t len;
+  uint8_t  data[] __attribute__((counted_by(len)));
+};
+```
+
+This tells the compiler that `p->data[i]` is valid for `i < p->len`. With this annotation:
+
+```c
+struct packet *p = malloc(sizeof(*p) + n * sizeof(p->data[0]));
+p->len = n;
+
+// Before counted_by: __builtin_dynamic_object_size(p->data, 1) == -1ULL
+// After  counted_by: __builtin_dynamic_object_size(p->data, 1) == n * sizeof(uint8_t)
+```
+
+### Effect on FORTIFY_SOURCE and BoundsCheckingPass
+
+With `counted_by`, `__builtin_dynamic_object_size()` returns the correct runtime size for FAM fields. This enables:
+
+- **FORTIFY_SOURCE:** `__memcpy_chk(p->data, src, len, __builtin_dynamic_object_size(p->data, 0))` now correctly aborts if `len > p->len`.
+- **BoundsCheckingPass (`-fsanitize=bounds`):** generates a precise runtime check `i < p->len` before each `p->data[i]` access.
+- **UBSan array-bounds:** reports an accurate error for out-of-bounds FAM accesses.
+
+### Interaction with -fsanitize=array-bounds
+
+```bash
+clang -fsanitize=array-bounds -O1 program.c
+```
+
+Without `counted_by`, the sanitizer cannot check FAM accesses — it lacks the size. With `counted_by`, the sanitizer inserts:
+
+```llvm
+; Before FAM access p->data[i]:
+%len = load i32, ptr %p_len_field
+%ok = icmp ult i32 %i, %len
+br i1 %ok, %continue, %trap
+```
+
+This provides the same precision as a fixed-size array bounds check.
+
+### Kernel Adoption
+
+The Linux kernel adopted `counted_by` for many struct definitions in 2024, working through the `__counted_by()` macro (a wrapper for `__attribute__((counted_by(...)))`) as part of the broader kernel effort to adopt Clang hardening features. Hundreds of kernel structures — network packet headers, filesystem inodes with variable-length names, SCSI command blocks — gained `counted_by` annotations.
+
+### Clang Implementation
+
+The semantic analysis for `counted_by` is in `clang/lib/Sema/SemaDeclAttr.cpp`. The attribute is stored in the `FieldDecl`'s attribute list and accessed during code generation. `CGExprScalar.cpp` and `CGBuiltin.cpp` query the annotation when generating `__builtin_dynamic_object_size()` calls.
+
+### Example: DOAS Before and After
+
+```c
+#include <stddef.h>
+#include <string.h>
+
+struct flex_buf {
+  size_t count;
+  char   data[] __attribute__((counted_by(count)));
+};
+
+void fill(struct flex_buf *fb, const char *src, size_t n) {
+  // Without counted_by: object_size = -1ULL → no FORTIFY check
+  // With    counted_by: object_size = fb->count → FORTIFY checks n <= fb->count
+  memcpy(fb->data, src, n);
+}
+```
+
+Compiling with `-D_FORTIFY_SOURCE=2 -O2`:
+
+```bash
+# Without counted_by annotation:
+clang -D_FORTIFY_SOURCE=2 -O2 -c flex_buf_unsafe.c
+# __memcpy_chk called with size -1ULL — FORTIFY disabled for this call
+
+# With counted_by annotation:
+clang -D_FORTIFY_SOURCE=2 -O2 -c flex_buf_safe.c
+# __memcpy_chk called with fb->count — FORTIFY enforces the bound
+```
+
+---
+
+## 68.13 Pointer Field Protection (llvm.protected.field.ptr)
+
+Use-after-free (UAF) vulnerabilities account for a large fraction of modern memory safety exploits. Unlike buffer overflows, UAF is harder to detect statically: the freed memory may be reallocated and reused before the dangling pointer is dereferenced, making it invisible to simple lifetime analysis. A frequent exploitation pattern is overwriting a freed object's pointer fields with attacker-controlled data, then triggering a load through the now-dangling pointer.
+
+Per-field pointer integrity (introduced in LLVM 22) protects specific pointer fields within structs against this pattern using a tag-verification mechanism anchored to the `llvm.protected.field.ptr` intrinsic.
+
+### The Mechanism
+
+The protection works at two points:
+
+1. **On store:** When a pointer value is written into a protected field, the compiler inserts a tag-signing operation that encodes metadata (a field-specific tag, optionally the object's address) into unused pointer bits.
+2. **On load:** Before the protected pointer is used (dereferenced or passed to a function), the compiler verifies the tag. A mismatch aborts (or signals a sanitizer handler).
+
+```llvm
+; Annotated LLVM IR: store into a protected pointer field
+%tagged = call ptr @llvm.protected.field.ptr.sign(
+    ptr %raw_ptr,        ; the pointer value to store
+    ptr %field_addr,     ; address of the field (for address-based tags)
+    i64 42)              ; field-specific tag discriminant
+
+store ptr %tagged, ptr %field_addr    ; store tagged pointer
+
+; Load from protected field and verify:
+%stored_tagged = load ptr, ptr %field_addr
+%verified = call ptr @llvm.protected.field.ptr.auth(
+    ptr %stored_tagged,
+    ptr %field_addr,
+    i64 42)
+; %verified is the original pointer if tag matches; otherwise, trap
+call void %verified(...)
+```
+
+### Relationship to CFI and HWASan
+
+| Mechanism | Threat model | Granularity | Hardware required |
+|-----------|-------------|-------------|-------------------|
+| CFI (§68.1) | Control-flow hijack via indirect calls | Function pointer type | None (software range check) |
+| llvm.protected.field.ptr | UAF via dangling struct field pointer | Per struct-field | None (software) / PAC (AArch64) |
+| HWASan MTE | General heap UAF | Per allocation | ARMv8.5 MTE |
+
+`llvm.protected.field.ptr` complements CFI: CFI protects function pointers at the call site; field pointer protection protects data pointers (including member function pointers stored in struct fields) against corruption after free.
+
+On AArch64 hardware that supports **Pointer Authentication (PAC)** (§68.7), the `sign`/`auth` operations lower to `pacia`/`autia` instructions — essentially free in terms of latency on capable microarchitectures. On platforms without PAC, a software fallback uses a canary stored adjacent to the field.
+
+On AArch64 hardware with **MTE (Memory Tagging Extension)**, `llvm.protected.field.ptr` can also integrate with HWASan's tag-based tracking: the freed object's MTE tag is reset, so any load through the dangling pointer triggers a tag mismatch before the `autia` verification is even needed, giving two independent layers of protection.
+
+### Deactivation Symbols
+
+For performance-critical code paths where field protection overhead is unacceptable, LLVM provides a **link-time deactivation mechanism**: a sentinel symbol `__llvm_pfield_unprotected_<mangled_field_name>` can be defined in the binary. If the linker sees this symbol defined, the protection for the corresponding field is elided at link time (the `sign`/`auth` intrinsics lower to no-ops). This allows selective opt-out without recompiling the source.
+
+```bash
+# Compile with field protection enabled:
+clang -fprotect-parens -O2 program.cpp -o program_protected
+
+# Selectively disable for a specific field at link time:
+# (define the deactivation symbol in an assembly stub)
+echo ".global __llvm_pfield_unprotected_Foo_ptr_field" > disable.s
+clang program.o disable.o -o program_selective
+```
+
+### Clang Interface
+
+Field protection is enabled via `-fprotect-parens` (protecting all pointer fields that escape to potential UAF — conservative over-approximation) or via field-level annotations:
+
+```cpp
+struct Node {
+  int data;
+  Node *next [[clang::field_ptr_protected]];  // protect only 'next'
+};
+```
+
+The attribute `[[clang::field_ptr_protected]]` instructs the Clang front end to emit `llvm.protected.field.ptr.sign` on stores and `llvm.protected.field.ptr.auth` on loads for that specific field.
+
+### Example: IR With and Without Protection
+
+```llvm
+; Without protection (vulnerable):
+define void @use_node(ptr %node) {
+  %next_ptr = load ptr, ptr %node   ; could be dangling
+  call void @process(ptr %next_ptr)
+  ret void
+}
+
+; With llvm.protected.field.ptr:
+define void @use_node_protected(ptr %node) {
+  %raw = load ptr, ptr %node
+  ; Verify tag before use:
+  %verified = call ptr @llvm.protected.field.ptr.auth(
+      ptr %raw,
+      ptr %node,    ; address of the 'next' field within the struct
+      i64 0x4E4F4445)  ; discriminant = hash of "Node::next"
+  call void @process(ptr %verified)
+  ret void
+}
+```
+
+If `%node` has been freed and the `next` field overwritten by an attacker, the tag mismatch in `auth` traps before `@process` is invoked, preventing the UAF exploit.
+
 ---
 
 ## Chapter Summary
@@ -273,6 +546,9 @@ clang -O2 -fprofile-use=profile.profdata program.cpp  # enables splitting with P
 - **PAuth/BTI** (AArch64) and **CET/IBT** (x86) provide hardware-enforced pointer signing and branch target restrictions.
 - **FORTIFY_SOURCE** uses `__builtin_object_size` to replace unsafe stdlib calls with bounds-checked variants; `BoundsCheckingPass` adds runtime array bounds checks.
 - **Hot/cold splitting** moves cold basic blocks into a separate outlined function/section, improving icache utilization for the hot path.
+- **-Wunsafe-buffer-usage** warns on raw pointer arithmetic and array subscript through raw pointers; fix-it hints suggest `std::span<T>` rewrites; Safe Buffers inter-procedural analysis reduces false positives; `[[clang::unsafe_buffer_usage]]` suppresses warnings for intentional unsafe code.
+- **counted_by** (`__attribute__((counted_by(field)))`) annotates flexible array members with their element count field, enabling `__builtin_dynamic_object_size()` to return a precise runtime size; this activates `FORTIFY_SOURCE` checks and `-fsanitize=array-bounds` verification for FAM accesses; adopted by the Linux kernel in 2024.
+- **llvm.protected.field.ptr** protects specific struct pointer fields against use-after-free exploitation via tag signing on store and tag verification on load; lowers to PAC instructions on AArch64 MTE-capable hardware; deactivation symbols allow link-time opt-out for performance-critical paths.
 
 
 ---

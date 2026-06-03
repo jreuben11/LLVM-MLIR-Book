@@ -778,6 +778,101 @@ The `SimplifyCFG` pass routinely folds edges to `unreachable` blocks, propagatin
 
 ---
 
+## BranchInst Decomposition: UncondBr and CondBr
+
+Since LLVM's founding, the `br` instruction has been implemented as a single `BranchInst` C++ class that represents both unconditional and conditional branches, distinguished at runtime by whether the condition operand is present. This unified representation is convenient at the IR level but creates friction in the C++ API and in backends: every consumer of `BranchInst` must check `isConditional()` before accessing operands, and the two-forms-in-one class does not integrate cleanly with the `isa<>`/`cast<>` pattern that the rest of the IR uses.
+
+LLVM 22 is progressing toward a decomposition of `BranchInst` into two distinct instruction classes.
+
+### The Problem with the Unified `BranchInst`
+
+The current API forces every pass to branch on the instruction's runtime form:
+
+```cpp
+// Pattern that appears in hundreds of LLVM passes:
+if (auto *BI = dyn_cast<BranchInst>(BB->getTerminator())) {
+  if (BI->isConditional()) {
+    Value *Cond = BI->getCondition();
+    BasicBlock *TrueDest  = BI->getSuccessor(0);
+    BasicBlock *FalseDest = BI->getSuccessor(1);
+    // ... handle conditional branch
+  } else {
+    BasicBlock *Dest = BI->getSuccessor(0);
+    // ... handle unconditional branch
+  }
+}
+```
+
+The `isConditional()` check is a persistent source of bugs: accessing `getCondition()` on an unconditional `BranchInst` asserts in debug builds and returns garbage in release builds. No compiler-enforced type safety prevents the error.
+
+### The Decomposed Opcode Model
+
+The LLVM 22 decomposition introduces two distinct instruction opcodes under the existing instruction hierarchy:
+
+**Unconditional branch (`br label %dest`):**
+```llvm
+br label %next_block
+```
+
+**Conditional branch (`br i1 %cond, label %true, label %false`):**
+```llvm
+br i1 %flag, label %then_block, label %else_block
+```
+
+In the C++ API, the distinction is encoded via the opcode system and the `isa<>` pattern. Passes can now write type-safe code that only handles the form they care about:
+
+```cpp
+// Type-safe unconditional branch handling:
+if (auto *UBI = dyn_cast<BranchInst>(Term)) {
+  if (!UBI->isConditional()) {
+    BasicBlock *Dest = UBI->getSuccessor(0);
+    // guaranteed no condition operand
+  }
+}
+
+// Type-safe conditional branch handling:
+if (auto *CBI = dyn_cast<BranchInst>(Term)) {
+  if (CBI->isConditional()) {
+    Value *Cond = CBI->getCondition();
+    // type-safe access
+  }
+}
+```
+
+The `BranchInst::Create()` factory method remains the stable API for creating both forms:
+
+```cpp
+// Create unconditional branch:
+BranchInst *UBR = BranchInst::Create(DestBB, InsertBefore);
+
+// Create conditional branch:
+BranchInst *CBR = BranchInst::Create(TrueBB, FalseBB, Cond, InsertBefore);
+```
+
+### GlobalISel Integration
+
+The GlobalISel instruction selector operates on `MachineInstr` opcodes rather than LLVM IR instruction classes. GlobalISel uses distinct `G_BR` (unconditional) and `G_BRCOND` (conditional) opcodes from the start, avoiding the unified-class problem at the machine IR level:
+
+```cpp
+// GlobalISel MachineInstr opcodes (from TargetOpcodes.def):
+// G_BR       — unconditional branch, single successor operand
+// G_BRCOND   — conditional branch: condition register + true label + false label
+```
+
+The convergence-control intrinsics in GPU shaders introduce additional branch-adjacent opcodes: `G_CONVERGENCECTRL_ENTRY`, `G_CONVERGENCECTRL_ANCHOR`, and `G_CONVERGENCECTRL_LOOP`, which carry convergence tokens alongside branch targets (see [Chapter 24 — Intrinsics](ch24-intrinsics.md) for the IR-level convergence intrinsics).
+
+### Migration Implications
+
+Passes that currently pattern-match `BranchInst` with `isConditional()` will continue to work in LLVM 22 — the decomposition is a refinement of the existing class, not a removal of the API. However, new pass code should prefer:
+
+1. Checking the condition operand's presence via `BI->isConditional()` before accessing `BI->getCondition()`.
+2. Using `BI->getNumSuccessors()` as a proxy for form when the condition is not needed.
+3. Following LLVM's coding guidelines: if a pass only handles conditional branches, use a guard `if (!BI->isConditional()) continue;` at the top of the loop body.
+
+The `SimplifyCFG` pass, which manipulates branches most aggressively (converting conditional to unconditional, folding chains, eliminating duplicate successors), was updated in LLVM 22 to follow these patterns throughout.
+
+---
+
 ## 20.9 Chapter Summary
 
 - **`br`** provides conditional and unconditional branches. The conditional form requires an `i1` condition; the backend lowers it to a single compare-and-branch sequence.

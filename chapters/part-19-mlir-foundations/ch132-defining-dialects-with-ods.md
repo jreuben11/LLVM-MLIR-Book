@@ -38,6 +38,13 @@ ODS — the Operation Definition Specification — is MLIR's TableGen-based syst
   - [Using ODS-Defined Ops](#using-ods-defined-ops)
   - [Dialect Registration in Context](#dialect-registration-in-context)
 - [132.8 End-to-End: A Complete Toy Dialect](#1328-end-to-end-a-complete-toy-dialect)
+- [Runtime Dialect Extensibility: IRDL and DynamicDialect](#runtime-dialect-extensibility-irdl-and-dynamicdialect)
+  - [The IRDL Dialect](#the-irdl-dialect)
+  - [Loading an IRDL File at Runtime](#loading-an-irdl-file-at-runtime)
+  - [DynamicDialect: C++ API for Runtime Dialect Creation](#dynamicdialect-c-api-for-runtime-dialect-creation)
+  - [Use Cases](#use-cases)
+  - [Comparison: ODS vs. IRDL](#comparison-ods-vs-irdl)
+  - [Example: A Complete IRDL-Defined Dialect](#example-a-complete-irdl-defined-dialect)
 - [Chapter Summary](#chapter-summary)
 
 ---
@@ -602,6 +609,171 @@ func.func @compute(%x: i64) -> i64 {
 ```
 
 The folder for `Calc_ConstantOp` returns `value` attr as `OpFoldResult`; the folder for `Calc_AddOp` folds when both inputs are `Calc_ConstantOp` results.
+
+---
+
+## Runtime Dialect Extensibility: IRDL and DynamicDialect
+
+ODS is the standard approach for defining MLIR dialects: write TableGen, run `mlir-tblgen`, include the generated `.inc` files, recompile. This static, compile-time workflow is optimal for production dialects where type safety, full verifier coverage, and maximum performance matter. However, it is poorly suited to two important scenarios: research prototyping (where a dialect's op set changes daily) and DSL embedding (where a user-supplied dialect specification must be loaded at runtime without any C++ compilation).
+
+IRDL (the IR Definition Language) and the `DynamicDialect` C++ API address both scenarios.
+
+### The IRDL Dialect
+
+IRDL ([`mlir/include/mlir/Dialect/IRDL/IR/IRDL.td`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/mlir/include/mlir/Dialect/IRDL/IR/IRDL.td), introduced 2022) is a meta-dialect: an MLIR dialect whose operations define other dialects. An IRDL file is itself a valid `.mlir` file that can be loaded by `mlir-opt` to register the described dialect at runtime.
+
+#### Core Operations
+
+```mlir
+// Declare a dialect named "toy"
+irdl.dialect @toy {
+
+  // Declare a type "tensor" within the dialect
+  irdl.type @tensor {
+    %0 = irdl.any_of [i32, f32, f64]    // element type constraint
+    irdl.parameters(%0)
+  }
+
+  // Declare an operation "add"
+  irdl.operation @add {
+    %elem_type = irdl.any_of [i32, f32]
+    %tensor_ty = irdl.base @toy::@tensor  // must be a toy.tensor
+    irdl.operands(%tensor_ty, %tensor_ty) // two operands
+    irdl.results(%tensor_ty)             // one result
+  }
+
+  // Declare an operation "constant"
+  irdl.operation @constant {
+    %0 = irdl.any                        // unconstrained type
+    irdl.results(%0)
+  }
+}
+```
+
+The constraint operations are:
+
+| Operation | Meaning |
+|-----------|---------|
+| `irdl.any` | Accepts any MLIR type |
+| `irdl.is` | Accepts exactly one specific type (e.g., `irdl.is i32`) |
+| `irdl.base` | Accepts any parametric instance of a named type (e.g., any `toy.tensor`) |
+| `irdl.any_of` | Accepts any type from a fixed list (union of types) |
+| `irdl.all_of` | Accepts a type that satisfies all listed constraints (intersection) |
+| `irdl.parameters` | Declares type parameters and their constraints |
+| `irdl.operands` / `irdl.results` | Constrains operand/result types for an op |
+
+#### Loading an IRDL File at Runtime
+
+```bash
+# Load a dialect definition from an IRDL file and verify an MLIR file against it
+mlir-opt --irdl-file=toy_dialect.irdl input.mlir
+
+# Or combine with other passes:
+mlir-opt --irdl-file=my_dialect.irdl \
+         --canonicalize \
+         --mlir-verify-each \
+         input.mlir
+```
+
+When `--irdl-file` is specified, `mlir-opt` loads the IRDL file, registers the described dialect with the `MLIRContext`, and then processes `input.mlir` as if the dialect had been statically compiled in. Op names like `toy.add` are recognized, operand/result type constraints are verified, and the generic op printing/parsing infrastructure handles textual I/O.
+
+### DynamicDialect: C++ API for Runtime Dialect Creation
+
+The `DynamicDialect` API ([`mlir/include/mlir/IR/ExtensibleDialect.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/mlir/include/mlir/IR/ExtensibleDialect.h)) provides a C++ interface for creating dialects entirely at runtime, without IRDL files:
+
+```cpp
+#include "mlir/IR/ExtensibleDialect.h"
+#include "mlir/IR/MLIRContext.h"
+
+MLIRContext ctx;
+
+// Create a dynamic dialect
+auto *dynDialect = ctx.getOrLoadDynamicDialect(
+    "runtime_dialect",
+    [](DynamicDialect *dialect) {
+      // Register a dynamic type
+      auto tensorTy = DynamicType::get(dialect, "tensor",
+          /*verifier=*/[](function_ref<InFlightDiagnostic()> emitError,
+                          ArrayRef<Attribute> params) -> LogicalResult {
+            if (params.size() != 1 || !isa<TypeAttr>(params[0]))
+              return emitError() << "expected one type parameter";
+            return success();
+          });
+      dialect->registerDynamicType(std::move(tensorTy));
+
+      // Register a dynamic op
+      auto addOp = DynamicOpDefinition::get(
+          "add", dialect,
+          /*verifier=*/[](Operation *op) -> LogicalResult {
+            if (op->getNumOperands() != 2 || op->getNumResults() != 1)
+              return op->emitOpError("expected 2 operands and 1 result");
+            return success();
+          },
+          /*foldHook=*/nullptr);
+      dialect->registerDynamicOp(std::move(addOp));
+    });
+```
+
+Dynamic ops and types created via this API participate in the full MLIR infrastructure: they can be printed, parsed, verified, and processed by generic passes.
+
+### Use Cases
+
+**Research and prototyping**: when exploring a new IR abstraction, IRDL lets you define and iterate on an op set without C++ compilation cycles. A new op takes seconds to add to the `.irdl` file; the verifier and parser are immediately available.
+
+**DSL embedding**: a host MLIR program can load a user-supplied dialect at runtime. For example, a kernel-fusion framework might accept a user-defined "schedule dialect" that describes fusion strategies; the framework loads the IRDL file and processes it without recompilation.
+
+**Plugin-based dialect extensibility**: tools that support third-party dialect plugins can use `DynamicDialect` to register plugin-provided dialects. The plugin supplies a shared library that calls `DynamicDialect::get()` on load; the host tool needs no knowledge of the dialect at build time.
+
+### Comparison: ODS vs. IRDL
+
+| Property | ODS (static) | IRDL (dynamic) |
+|----------|-------------|----------------|
+| **Type safety** | Full C++ type checking at compile time | Constraint-based at parse/verify time |
+| **Performance** | Maximal; direct C++ method dispatch | Slight overhead; dynamic dispatch through verifier lambdas |
+| **Validation timing** | Compile time + parse time | Parse time and verify time only |
+| **New clause addition** | Requires C++ recompilation | Edit `.irdl` file, re-run `mlir-opt` |
+| **Appropriate for** | Production dialects, in-tree dialects | Research, prototyping, DSLs, plugins |
+| **Tooling integration** | Full: LSP, query, pdll | Partial: generic print/parse only |
+
+### Example: A Complete IRDL-Defined Dialect
+
+```mlir
+// file: toy.irdl
+// A minimal "toy" dialect with one type and one binary op.
+
+irdl.dialect @toy {
+
+  // toy.value<elem_type>: a typed value container
+  irdl.type @value {
+    %elem = irdl.any_of [i32, i64, f32, f64]
+    irdl.parameters(%elem)
+  }
+
+  // toy.add: element-wise addition of two toy.value containers
+  irdl.operation @add {
+    %elem = irdl.any_of [i32, i64, f32, f64]
+    %val_ty = irdl.base @toy::@value
+    irdl.operands(%val_ty, %val_ty)
+    irdl.results(%val_ty)
+  }
+}
+```
+
+```mlir
+// file: prog.mlir — uses the toy dialect defined above
+func.func @compute(%a : !toy.value<f32>, %b : !toy.value<f32>) -> !toy.value<f32> {
+  %c = toy.add %a, %b : !toy.value<f32>
+  return %c : !toy.value<f32>
+}
+```
+
+```bash
+# Load the dialect at runtime and verify the program:
+mlir-opt --irdl-file=toy.irdl --mlir-verify-each prog.mlir
+# Output: prog.mlir verified successfully; no errors.
+```
+
+The `toy.add` op is recognized and its operand/result type constraints are verified against the `irdl.any_of [i32, i64, f32, f64]` constraint. No C++ code was compiled.
 
 ---
 

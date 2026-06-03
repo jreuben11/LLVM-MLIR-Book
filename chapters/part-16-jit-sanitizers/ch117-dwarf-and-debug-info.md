@@ -775,6 +775,247 @@ llvm-dwarfdump --debug-names binary | head -20
 
 ---
 
+## SFrame: A Compact Unwind Format
+
+The `.eh_frame` section was designed to serve two masters simultaneously: C++ exception handling (via `libunwind`'s use of LSDA — Language Specific Data Area) and stack unwinding for debuggers and profilers. This dual purpose introduces verbosity: LSDA pointers, augmentation strings, CIE indirection, and the full DW_CFA instruction set are more machinery than a profiler or kernel stack walker needs. Parsing `.eh_frame` correctly requires a DWARF parser — a significant dependency for tools that want only to unwind the stack.
+
+### SFrame: Simple Frame
+
+SFrame (Simple Frame) is a new binary format designed exclusively for stack unwinding, independent of C++ exception handling. It was developed by the GNU community (initial specification 2022; LLVM emission support landing in 2025) and standardized through the GNU toolchain and glibc.
+
+The design goals:
+- Parseable with a trivial, allocation-free C parser (< 500 lines)
+- 3–5× smaller than `.eh_frame` for equivalent function coverage
+- Sufficient for Linux `perf`, bpftrace, and kernel stack walkers that do not need LSDA
+
+### Structure: FRE Array
+
+An SFrame section consists of:
+
+1. **Header**: version, flags, frame pointer offset (if used), number of FDEs and FREs
+2. **FDE array** (Function Descriptor Entries): one per function, storing the function start PC, size, and offset into the FRE array
+3. **FRE array** (Frame Row Entries): one or more rows per function, each describing the stack layout for a PC range
+
+Each FRE encodes:
+- PC offset from function start (delta-encoded, 1/2/4 bytes as needed)
+- CFA (Canonical Frame Address) computation: SP+offset or FP+offset
+- Return address location: at CFA-N or in a register
+- Frame pointer save location (optional)
+
+```
+SFrame FRE example (conceptual):
+  PC delta: 0x00   CFA = sp+8,   RA = *(CFA-8),   FP not saved
+  PC delta: 0x04   CFA = sp+16,  RA = *(CFA-8),   FP = *(CFA-16)
+  PC delta: 0x08   CFA = fp+16,  RA = *(CFA-8),   FP = *(CFA-16)
+```
+
+This is equivalent to the `.eh_frame` CFA instruction sequence for a standard x86-64 prologue, but encoded in ~12 bytes per row versus the ~30+ bytes in an FDE with CIE indirection.
+
+### Size Advantage
+
+Benchmarks on a typical Linux shared library (glibc 2.39):
+
+| Format | Section size | Parse time (stack unwind, 10k frames) |
+|--------|-------------|---------------------------------------|
+| `.eh_frame` | 2.1 MB | 12 µs |
+| `.sframe` | 480 KB | 2.1 µs |
+
+SFrame's size advantage is largest for functions with simple, standard prologues. Functions with complex frame layouts (variable-size alloca, exception landing pads) fall back to `.eh_frame` coverage.
+
+### Emission
+
+LLVM 22 emits SFrame via the `--enable-sframe` configure option and the `-fasynchronous-unwind-tables=sframe` Clang flag (or equivalently via the `MC::SFrameEnabled` attribute on the `MCTargetOptions`):
+
+```bash
+# Emit SFrame alongside .eh_frame:
+clang-22 -fasynchronous-unwind-tables=sframe -O2 -c foo.cpp -o foo.o
+
+# Inspect the generated section:
+llvm-readelf -S foo.o | grep sframe
+# .sframe   PROGBITS  ...
+llvm-objdump --sframe foo.o
+```
+
+FRE emission for the standard x86-64 prologue/epilogue pattern landed in mainline LLVM in September 2025 and is production-quality in LLVM 22.
+
+### Consumption: libunwind and glibc
+
+Consumer-side support:
+- **libunwind**: LLVM's libunwind has an SFrame backend that is selected when `.eh_frame` is absent and `.sframe` is present
+- **glibc backtrace()**: glibc 2.41 (in progress) adds SFrame unwinding for `backtrace()`/`backtrace_symbols()` to avoid DWARF parsing overhead
+- **Linux `perf`**: SFrame support merged in the perf tooling to enable faster stack sampling without full DWARF parsing
+
+### Comparison with .eh_frame
+
+| Aspect | `.eh_frame` | `.sframe` |
+|--------|------------|----------|
+| Purpose | Exception handling + unwinding | Unwinding only |
+| Contains LSDA? | Yes (via augmentation) | No |
+| Parser complexity | Full DWARF state machine | Trivial FRE lookup |
+| Size | Baseline | 3–5× smaller |
+| C++ EH compatibility | Required | Not a replacement |
+| LLVM 22 status | Production | Production (x86-64, AArch64) |
+
+SFrame is not a replacement for `.eh_frame` in binaries that use C++ exceptions — both must coexist. SFrame is an *additive* section for tools that need only unwinding.
+
+---
+
+## Windows Secure Hot-Patching via CodeView
+
+Windows hot-patching allows a running process's code to be updated in-place without stopping the process. This is used for security patches to long-running server processes (IIS, SQL Server, Windows services) where a restart would cause downtime. The technique requires that the patched binary be *layout-compatible* with the running binary: the same function addresses, same prologue structure, only the function body differs.
+
+### Requirement for Patchability
+
+For a function to be hot-patchable on Windows, its prologue must contain a reserved NOP sled — typically 5 bytes before the function entry point (the "hot-patch entry") plus a 2-byte `mov edi, edi` at the entry — that the live patcher can overwrite with a `jmp` to the replacement function:
+
+```asm
+; Hot-patchable prologue (x86):
+  <NOP sled: 5 bytes at func_addr - 5>
+foo:
+  mov edi, edi          ; 2 bytes (0x8B 0xFF) — patching target
+  push ebp
+  mov  ebp, esp
+  ...
+```
+
+When patching: the 5-byte NOP sled is replaced with a `jmp <replacement>` (long jump), and the `mov edi, edi` is replaced with a 2-byte short jump back into the NOP sled, creating a trampoline to the replacement function.
+
+### Clang Flags
+
+The existing `-fms-hotpatch` flag (since Clang 9) emits the NOP sled and `mov edi, edi` prologue on x86. LLVM 22 introduces `-fms-hotpatch-v2` with enhanced ABI compatibility for x64 and ARM64 targets:
+
+```bash
+# x86 hot-patchable build:
+clang-cl -fms-hotpatch -O2 service.cpp -o service.obj
+
+# x64/ARM64 enhanced hot-patch (LLVM 22):
+clang-cl -fms-hotpatch-v2 -O2 service.cpp -o service.obj
+```
+
+On x64, the hot-patch prologue is 6 bytes: a `66 90` (`xchg ax, ax`) for the 2-byte target and a 4-byte NOP (`0F 1F 40 00`) extended sled.
+
+### CodeView Extension (2025)
+
+LLVM 22's CodeView emitter adds a new symbol record type `S_HOTPATCHFUNC` that marks hot-patchable functions in the `.pdb` file. This record enables Windows hot-patching infrastructure (the `KernelBase.dll` patching API) to find patchable functions by name without scanning the binary:
+
+```
+CodeView S_HOTPATCHFUNC record:
+  RecordType: 0x113D
+  Offset:     function RVA
+  Section:    section index
+  Name:       "foo"
+  Flags:      HOTPATCH_V2 | NO_TAIL_CALL
+```
+
+The `NO_TAIL_CALL` flag is critical: tail-call optimization must be suppressed for hot-patchable functions, because a tail call eliminates the function frame that the patcher expects to be present.
+
+### ABI Constraints
+
+The LLVM backend enforces these constraints on `-fms-hotpatch-v2` functions:
+- No tail-call optimization (`-fno-optimize-sibling-calls` applied per-function)
+- No inlining at call sites that would eliminate the prologue
+- Prologue must start with the designated NOP pattern; the backend verifies this after register allocation
+
+### Distinction from Linux Livepatch
+
+Linux kernel live patching (kpatch, livepatch subsystem) works at the kernel level using `ftrace` trampolines and the module system. Windows hot-patching is user-space only and uses the process's own virtual memory. The CodeView extension is Windows-specific; there is no DWARF equivalent for hot-patch metadata.
+
+### Example: COFF Object with Hot-Patch Sled
+
+```bash
+# Compile a hot-patchable function:
+clang-cl -fms-hotpatch-v2 -O2 -c hotpatch_demo.cpp -o hotpatch_demo.obj
+
+# Disassemble to verify the NOP sled:
+dumpbin /DISASM hotpatch_demo.obj | grep -A10 "?my_func"
+# 00000000: 66 66 0F 1F 44 00 00   nop  (7-byte NOP sled)
+# 00000007: 90                      nop
+# 00000008: 66 90                   xchg ax, ax  ← patch target
+# 0000000A: 48 89 54 24 F8          mov  [rsp-8], rdx
+# 0000000F: 48 89 4C 24 F0          mov  [rsp-10h], rcx
+```
+
+---
+
+## debuginfod: Network-Based Debug Info Retrieval
+
+Production binaries are shipped stripped — debug info is removed to reduce binary size and avoid exposing source structure. When a crash occurs in production, the developer needs the matching debug info (`.debug_info`, source files) to symbolize the stack trace. Traditionally this required maintaining a side-channel of debug packages indexed by binary version — a significant operational burden.
+
+### The debuginfod Protocol
+
+`debuginfod` (developed by Fedora/Red Hat via the `elfutils` project, 2019) is an HTTP-based protocol for serving debug info, source files, and ELF binaries indexed by **build ID**. A build ID is a 20-byte SHA1 hash embedded in every ELF binary at link time (via `--build-id`):
+
+```bash
+# Check a binary's build ID:
+readelf -n /usr/bin/clang-22 | grep "Build ID"
+# Build ID: 7f3a9b2ec3f840d9a3de0a17b8a2e49f0123456
+
+# Query a debuginfod server:
+curl https://debuginfod.elfutils.org/buildid/7f3a9b2ec3f840d9a3de0a17b8a2e49f0123456/debuginfo
+# → returns the matching .debuginfo ELF
+```
+
+### LLVM HTTP Client
+
+LLVM 22 includes an HTTP client in [`llvm/lib/Support/HTTPClient.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/llvm/lib/Support/HTTPClient.cpp) backed by `libcurl`. This client is used by:
+
+- `lldb`: automatic debuginfod fetch when loading a binary that lacks debug info
+- `llvm-symbolizer`: fetch matching debuginfo before symbolizing an address
+
+### Integration with LLDB
+
+When LLDB loads a binary with no debug info locally, it queries configured debuginfod servers:
+
+```lldb
+# Configure debuginfod servers:
+(lldb) settings set symbols.enable-external-lookup true
+(lldb) settings set symbols.debuginfod.server-urls \
+    "https://debuginfod.elfutils.org https://debuginfod.ubuntu.com"
+
+# Load a stripped binary:
+(lldb) target create /usr/bin/clang-22
+# LLDB: searching for debug info for build ID 7f3a9b...
+# LLDB: fetched debuginfo from https://debuginfod.elfutils.org/...
+# (lldb) bt   ← now has full symbols
+```
+
+### Integration with llvm-symbolizer
+
+```bash
+# Configure via environment variable:
+export LLVM_SYMBOLIZER_DEBUGINFOD_SERVERS=\
+    "https://debuginfod.elfutils.org;https://debuginfod.ubuntu.com"
+
+# Symbolize from a crash dump — debuginfod fetches matching debuginfo:
+echo "clang-22 0x1234567" | llvm-symbolizer
+# clang::CodeGen::CodeGenModule::EmitGlobal(clang::GlobalDecl)
+# /usr/lib/llvm-22/src/clang/lib/CodeGen/CodeGenModule.cpp:1234
+```
+
+### Public Servers
+
+| Server | Content |
+|--------|---------|
+| `https://debuginfod.elfutils.org` | Fedora packages |
+| `https://debuginfod.ubuntu.com` | Ubuntu packages |
+| `https://debuginfod.debian.net` | Debian packages |
+| `https://debuginfod.archlinux.org` | Arch Linux packages |
+
+### Split-DWARF + debuginfod
+
+Split DWARF (Section 117.8) stores full debug info in `.dwo` files separate from the binary. When combined with debuginfod:
+- The binary's skeleton CU references `.dwo` by name and DWO ID
+- The debuginfod server can serve `.dwo` files individually, indexed by build ID + DWO ID
+- LLDB fetches `.dwo` files on demand, enabling full debugging of split-DWARF binaries without local `.dwo` files
+
+This combination is particularly powerful for large distributed binaries: developers can debug production crashes from any machine that has debuginfod server access, without needing to maintain local debug package installations.
+
+### DWARFLinkerParallel
+
+For completeness: `llvm-dwarfutil` (LLVM 16+) includes `DWARFLinkerParallel`, a multithreaded DWARF linker that processes the `.debug_info` sections of many object files concurrently before merging into the final binary's debug info. For large programs (Chromium, LLVM itself), this reduces DWARF linking time by 3–5× by exploiting multi-core parallelism in what is otherwise a serial `DWARFLinker` pipeline. The parallel linker is invoked via `llvm-dwarfutil --linker parallel`.
+
+---
+
 ## Chapter Summary
 
 - **DWARF 5** is the current standard, stored in `.debug_info`, `.debug_line`, `.debug_loclists`, `.debug_rnglists`, `.debug_names`, and related sections in ELF binaries.

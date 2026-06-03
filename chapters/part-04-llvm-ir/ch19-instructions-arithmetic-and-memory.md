@@ -685,6 +685,63 @@ In all of these cases, the programmer is explicitly opting out of provenance tra
 
 ---
 
+## The `ptrtoaddr` Instruction
+
+The `ptrtoaddr` instruction is a proposed LLVM IR extension for capability-based memory-safety architectures, most prominently CHERI/Morello (ARM's production implementation of CHERI on the Neoverse platform). It addresses a critical limitation of `ptrtoint` in capability architectures: the numeric address alone does not constitute a valid memory capability.
+
+### CHERI Capability Architecture Context
+
+On a CHERI-enabled system, every pointer is not a plain 64-bit integer but a *capability* — a hardware-enforced fat pointer that encodes:
+- The virtual address (64 bits)
+- Bounds (base and length) defining the allocation the capability is authorized to access
+- Permissions flags (read, write, execute, seal, etc.)
+- A *tag bit* stored out-of-band in a protected memory region, making it impossible to forge a capability by constructing its byte pattern from integer data
+
+The tag bit is the key: it is set by the hardware when a valid capability is stored, and cleared when non-capability data is written to a capability-tagged location. An untagged value at a capability address is a numeric integer, not a capability, and attempting to dereference it faults.
+
+`ptrtoint` on a CHERI system extracts only the numeric address, **stripping the tag**. The resulting integer cannot be converted back to a valid capability via `inttoptr` — the tag is gone. This makes the conventional LLVM round-trip pattern `inttoptr(ptrtoint(p) + n)` broken by design on CHERI.
+
+### The `ptrtoaddr` Instruction Semantics
+
+`ptrtoaddr` extracts the numeric virtual address of a capability pointer **without stripping the capability tag** and without destroying the provenance chain:
+
+```llvm
+; ptrtoaddr: extract the address component of a capability pointer
+; The result is an integer representing the virtual address,
+; but the surrounding capability provenance is preserved for alias analysis.
+%addr = ptrtoaddr ptr %cap to i64
+
+; Contrast with ptrtoint, which drops the tag:
+%addr_notag = ptrtoint ptr %cap to i64  ; loses CHERI capability tag
+```
+
+The critical semantic difference: `ptrtoaddr` is intended to be used in combination with capability-aware arithmetic intrinsics that reconstruct a valid capability from the modified address, preserving the original capability's bounds and permissions. The `inttoptr` instruction continues to produce a non-capability integer-to-pointer conversion (correct for legacy code that deliberately round-trips through integers).
+
+### `-fwrapv-pointer` and Pointer Wraparound
+
+Adjacent to the `ptrtoaddr` proposal is the Clang flag `-fwrapv-pointer`, which controls how pointer wraparound (pointer overflow) is treated:
+
+By default, the C and C++ standards declare that pointer arithmetic outside the bounds of an object is undefined behavior. LLVM exploits this UB: it assumes pointers do not wrap around the address space, which enables optimizations that eliminate checks of the form `p + n < p` (which are always false without wraparound). On systems like the Linux kernel, where the kernel deliberately uses pointer comparisons that depend on address-space wraparound semantics (e.g., comparing a user-space address to a kernel-space boundary using unsigned comparison), this optimization is incorrect.
+
+`-fwrapv-pointer` makes Clang emit pointers with `no_unsigned_wrap` flags suppressed, treating pointer arithmetic as having well-defined wraparound behavior. This is the pointer analog of `-fwrapv` for integers:
+
+```bash
+# Compile with pointer wraparound semantics (for kernel-style code):
+clang -fwrapv-pointer -O2 -emit-llvm -S kernel_ptr_arith.c -o kernel_ptr_arith.ll
+
+# The resulting IR will not carry nuw on GEPs:
+# Without -fwrapv-pointer:
+#   %p2 = getelementptr inbounds nuw i8, ptr %p, i64 %n
+# With -fwrapv-pointer:
+#   %p2 = getelementptr i8, ptr %p, i64 %n
+```
+
+The `inbounds nuw` annotation on `getelementptr` asserts no unsigned overflow; `-fwrapv-pointer` suppresses the `nuw` flag, preventing optimizations that assume no wraparound. The Linux kernel build system uses `-fwrapv` for integers and, on affected code paths, equivalent techniques for pointers; `-fwrapv-pointer` was introduced to formalize this need.
+
+**Relationship to `ptrtoaddr`:** On CHERI, the capability bounds themselves enforce that pointer arithmetic stays within the allocation — the hardware will fault on an out-of-bounds dereference. This makes `-fwrapv-pointer` less critical for CHERI targets, where the hardware's capability bounds checking is the authoritative guard. But for conventional targets, `-fwrapv-pointer` is the correct mechanism for code that relies on address-space wraparound.
+
+---
+
 ## 19.9 Chapter Summary
 
 - **`nsw`/`nuw`** on integer arithmetic assert no signed or unsigned overflow respectively; if the assertion is violated, the result is poison. Clang emits `nsw` for every signed C integer operation, leveraging C's signed overflow UB. `nuw` appears in pointer arithmetic and unsigned loop counters.

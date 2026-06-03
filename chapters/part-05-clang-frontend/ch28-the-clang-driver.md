@@ -22,8 +22,9 @@ The driver's historical role is to replicate the GCC driver interface precisely 
 - [28.10 The cc1 Interface](#2810-the-cc1-interface)
 - [28.11 Multilib and Sysroot](#2811-multilib-and-sysroot)
 - [28.12 Offloading](#2812-offloading)
-- [28.13 Driver Diagnostics](#2813-driver-diagnostics)
-- [28.14 Extending the Driver](#2814-extending-the-driver)
+- [28.13 Clang Linker Wrapper and Unified GPU Offload](#2813-clang-linker-wrapper-and-unified-gpu-offload)
+- [28.14 Driver Diagnostics](#2814-driver-diagnostics)
+- [28.15 Extending the Driver](#2815-extending-the-driver)
 - [Chapter Summary](#chapter-summary)
 - [Cross-References](#cross-references)
 - [Reference Links](#reference-links)
@@ -590,7 +591,177 @@ The new (LLVM 14+) offloading model uses `clang-offload-packager` to embed devic
 
 ---
 
-## 28.13 Driver Diagnostics
+## 28.13 Clang Linker Wrapper and Unified GPU Offload
+
+Section 28.12 described how the driver constructs `OffloadAction` nodes and selects `LinkerWrapperJobAction` for the link step. This section examines the actual binary that executes that action — `clang-linker-wrapper` — along with the `-foffload-via-llvm` flag that alters the entire pre-link pipeline.
+
+*Note: Section 28.12 refers to "clang-offload-linker (the linker wrapper)". The correct binary name in LLVM 22 is `clang-linker-wrapper` (`clang/tools/clang-linker-wrapper/ClangLinkerWrapper.cpp`). The old name `clang-offload-linker` was used in early design documents but was never the shipped name.*
+
+### The Pre-2022 Problem: Manual Bundling Steps
+
+Before LLVM 14, heterogeneous compilation for CUDA or HIP required separate manual steps that build systems had to orchestrate explicitly:
+
+```
+clang++ -cuda-device-only -emit-llvm foo.cu -o foo.device.bc
+clang++ -cuda-host-only -emit-llvm foo.cu -o foo.host.bc
+# Compile device bitcode per architecture
+clang++ -target nvptx64 foo.device.bc -o foo.ptx
+# Bundle host object and device object into a fat binary
+clang-offload-bundler --type=o --inputs=foo.host.o,foo.device.o \
+  --targets=host-x86_64-linux-gnu,openmp-nvptx64-nvidia-cuda \
+  --output=foo.fat.o
+```
+
+At link time, the reverse unbundling step had to happen before the linker was invoked, and build systems had to understand the bundle format. The `clang-offload-bundler` binary performed both directions: bundling object files into a clang-specific fat object and unbundling them before linking. This format was opaque to all non-LLVM tools in the toolchain, making integration with CMake, Make, and system linkers fragile.
+
+### clang-linker-wrapper: Transparent Device Linking at Link Time
+
+`clang-linker-wrapper` ([`clang/tools/clang-linker-wrapper/ClangLinkerWrapper.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/tools/clang-linker-wrapper/ClangLinkerWrapper.cpp)) eliminates the manual unbundling requirement. The driver emits a `LinkerWrapperJobAction` whose sole executable is `clang-linker-wrapper`, passing it the complete linker invocation (including all regular flags and `-L`/`-l` arguments) after a `--` separator:
+
+```
+clang-linker-wrapper --host-triple=x86_64-pc-linux-gnu \
+  --linker-path=/usr/bin/ld \
+  --should-extract=sm_90 \
+  -- -pie -dynamic-linker /lib64/ld-linux-x86-64.so.2 \
+     -o foo foo.o -lc
+```
+
+The wrapper's execution sequence is:
+
+1. **Scan all input object files** for sections named `.llvm_offloading` (in ELF) or equivalent. Each such section contains a serialised `llvm::offload::BinaryWrapper` record that embeds device images alongside their target triple and architecture.
+2. **Extract device images** per target triple. For CUDA targets, this may be a PTX file or a device ELF; for AMDGPU/HIP, an HSACO. For IR-based paths (`-foffload-via-llvm`), the embedded image is LLVM bitcode.
+3. **Device-link** the extracted images. For NVPTX, `clang-linker-wrapper` invokes `clang-nvlink-wrapper` (or direct `nvlink` if no LTO is needed). For AMDGPU, it invokes `lld -flavor gnu` targeting `amdgcn-amd-amdhsa`. If `--embed-bitcode` is set, device-side LTO runs here via `clang-nvlink-wrapper --lto-emit-llvm`.
+4. **Re-embed** the final device image by calling `llvm-offload-binary` to create an updated offload binary record, then passes it back as an object to be linked into the host binary.
+5. **Invoke the host linker** transparently, passing the original arguments plus the newly created device-containing object. From `ld`'s perspective, it only ever sees ordinary ELF object files.
+
+Build systems require no changes: the `clang-linker-wrapper` binary becomes the linker, and the real linker is delegated via `--linker-path`. The fat-object format is self-describing using standard ELF sections, making it inspectable with ordinary tools:
+
+```bash
+readelf -S foo.o | grep llvm_offloading
+# [23] .llvm_offloading  LLVM_BB_ADDR_MAP  ...
+```
+
+### The Old Offload Bundler Path vs. the New Model
+
+The `clang-offload-bundler` approach embedded device code in a proprietary multi-target bundle format (magic cookie `__CLANG_OFFLOAD_BUNDLE__`). Consumers had to invoke `clang-offload-bundler --unbundle` explicitly to extract device images before linking. The new-model pipeline — enabled by `--offload-new-driver`, which is the default in Clang 22 — uses ELF `.llvm_offloading` sections for device image embedding and `clang-linker-wrapper` for transparent extraction. The actual `clang-offload-bundler` binary still ships in LLVM 22 for backward compatibility with HPC workflows that generate fat object files via external tools.
+
+For a CUDA compile under the new driver (default in Clang 22), the full pipeline from `-###` output is:
+
+```bash
+# clang -### --offload-arch=sm_90 foo.cu -o foo
+# (abbreviated — full cc1 flags elided)
+
+# Step 1: device cc1 — nvptx64 target → PTX assembly
+clang -cc1 -triple nvptx64-nvidia-cuda -S ... -target-cpu sm_90 \
+  -o /tmp/foo-sm_90.s -x cuda foo.cu
+
+# Step 2: NVIDIA assembler — PTX → device ELF
+ptxas -m64 -O0 --gpu-name sm_90 --output-file /tmp/foo-sm_90.o /tmp/foo-sm_90.s
+
+# Step 3: NVIDIA fatbinary — device ELF → fatbinary
+fatbinary -64 --create /tmp/foo.fatbin \
+  --image3=kind=elf,sm=90,file=/tmp/foo-sm_90.o
+
+# Step 4: host cc1 — x86_64, links fatbinary into the host object
+clang -cc1 -triple x86_64-pc-linux-gnu -emit-obj ... \
+  -fcuda-include-gpubinary /tmp/foo.fatbin \
+  -o /tmp/foo-host.o -x cuda foo.cu
+
+# Step 5: clang-linker-wrapper — transparent device extraction + host link
+clang-linker-wrapper --should-extract=sm_90 \
+  --host-triple=x86_64-pc-linux-gnu --linker-path=/usr/bin/ld \
+  -pie -o foo /tmp/foo-host.o -lc ...
+```
+
+### -foffload-via-llvm: IR-Level Unified Compilation
+
+`-foffload-via-llvm` (available in Clang 22, corresponding to the `LLVM/Offload` portable runtime) fundamentally alters the pipeline by routing both host and device code through a shared LLVM IR intermediate:
+
+```bash
+clang++ --offload-arch=sm_90 --offload-new-driver \
+        -foffload-via-llvm foo.cu -o foo
+```
+
+The `-###` output reveals the difference. First, host cc1 is run with `-emit-llvm-bc` and `-disable-llvm-passes` rather than `-emit-obj`:
+
+```bash
+# Step 1: host cc1 produces IR (not object code), with offload annotations
+clang -cc1 -triple x86_64-pc-linux-gnu -emit-llvm-bc \
+  -disable-llvm-passes --offload-targets=nvptx64-nvidia-cuda \
+  -include __llvm_offload_host.h \
+  -o /tmp/foo.bc -x cuda foo.cu
+
+# Step 2: device cc1 — uses host IR for cross-compilation context
+clang -cc1 -triple nvptx64-nvidia-cuda -S \
+  -include __llvm_offload_device.h \
+  -fopenmp-host-ir-file-path /tmp/foo.bc \
+  -target-cpu sm_90 -o /tmp/foo-sm_90.s -x cuda foo.cu
+
+# Step 3: ptxas — device PTX → device ELF
+ptxas -m64 -O0 --gpu-name sm_90 -o /tmp/foo-sm_90.o /tmp/foo-sm_90.s -c
+
+# Step 4: llvm-offload-binary — package device ELF into an offload record
+llvm-offload-binary -o /tmp/foo.out \
+  --image=file=/tmp/foo-sm_90.o,triple=nvptx64-nvidia-cuda,arch=sm_90,kind=openmp
+
+# Step 5: host cc1 — compiles the host IR to object, embeds offload record
+clang -cc1 -triple x86_64-pc-linux-gnu -emit-obj \
+  -fembed-offload-object=/tmp/foo.out \
+  --offload-targets=nvptx64-nvidia-cuda \
+  -o /tmp/foo-host.o -x ir /tmp/foo.bc
+
+# Step 6: clang-linker-wrapper — device link + host link
+clang-linker-wrapper --should-extract=sm_90 \
+  --device-linker=nvptx64-nvidia-cuda=-lompdevice \
+  --host-triple=x86_64-pc-linux-gnu --linker-path=/usr/bin/ld \
+  -pie -o foo /tmp/foo-host.o -lomptarget ...
+```
+
+The key architectural difference is that the host is compiled to unoptimised LLVM bitcode first (`-disable-llvm-passes`), preserving all IR-level information. At step 5, the host IR is compiled from that bitcode, so the host backend runs after device compilation completes. This ordering allows IR-level LTO across both host and device boundaries when `-foffload-lto` is also passed: the device link step inside `clang-linker-wrapper` can receive host IR to inform device optimisation decisions.
+
+The `__llvm_offload_host.h` and `__llvm_offload_device.h` wrapper headers (under `/usr/lib/llvm-22/lib/clang/22/include/llvm_offload_wrappers/`) replace the CUDA-specific `__clang_cuda_runtime_wrapper.h`. This is what makes `-foffload-via-llvm` portable: the same pipeline applies to HIP and OpenMP target with only the target triple changing.
+
+### clang-nvlink-wrapper
+
+`clang-nvlink-wrapper` ([`clang/tools/clang-nvlink-wrapper/ClangNvlinkWrapper.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/tools/clang-nvlink-wrapper/ClangNvlinkWrapper.cpp)) is a thin driver shim invoked by `clang-linker-wrapper` when the device target is NVPTX. Its responsibilities are:
+
+- Accept NVPTX device ELF files as inputs.
+- When `--lto-emit-llvm` is absent: invoke NVIDIA's `nvlink` directly, passing through all `--arch`, `-L`, `-l`, `-rdc` flags.
+- When `--lto-emit-llvm` is present (i.e., device LTO): read the embedded LLVM bitcode from each input, run the LLVM LTO pipeline for the NVPTX target (via `llvm::lto::LTO`), and generate a single optimised PTX or cubin. This enables whole-program optimisation across all device translation units.
+- Support fatbinary generation by wrapping the nvlink output with the CUDA `fatbinary` utility when `--cuda-path` is supplied.
+
+The separation from `nvlink` proper is intentional: it insulates the rest of the Clang toolchain from CUDA SDK version differences and allows the LTO path to bypass `nvlink` entirely.
+
+### Build System Integration
+
+From a CMake or Make perspective, `clang-linker-wrapper` is invisible: the build system sees only the `clang++` invocation. The driver inserts `clang-linker-wrapper` as the linker transparently via the `LinkerWrapperJobAction`, which is lowered to a `Command` whose executable is `clang-linker-wrapper` and whose arguments are the full linker command line.
+
+For CMake projects, enabling GPU offloading requires only:
+
+```cmake
+target_compile_options(mylib PRIVATE --offload-arch=sm_90)
+target_link_options(mylib PRIVATE --offload-arch=sm_90)
+set_source_files_properties(foo.cu PROPERTIES LANGUAGE CXX)
+```
+
+With older LLVM, CMake required `CUDA_SEPARABLE_COMPILATION`, explicit `CMAKE_CUDA_DEVICE_LINK_EXECUTABLE`, and manual `clang-offload-bundler` invocations. The `clang-linker-wrapper` model eliminates all of these because the extraction and device linking happen inside the single linker command that CMake already generates.
+
+For Make-based projects, the change is even more transparent: no Makefile rules need modification since the fat-object embedding and extraction happen inside the compiler and linker binary respectively.
+
+The `--wrapper-jobs=<N>` flag on `clang-linker-wrapper` controls parallelism for the device link phase when multiple architectures are targeted:
+
+```bash
+clang-linker-wrapper --wrapper-jobs=4 --should-extract=sm_90 \
+  --should-extract=sm_80 --should-extract=gfx1100 ...
+```
+
+This allows simultaneous device linking for CUDA and AMDGPU targets in a unified heterogeneous build.
+
+See [Chapter 48 — Clang as a CUDA Compiler](../part-07-clang-multilang/ch48-clang-as-cuda-compiler.md) for the full CUDA toolchain, runtime selection, and CUDA-specific cc1 flags. See [Chapter 49 — Clang as a HIP Compiler](../part-07-clang-multilang/ch49-clang-as-hip-compiler.md) for HIP-specific details including `amdgpu-arch`, HSACO generation, and the `HIPAMDToolChain`.
+
+---
+
+## 28.14 Driver Diagnostics
 
 The `DiagnosticsEngine` is constructed *before* the `Driver`, because the driver constructor may immediately need to emit diagnostics about the toolchain or flags:
 
@@ -639,7 +810,7 @@ With `--offload-arch=sm_90 --offload-arch=sm_80 foo.cu`, the phase dump reveals 
 
 ---
 
-## 28.14 Extending the Driver
+## 28.15 Extending the Driver
 
 **Adding a new toolchain.** Subclass `ToolChain` in a new file under `clang/lib/Driver/ToolChains/`. Implement the minimal set of virtual methods:
 
@@ -761,6 +932,8 @@ int compileFile(llvm::StringRef SourceFile) {
 - `CC1Command::Execute` runs cc1 in-process via `CC1Main` function pointer when available, avoiding process creation overhead.
 - Multilib selects library directory variants; `--sysroot` redirects all system path lookups for cross-compilation.
 - Offloading splits compilation into host and device action sub-graphs, with `OffloadAction` encoding the host/device relationships.
+- `clang-linker-wrapper` replaces the old `clang-offload-bundler` unbundling step: it scans ELF `.llvm_offloading` sections, extracts device images, runs device linking (via `clang-nvlink-wrapper` for NVPTX or `lld` for AMDGPU), re-embeds the result, and then transparently invokes the host linker.
+- `-foffload-via-llvm` routes the host compilation through unoptimised LLVM bitcode (`-emit-llvm-bc -disable-llvm-passes`) before device compilation, enabling IR-level cross-boundary LTO when combined with `-foffload-lto`.
 - Driver diagnostics use `err_drv_`-prefixed IDs from `DiagnosticDriverKinds.inc`; the `DiagnosticsEngine` is constructed before the `Driver`.
 
 ---
@@ -790,6 +963,10 @@ int compileFile(llvm::StringRef SourceFile) {
 - [`clang/lib/Driver/ToolChains/Linux.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/lib/Driver/ToolChains/Linux.cpp)
 - [`clang/lib/Driver/ToolChains/MSVC.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/lib/Driver/ToolChains/MSVC.cpp)
 - [`clang/lib/Driver/ToolChains/CUDA.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/lib/Driver/ToolChains/CUDA.cpp)
+- [`clang/tools/clang-linker-wrapper/ClangLinkerWrapper.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/tools/clang-linker-wrapper/ClangLinkerWrapper.cpp)
+- [`clang/tools/clang-nvlink-wrapper/ClangNvlinkWrapper.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/tools/clang-nvlink-wrapper/ClangNvlinkWrapper.cpp)
+- [`clang/tools/clang-offload-bundler/ClangOffloadBundler.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/tools/clang-offload-bundler/ClangOffloadBundler.cpp)
+- [`llvm/tools/llvm-offload-binary/llvm-offload-binary.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/llvm/tools/llvm-offload-binary/llvm-offload-binary.cpp)
 
 
 ---

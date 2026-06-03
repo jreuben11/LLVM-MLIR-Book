@@ -343,6 +343,30 @@ Ordinary `fadd`, `fmul`, etc. accept fast-math flags (`reassoc`, `nnan`, `ninf`,
 
 The `afn` (approximate function) flag specifically relaxes the correctness requirement on math intrinsics, enabling the vectorizer to substitute hardware reciprocal-square-root instructions (`rsqrtps` on x86, `frsqrte` on AArch64) for `llvm.sqrt`.
 
+### 24.5.5 Deprecated: `llvm.convert.to.fp16` and `llvm.convert.from.fp16`
+
+**Note: `llvm.convert.to.fp16` and `llvm.convert.from.fp16` were removed in LLVM 19.** Code that still emits these intrinsics (e.g., old bitcode files, outdated front-ends) will fail to assemble or link against LLVM 22.
+
+These intrinsics were introduced to handle `__fp16` conversions on targets like ARM that lacked native half-precision arithmetic support. Their signatures were:
+
+```llvm
+; Removed in LLVM 19 — do not use:
+declare i16 @llvm.convert.to.fp16.f32(float %val)
+declare i16 @llvm.convert.to.fp16.f64(double %val)
+declare float @llvm.convert.from.fp16.f32(i16 %val)
+declare double @llvm.convert.from.fp16.f64(i16 %val)
+```
+
+The replacement is to use the `fptrunc` and `fpext` instructions with the `half` type directly, now that opaque pointers and the `half` type are universally supported:
+
+```llvm
+; Correct form in LLVM 22 — use fptrunc/fpext with half type:
+%as_half   = fptrunc float %val to half
+%as_float  = fpext half %half_val to float
+```
+
+Clang 19+ emits `fptrunc`/`fpext` for `__fp16` conversions. The ARM soft-float path that required the intrinsics was refactored into target-specific lowering of `fptrunc`/`fpext` with `half` operands.
+
 ---
 
 ## 24.6 Bit-Manipulation Intrinsics
@@ -1033,6 +1057,188 @@ if (match(V, m_Intrinsic<Intrinsic::fma>(
   // ...
 }
 ```
+
+---
+
+## Convergence Control Intrinsics
+
+GPU and SIMT (Single Instruction Multiple Threads) execution models require *convergence control* — explicit management of when threads within a warp or wave converge (execute the same instruction together) versus diverge (execute different code paths). LLVM 22 provides three convergence-control intrinsics, stabilized from the experimental prefix:
+
+```llvm
+; Token type for convergence control:
+; All three return token type, which is a distinct opaque type
+
+; Mark convergent region entry (for function-level convergence):
+declare token @llvm.experimental.convergence.entry() convergent nocallback nofree nosync nounwind willreturn memory(none)
+
+; Mark convergent region in a loop (for loop-level convergence):
+declare token @llvm.experimental.convergence.loop() [ "convergencectrl"(token %entry_token) ] convergent nocallback nofree nosync nounwind willreturn memory(none)
+
+; Mark a convergence anchor (for ad-hoc convergence points):
+declare token @llvm.experimental.convergence.anchor() convergent nocallback nofree nosync nounwind willreturn memory(none)
+```
+
+### Usage Pattern
+
+```llvm
+define void @gpu_shader_kernel() convergent {
+entry:
+  ; Establish function-level convergence token
+  %tok = call token @llvm.experimental.convergence.entry()
+
+  ; All threads in the warp are convergent here
+  %lane = call i32 @llvm.amdgcn.mbcnt.lo(i32 -1, i32 0)
+
+  br i1 %diverge_cond, label %diverged, label %converged
+
+diverged:
+  ; Threads diverge here
+  %loop_tok = call token @llvm.experimental.convergence.loop()
+      [ "convergencectrl"(token %tok) ]
+  ; ... loop body with divergent control flow
+  br label %converged
+
+converged:
+  ; Threads reconverge here
+  ; The convergence infrastructure tracks which threads enter and exit
+  ret void
+}
+```
+
+### Semantics
+
+The convergence control tokens form a *convergence DAG* that the backend uses to:
+1. **Determine warp-level operations**: Intrinsics like `llvm.amdgcn.ballot`, `llvm.nvvm.vote.*`, and `llvm.amdgcn.readlane` require that all participating threads be in the same convergent region.
+2. **Validate convergent operations**: A `convergent` function attribute on a call tells the optimizer that reordering the call relative to convergence tokens is illegal — the call must execute at the same program point across all threads.
+3. **Drive GlobalISel lowering**: GlobalISel uses `G_CONVERGENCECTRL_ENTRY`, `G_CONVERGENCECTRL_ANCHOR`, and `G_CONVERGENCECTRL_LOOP` opcodes (defined in `TargetOpcodes.def`) as the machine-level counterparts.
+
+The full specification is in the [LLVM Convergence Control RFC](https://llvm.org/docs/ConvergenceControl.html). The implementation resides in [`llvm/lib/IR/ConvergenceVerifier.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/llvm/lib/IR/ConvergenceVerifier.cpp).
+
+---
+
+## `llvm.is.fpclass` and FP Mode Intrinsics
+
+### `llvm.is.fpclass`
+
+`llvm.is.fpclass` tests a floating-point value against a bitmask of floating-point classes, replacing scattered `isnan()`, `isinf()`, `isfinite()` patterns with a single intrinsic that the backend can lower to efficient hardware tests:
+
+```llvm
+; Signature:
+declare i1 @llvm.is.fpclass.f32(float %val, i32 immarg %mask)
+declare i1 @llvm.is.fpclass.f64(double %val, i32 immarg %mask)
+; Also available for half, bfloat, fp128, vectors, etc.
+```
+
+The `%mask` is a bitmask of `FPClassTest` enumerators from [`llvm/include/llvm/ADT/FloatingPointMode.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/llvm/ADT/FloatingPointMode.h):
+
+| Enumerator | Value | Meaning |
+|-----------|-------|---------|
+| `fcSNan` | `0x0001` | Signaling NaN |
+| `fcQNan` | `0x0002` | Quiet NaN |
+| `fcNan` | `0x0003` | Any NaN (fcSNan \| fcQNan) |
+| `fcNegInf` | `0x0004` | Negative infinity |
+| `fcNegNormal` | `0x0008` | Negative normal |
+| `fcNegSubnormal` | `0x0010` | Negative subnormal |
+| `fcNegZero` | `0x0020` | Negative zero |
+| `fcPosZero` | `0x0040` | Positive zero |
+| `fcPosSubnormal` | `0x0080` | Positive subnormal |
+| `fcPosNormal` | `0x0100` | Positive normal |
+| `fcPosInf` | `0x0200` | Positive infinity |
+| `fcInf` | `0x0204` | Any infinity (fcNegInf \| fcPosInf) |
+| `fcNormal` | `0x0108` | Any normal (fcNegNormal \| fcPosNormal) |
+| `fcZero` | `0x0060` | Any zero (fcNegZero \| fcPosZero) |
+| `fcFinite` | `0x01f8` | Any finite (non-NaN, non-Inf) |
+| `fcAllFlags` | `0x03ff` | All classes |
+
+```llvm
+; Test for NaN (mask = fcNan = 0x0003):
+%isnan = call i1 @llvm.is.fpclass.f32(float %x, i32 3)
+
+; Test for infinity (mask = fcInf = fcNegInf | fcPosInf = 0x0004 | 0x0200 = 0x0204 = 516):
+%isinf = call i1 @llvm.is.fpclass.f64(double %x, i32 516)
+
+; Test for positive normal or positive infinity:
+%is_pos_finite_or_inf = call i1 @llvm.is.fpclass.f32(float %x, i32 768)
+; 768 = 0x0300 = fcPosNormal(0x0100) | fcPosInf(0x0200)
+```
+
+`llvm.is.fpclass` replaces patterns like:
+
+```cpp
+// Old pattern (generates comparison chains):
+bool IsNaN = std::isnan(x);
+
+// New pattern (single hardware test on most architectures):
+// Emitted as: call i1 @llvm.is.fpclass.f32(float %x, i32 3)
+```
+
+On x86 with AVX-512, `llvm.is.fpclass.f32` lowers to a single `vfpclassss` instruction. On AArch64, NaN tests lower to `fcmp` sequences.
+
+The `nofpclass` function attribute (applied to return values or parameters) is the companion declaration-level annotation: `nofpclass(nan inf)` asserts that the annotated value is never NaN or infinity, enabling constant folding of downstream `is.fpclass` tests.
+
+### FP Mode Intrinsics
+
+The FP mode intrinsics provide portable access to the floating-point environment (rounding mode and exception flags):
+
+```llvm
+; Read the current FP mode into an opaque token value:
+declare i32 @llvm.get.fpmode.i32()
+declare i64 @llvm.get.fpmode.i64()
+
+; Set the FP mode from a token value (must have come from llvm.get.fpmode):
+declare void @llvm.set.fpmode.i32(i32 %mode)
+declare void @llvm.set.fpmode.i64(i64 %mode)
+
+; Reset to the default FP mode (round-to-nearest, no exceptions):
+declare void @llvm.reset.fpmode()
+```
+
+These intrinsics abstract over the target-specific FP control register (`MXCSR` on x86, `FPCR`/`FPSR` on AArch64). They carry `memory(inaccessiblemem: readwrite)` — they read and write the FP environment, which is modeled as inaccessible memory (not reachable via ordinary pointers).
+
+```llvm
+; Save-restore FP mode pattern:
+define float @compute_with_rounding(float %a, float %b) {
+entry:
+  ; Save current FP mode
+  %saved_mode = call i32 @llvm.get.fpmode.i32()
+
+  ; Do operations in default mode
+  %result = fadd float %a, %b
+
+  ; Restore original FP mode
+  call void @llvm.set.fpmode.i32(i32 %saved_mode)
+  ret float %result
+}
+```
+
+The `constrained` floating-point intrinsic family (e.g., `llvm.experimental.constrained.fadd`) provides an alternative mechanism for explicit FP mode control within a single computation. The `get.fpmode`/`set.fpmode`/`reset.fpmode` family is for save-restore patterns around library calls or inline assembly that may modify the FP environment.
+
+---
+
+## New LLVM 22 Intrinsic: `llvm.clmul`
+
+LLVM 22 introduces `llvm.clmul` — carryless multiplication — as a target-independent intrinsic that maps directly to hardware carryless multiply instructions:
+
+```llvm
+; Carryless multiplication (GF(2^n) multiplication):
+declare i64 @llvm.clmul.i64(i64 %a, i64 %b) memory(none) speculatable willreturn
+```
+
+Carryless multiplication is the fundamental operation in GF(2^n) arithmetic and is used extensively in cryptographic algorithms (AES-GCM, CRC computation, polynomial hashing in authenticated encryption). The hardware instructions are:
+
+- **x86 AES-NI**: `PCLMULQDQ` / `VPCLMULQDQ` (128-bit operands, 128-bit result) — lowered from `llvm.clmul.i64` with appropriate truncation/extension
+- **AArch64 PMULL**: `pmull` / `pmull2` (64×64→128 bit) — direct lowering
+- **RISC-V Zbc**: `clmul` instruction — direct lowering
+
+```llvm
+; CRC-32 computation core using carryless multiply:
+define i64 @crc_step(i64 %data, i64 %poly) {
+  %result = call i64 @llvm.clmul.i64(i64 %data, i64 %poly)
+  ret i64 %result
+}
+```
+
+Before `llvm.clmul`, this operation required target-specific intrinsics (`llvm.x86.pclmulqdq`, `llvm.aarch64.crypto.pmull64poly128`, etc.) or inline assembly, making portable GF(2^n) arithmetic difficult to express in target-independent IR. The target-independent form enables the vectorizer and the IPO passes to reason about carryless multiplication as a pure, side-effect-free operation.
 
 ---
 

@@ -239,6 +239,180 @@ llvm-bolt program_pgo -data=bolt.fdata -reorder-blocks=ext-tsp \
 
 BOLT transformations complement compiler PGO: the compiler's PGO affects code generation decisions (inlining, vectorization), while BOLT's reordering reduces instruction cache misses in the final binary layout.
 
+## 67.8 MemProf: Context-Sensitive Heap Profiling
+
+Standard PGO (§67.1) measures how often each branch is taken or each function is called, but it says nothing about *how memory is allocated*. A function may be on the hot path and allocate mostly short-lived temporary objects — knowledge that would change inlining, specialization, and even allocator selection decisions. **MemProf** (Memory Profiler) fills this gap: it is a separate profiling mode that records per-allocation-site heap behavior, including lifetime, access frequency, and call-stack context.
+
+MemProf was developed primarily by Google, deployed in production to reduce resident set size (RSS) in large C++ services, and merged into LLVM in 2022.
+
+### Instrumentation Phase
+
+```bash
+# Compile with MemProf instrumentation:
+clang -O2 -fmemory-profile program.cpp -o program_memprof
+
+# Run under typical workload:
+./program_memprof typical_workload
+# produces: default.memprofraw (or the path in MEMPROF_PROFILE_FILE)
+```
+
+The instrumentation intercepts `malloc`/`free` call sites. At each `malloc`, it records:
+- A **call-stack hash**: a compact identifier for the full call chain leading to the allocation.
+- The **allocation size**.
+- At `free` time: the **lifetime** (ticks between alloc and free), distinguishing short-lived (stack-like) from long-lived (persistent) allocations.
+- **Access counts**: how many loads/stores touch the allocated memory during its lifetime.
+
+This data is written to `.memprofraw` in a binary format.
+
+### Profile Merging and Format
+
+```bash
+# Merge MemProf raw profiles (same llvm-profdata tool):
+llvm-profdata merge --memory -output=memprof.profdata default.memprofraw
+
+# Inspect profile contents:
+llvm-profdata show --memory memprof.profdata
+
+# YAML serialization (LLVM 25+): for human inspection and editing:
+llvm-profdata show --memory --yaml memprof.profdata > memprof.yaml
+```
+
+The merged `.profdata` contains **MemProf records** alongside any instrumentation PGO records. Each MemProf record maps a call-stack hash to allocation statistics: total bytes allocated, total access count, average lifetime category (cold/warm/hot).
+
+### IR Annotation: !memprof Metadata
+
+In the use phase, `malloc` call sites in the IR are annotated with `!memprof` metadata listing per-context profiles:
+
+```llvm
+; An allocation site called from two different call stacks:
+%p = call ptr @malloc(i64 %size), !memprof !10
+
+!10 = !{!11, !12}
+!11 = !{!13, !"notcold"}         ; call stack A: allocation is warm
+!12 = !{!14, !"cold"}            ; call stack B: allocation is cold/short-lived
+!13 = !{i64 1234, i64 5678}     ; call stack A hashes
+!14 = !{i64 2345, i64 6789}     ; call stack B hashes
+```
+
+The `!"cold"` annotation indicates that in call-stack B, this allocation is short-lived. The compiler can redirect such allocations to a **cold allocator** (e.g., a bump allocator with no fragmentation concern) or simply mark the region as cold for the OS's memory reclamation heuristics.
+
+### Use Phase: Enabling MemProf Optimization
+
+```bash
+# Compile with MemProf profile use:
+clang -O2 -fmemory-profile-use=memprof.profdata program.cpp -o program_opt
+```
+
+The pass `MemProfContextDisambiguationPass` (in `llvm/Transforms/IPO/MemProfContextDisambiguation.cpp`) performs **allocation context matching**: it walks the call-stack trie encoded in the profile and matches each profiled call stack to an IR call site via the module's call graph. Call sites that are uniquely hot receive one IR annotation; cold contexts receive another.
+
+### Context Sensitivity: Same malloc, Different Callers
+
+A single `malloc()` call site can be reached from many call stacks. MemProf tracks each stack separately:
+
+```
+hot_function() → helper() → malloc()   [1M allocations, avg lifetime 5s]
+cold_function() → helper() → malloc()  [100 allocations, avg lifetime 0.01s]
+```
+
+With context sensitivity, the compiler knows that when `helper()` is inlined into `hot_function()`, the resulting allocation is long-lived and should use the standard allocator; when inlined into `cold_function()`, it is short-lived and a cold path allocation is appropriate.
+
+### Cold Heap Removal and Allocation Routing
+
+```llvm
+; After context disambiguation, cold allocations may be routed:
+%p = call ptr @malloc_cold(i64 %size)   ; replaced for cold contexts
+```
+
+The exact cold-allocator API is platform-specific (Google's TCMalloc exposes `tcmalloc::MallocExtension::RecordAllocationProfile`; glibc builds may use custom hooks). LLVM's contribution is the IR-level annotation and the context-disambiguation analysis; the runtime plumbing is application-specific.
+
+### Data Layout Profiling
+
+As of 2024, MemProf was extended to record **per-field access counts** for struct allocations. This enables the compiler to suggest or apply struct field reordering to improve cache utilization for the hot fields. The infrastructure is in `llvm/include/llvm/ProfileData/MemProf.h`. Field reordering itself is a separate pass that consumes the layout profile.
+
+### Integration with ThinLTO
+
+MemProf profiles survive module boundaries in ThinLTO: the module summary index carries per-allocation-site hotness annotations, and the context-disambiguation pass runs at link time to match call-stack profiles to the merged IR. This is essential because call stacks frequently cross module boundaries.
+
+### Example: Full Workflow
+
+```bash
+# Stage 1: Build instrumented binary
+clang -O2 -fmemory-profile -fmemory-profile-use= \
+    program.cpp -o program_memprof
+
+# Stage 2: Collect profile
+MEMPROF_PROFILE_FILE=run1.memprofraw ./program_memprof workload1
+MEMPROF_PROFILE_FILE=run2.memprofraw ./program_memprof workload2
+
+# Stage 3: Merge profiles
+llvm-profdata merge --memory -output=merged.memprof run1.memprofraw run2.memprofraw
+
+# Stage 4: Build optimized binary with MemProf use
+clang -O2 -fmemory-profile-use=merged.memprof program.cpp -o program_opt
+```
+
+---
+
+## 67.9 Profi: Flow-Based Profile Inference
+
+Instrumentation-based PGO adds counters at branches and function entries, but instrumented profiles are rarely complete. Dead-code elimination may remove some counter instrumentation points before they execute. Compiler transformations (inlining, loop unrolling, code motion) can produce IR where some edges have no counter but neighboring edges do. The result is a **partial profile**: some block/edge counts are known, others are zero or missing.
+
+The naive approach is to treat missing counts as zero, which underestimates execution frequency. **Profi** (Profile Inference, 2021) solves this by formulating count inference as a **min-cost max-flow problem** over the CFG.
+
+### Formulation
+
+Given a function's CFG with some edge/block counts known from instrumentation, Profi solves for the full set of counts such that:
+
+1. **Flow conservation:** At every internal node, the sum of in-edge counts equals the sum of out-edge counts (Kirchhoff's law for program flow).
+2. **Non-negativity:** All counts ≥ 0.
+3. **Fidelity to observed counts:** Deviations from measured counts are penalized proportionally to confidence in the measurement.
+
+The optimization objective is to minimize total adjustment cost (weighted by counter reliability), subject to flow conservation. This is a standard **min-cost flow** problem on a directed graph, solvable in polynomial time.
+
+Formally: let `f(e)` be the inferred count for edge `e`, `c(e)` the observed count (if any), and `w(e)` the confidence weight. Profi minimizes:
+
+```
+minimize   Σ_e  w(e) * |f(e) - c(e)|
+subject to:
+  Σ_{e into v} f(e) = Σ_{e out of v} f(e)   for all internal v
+  f(e) ≥ 0
+```
+
+### Implementation
+
+Profi's inference logic is in [`llvm/lib/ProfileData/InstrProf.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/llvm/lib/ProfileData/InstrProf.cpp) and `InstrProfWriter.cpp`, invoked via `InstrProfWriter::setValueProfilingData` and the profile reader's balancing step. The flow solver uses a standard shortest-path min-cost flow algorithm over the augmented CFG graph.
+
+### Comparison with Counter Lookup
+
+| Approach | Missing counter | Inconsistent counters |
+|----------|-----------------|----------------------|
+| Naive lookup | Returns 0 (under-estimates hot paths) | Uses raw value (inconsistent profile) |
+| Profi | Infers from neighbors via flow | Resolves inconsistency by min-cost adjustment |
+
+Profi is more robust: a profile collected with `-fprofile-partial-training` (only a subset of workloads represented) produces a partial profile. Without Profi, cold-looking blocks may receive inlining or layout decisions appropriate for cold code even though they are actually warm (just not covered by the training run). Profi's flow balancing propagates the warm signal from instrumented edges to adjacent uninstrumented edges.
+
+### Interaction with ProfileSummaryInfo and BranchProbabilityInfo
+
+After Profi runs (during profile loading in `llvm-profdata` or in the use-phase profile reader), the inferred counts are written as `!prof` branch weight metadata on branches. `BranchProbabilityAnalysis` converts these weights to per-edge probabilities, and `BlockFrequencyAnalysis` computes per-block frequencies. All downstream passes that query `BFI.getBlockFreq(BB)` then see Profi-inferred values rather than raw (possibly missing) instrumentation counts.
+
+`ProfileSummaryInfo` (which classifies blocks as hot, warm, or cold using quantile thresholds) uses the same inferred block frequencies, ensuring that hot/cold splitting (§68.10 context) and inlining threshold adjustments are based on the corrected profile.
+
+### When Profi Is Active
+
+Profi is automatically engaged during the use phase when the profile has gaps:
+
+```bash
+# Use phase: Profi inference runs automatically if the profile is partial:
+clang -O2 -fprofile-instr-use=partial.profdata program.cpp -o program_opt
+```
+
+It can also be invoked explicitly via `llvm-profdata`:
+
+```bash
+llvm-profdata merge --infer-missing-counters \
+    -output=balanced.profdata partial.profraw
+```
+
 ---
 
 ## Chapter Summary
@@ -251,6 +425,8 @@ BOLT transformations complement compiler PGO: the compiler's PGO affects code ge
 - `llvm-profdata` merges, shows, converts, and overlaps profile data; it also supports ThinLTO thin-profile generation.
 - ThinLTO + PGO propagates hotness information through the module summary index for cross-module inlining decisions.
 - BOLT + PGO provides a two-level optimization: PGO for compiler decisions during code generation, BOLT for binary-level basic block layout and function ordering.
+- **MemProf** (`-fmemory-profile` / `-fmemory-profile-use`) instruments `malloc`/`free` call sites with call-stack hashes to record allocation lifetime and access frequency; IR call sites receive `!memprof` metadata; context disambiguation (`MemProfContextDisambiguationPass`) matches per-stack profiles to IR; cold allocations can be routed to cold allocators; survives ThinLTO via the module summary index.
+- **Profi** formulates profile inference as a min-cost max-flow problem over the CFG, filling in missing or inconsistent counters from a partial instrumentation profile; inferred counts feed `BranchProbabilityAnalysis` and `BlockFrequencyAnalysis`, ensuring correct hot/cold decisions downstream.
 
 
 ---

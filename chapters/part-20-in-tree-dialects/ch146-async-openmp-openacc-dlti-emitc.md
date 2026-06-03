@@ -43,6 +43,20 @@ The final chapter of Part XX collects five dialects that each address a distinct
   - [146.5.7 Variable Assignment](#14657-variable-assignment)
   - [146.5.8 Lowering and Translation](#14658-lowering-and-translation)
   - [146.5.9 Lowering Higher-Level Dialects to EmitC](#14659-lowering-higher-level-dialects-to-emitc)
+- [MPI Dialect and Mesh-to-MPI Lowering](#mpi-dialect-and-mesh-to-mpi-lowering)
+  - [Motivation](#motivation)
+  - [MPI Dialect Operations](#mpi-dialect-operations)
+  - [Lowering MPI Dialect to LLVM](#lowering-mpi-dialect-to-llvm)
+  - [Mesh-to-MPI Lowering](#mesh-to-mpi-lowering)
+  - [Integration with Linalg and Tensor Dialects](#integration-with-linalg-and-tensor-dialects)
+  - [Example: allreduce in MPI Dialect](#example-allreduce-in-mpi-dialect)
+- [WasmSSA Dialect](#wasmssa-dialect)
+  - [Background and Motivation](#background-and-motivation)
+  - [WasmSSA Dialect Operations](#wasmssa-dialect-operations)
+  - [Why SSA-Based vs. Stack Machine](#why-ssa-based-vs-stack-machine)
+  - [Compilation Pipeline](#compilation-pipeline)
+  - [Distinction from the Existing WebAssembly LLVM Backend](#distinction-from-the-existing-webassembly-llvm-backend)
+  - [Use Cases](#use-cases)
 - [146.6 Dialect Interplay](#1466-dialect-interplay)
 - [Chapter 146 Summary](#chapter-146-summary)
 
@@ -678,6 +692,261 @@ mlir-opt \
 mlir-translate --mlir-to-c -o firmware_compute.c
 
 arm-none-eabi-gcc -O2 -mcpu=cortex-m4 -mfpu=fpv4-sp-d16 firmware_compute.c -o firmware.elf
+```
+
+---
+
+## MPI Dialect and Mesh-to-MPI Lowering
+
+Distributed machine-learning training at scale requires collective communication between compute nodes: gradient all-reduces, parameter broadcasts, and point-to-point tensor transfers. Expressing these operations in MLIR before lowering to MPI enables dialect-level optimization — dead communication elimination, communication/computation overlap scheduling, and fusion of adjacent collectives — that is impossible once the code has been lowered to opaque `MPI_Allreduce` calls.
+
+### Motivation
+
+The historical approach — inserting MPI calls directly at the LLVM IR level via a shim library — loses all semantic information about the communication structure. MLIR's MPI dialect captures collective semantics in a typed, verifiable, transformable form, enabling passes to reason about communication patterns alongside computation.
+
+### MPI Dialect Operations
+
+The MPI dialect ([`mlir/include/mlir/Dialect/MPI/IR/MPI.td`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/mlir/include/mlir/Dialect/MPI/IR/MPI.td), upstreamed December 2024 / refined February 2025) mirrors the MPI standard's operation set:
+
+**Lifecycle:**
+
+```mlir
+// MPI_Init / MPI_Finalize
+mpi.init
+mpi.finalize
+```
+
+**Point-to-point:**
+
+```mlir
+// MPI_Send: send buffer to rank dest with tag
+mpi.send(%buf : memref<?xf32>, %dest : i32, %tag : i32,
+         %comm : !mpi.comm) : !mpi.retval
+
+// MPI_Recv: receive into buffer from rank src
+%retval = mpi.recv(%buf : memref<?xf32>, %src : i32, %tag : i32,
+                   %comm : !mpi.comm) -> (!mpi.retval, i32, i32)
+// result: (retval, actual_source, actual_tag)
+```
+
+**Collectives:**
+
+```mlir
+// MPI_Allreduce: reduce across all ranks, result on all
+mpi.allreduce(%send_buf : memref<?xf32>, %recv_buf : memref<?xf32>,
+              %op : !mpi.op, %comm : !mpi.comm) : !mpi.retval
+
+// MPI_Broadcast: root sends to all
+mpi.broadcast(%buf : memref<?xf32>, %root : i32,
+              %comm : !mpi.comm) : !mpi.retval
+
+// MPI_Barrier: global synchronization
+mpi.barrier(%comm : !mpi.comm) : !mpi.retval
+
+// MPI_COMM_WORLD communicator
+%world = mpi.comm_world : !mpi.comm
+```
+
+**Error handling:** `!mpi.retval` carries the MPI return value; passes can insert checks or hoist error paths.
+
+### Lowering MPI Dialect to LLVM
+
+`ConvertMPIToLLVMPass` ([`mlir/lib/Conversion/MPIToLLVM/MPIToLLVM.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/mlir/lib/Conversion/MPIToLLVM/MPIToLLVM.cpp)) converts each MPI op to the corresponding C MPI function call via LLVM dialect `llvm.call`:
+
+| MPI Dialect Op | LLVM call emitted |
+|----------------|-------------------|
+| `mpi.send` | `MPI_Send(buf, count, datatype, dest, tag, comm)` |
+| `mpi.recv` | `MPI_Recv(buf, count, datatype, src, tag, comm, &status)` |
+| `mpi.allreduce` | `MPI_Allreduce(sendbuf, recvbuf, count, datatype, op, comm)` |
+| `mpi.broadcast` | `MPI_Bcast(buf, count, datatype, root, comm)` |
+| `mpi.barrier` | `MPI_Barrier(comm)` |
+| `mpi.init` | `MPI_Init(NULL, NULL)` |
+| `mpi.finalize` | `MPI_Finalize()` |
+
+The pass handles MPI datatype inference from MLIR element types (`f32` → `MPI_FLOAT`, `f64` → `MPI_DOUBLE`, `i32` → `MPI_INT`), count extraction from memref dimensions, and MPI communicator handle conversion from `!mpi.comm` to the target ABI's `MPI_Comm` representation.
+
+### Mesh-to-MPI Lowering
+
+The Mesh dialect ([Chapter 145](../part-20-in-tree-dialects/ch145-mesh.md)) represents partitioned tensor computation: tensors are sharded across a logical mesh of devices, and collective operations express redistribution between shardings. `ConvertMeshToMPIPass` ([`mlir/lib/Conversion/MeshToMPI/MeshToMPI.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/mlir/lib/Conversion/MeshToMPI/MeshToMPI.cpp)) lowers Mesh dialect collectives to MPI dialect operations:
+
+```mlir
+// Mesh dialect: all-reduce across the "data_parallel" mesh axis
+mesh.all_reduce %partial_grad on @mesh_3d mesh_axes=[0]
+    reduction<add> : tensor<128x256xf32>
+
+// After ConvertMeshToMPIPass:
+%comm = mpi.comm_world : !mpi.comm  // or a subcommunicator for axis 0
+mpi.allreduce(%partial_grad_buf : memref<128x256xf32>,
+              %grad_buf : memref<128x256xf32>,
+              %add_op : !mpi.op, %comm : !mpi.comm) : !mpi.retval
+```
+
+Point-to-point halo exchanges in mesh computations lower through `mesh.neighbor_indices` + `mesh.send`/`mesh.recv` → `mpi.send`/`mpi.recv` with rank arithmetic materialized from the mesh topology attributes.
+
+### Integration with Linalg and Tensor Dialects
+
+Distributed matmul on a 2D mesh illustrates the full pipeline:
+
+```
+linalg.matmul (partitioned via Mesh dialect)
+    │
+    ▼  --shard-propagation --linalg-to-loops
+    │  Mesh-sharded linalg ops → loops + mesh.all_reduce
+    │
+    ▼  --convert-mesh-to-mpi
+    │  mesh.* → mpi.*
+    │
+    ▼  --convert-mpi-to-llvm
+    │  mpi.* → MPI_* function calls
+    │
+    ▼  --convert-func-to-llvm --finalize-memref-to-llvm
+    │  Final LLVM IR with MPI calls
+```
+
+### Example: allreduce in MPI Dialect
+
+```mlir
+// Distributed gradient reduction
+func.func @allreduce_grad(%grad : memref<1024xf32>) {
+  %world = mpi.comm_world : !mpi.comm
+  %recv_buf = memref.alloc() : memref<1024xf32>
+
+  // Reduce gradients across all ranks, sum
+  %retval = mpi.allreduce(%grad : memref<1024xf32>,
+                           %recv_buf : memref<1024xf32>,
+                           #mpi.op<sum>, %world : !mpi.comm) : !mpi.retval
+
+  // Copy result back
+  memref.copy %recv_buf, %grad : memref<1024xf32> to memref<1024xf32>
+  memref.dealloc %recv_buf : memref<1024xf32>
+  return
+}
+```
+
+After `ConvertMPIToLLVMPass`, the `mpi.allreduce` becomes a call to `MPI_Allreduce` with the appropriate `MPI_FLOAT` datatype, count `1024`, and `MPI_SUM` operation.
+
+---
+
+## WasmSSA Dialect
+
+WebAssembly compilation in LLVM has historically gone entirely through the native LLVM WebAssembly backend ([`llvm/lib/Target/WebAssembly/`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/llvm/lib/Target/WebAssembly/)), which translates LLVM IR's SSA form through a stack-machine lowering into Wasm binary format. The WasmSSA dialect takes a different architectural approach: an MLIR-native representation of WebAssembly semantics that preserves structured control flow and SSA values throughout, enabling MLIR-level optimization before binary emission.
+
+### Background and Motivation
+
+Wasm's structured control flow (blocks, loops, if/else — no arbitrary jumps) maps naturally onto MLIR's region-based IR. LLVM IR's CFG, by contrast, is a general graph that must be re-structured into Wasm's nesting by the Wasm backend — a non-trivial transformation that can lose optimization opportunities. By representing Wasm programs directly in an MLIR dialect, MLIR-based language compilers (Mojo, Triton, CIRCT-based hardware synthesis tools targeting Wasm) can apply MLIR transformations (canonicalization, loop tiling, vectorization using Wasm SIMD) before Wasm binary emission, without going through LLVM IR at all.
+
+### WasmSSA Dialect Operations
+
+The WasmSSA dialect ([`mlir/include/mlir/Dialect/WasmSSA/IR/WasmSSA.td`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/mlir/include/mlir/Dialect/WasmSSA/IR/WasmSSA.td), upstreamed August 2025) provides:
+
+**Functions:**
+
+```mlir
+// Wasm function with SSA signature (not a stack machine)
+wasm.func @add(%a : i32, %b : i32) -> i32 {
+  %result = wasm.i32.add %a, %b : i32
+  wasm.return %result : i32
+}
+```
+
+**Structured control flow** (corresponding directly to Wasm's block/loop/if instructions):
+
+```mlir
+// wasm.block: a labeled block (Wasm's `block ... end`)
+%result = wasm.block : i32 {
+  // Wasm's `br` maps to region successor edges
+  wasm.br %val : i32  // branch to block result
+}
+
+// wasm.loop: Wasm's `loop ... end` (back-edge target)
+wasm.loop {
+  // loop body
+  // wasm.br_if %cond back-branches to the loop header
+  wasm.br_if %continue, %loop_header
+}
+
+// wasm.if: Wasm's `if ... else ... end`
+wasm.if %cond : i1 -> i32 {
+  wasm.yield %true_val : i32
+} else {
+  wasm.yield %false_val : i32
+}
+```
+
+**Memory operations** (Wasm's linear memory model):
+
+```mlir
+// wasm.memory.load: load from linear memory at byte offset
+%val = wasm.memory.load %base_addr : i32, offset 0 : i32
+
+// wasm.memory.store: store to linear memory
+wasm.memory.store %val : i32 -> %addr : i32, offset 0
+```
+
+**Function calls:**
+
+```mlir
+// Direct call
+%result = wasm.call @compute(%arg : i32) : i32
+
+// Indirect call through a function table
+%result = wasm.call_indirect %fn_ptr : (i32) -> i32, args (%arg : i32)
+```
+
+### Why SSA-Based vs. Stack Machine
+
+WebAssembly's binary format is a stack machine, but its structured control flow makes SSA translation straightforward: Wasm's `block` / `loop` / `if` instructions define regions with explicit entry/exit types, analogous to MLIR's regions with typed block arguments. The WasmSSA dialect represents these as MLIR regions, with SSA values flowing across block boundaries rather than an implicit operand stack. This enables:
+
+- **Standard MLIR passes**: canonicalization, CSE, and DCE work without modification
+- **Wasm SIMD**: `wasm.v128.*` ops map to MLIR vector types, enabling vectorization passes to target Wasm SIMD instructions directly
+- **Liveness analysis**: standard MLIR liveness analysis works correctly on SSA values; stack-machine analysis requires non-standard liveness formulations
+
+### Compilation Pipeline
+
+```
+C/C++ / Fortran / Mojo source
+    │
+    ▼  Clang / Flang / Mojo frontend
+    │
+    ▼  LLVM IR  →  LowerToWasmSSAPass
+    │  (or: direct MLIR frontend output in WasmSSA dialect)
+    │
+    ▼  WasmSSA dialect (MLIR in-memory representation)
+    │
+    ▼  MLIR optimization passes (canonicalize, vectorize, tiling)
+    │
+    ▼  WasmSSA binary emitter  →  .wasm binary
+```
+
+The `LowerToWasmSSAPass` converts LLVM IR's CFG into WasmSSA's structured regions, restructuring irreducible CFGs (using the Relooper or Stackifier algorithm) into Wasm-compatible nesting. The WasmSSA binary emitter ([`mlir/lib/Target/Wasm/`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/mlir/lib/Target/Wasm/)) translates WasmSSA dialect ops directly to the Wasm binary encoding, bypassing the LLVM Wasm backend entirely.
+
+### Distinction from the Existing WebAssembly LLVM Backend
+
+The existing Wasm LLVM backend ([Chapter 106](../part-15-targets/ch106-webassembly-target.md)) and WasmSSA are separate architectures:
+
+| Property | Existing LLVM Wasm Backend | WasmSSA Dialect |
+|----------|---------------------------|-----------------|
+| **IR level** | LLVM IR → MachineIR → Wasm binary | MLIR WasmSSA dialect → Wasm binary |
+| **Optimizations** | LLVM middle/backend passes | MLIR passes (compatible with existing MLIR ecosystem) |
+| **Structured CF** | Reconstructed from CFG (Stackifier) | Native in the dialect (regions = Wasm blocks) |
+| **MLIR integration** | None (LLVM-only path) | Full (dialect lowering, pattern rewriting, etc.) |
+| **Status** | Stable, production | Experimental (LLVM 22) |
+
+### Use Cases
+
+**MLIR-first language compilers targeting Wasm**: Mojo and Triton both maintain MLIR-level IRs; WasmSSA allows them to target Wasm without descending to LLVM IR, preserving dialect-level information longer.
+
+**Research on Wasm compilation**: the dialect enables MLIR-based analysis and transformation research that requires a typed, structured representation of Wasm semantics.
+
+**Wasm-as-compilation-target for MLIR tools**: CIRCT (hardware design tools built on MLIR) can use WasmSSA to compile hardware simulation kernels to Wasm for browser-based simulation.
+
+```bash
+# Compile a WasmSSA .mlir file to Wasm binary (experimental)
+mlir-opt --convert-wasmssa-to-wasm input.wasmssa.mlir | \
+  mlir-translate --mlir-to-wasm -o output.wasm
+
+# Inspect with wasm-objdump (from WABT)
+wasm-objdump -d output.wasm
 ```
 
 ---

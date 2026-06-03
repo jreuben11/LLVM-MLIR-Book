@@ -353,3 +353,13 @@
 - 2026-05-16: added 3 self-modifying-code expansion items (Ch58, Ch108, Ch200) covering OSR, ReOptimizeLayer, kernel live patching, W^X dual-mapping, homoiconic examples
 - 2026-05-16: added Part XXXI — Frontier AI Evolution (Ch208–Ch218, 11 chapters, ~132 pp) to plan and TODO
 - 2026-05-16: Ch218 written — Self-Improvement Fitness Functions and Capability Assessment (oracle problem, linear probing, PRMs, self-eval loop, LiveBench, SAE interpretation-as-evaluation, regression testing, fitness landscape topology)
+
+---
+
+## Gap Analysis Applied (June 2026)
+Applied 52 recommendations from LLVM-Weekly-Gap-Analysis-2021-2026.md:
+- 3 new chapters: C23 (ch38b), LoongArch (ch101b), SSAF (ch47b)
+- 38 new sections across 16 existing chapters (Ch17, Ch19, Ch20, Ch22, Ch23, Ch24, Ch28, Ch43, Ch45, Ch47, Ch59, Ch62, Ch64, Ch67, Ch68, Ch77, Ch78, Ch92, Ch96, Ch97, Ch101, Ch110, Ch116, Ch117, Ch118, Ch127, Ch132, Ch146, Ch173)
+- 11 minor catalogue additions
+- Correctness fixes: bugpoint removal, deprecated intrinsics, Os/Oz deprecation
+See LLVM-Weekly-Gap-Analysis-2021-2026.md for full details.

@@ -52,6 +52,14 @@ This chapter examines each divergence concretely, grounding every claim in actua
   - [`_CxxThrowException` vs. `__cxa_throw`](#cxxthrowexception-vs-cxathrow)
   - [x86 32-bit EH Chain](#x86-32-bit-eh-chain)
   - [`llvm.eh.exceptionpointer` and `llvm.eh.exceptioncode`](#llvmehexceptionpointer-and-llvmehexceptioncode)
+- [AArch64 Windows Structured Exception Handling](#aarch64-windows-structured-exception-handling)
+  - [Maturity Status and Scope](#maturity-status-and-scope)
+  - [The Windows SEH Model on AArch64](#the-windows-seh-model-on-aarch64)
+  - [ARM64 `.pdata` Layout: Packed vs. Unpacked](#arm64-pdata-layout-packed-vs-unpacked)
+  - [Key Differences from x64 SEH](#key-differences-from-x64-seh)
+  - [`__try` / `__except` / `__finally` Lowering on AArch64](#try--except--finally-lowering-on-aarch64)
+  - [EH Personality: `__C_specific_handler` vs. `__CxxFrameHandler3`](#eh-personality-c_specific_handler-vs-cxxframehandler3)
+  - [PAC-RET and the `UOP_PACSignLR` Unwind Opcode](#pac-ret-and-the-uop_pacsignlr-unwind-opcode)
 - [`__declspec` Extensions](#declspec-extensions)
   - [`dllimport` / `dllexport`](#dllimport-dllexport)
   - [`selectany` → `linkonce_odr` + comdat](#selectany-linkonceodr-comdat)
@@ -681,6 +689,253 @@ These appear in the IR when compiling structured SEH (`__try`/`__except`/`__fina
 
 ---
 
+## AArch64 Windows Structured Exception Handling
+
+### Maturity Status and Scope
+
+Windows on ARM64 (`aarch64-pc-windows-msvc`) has been a supported Clang/LLVM target for several years; the core SEH machinery — `.pdata`, `.xdata`, and frame-based unwinding — has been production-quality for native ARM64 Windows development for several release cycles. What has evolved more recently is support for Pointer Authentication Code return-address signing (`UOP_PACSignLR`) in the unwind table, which LLVM 22 fully handles as described later in this section.
+
+This section focuses on the AArch64-specific aspects of Windows structured exception handling as emitted by `clang 22.1.6` targeting `aarch64-pc-windows-msvc`. The funclet IR model (`catchpad`, `cleanuppad`, `catchswitch`) and the `MicrosoftCXXABI` codegen are shared with x64; the differences lie in the unwind table format emitted to `.pdata`/`.xdata` and in the calling constraints that the prologue model imposes.
+
+### The Windows SEH Model on AArch64
+
+Windows SEH on both x64 and AArch64 uses table-driven frame unwinding. Every function with non-trivial prologue/epilogue emits a `RUNTIME_FUNCTION` record into the `.pdata` section. The record stores a `BeginAddress` RVA and either packed unwind data or a pointer to a full `.xdata` `ExceptionDataRecord`. The operating system's unwind engine reads these tables during stack walking — no per-frame linked list exists, in contrast to the 32-bit x86 model described in the previous section.
+
+On AArch64, the `RUNTIME_FUNCTION` is defined by `ARM::WinEH::RuntimeFunctionARM64` in
+[`llvm/include/llvm/Support/ARMWinEH.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/llvm/include/llvm/Support/ARMWinEH.h):
+
+```
+ 31                   16 15          13 12   10  9  8         2  1 0
++---------------------+---+---+-------+---+-------+----------+---+
+|     Frame Size      |CR | H | RegI  |RegF| Fn Len |  Flags  |
++---------------------+---+---+-------+---+--------+----------+---+
+```
+
+The two-bit `Flags` field at bits [1:0] determines the form:
+- `00` (RFF_Unpacked): bits [31:2] are an image-relative offset to a full `.xdata` `ExceptionDataRecord`
+- `01` (RFF_Packed): the remaining 30 bits encode the unwind information inline — no `.xdata` record is needed
+- `10` (RFF_PackedFragment): packed form for a function fragment (no prologue)
+
+For functions with SEH handlers (`__try`/`__except`/`__finally`) or C++ EH, the packed form cannot be used because the handler address must appear in the `.xdata` extension. Clang always emits the unpacked form for such functions.
+
+When the X bit in the `ExceptionDataRecord` header is set, the unwind byte code is followed by an image-relative exception handler RVA and optional handler data. This is where `__C_specific_handler` or `__CxxFrameHandler3` appears in the binary.
+
+The CONTEXT record used during AArch64 Windows exception dispatch is the standard `ARM64_NT_CONTEXT` structure, larger than x64's `CONTEXT` due to the additional NEON register state (32 Q-registers). The unwinder populates this structure from the `.xdata` unwind codes before calling into the exception filter.
+
+### ARM64 `.pdata` Layout: Packed vs. Unpacked
+
+For a canonical leaf function or a simple frame-saving non-EH function, Clang emits packed unwind data. The `RuntimeFunctionARM64` fields encode:
+
+| Field | Bits | Meaning |
+|---|---|---|
+| `Flags` | [1:0] | 01 = packed |
+| `FunctionLength` | [12:2] | Function byte-length / 4 |
+| `RegF` | [15:13] | Number of saved SIMD registers (d8–dN) minus 1 |
+| `RegI` | [19:16] | Number of saved integer registers (x19–xN) minus 1 |
+| `H` | [20] | Home-parameter-registers flag |
+| `CR` | [22:21] | Chain/return: 00=no frame chain; 11=frame chain (x29 set) |
+| `FrameSize` | [31:23] | Total frame size in 16-byte units |
+
+A simple function that saves `{x29, x30}` and allocates 32 bytes on the stack can be represented entirely in the packed word. Functions with SEH require the unpacked form, which references a full `ExceptionDataRecord` in `.xdata`.
+
+The `ExceptionDataRecord` on AArch64 uses ARM64-specific unwind byte opcodes from the `Win64EH::UnwindOpcodes` enum. The ARM64-specific opcodes include `UOP_AllocMedium`, `UOP_SaveR19R20X`, `UOP_SaveFPLR`, `UOP_SaveFPLRX`, `UOP_SaveReg`, `UOP_SaveRegX`, `UOP_SaveRegP`, `UOP_SaveRegPX`, `UOP_SetFP`, `UOP_AddFP`, `UOP_Nop`, `UOP_End`, and `UOP_PACSignLR` — all defined in
+[`llvm/include/llvm/Support/Win64EH.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/llvm/include/llvm/Support/Win64EH.h).
+
+### Key Differences from x64 SEH
+
+The fundamental architecture of Windows SEH is the same across x64 and AArch64: table-driven unwinding, `RUNTIME_FUNCTION` entries in `.pdata`, `UnwindInfo`/`ExceptionDataRecord` in `.xdata`, and the same personality function ABI. The differences are in the unwind opcode set and the packed-form optimization:
+
+| Aspect | x64 | AArch64 |
+|---|---|---|
+| `.pdata` entry | `{BeginAddress, EndAddress, UnwindInfoOffset}` (3 × u32) | `{BeginAddress, UnwindData}` (2 × u32) |
+| Packed unwind form | Not available; always references `.xdata` | Available for canonical prologues |
+| Unwind opcode set | `UOP_PushNonVol`, `UOP_AllocLarge`, `UOP_SaveXMM128`, etc. | ARM64-specific opcodes (`UOP_SaveFPLR`, `UOP_SaveReg`, `UOP_SaveRegP`, etc.) |
+| Frame pointer | Optional; `rbp` via `UOP_SetFPReg` | `x29` via `UOP_SetFP` / `UOP_AddFP`; `frame-pointer=reserved` by default |
+| PAC signing | Not applicable | `UOP_PACSignLR` for PAC-RET |
+| Return-address register | `rsp[0]` at function entry | `x30` (link register, LR) |
+
+A key prologue difference is that `frame-pointer=reserved` is the default on AArch64 Windows (visible in the `attributes` section of the IR generated above). This means `x29` is always used as a frame pointer, which simplifies the unwinder's job: it can always trust `x29` to chain to the previous frame when `.pdata` data is absent or corrupt.
+
+x64 always uses three-field `RUNTIME_FUNCTION` structs (begin, end, offset), never packing unwind data inline. AArch64 uses two-field structs where `Flags` selects packed or unpacked mode. The two-field `.pdata` entry is always 8 bytes vs. x64's 12 bytes — a saving that is independent of whether the packed form is used. When the packed form is used for qualifying functions, there is an additional saving: no `.xdata` record is emitted at all.
+
+The unwind code array in x64 `.xdata` `UNWIND_INFO` is an array of `UnwindCode` unions (each 2 bytes). The AArch64 `.xdata` `ExceptionDataRecord` uses a compact byte-stream of opcodes — up to four opcodes per 32-bit word — with a different encoding table entirely. Both formats encode prologue operations in reverse order (epilogue-to-prologue) so the unwinder can apply them in reverse during stack walking.
+
+### `__try` / `__except` / `__finally` Lowering on AArch64
+
+The Clang AST nodes for `__try`, `__except`, and `__finally` are identical regardless of target. `MicrosoftCXXABI` handles their lowering; only the target-specific backend differs.
+
+For `__finally`, Clang on all Windows targets uses `llvm.localescape` / `llvm.localaddress` / `llvm.localrecover` rather than funclet IR. The `__finally` block is outlined into a separate function (mangled as `?fin$N@M@enclosing_function@@`) that receives an `i8` flag (0 = normal exit, 1 = exception) and a frame pointer. The parent function calls the outlined block directly on the normal path:
+
+```llvm
+; IR for __finally on AArch64 (clang 22.1.6, aarch64-pc-windows-msvc)
+define dso_local i32 @test_try_finally(i32 noundef %0) #0 {
+  %3 = alloca i32, align 4               ; result variable
+  call void (...) @llvm.localescape(ptr %3)
+  ; ... __try body: result = x * 2 ...
+  %6 = call ptr @llvm.localaddress()
+  call void @"?fin$0@0@test_try_finally@@"(i8 noundef 0, ptr noundef %6)
+  ; ^ normal-exit call: flag=0, frame pointer passed as 2nd arg
+  %7 = load i32, ptr %3, align 4
+  ret i32 %7
+}
+
+define internal void @"?fin$0@0@test_try_finally@@"(i8 noundef %0, ptr noundef %1) #1 {
+  ; Recover the escaped variable via llvm.localrecover
+  %5 = call ptr @llvm.localrecover(ptr @test_try_finally, ptr %1, i32 0)
+  ; ... __finally body: result += 100 ...
+  ret void
+}
+```
+
+The `?fin$N@M@enclosing@@` naming follows MSVC's convention: `N` is the `__finally` block index within the function, `M` is a nesting depth. On AArch64 the outlined finalizer function accesses the escaped variable via the `?frame_escape_N` local symbol as a signed offset from the frame pointer:
+
+```asm
+; AArch64 assembly: finalizer accessing escaped variable (clang 22.1.6)
+"?fin$0@0@test_try_finally@@":
+.seh_proc "?fin$0@0@test_try_finally@@"
+    sub  sp, sp, #16
+    .seh_stackalloc 16
+    .seh_endprologue
+    ; Frame-escape offset encoded as a pair of movz/movk:
+    movz  x9, #:abs_g1_s:.Ltest_try_finally$frame_escape_0
+    movk  x9, #:abs_g0_nc:.Ltest_try_finally$frame_escape_0
+    ; x1 = parent frame pointer passed as argument
+    ldr  w8, [x1, x9]       ; load result from parent frame
+    add  w8, w8, #100
+    str  w8, [x1, x9]       ; store updated value
+    .seh_startepilogue
+    add  sp, sp, #16
+    .seh_stackalloc 16
+    .seh_endepilogue
+    ret
+    .seh_endfunclet
+    .seh_endproc
+```
+
+The `?frame_escape_0` label has the value of the stack slot's offset within the parent frame. LLVM generates it as a relocatable expression, which the assembler resolves at link time.
+
+For `__except`, with `-fasync-exceptions` (`/EHa`) the IR uses `llvm.seh.try.begin` / `llvm.seh.try.end` to delimit the guarded region, then a `catchswitch`/`catchpad` for the filter. The personality is `__C_specific_handler`:
+
+```llvm
+; IR for __except on AArch64 (-fasync-exceptions, clang 22.1.6)
+define dso_local noundef i32 @"?safe_divide@@YAHHH@Z"(i32 noundef %0, i32 noundef %1)
+    personality ptr @__C_specific_handler {
+  invoke void @llvm.seh.try.begin()
+          to label %7 unwind label %11
+  ; ... __try body: result = a / b ...
+  invoke void @llvm.seh.try.end()
+          to label %19 unwind label %11
+
+11:
+  %12 = catchswitch within none [label %13] unwind to caller
+
+13:
+  %14 = catchpad within %12 [ptr null]   ; null = catch-all filter
+  catchret from %14 to label %15
+
+15:
+  %16 = call i32 @llvm.eh.exceptioncode(token %14)
+  ; __except body: result = 0
+  ret i32 %18
+}
+```
+
+Without `-fasync-exceptions`, the compiler treats asynchronous hardware faults (divide-by-zero, access violation) as unhandled C++ termination — the `__try`/`__except` wrapping has no effect on hardware exceptions from the optimizer's perspective. `-fasync-exceptions` forces `invoke` + `llvm.seh.try.begin/end` even for ordinary arithmetic so that the hardware exception dispatched by the OS unwind engine reaches the `__except` filter.
+
+The resulting AArch64 assembly shows the `.seh_handler` directive followed by `.seh_handlerdata` containing the call-site table:
+
+```asm
+; AArch64 assembly with __C_specific_handler (clang 22.1.6)
+"?safe_divide@@YAHHH@Z":
+.seh_proc "?safe_divide@@YAHHH@Z"
+    .seh_handler __C_specific_handler, @unwind, @except
+    sub  sp, sp, #64
+    .seh_stackalloc  64
+    stp  x29, x30, [sp, #32]
+    .seh_save_fplr   32
+    add  x29, sp, #32
+    .seh_add_fp      32
+    .seh_endprologue
+    ; ... __try body ...
+    .seh_startepilogue
+    ldp  x29, x30, [sp, #32]
+    .seh_save_fplr   32
+    add  sp, sp, #64
+    .seh_stackalloc  64
+    .seh_endepilogue
+    ret
+.seh_endfunclet
+.seh_handlerdata
+    .word  (.Llsda_end0-.Llsda_begin0)/16   ; number of call sites
+.Llsda_begin0:
+    .word  .Ltmp2@IMGREL    ; LabelStart  (start of __try body)
+    .word  .Ltmp3@IMGREL    ; LabelEnd    (end of __try body)
+    .word  1                ; CatchAll (constant filter = 1 means always handle)
+    .word  .LBB0_2@IMGREL   ; ExceptionHandler (address of __except block)
+.Llsda_end0:
+    .text
+    .seh_endproc
+```
+
+The `.seh_handlerdata` block is the language-specific data (`ExceptionData`) that `__C_specific_handler` reads at runtime. Each 16-byte entry is a scope record: guarded-region start RVA, guarded-region end RVA, filter expression (or constant 1 for `EXCEPTION_EXECUTE_HANDLER`), and handler target RVA. This format is identical between x64 and AArch64 — it is consumed by `__C_specific_handler` in the CRT, not by the OS unwinder directly.
+
+### EH Personality: `__C_specific_handler` vs. `__CxxFrameHandler3`
+
+The choice of personality function follows the same rule as on x64:
+
+- `__C_specific_handler` — used for C-language SEH (`__try`/`__except`/`__finally`) with `-fasync-exceptions`. Also used when a C++ function contains only `__try`/`__except` without any C++ exception handling. The personality reads the handler table in `.seh_handlerdata` to match hardware and software exceptions.
+- `__CxxFrameHandler3` — used for C++ `try`/`catch` blocks and RAII unwinding. The `catchpad` operands carry `TypeDescriptor` pointers rather than constant filter values; type matching is performed by `__CxxFrameHandler3`.
+
+In Clang's implementation, the personality function is selected in `CGException.cpp` based on the active EH model and whether the function body contains C++ EH or only SEH constructs. The selection is target-independent; the AArch64 backend simply references whichever symbol Clang selected.
+
+When a function mixes C++ `try`/`catch` with `__try`/`__except` — which MSVC permits under `/EHa` semantics — `__CxxFrameHandler3` is used for the entire function and is expected to dispatch SEH exceptions to C++ handlers where the filter expression permits.
+
+### PAC-RET and the `UOP_PACSignLR` Unwind Opcode
+
+Pointer Authentication Code return-address signing (`-mbranch-protection=pac-ret`) adds `PACIASP` (sign LR with SP) at the start of the prologue and `AUTIASP` (authenticate LR with SP) before `RET`. These instructions use `hint #25` and `hint #29` respectively on hardware that supports PAC; on hardware without PAC support the hints are NOPs, preserving backward compatibility.
+
+The Windows unwind table must record PAC signing so that the unwinder can account for the signed return address when recovering the link register. LLVM 22 implements this via the `UOP_PACSignLR` opcode in the unwind byte stream and emits the corresponding `.seh_pac_sign_lr` assembler directive:
+
+```asm
+; AArch64 with -mbranch-protection=pac-ret (clang 22.1.6)
+"?safe_divide@@YAHHH@Z":
+.seh_proc "?safe_divide@@YAHHH@Z"
+    .seh_handler __C_specific_handler, @unwind, @except
+    hint  #25               ; PACIASP — sign LR with SP
+    .seh_pac_sign_lr        ; → UOP_PACSignLR in unwind byte stream
+    sub   sp, sp, #64
+    .seh_stackalloc 64
+    stp   x29, x30, [sp, #32]
+    .seh_save_fplr  32
+    add   x29, sp, #32
+    .seh_add_fp     32
+    .seh_endprologue
+    ; ... function body ...
+    .seh_startepilogue
+    ldp   x29, x30, [sp, #32]
+    .seh_save_fplr  32
+    add   sp, sp, #64
+    .seh_stackalloc 64
+    hint  #29               ; AUTIASP — authenticate LR before return
+    .seh_pac_sign_lr        ; epilogue copy of UOP_PACSignLR
+    .seh_endepilogue
+    ret
+.seh_endfunclet
+.seh_handlerdata
+    ; ... call-site table ...
+    .seh_endproc
+```
+
+The `UOP_PACSignLR` opcode is defined in `Win64EH::UnwindOpcodes` (the same enum used for all Windows ARM64 opcodes) in
+[`llvm/include/llvm/Support/Win64EH.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/llvm/include/llvm/Support/Win64EH.h#L65).
+When the OS unwinder encounters `UOP_PACSignLR` while replaying the prologue in reverse, it knows that the return address stored in the frame was signed with PAC and must authenticate it before using it as a return address. This allows the unwinder to correctly handle the saved LR value during stack walking even when the hardware has not yet executed `AUTIASP`.
+
+BTI (Branch Target Identification) landing pads (`hint #34` = `BTI c`) are inserted by the backend at function entry when `-mbranch-protection=bti` is active, but BTI is orthogonal to unwind data — the OS unwinder does not need to record or replay BTI hints. The unwind table change for PAC (`UOP_PACSignLR`) is the only security-feature-specific unwind opcode in LLVM 22's AArch64 Windows support.
+
+`ARM64EC` (the x64-emulation-compatible ABI, handled by `ARM64ECCXXABIInfo` in `clang/lib/CodeGen/TargetInfo.cpp`) uses a modified unwind format compatible with both the ARM64 and x64 unwinders. BTI landing pads (`hint #34` = `BTI c`) and PAC signing interact with ARM64EC's dual-unwinder requirements, though the details depend on function classification (EC entry thunk vs. native AArch64 function) and are outside the scope of this section.
+
+---
+
 ## `__declspec` Extensions
 
 ### `dllimport` / `dllexport`
@@ -905,10 +1160,11 @@ The `MicrosoftCXXABI` implements `GetAddrOfUUID()` to emit a global constant `{i
 
 ## Cross-References
 
-- [Chapter 26 — Exception Handling](../part-04-llvm-ir/ch26-exception-handling.md) — WinEH funclet IR: `catchpad`, `cleanuppad`, `catchswitch`, `catchret`, `cleanupret`
+- [Chapter 26 — Exception Handling](../part-04-llvm-ir/ch26-exception-handling.md) — WinEH funclet IR: `catchpad`, `cleanuppad`, `catchswitch`, `catchret`, `cleanupret`; `llvm.localescape` / `llvm.localrecover` for `__finally` outlined blocks
 - [Chapter 28 — The Clang Driver](../part-05-clang-frontend/ch28-clang-driver.md) — clang-cl driver mode, `/EHsc` flag processing, target triple selection
 - [Chapter 41 — Calls, the ABI Boundary, and Builtins](../part-06-clang-codegen/ch41-calls-abi-builtins.md) — MSVC calling conventions, `__thiscall`, `__vectorcall`, parameter passing
 - [Chapter 42 — C++ ABI Lowering: Itanium](../part-06-clang-codegen/ch42-cpp-abi-lowering-itanium.md) — Itanium ABI for contrast: C1/C2 constructors, D0/D1/D2 destructors, `landingpad`, `__gxx_personality_v0`
+- [Chapter 96 — The AArch64 Backend](../part-15-targets/ch96-the-aarch64-backend.md) — AArch64 frame lowering, prologue/epilogue emission, PAC-RET and BTI code generation, `frame-pointer=reserved` semantics
 
 ## Reference Links
 
@@ -917,6 +1173,9 @@ The `MicrosoftCXXABI` implements `GetAddrOfUUID()` to emit a global constant `{i
 - [`clang/lib/CodeGen/CGCXXABI.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/lib/CodeGen/CGCXXABI.h) — `CGCXXABI` abstract interface
 - [`llvm/lib/CodeGen/WinEHPrepare.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/llvm/lib/CodeGen/WinEHPrepare.cpp) — WinEH funclet preparation pass
 - [`llvm/lib/Target/X86/X86WinEHState.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/llvm/lib/Target/X86/X86WinEHState.cpp) — x86 32-bit EH state table generation
+- [`llvm/include/llvm/Support/ARMWinEH.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/llvm/include/llvm/Support/ARMWinEH.h) — `RuntimeFunctionARM64`, `ExceptionDataRecord`, `EpilogueScope` structs for ARM/AArch64 Windows EH
+- [`llvm/include/llvm/Support/Win64EH.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/llvm/include/llvm/Support/Win64EH.h) — `UnwindOpcodes` enum including `UOP_PACSignLR` and all AArch64 opcodes
+- [Microsoft ARM64 exception handling documentation](https://docs.microsoft.com/en-us/cpp/build/arm64-exception-handling) — `.pdata` packed format, `.xdata` unwind byte codes, epilogue scope encoding
 - [Microsoft C++ ABI documentation (Itanium-to-MSVC comparison)](https://github.com/MicrosoftDocs/cpp-docs/blob/main/docs/cpp/exception-specifications-throw-cpp.md)
 - [MSVC Decorated Names specification](https://learn.microsoft.com/en-us/cpp/build/reference/decorated-names)
 - [clang/docs/MSVCCompatibility.rst](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/docs/MSVCCompatibility.rst) — official documentation of clang-cl divergences from MSVC

@@ -291,6 +291,93 @@ InstructionCost gatherCost = TTI.getGatherScatterOpCost(
 
 Each target implements `TargetTransformInfo::Concept` (using the same concept-based polymorphism as the pass manager), providing target-specific costs that guide the vectorizer's VF selection.
 
+## 64.8 The Sandbox Vectorizer
+
+The Loop Vectorizer and SLP Vectorizer described in §64.1–§64.6 are mature, production-quality passes. Their complexity, however, makes it difficult to prototype new vectorization algorithms: a one-line heuristic change in VPlan can introduce regressions across hundreds of test cases, discouraging experimentation. The **Sandbox Vectorizer** (introduced in LLVM 19, present as an experimental pass in LLVM 22) addresses this by providing an isolated IR sandbox where vectorization transformations are tried speculatively before being committed.
+
+### Motivation
+
+VPlan (§64.2) represents the vectorized loop as a recipe graph, but its tight coupling to the main IR and to the Loop Vectorizer's cost model makes it hard to test new ideas in isolation. Extending the SLP Vectorizer requires understanding its interleaved legality/cost/codegen logic. A mechanism is needed to:
+
+1. Apply a speculative sequence of IR mutations.
+2. Check whether the result is profitable (or even legal).
+3. Either **commit** the mutations to the real IR or **discard** them completely — without writing a manual undo trail.
+
+### Architecture: SandboxIR
+
+The Sandbox Vectorizer is built on top of **SandboxIR** (in [`llvm/include/llvm/SandboxIR/`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/llvm/include/llvm/SandboxIR/) and `llvm/lib/SandboxIR/`), a thin wrapper layer over standard LLVM IR that adds **transaction semantics**:
+
+- `sandboxir::Context`: owns a mapping from `llvm::Value *` to `sandboxir::Value *`. All SandboxIR objects are thin wrappers; the underlying LLVM IR objects are authoritative.
+- `sandboxir::Function`, `sandboxir::BasicBlock`, `sandboxir::Instruction`: mirror the standard IR hierarchy but route all mutation operations (instruction insertion, deletion, operand replacement) through a **change log**.
+- `sandboxir::Tracker`: records every mutation applied in the sandbox. Calling `Tracker::revert()` replays the change log in reverse, restoring the LLVM IR to its pre-sandbox state. Calling `Tracker::accept()` clears the log, making the mutations permanent.
+
+```cpp
+// Pseudocode illustrating SandboxIR transaction semantics
+sandboxir::Context Ctx(LLVMCtx);
+sandboxir::Function *F = Ctx.createFunction(LLVMFunc);
+
+auto &Tracker = Ctx.getTracker();
+Tracker.save();  // Begin transaction
+
+// Try a vectorization transformation on SandboxIR values
+tryVectorize(F, Ctx);
+
+if (isProfitable(F, TTI)) {
+  Tracker.accept();  // Commit: mutations are now in the real LLVM IR
+} else {
+  Tracker.revert();  // Rollback: LLVM IR is restored exactly
+}
+```
+
+Key SandboxIR classes:
+
+| Class | Role |
+|-------|------|
+| `sandboxir::Context` | Mapping + Tracker; root of the sandbox |
+| `sandboxir::Function` | Wraps `llvm::Function` with mutation tracking |
+| `sandboxir::BasicBlock` | Wraps `llvm::BasicBlock`; instruction iteration |
+| `sandboxir::Instruction` | Wraps `llvm::Instruction`; tracked insert/erase/replace |
+| `sandboxir::Tracker` | Records changes; supports `save()`, `revert()`, `accept()` |
+
+### Relationship to Loop Vectorizer and SLP Vectorizer
+
+The Sandbox Vectorizer is a **separate experimental pass**, not a replacement for either the Loop Vectorizer or SLP Vectorizer in LLVM 22:
+
+- It does not share VPlan's recipe graph.
+- It does not use the Loop Vectorizer's cost model or legality checks.
+- It is intended as a **research vehicle** for prototyping new bottom-up or top-down vectorization strategies.
+
+The long-term intent is that successful algorithms proven in the sandbox can be promoted to production passes. The sandbox lowers the risk of prototype code escaping into the main pipeline.
+
+### How to Enable
+
+The Sandbox Vectorizer is registered under the name `sandbox-vectorizer`:
+
+```bash
+# Run the experimental Sandbox Vectorizer:
+opt -passes='sandbox-vectorizer' -S input.ll
+
+# Combine with standard passes (sandbox-vectorizer is additive):
+opt -passes='function(sandbox-vectorizer,instcombine,simplifycfg)' -S input.ll
+```
+
+The pass is **not** included in the default `-O2`/`-O3` pipeline in LLVM 22. It must be explicitly requested via `-passes=` or a custom `PassBuilder` extension.
+
+### Use Cases
+
+- **Rapid heuristic prototyping:** Test a new pack-selection heuristic for SLP-style vectorization without touching the production SLP Vectorizer.
+- **Research experimentation:** Implement a new loop vectorization algorithm (e.g., polyhedral-informed vectorization) and measure its effect on a benchmark suite without risking regressions in the default pipeline.
+- **Teaching and tooling:** The SandboxIR layer provides a clean API for writing IR transformations that can be rolled back, useful outside of vectorization (e.g., for try-and-revert loop transformations).
+
+### Current Limitations
+
+- **Subset of IR supported.** SandboxIR does not yet wrap all LLVM IR constructs; complex instructions (e.g., `callbr`, certain intrinsics) may fall back to treating the instruction as opaque.
+- **No VPlan integration.** The sandbox operates on plain IR; it cannot reuse VPlan's vectorization cost model or predication machinery.
+- **No integration with the default pipeline.** The pass is opt-in; it must be explicitly inserted via `-passes=` or a programmatic `PassBuilder` extension.
+- **Performance regression risk on untested inputs.** As an experimental pass, the Sandbox Vectorizer may produce suboptimal or incorrect code for patterns not yet covered by its test suite.
+
+For production vectorization in LLVM 22, the Loop Vectorizer (§64.1) and SLP Vectorizer (§64.6) remain the authoritative implementations. See [Chapter 64 §64.2 — VPlan](#642-vplan-the-vectorization-plan) for the production vectorization plan IR and [§64.6 — SLP Vectorizer](#646-slp-vectorizer) for the production superword-level parallelism pass.
+
 ---
 
 ## Chapter Summary
@@ -302,6 +389,7 @@ Each target implements `TargetTransformInfo::Concept` (using the same concept-ba
 - Reductions use `@llvm.vector.reduce.*` intrinsics after the loop; first-order recurrences use a rotate-and-blend pattern.
 - The SLP vectorizer packs isomorphic scalar operations within basic blocks into SIMD operations using a bottom-up tree construction from stores/reductions.
 - `TargetTransformInfo` provides the cost model queried by both vectorizers; each backend implements it to express hardware throughput and register constraints.
+- The Sandbox Vectorizer (`sandbox-vectorizer`) is an experimental pass built on **SandboxIR** — a transaction-semantic wrapper over LLVM IR that supports speculative mutations with `Tracker::revert()` rollback; it is not part of the default pipeline in LLVM 22 but provides a low-risk environment for prototyping new vectorization algorithms.
 
 
 ---

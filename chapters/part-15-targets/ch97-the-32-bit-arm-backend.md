@@ -51,6 +51,7 @@ The 32-bit ARM backend in LLVM spans the widest ISA diversity of any supported t
 - [97.11 ARMv8-A AArch32 Mode](#9711-armv8-a-aarch32-mode)
   - [97.11.1 Differences from ARMv7-A](#97111-differences-from-armv7-a)
 - [97.12 Scheduling Models](#9712-scheduling-models)
+- [Armv8.1-M PACBTI: Pointer Authentication and Branch Target Identification for Cortex-M](#armv81-m-pacbti-pointer-authentication-and-branch-target-identification-for-cortex-m)
 - [Chapter Summary](#chapter-summary)
 
 ---
@@ -644,6 +645,133 @@ ARM backend scheduling models reside in `ARMSchedule*.td`:
 
 ---
 
+## Armv8.1-M PACBTI: Pointer Authentication and Branch Target Identification for Cortex-M
+
+Pointer Authentication (PAuth) and Branch Target Identification (BTI) on AArch64 (covered in §96.6 and §96.7) are A-profile features targeting application processors running full operating systems. PACBTI is the M-profile equivalent: a subset of PAC and BTI adapted for the Thumb-32 instruction set and the constraints of safety-critical microcontrollers. With Cortex-M85 shipping in 2023 and industrial/automotive firmware increasingly requiring software security certification, PACBTI has become a first-class LLVM 32-bit ARM target feature.
+
+### Armv8.1-M PACBTI Extension
+
+The PACBTI extension is defined in the Armv8.1-M architecture specification and targets M-profile cores that need control-flow integrity without the overhead of a full OS or MPU-based process isolation. Cortex-M85 is the first Cortex-M processor to implement PACBTI; future safety-critical cores are expected to follow.
+
+PACBTI provides three overlapping mechanisms:
+
+**PAC (Pointer Authentication Code)**: Embeds a cryptographic code in the spare bits of a pointer (typically using the frame address and a key). On M-profile, the PAC is computed over the link register (LR) to protect return addresses.
+
+**AUT (Authenticate)**: Strips and verifies the PAC code before a pointer is used. If verification fails, the address is corrupted to a non-canonical form that will trigger a HardFault on use.
+
+**BTI (Branch Target Indication)**: Marks valid targets for indirect branches. On Thumb-32, BTI is encoded as a `PACBTI` instruction at the function entry or as a `BTI` NOP-equivalent at jump targets.
+
+### Key Instructions in Thumb-32
+
+The Armv8.1-M PACBTI instruction set is a subset of the AArch64 PAC/BTI instructions, re-encoded for Thumb-32:
+
+| Instruction | Encoding | Action |
+|-------------|----------|--------|
+| `PACBTI LR, SP` | 16-bit NOP slot at entry | Sign LR using SP as modifier; mark as BTI landing |
+| `PAC LR, SP` | T32 encoding | Sign LR using IA key and SP modifier |
+| `AUT LR, SP` | T32 encoding | Authenticate LR against IA key and SP |
+| `BTI` | T32 NOP-equivalent | Mark as valid indirect branch target |
+| `AUTG R0, LR, SP` | T32 encoding | Authenticate R0 using LR and SP as modifiers |
+| `PACG R0, LR, SP` | T32 encoding | Sign R0 using LR and SP as modifiers |
+
+A notable difference from AArch64: the Thumb-32 `BTI` instruction is encoded as a NOP-like hint instruction (`HINT #8`) in the Thumb-32 encoding space, meaning BTI-unaware processors execute it as a NOP without fault. This is intentional for backward compatibility in the M-profile ecosystem, where bootloaders and libraries must execute on a range of cores.
+
+The `PACBTI` combined instruction at function entry simultaneously marks the function as a BTI landing pad **and** signs the link register, eliminating the need for two separate instructions:
+
+```asm
+; Armv8.1-M function prologue with PACBTI
+foo:
+    pacbti  lr, sp           ; BTI landing + sign LR with SP as context
+    push    {r4, r5, lr}     ; save callee-saved + signed LR
+    ; ... function body ...
+    pop     {r4, r5, lr}     ; restore
+    aut     lr, sp           ; authenticate LR before return
+    bx      lr               ; return (faults if LR was tampered)
+```
+
+### Landing Pad Model Under Thumb-32
+
+The Armv8.1-M BTI landing pad model differs from AArch64 in two respects:
+
+1. **NOP-compatible encoding**: As noted, `BTI` is a `HINT` instruction. Hardware that does not implement PACBTI ignores it; hardware that does enforce BTI requires it at indirect branch targets.
+
+2. **No BTI-C/BTI-J distinction at the ISA level**: AArch64 has separate `BTI C` (call targets) and `BTI J` (jump targets) variants. Armv8.1-M has a single `BTI` form that covers both indirect calls (`BLX Rn`) and indirect jumps (`BX Rn`). The LLVM backend emits `BTI` at all indirect branch target sites when PACBTI is enabled.
+
+### Clang Code Emission
+
+PACBTI is enabled via the `-march` flag:
+
+```bash
+# Compile for Cortex-M85 with PACBTI
+clang --target=thumbv8.1m.main-none-eabi \
+    -march=armv8.1-m.main+pacbti+fp.dp \
+    -mfloat-abi=hard \
+    -mbranch-protection=pac-ret+bti \
+    -mcpu=cortex-m85 \
+    foo.c -o foo.elf
+```
+
+The `-mbranch-protection=pac-ret+bti` flag (the same flag as AArch64) activates both return-address signing and BTI landing pad insertion. On 32-bit ARM with `+pacbti`, Clang routes these to the ARM-specific `ARMAsmPrinter` PACBTI emission, not the AArch64 path.
+
+Relevant LLVM source files:
+- `llvm/lib/Target/ARM/ARMAsmPrinter.cpp`: PACBTI prologue/epilogue emission
+- `llvm/lib/Target/ARM/ARMBranchTargets.cpp`: BTI landing pad insertion pass
+- `llvm/lib/Target/ARM/ARMSubtarget.h`: `hasPACBTI()` predicate
+
+### Interaction with the 32-bit ARM ABI (AAPCS)
+
+Under AAPCS (the 32-bit ARM ABI), functions distinguish between:
+- **Leaf functions**: Do not call any other function; LR is not spilled to the stack
+- **Non-leaf functions**: LR is saved to the stack in the prologue and restored in the epilogue
+
+PACBTI LR signing applies to both categories, but the signing moment differs:
+
+```asm
+; Non-leaf: sign on entry, authenticate before pop
+non_leaf:
+    pacbti  lr, sp           ; sign LR immediately
+    push    {r4, lr}         ; spill signed LR
+    bl      helper           ; BL overwrites LR with return address
+    pop     {r4, lr}         ; restore saved (signed) LR
+    aut     lr, sp           ; authenticate
+    bx      lr
+
+; Leaf: sign on entry, authenticate before return
+leaf:
+    pacbti  lr, sp           ; sign LR
+    ; ... no BL calls ...
+    aut     lr, sp           ; authenticate before use
+    bx      lr
+```
+
+This matches the AArch64 `PACIASP`/`AUTIASP` pattern but uses the ARM AAPCS stack pointer (SP, R13) as the signing modifier rather than AArch64's dedicated SP register.
+
+### Use Cases: Safety-Critical and IoT Firmware
+
+PACBTI is particularly relevant in three domains:
+
+**Automotive (ISO 26262 ASIL-D)**: Control units running M-profile microcontrollers are increasingly required to demonstrate software CFI. PACBTI provides hardware-enforced return-address integrity for ISO 26262 Safety Elements out of Context (SEooC).
+
+**Industrial Safety (IEC 61508 SIL 3)**: Industrial PLCs and safety systems using Cortex-M85 can use PACBTI to demonstrate protection against code-injection and ROP chains in IEC 61508 functional safety assessments.
+
+**IoT Firmware Security (PSA Certified)**: Arm's Platform Security Architecture (PSA) recommends PACBTI for Cortex-M85-based devices targeting PSA Certified Level 2 and above. LLVM's Clang is the reference toolchain for Arm SystemReady and PSA toolchains.
+
+### Comparison with AArch64 PAuth
+
+| Property | AArch64 PAuth (§96.6) | Armv8.1-M PACBTI |
+|----------|----------------------|-----------------|
+| Target profile | A-profile (Cortex-A) | M-profile (Cortex-M) |
+| Instructions | `PACIA`, `AUTIA`, `PACIB`, `AUTIB`, etc. | `PAC`, `AUT`, `PACBTI`, `BTI` |
+| BTI variants | `BTI C` / `BTI J` / `BTI JC` | Single `BTI` |
+| Signing keys | IA/IB/DA/DB/GA | IA only (single key in M-profile) |
+| NOP-compatible BTI | No (fault on BTI violation) | Yes (`HINT #8` NOP-compatible) |
+| PAC key storage | System registers (EL0-visible) | PAC key stored in CP15 |
+| Clang flag | `-mbranch-protection=pac-ret+bti` | Same flag, different backend |
+
+The core intent is the same — cryptographic return-address integrity and hardware-enforced CFI — but the deployment constraints differ markedly. AArch64 PAuth assumes a rich OS with per-process signing keys; Armv8.1-M PACBTI assumes a bare-metal or RTOS environment with a single globally shared key managed by firmware.
+
+---
+
 ## Chapter Summary
 
 - The 32-bit ARM backend supports three ISA modes: A32 (uniform 32-bit with condition codes and barrel-shifter in every instruction), Thumb-1 (16-bit restricted to low registers), and Thumb-2 (mixed 16/32-bit with most A32 capabilities, including 12-bit immediates and high-register access).
@@ -655,6 +783,7 @@ ARM backend scheduling models reside in `ARMSchedule*.td`:
 - Thumb-2 IT blocks permit up to 4 conditionally-executed instructions without branching; `ARMITBlockInsertion` constructs them post-regalloc, but ARMv8 AArch32 deprecates multi-instruction IT blocks.
 - ARM inline assembly uses `r` (any GPR), `l` (low GPR r0–r7), `w` (NEON D/Q), `t` (VFP S register), and `I`/`J` (rotated ARM or Thumb-2 modified immediate) constraints.
 - The SelectionDAG path is production-ready for all ARM/Thumb/NEON/VFP variants; GlobalISel is partially implemented but not recommended for production as of LLVM 22.1.x.
+- Armv8.1-M PACBTI (Cortex-M85+) brings hardware return-address signing (`PAC`/`AUT`) and branch target identification (`BTI`) to M-profile; the `PACBTI` combined instruction at function entry simultaneously marks a BTI landing pad and signs the link register; enabled with `-march=armv8.1-m.main+pacbti -mbranch-protection=pac-ret+bti` for ISO 26262 and IEC 61508 safety-critical firmware.
 
 
 ---
