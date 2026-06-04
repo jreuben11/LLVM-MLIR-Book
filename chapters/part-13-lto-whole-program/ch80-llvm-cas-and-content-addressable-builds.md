@@ -351,6 +351,49 @@ The attack's structure is precisely Thompsonian: the backdoor was not in the lib
 
 The response to the trusting trust problem has two prongs: **bootstrappable builds** (described below) provide a path to establishing trust in a compiler from a minimal auditable seed; **reproducible builds** provide a mechanism for independent verification of produced binaries against their claimed source.
 
+### Quines: The Mathematical Core of Self-Replication
+
+Thompson's attack is not a curiosity — it rests on a precise mathematical construction: the **quine**, a program that produces its own source code as output without reading any external input. Understanding quines is essential for understanding both the theoretical limits of compiler verification and the structure of self-hosting compilers.
+
+A quine exploits the fixed-point theorem for programs. Kleene's second recursion theorem guarantees that for any computable function *f*, there exists a program *P* such that *P* and *f(P)* are extensionally equivalent — the program can "know its own code." A quine is the degenerate case where *f* is the identity: a program *P* such that running *P* outputs the text of *P* itself.
+
+**The standard quine construction** in any language follows a two-part pattern:
+
+```c
+/* A C quine */
+#include <stdio.h>
+char *s = "#include <stdio.h>\nchar *s = %c%s%c;\nint main(){printf(s,34,s,34,10);}%c";
+int main(){printf(s,34,s,34,10);}
+```
+
+The string `s` holds the program's own source except for the string literal itself. The `printf` call splices `s` into itself using format specifiers — the 34 is the ASCII code for `"`. Every quine has this self-referential structure: a *data part* (a representation of the code) and a *code part* (which uses the data part to reconstruct and emit both).
+
+**The Thompson construction** is a quine applied to a compiler. The malicious compiler binary carries two self-replicating payloads:
+
+1. When compiling the `login` source, it injects a backdoor that accepts a hard-coded password for any account.
+2. When compiling the compiler source itself, it injects both payloads into the compiled output — even though neither payload appears in the compiler's source code.
+
+The second payload is a quine: the compiler binary contains a representation of the injection logic, and the compilation of the compiler source triggers that representation to reproduce itself in the output binary. This is why removing the payload from the source does not remove it from the binary: the binary carries its own description, and the next compilation reconstructs the payload from that description.
+
+**Quines in compiler self-hosting.** A self-hosting compiler is structurally quine-like: the compiler can compile itself. For a compiler written in language L that compiles L, the compiler source *S* compiled by a trusted binary *B* produces a new binary *B'*. If *B'* compiled from *S* produces the same *B'*, the compiler is self-consistent — a fixpoint in the space of programs. This is exactly what the LLVM stage2 == stage3 check verifies: that the fixpoint has been reached and is stable.
+
+**Diverse double compilation (DDC)** — proposed by David Wheeler as a practical defense against the Thompson attack — exploits the quine structure. To verify that compiler binary *B* is free of Thompsonian backdoors:
+
+1. Obtain an independent trusted compiler *B_T* (compiled by a completely separate toolchain).
+2. Compile the compiler source *S* with *B* to get *B1*, and with *B_T* to get *B_T1*.
+3. Compile *S* again: once with *B1* and once with *B_T1*, obtaining *B2* and *B_T2*.
+4. If *B2* == *B_T2*, then — under reasonable assumptions — both compilers implement the same semantics and neither carries a Thompsonian backdoor.
+
+The argument: if *B* contained a self-replicating payload targeting itself, *B1* would carry that payload. But *B_T1* (compiled by the independent toolchain) would not. Therefore *B2* ≠ *B_T2* if *B* is compromised. The bootstrappable builds movement applies DDC at scale: Guix, Nix, and the GNU toolchain are cross-verified using independent bootstrap paths.
+
+**Quines in language research.** Beyond security, quines appear in:
+
+- *Metacircular interpreters*: an interpreter written in the language it interprets (the original Lisp metacircular evaluator, the Scheme `R5RS` specification's reference evaluator). These are quine-like in that the interpreter's semantics are defined by executing itself on its own description.
+- *Self-verifying compilers*: CompCert (Ch176) is verified in Coq; its correctness proof covers the compiler's behavior on all source programs including, in principle, the compiler source itself — though a fully mechanized self-verification remains an open research problem.
+- *Reflective towers*: programming systems (Black, 3-Lisp) where the meta-level interpreter is the same language as the object level, creating an infinite tower of interpreters each of which can be modified by the level below. Quines are the degenerate one-level case.
+
+The theoretical boundary: Löb's theorem (from modal logic) shows that a system cannot prove its own consistency without already assuming it. This is the formal analogue of Thompson's practical observation: no amount of source-level auditing can rule out a Thompsonian backdoor in the compiler that compiled the auditing tool.
+
 ### Reproducibility Requirements for Compilers
 
 A compiler introduces non-determinism through a surprising variety of mechanisms. Eliminating them requires understanding each source:
