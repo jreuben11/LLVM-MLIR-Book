@@ -119,6 +119,7 @@ Expert audience. Assumed: C++ proficiency, familiarity with compilers at the lev
 | 36 | [The Clang AST in Depth](chapters/part-05-clang-frontend/ch36-the-clang-ast-in-depth.md) |
 | 37 | [C++ Modules Implementation](chapters/part-05-clang-frontend/ch37-cpp-modules-implementation.md) |
 | 38 | [Code Completion and clangd Foundations](chapters/part-05-clang-frontend/ch38-code-completion-and-clangd-foundations.md) |
+| 38b | [C23 Clang Implementation](chapters/part-05-clang-frontend/ch38b-c23-clang-implementation.md) |
 
 ### Part VI — Clang Internals: Codegen and ABI *(~120 pp)*
 
@@ -138,6 +139,7 @@ Expert audience. Assumed: C++ proficiency, familiarity with compilers at the lev
 | 45 | [The Static Analyzer](chapters/part-07-clang-multilang/ch45-the-static-analyzer.md) |
 | 46 | [libtooling and AST Matchers](chapters/part-07-clang-multilang/ch46-libtooling-and-ast-matchers.md) |
 | 47 | [clangd, clang-tidy, clang-format, clang-refactor](chapters/part-07-clang-multilang/ch47-clangd-clang-tidy-clang-format-clang-refactor.md) |
+| 47b | [SSAF — Scalable Analysis](chapters/part-07-clang-multilang/ch47b-ssaf-scalable-analysis.md) |
 | 48 | [Clang as a CUDA Compiler](chapters/part-07-clang-multilang/ch48-clang-as-cuda-compiler.md) |
 | 49 | [Clang as a HIP Compiler](chapters/part-07-clang-multilang/ch49-clang-as-hip-compiler.md) |
 | 50 | [Clang as SYCL, OpenCL, and OpenMP-Offload](chapters/part-07-clang-multilang/ch50-clang-as-sycl-opencl-openmp-offload.md) |
@@ -232,6 +234,7 @@ Expert audience. Assumed: C++ proficiency, familiarity with compilers at the lev
 | 99 | [The RISC-V Vector Extension (RVV)](chapters/part-15-targets/ch99-the-riscv-vector-extension-rvv.md) |
 | 100 | [RISC-V Bit-Manip, Crypto, and Custom Extensions](chapters/part-15-targets/ch100-riscv-bit-manip-crypto-custom.md) |
 | 101 | [PowerPC, SystemZ, MIPS, SPARC, LoongArch](chapters/part-15-targets/ch101-powerpc-systemz-mips-sparc-loongarch.md) |
+| 101b | [LoongArch Backend](chapters/part-15-targets/ch101b-loongarch-backend.md) |
 | 102 | [NVPTX and the CUDA Path](chapters/part-15-targets/ch102-nvptx-and-the-cuda-path.md) |
 | 103 | [AMDGPU and the ROCm Path](chapters/part-15-targets/ch103-amdgpu-and-the-rocm-path.md) |
 | 104 | [The SPIR-V Backend](chapters/part-15-targets/ch104-the-spirv-backend.md) |

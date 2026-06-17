@@ -61,6 +61,13 @@ This chapter builds on the ABI theory developed in [Chapter 23 — Attributes, C
   - [Rust Components with cargo-component](#rust-components-with-cargo-component)
   - [Hosting with wasmtime](#hosting-with-wasmtime)
   - [wasm-bindgen for the Web](#wasm-bindgen-for-the-web)
+- [LLVM IR as a Potential Interchange Layer](#llvm-ir-as-a-potential-interchange-layer)
+  - [The Universal-IR Thesis](#the-universal-ir-thesis)
+  - [Apple Bitcode — The Only Large-Scale Deployment](#apple-bitcode-the-only-large-scale-deployment)
+  - [LTO Bitcode as Cross-Language Optimization Substrate](#lto-bitcode-as-cross-language-optimization-substrate)
+  - [Why LLVM IR Cannot Be a Stable FFI Contract](#why-llvm-ir-cannot-be-a-stable-ffi-contract)
+  - [WebAssembly as the Realized Universal IR](#webassembly-as-the-realized-universal-ir)
+  - [MLIR as the Structured-IR Alternative](#mlir-as-the-structured-ir-alternative)
 - [Exception and Unwinding Interoperability](#exception-and-unwinding-interoperability)
   - [Four Incompatible Error Models](#four-incompatible-error-models)
   - [`extern "C-unwind"` (Rust 1.71)](#extern-c-unwind-rust-171)
@@ -1198,6 +1205,106 @@ For types that cross frequently, `wasm-bindgen` supports the `js_sys` crate (bin
 
 ---
 
+## LLVM IR as a Potential Interchange Layer
+
+C's dominance as the FFI lingua franca is a matter of ABI stability, not representational power. LLVM IR is strictly more expressive than C: it captures calling conventions, type layouts, attribute sets, and optimization metadata in a single serializable format. Since every LLVM-targeting language lowers to the same IR, a plausible thesis is that LLVM IR itself should serve as the interop layer — let each language compile to bitcode, and compose at the IR level rather than at the C ABI level. This section examines what happened when that thesis was tested in practice.
+
+### The Universal-IR Thesis
+
+The appeal is concrete. A Rust crate and a C++ translation unit compiled to LLVM IR share the same SSA value model, the same `datalayout` string, and the same `DataLayout`-derived struct sizes. In principle, a caller in one language can directly reference a callee in the other without any ABI negotiation — the calling convention is already encoded in the IR. Cross-language inlining, devirtualization, and dead-code elimination become possible without any special tooling. No header files, no marshalling, no binding generators.
+
+The thesis is partially realized in one concrete context: link-time optimization. When Rust and C/C++ are compiled with `-flto`, both emit LLVM bitcode into their object files (in the `.llvm.lto` ELF section). LLD reads all bitcode modules, merges them, and runs the standard optimization pipeline over the combined IR — inlining Rust functions into C callers, propagating constants across the boundary, and eliminating dead code that only becomes visible at whole-program scope. This is genuine cross-language optimization at the IR level, and it works. But it is an optimization artifact, not an interop contract: the languages still agree on a C calling convention at their boundary. The IR sharing is invisible to the programmer.
+
+### Apple Bitcode — The Only Large-Scale Deployment
+
+The closest any production system came to using LLVM IR as a distribution and interop layer was Apple's App Store bitcode requirement, active from Xcode 7 (2015) to Xcode 14 (2022).
+
+**The mechanism.** When building for iOS, watchOS, or tvOS with bitcode enabled, Xcode instructed Clang and swiftc to embed a copy of the compiled LLVM IR bitcode alongside the native machine code in the binary. The ELF-equivalent Apple Mach-O section is `__LLVM,__bitcode` in the `__TEXT` segment. The App Store accepted this binary, stripped the native code, and retained the bitcode. When Apple released a new device (e.g., iPhone 6 with a new ARM microarchitecture variant) or wanted to apply a new optimization pass retroactively, it could recompile all submitted apps from their stored bitcode without requiring developers to resubmit.
+
+```
+# What Xcode passed to clang:
+clang -fembed-bitcode -arch arm64 -o MyApp.o MyApp.c
+
+# The resulting object contained both:
+#   __TEXT,__text       — native arm64 machine code
+#   __LLVM,__bitcode    — LLVM IR bitcode for recompilation
+```
+
+**Why Apple deprecated it.** Bitcode-based recompilation turned out to be fragile in practice. Compiler intrinsics, target-specific attributes, and optimization-affecting metadata all changed between LLVM releases. Bitcode produced by Xcode 7's LLVM 3.7 was incompatible with the optimizer in Xcode 12's LLVM 11. Apple had to maintain multiple LLVM versions to recompile old bitcode, and the bitcode files were large (often 2–5× the native code size), adding significant App Store upload and storage cost. Apple announced the deprecation of bitcode in Xcode 14 (2022), citing these costs and the reduced value now that Apple Silicon Macs and the M-series iPhone SoCs had stabilized the microarchitecture landscape. The [App Store bitcode deprecation release notes](https://developer.apple.com/documentation/xcode-release-notes/xcode-14-release-notes) note that Xcode 14 no longer submits bitcode to the App Store by default.
+
+### LTO Bitcode as Cross-Language Optimization Substrate
+
+The most durable use of LLVM IR as a cross-language medium is LTO, described in detail in [Chapter 77 — LTO and ThinLTO](../part-13-lto-whole-program/ch77-lto-and-thinlto.md). Its cross-language dimension is worth examining here.
+
+When a project links Rust and C together with ThinLTO, the following happens at the IR level:
+
+```bash
+# Rust crate compiled to bitcode
+rustc --edition 2024 -C lto=thin -C opt-level=2 --emit=llvm-bc lib.rs -o lib.bc
+
+# C translation unit compiled to bitcode
+clang -O2 -flto=thin -c util.c -o util.o   # util.o embeds bitcode in .llvm.lto section
+
+# LLD links both, sees bitcode from both languages, merges and optimizes:
+clang -O2 -flto=thin -o app app.o util.o liblib.rlib
+```
+
+LLD's ThinLTO pass sees one unified IR module containing functions from both languages. A Rust `#[inline]` function called from C can be inlined across the language boundary; a C function with `__attribute__((pure))` can have its side-effect-free attribute propagated into Rust call sites. The optimization is genuine and measurable — projects like the Firefox JavaScript engine use LTO across their Rust and C++ components specifically to recover this cross-language inlining.
+
+The boundary condition still applies: the Rust function must be declared `extern "C"` (or `extern "C-unwind"`) and the C function must use the C calling convention. The IR sharing gives the optimizer freedom within those conventions, but it does not replace them.
+
+### Why LLVM IR Cannot Be a Stable FFI Contract
+
+Four structural reasons prevent LLVM IR from replacing C as the FFI lingua franca:
+
+**1. No version stability.** LLVM IR is explicitly versioned and makes no stability promises across major releases. The `ModuleID`, `source_filename`, and `datalayout` all embed version-sensitive information. A bitcode file produced by LLVM 17 may not parse correctly in LLVM 22 if any instruction or type encoding changed. The C ABI, by contrast, is frozen per platform: SysV x86-64 ABI has been stable since 2001.
+
+**2. No standardized type system for interop.** LLVM IR has a type system (`i8`, `i32`, `ptr`, `{i64, i8*}`, etc.) but no notion of ownership, variance, or safety invariants. Two languages can agree on `{i64, ptr}` as the representation of a slice but disagree on whether the pointer is nullable, whether the slice is mutable, or who frees it. The C ABI has the same problem, but decades of tooling (header files, binding generators, API conventions) have grown around it. LLVM IR has no equivalent ecosystem.
+
+**3. Language-specific IR features are not shared.** Rust's IR uses `noundef`, `nonnull`, `noalias`, and `align` attributes extensively, generating IR that is UB if those attributes are violated. Swift's IR uses `swiftself` and `swifterror` calling convention extensions. Exception-handling IR (`landingpad`, `cleanupret`, `catchswitch`) differs between Itanium EH (used by GCC-compatible C++) and SEH (used by MSVC). A C caller receiving a Rust function's IR contract must honor all these attributes or invoke UB — and there is no tool to check this.
+
+**4. The optimization contract is one-way.** LTO cross-language inlining works because both sides compile together under one optimizer's authority. A distributed FFI — where one language publishes a compiled artifact and another language consumes it — cannot use LTO bitcode without coupling the consumer to the producer's LLVM version, optimization level, and IR assumptions. This is precisely the coupling that ABI stability is designed to avoid.
+
+```llvm
+; Rust-emitted function: the noalias, noundef, nonnull attributes are
+; part of the IR contract that C callers are not expected to honor.
+define void @process_slice(ptr noalias noundef nonnull %ptr, i64 %len) {
+  ; A C caller passing a null pointer would invoke UB even though
+  ; the C-level signature is   void process_slice(void*, size_t)
+  ...
+}
+```
+
+### WebAssembly as the Realized Universal IR
+
+The universal-IR thesis was not abandoned — it was redirected. WebAssembly (Wasm) is the realization of what LLVM IR could not be: a stable, portable, language-agnostic binary format that multiple languages compile to and that runtimes across platforms execute.
+
+Wasm succeeds where LLVM IR fails for three reasons:
+
+- **Stable binary format.** The [WebAssembly Core Specification](https://webassembly.github.io/spec/core/) is a W3C standard. A `.wasm` binary produced today will be valid in any conforming runtime indefinitely. LLVM IR makes no such promise.
+- **No host ABI dependency.** Wasm's linear memory model and value types (`i32`, `i64`, `f32`, `f64`, `v128`) are platform-independent. There is no `datalayout` string; struct layout is determined by the Wasm module itself, not by a host platform ABI.
+- **The Component Model as typed FFI.** The WebAssembly Component Model (§ "WebAssembly Component Model and WIT" above) adds exactly what raw Wasm lacks: a type system for interop, with WIT as the IDL. Two components compiled from different source languages compose through WIT interfaces without any knowledge of each other's internal representation.
+
+LLVM itself targets WebAssembly ([Chapter 106 — WebAssembly and BPF](../part-15-targets/ch106-webassembly-and-bpf.md)), closing the loop: languages use LLVM as their compiler backend to emit Wasm, and Wasm is the stable interchange format.
+
+### MLIR as the Structured-IR Alternative
+
+Within the ML/HPC ecosystem, MLIR ([Chapter 129 — MLIR Philosophy](../part-19-mlir-foundations/ch129-mlir-philosophy.md)) pursues a different answer to the same question: a multi-level IR with stable, versioned dialects that multiple domain-specific languages and frameworks can target.
+
+StableHLO ([Chapter 154 — HLO and StableHLO](../part-22-xla-openxla/ch154-hlo-and-stablehlo.md)) is the concrete realization: a versioned MLIR dialect with a compatibility guarantee, used as the interchange format between ML frameworks (JAX, PyTorch, TensorFlow) and hardware compilers (XLA, IREE). A StableHLO program produced by one framework version is guaranteed to be accepted by any compiler that claims StableHLO compatibility, regardless of the internal MLIR version either side uses.
+
+This is precisely the LLVM-IR-as-universal-IR thesis applied with the lessons learned: stability requires explicit versioning and a compatibility guarantee, not just a shared representation.
+
+| Format | Stability | Type system for interop | Cross-language | Used for |
+|---|---|---|---|---|
+| C ABI | Frozen per platform | No (header files are the contract) | Yes (universally) | System FFI |
+| LLVM IR bitcode | Version-coupled | No | Yes (within one build) | LTO optimization |
+| Apple Bitcode | Deprecated 2022 | No | No | App re-optimization |
+| WebAssembly | W3C standard | Via Component Model / WIT | Yes | Portable binary distribution |
+| StableHLO | Versioned dialect | Yes (ML tensor ops) | Framework-to-compiler | ML compilation stack |
+
+---
+
 ## Exception and Unwinding Interoperability
 
 ### Four Incompatible Error Models
@@ -1365,6 +1472,8 @@ diff <(grep -A20 "struct MyStruct" src/lib.rs) \
 - **`cxx`** provides a zero-overhead, safe Rust/C++ bridge with ownership-typed cross-language types (`UniquePtr<T>`, `rust::Box<T>`, `rust::Vec<T>`) and automatic exception-to-panic conversion at the bridge
 - **`UniFFI`** generates bindings for Python, Kotlin, Swift, and Ruby from a single Rust implementation using either a UDL file or proc-macro annotations; the standard mechanism for Firefox component distribution
 - **The WebAssembly Component Model** and WIT define a language-agnostic component interface standard; `cargo-component`, `wit-bindgen`, and `wasmtime::component::bindgen!` implement it in Rust
+- **LLVM IR was attempted as a universal interchange layer**: Apple Bitcode (2015–2022) embedded IR in App Store submissions for re-optimization; LTO bitcode enables genuine cross-language inlining between Rust and C/C++ within a single build. Neither became a stable FFI contract because LLVM IR has no version stability guarantee, no agreed ownership semantics, and language-specific IR attributes that callers cannot safely ignore
+- **WebAssembly is the realized universal IR**: a W3C-stable binary format with no host-ABI dependency; the Component Model adds typed interop via WIT, making it the practical successor to the LLVM-IR-as-universal-IR thesis. **StableHLO** applies the same lesson to the ML stack: a versioned MLIR dialect with an explicit compatibility guarantee used as the interchange format between ML frameworks and hardware compilers
 - **`extern "C-unwind"`** (Rust 1.71) allows C++ exceptions to propagate through Rust frames safely; `catch_unwind` at every exported FFI boundary prevents Rust panics from crossing into C callers as undefined behavior
 - **Sanitizers cross FFI boundaries**: ASAN and UBSan detect memory errors across C and Rust when both sides are compiled with sanitizer instrumentation
 
