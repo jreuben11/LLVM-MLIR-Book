@@ -523,6 +523,32 @@ Moseley & Marks ("Out of the Tar Pit", 2006) already made this point: complexity
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **AgentSpec runtime → static enforcement**: The AgentSpec ([arXiv 2503.18666](https://arxiv.org/abs/2503.18666)) runtime constraint system achieving 88–100% compliance is the direct precursor to a static type checker; expect prototype static analyses targeting Python/TypeScript agent frameworks by late 2026 as the multi-agent security community converges on MCP tool-handle typing.
+- **MCP type-safe capability schemas**: The Model Context Protocol (Anthropic, 2024) currently uses JSON Schema for tool descriptors at runtime; community RFCs for a statically-typed MCP binding (TypeScript generics / Rust trait-based) are under active discussion in the MCP specification repository, with a typed extension likely by mid-2026.
+- **Choreographic programming Haskell/Scala libraries for LLM pipelines**: HasChor and MultiChor ([arXiv 2406.13716](https://arxiv.org/abs/2406.13716)) census-polymorphic choreographies are being extended by the PL research community toward probabilistic participants; expect a Haskell library prototype handling `Maybe`-typed LLM responses within 2026.
+- **Req2LTL pipeline integration**: Following Req2LTL's 88.4% semantic accuracy at ACM 2024, CI tooling integrating NL requirement → LTL/TLA+ generation into GitHub Actions or similar is being prototyped by several academic groups; production-ready integration expected by Q3 2026.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Probabilistic session types with sound type inference**: The open theoretical problem identified in §206.1 — extending MPST with `(p, δ, k)`-satisfaction contracts as a *static* refinement type rather than runtime check — is an active POPL/ICFP research area; a sound-and-complete system for finite-horizon probabilistic protocols is achievable within this window given the published theoretical foundations in ABC ([arXiv 2602.22302](https://arxiv.org/abs/2602.22302)) and probability-weighted CCS.
+- **Information-flow types for LLM I/O in a production PL**: Prompt-injection attacks via `{Untrusted}` → `{Trusted}` implicit flows are increasingly the dominant AI security concern; expect a Rust or TypeScript IFT library (inspired by Jif/DLM but without the full Java Jif compiler complexity) targeting agent frameworks to reach production maturity, likely driven by enterprise security requirements around agentic systems.
+- **Proof-gated CI/CD in major platforms**: Dafny integration in GitHub Actions and Azure DevOps is already available (2024); proof-gated merge gates using LLM-assisted Dafny/Verus specification generation (82% LLM success on VERINA benchmark) are expected to reach mainstream DevSecOps tooling by 2028, closing the gap between §206.2's formal state machine CI model and current YAML-based pipelines.
+- **Type-derived Kubernetes manifests from tensor shape annotations**: Pkl (Apple, 2024) and Nickel provide typed configuration; the missing derivation step from tensor shape types to resource requests is being addressed by MLOps tooling vendors; expect a compiler plugin for PyTorch/JAX that generates K8s resource specs from annotated tensor shapes within the MLOps ecosystem by 2027–2028.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Unified AI-first PL integrating choreographic + probabilistic + linear resource + IFT types**: The research agenda identified in §206.1's gap table — combining Choral's choreographic compilation, MPST deadlock-freedom, ABC's probabilistic contracts, linear budget types, and Jif's IFT — is the defining open problem of the AI-first PL design space; a research prototype language (not production) meeting all five properties simultaneously is plausible by 2031, likely emerging from a PLDI/POPL best-paper effort.
+- **Intent-level typing with formal semantics**: Semantic Consensus ([arXiv 2604.16339](https://arxiv.org/abs/2604.16339))'s Semantic Intent Graph is currently ML-derived without formal type-theoretic grounding; connecting intent divergence detection to a formal denotational semantics (possibly via sheaf-theoretic models of distributed knowledge) is a 5-year research horizon, likely requiring cross-fertilisation between the PL theory and multi-agent AI communities.
+- **AI-first SDLC toolchain replacing Git for agentic workflows**: Pijul's category-theoretic patch theory, Unison's content-addressed AST identity, and Dagger's typed CI SDK represent convergent evolution toward the formal SDLC model in §206.2; by 2031 a production AI-first version control system treating commits as type-context deltas (§206.2) with compiler-derived semver and content-addressed work items is plausible, particularly as AI becomes the primary code author in enterprise settings.
+
+---
+
 ## Chapter Summary
 
 - **Multi-agent PLs** require five properties absent from Python frameworks: choreographic protocol compilation (write global, project to per-agent), probabilistic session types for deadlock-freedom with probabilistic participants, capability-typed delegation with linear resource budgets, search strategy as a structural type annotation, and intent-level typing for semantic divergence prevention. No existing system provides more than partial coverage.

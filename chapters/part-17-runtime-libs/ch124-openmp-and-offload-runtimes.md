@@ -579,6 +579,32 @@ This makes liboffload a general-purpose GPU dispatch layer usable without OpenMP
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **OpenMP 6.0 stabilization in Clang**: The `-fopenmp-version=60` flag advances from experimental to production-ready, adding full `metadirective` dynamic selectors, `scope` construct semantics, and the new `dispatch` + `declare variant` interaction. Track via [D138548](https://reviews.llvm.org/D138548) and the `openmp-6.0` branch on discourse.llvm.org.
+- **liboffload SYCL backend integration**: Ongoing RFC to expose the `liboffload` API as a SYCL PI (Plugin Interface) backend, replacing the Intel-specific `pi_opencl`/`pi_cuda` plugins with a single unified `pi_offload` adapter layer — eliminating duplicated device management code across SYCL and OpenMP offload.
+- **NextGen plugin for Intel GPU (oneAPI Level Zero)**: The `liboffload_plugin_level_zero.so` plugin moves from prototype to first-class support, enabling `clang -fopenmp-targets=spir64` to dispatch via liboffload rather than the legacy libomptarget L0 path. Tracked on the LLVM OpenMP mailing list.
+- **GPU device heap allocator unification**: Merging the per-plugin `omp_alloc` allocator implementations into a common `DeviceAllocatorTy` in the NextGen common plugin layer, enabling consistent NUMA-aware allocation across CUDA Unified Memory and AMD HMM targets.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **OpenMP offload to RISC-V vector targets**: As the RISC-V V-extension becomes mainstream in HPC accelerators (e.g., SiFive Intelligence X280, Ventana Veyron), expect `clang -fopenmp-targets=riscv64-linux-gnu` with DeviceRTL support for `vsetvl`/vector shuffle reductions replacing the current `__shfl_down_sync` paths hard-coded for NVPTX.
+- **Asynchronous task-graph execution model**: OpenMP 6.x proposals for persistent device kernels and task graphs (modeled on CUDA Graphs / ROCm graphs) would extend `#pragma omp task depend` to generate graph nodes captured and re-submitted without re-launching the OpenMP offload pipeline — reducing launch latency for iterative HPC workloads.
+- **OMPT-X device profiling extension**: Extension of the OMPT callback API to capture device-side events (kernel start/stop, memory DMA transfers) through a unified `ompt_callback_device_*` family, enabling HPCToolkit and TAU to correlate CPU OpenMP regions with GPU kernel execution without requiring vendor-specific profiling APIs (CUPTI/ROCPROFILER).
+- **Multi-level memory hierarchy support via `omp_alloc` traits**: OpenMP 5.2 allocator traits (`omp_atv_nearest`, `omp_atv_bandwidth`) are partially implemented; full support for HBM (High Bandwidth Memory) tier selection on Intel Xeon Max (HBM + DDR5) and NVIDIA Grace Hopper (NVLink-C2C) requires integration with NUMA topology discovery in the liboffload PluginManager.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Unified programming model convergence**: liboffload positioned as the common substrate for OpenMP, SYCL, OpenCL, and potentially HIP offload paths in LLVM — a single plugin layer replacing today's parallel stacks (libomptarget + SYCL PI + ROCm HIP runtime) with a unified device abstraction that exposes compute, memory, and event objects through one API surface.
+- **Whole-program heterogeneous IR and ahead-of-time device linking**: Today, device bitcode is embedded in host ELFs and JIT-linked at runtime by plugins. A future `llvm-offload-link` tool (analogous to `lld`) would perform full ahead-of-time linking of host+device IR with cross-boundary inlining, enabling device-side interprocedural optimization across `target` region boundaries.
+- **Formal verification of OpenMP memory model**: With OpenMP 5.0+'s `memory_order` clauses and `atomic` constructs approaching the complexity of C++ `std::atomic`, academic efforts (building on Promising/RC11 model work) aim to produce a mechanized Coq/Lean proof of the OpenMP memory model's consistency, enabling verified compiler transformations for OpenMP atomics in Clang codegen.
+
+---
+
 ## Chapter Summary
 
 - libomp provides the host-side OpenMP runtime: fork-join thread teams, work-sharing (`__kmpc_for_static_init/dispatch`), task queues with work-stealing and dependency tracking, and CPU affinity via `OMP_PROC_BIND`/`OMP_PLACES`.

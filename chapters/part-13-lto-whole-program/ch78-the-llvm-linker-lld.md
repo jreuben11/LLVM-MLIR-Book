@@ -497,6 +497,35 @@ LLD's Mach-O driver (`ld64.lld`, `lld/MachO/`) implements several macOS-specific
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **LLD split-stack support for RISC-V**: ongoing RFC on discourse.llvm.org to extend split-stack (`-fsplit-stack`) thunk generation to RISC-V targets, matching the existing x86-64 implementation; required for Go runtime on RISC-V Linux.
+- **Improved RISC-V relaxation convergence**: work to make the iterative RISC-V relaxation loop (`lld/ELF/Arch/RISCV.cpp`) provably convergent in O(log N) iterations rather than the current worst-case linear scan, following Fangrui Song's analysis on llvm-dev; this unblocks LLD as default linker in the RISC-V Linux kernel builds.
+- **COFF ARM64EC import library emission**: completing LLD COFF's ARM64EC (x64-on-ARM64 emulation) support by generating import libraries compatible with Visual Studio 2022 ARM64EC toolchains; tracked in LLVM issue #81849 and follow-on patches.
+- **`--dependency-file` for incremental linking metadata**: RFC to add a Make-compatible dependency file output (like `-MF` in clang) so build systems can track which archive members were actually extracted; targeted for LLD 20/21 release cycle.
+- **Linker map file improvements**: extending `-Map` output to include ICF merge decisions and call-graph sort cluster assignments, giving toolchain users visibility into which functions were folded or reordered.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **LLD-as-library for incremental linking**: proposal (discussed at LLVM Dev Meeting 2024) to expose LLD internals as a library so build systems like Buck2 and Bazel can perform symbol-delta incremental links — only re-processing changed archive members — reducing iterative development link times from seconds to sub-second for large binaries.
+- **Chained fixups on x86-64 macOS**: extending `DYLD_CHAINED_FIXUPS` (currently default only for arm64) to x86-64 macOS targets to reduce dyld startup overhead on Intel Macs; requires Apple dyld compatibility work and coordination with the MachO driver team.
+- **Wasm component model linker**: extending `wasm-ld` to support the W3C WebAssembly Component Model (post-MVP), including multi-memory, shared-everything linking, and interface type composition as the spec finalizes through the W3C WASM CG.
+- **BOLT integration at link time**: RFC to fold a subset of BOLT's basic-block reordering transformations into LLD itself (as a post-link optimization pass that operates on the output ELF before it is written to disk), eliminating the separate BOLT invocation for common use cases.
+- **Profile-guided ICF**: extending `--icf=all` to use profile data to decide which functions to fold — currently ICF is profile-agnostic and may fold hot functions that have different runtime semantics under ASAN; a profile-aware ICF would exempt hot functions from folding to avoid performance regressions.
+- **Parallel COMDAT deduplication**: replacing LLD's current sequential COMDAT-group deduplication with a parallel algorithm using concurrent hash sets, targeting 15–20% link time reduction for large C++ codebases with high template usage (e.g., Clang itself, LLVM).
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Deterministic parallel section layout**: research into deterministic-yet-parallel output section ordering for reproducible builds; current LLD parallelism is non-deterministic unless `--threads=1` is used; the goal is a parallel layout that is provably equivalent to a canonical sequential order regardless of scheduling.
+- **LLD for MLIR-compiled SPIR-V and GPU binaries**: as GPU toolchains consolidate around LLVM/MLIR (ROCm, Intel oneAPI, portable SPIR-V), extending LLD's Wasm-style driver architecture to handle SPIR-V object linking and linking GPU fat binaries from heterogeneous compilation pipelines.
+- **Formal verification of symbol resolution**: applying Lean 4 or Coq to formally specify and verify LLD's ELF symbol resolution algorithm (strong/weak/common precedence, archive extraction order) against the ELF ABI specification, eliminating a class of link-order-dependent bugs that manifest only in unusual archive configurations.
+
+---
+
 ## Chapter Summary
 
 - LLD has four independent format drivers (ELF, COFF, Mach-O, Wasm) sharing common infrastructure; the ELF driver (`ld.lld`) is the focus for Linux/BSD development.

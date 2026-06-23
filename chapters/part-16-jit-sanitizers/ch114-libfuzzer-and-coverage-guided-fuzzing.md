@@ -763,6 +763,32 @@ done | sort -u
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **FuzzIntrospector wider deployment**: Google's FuzzIntrospector tool (tracks fuzzer reachability per function) is being upstreamed into OSS-Fuzz's default reporting pipeline; expect mandatory coverage gap reports in all OSS-Fuzz project dashboards by late 2026, pushing maintainers toward coverage-driven corpus expansion.
+- **libFuzzer fork-mode flag**: A long-standing RFC on discourse.llvm.org proposes adding an optional fork-server mode to libFuzzer (`-fork=1`) so that crash-inducing inputs cannot corrupt in-process state. The experimental `-fork` flag already exists; work is ongoing to stabilize it and remove its "experimental" label in compiler-rt 22.x.
+- **SanitizerCoverage PC-table v2**: The existing `pc-table` encoding stores (PC, flags) as fixed-width pairs. A proposed redesign replaces it with ULEB128-encoded delta PCs, shrinking binary size for large translation units by 20–30% — relevant RFC is tracked under the compiler-rt project on GitHub.
+- **ClusterFuzz / OSS-Fuzz migration to FuzzBench-based scheduling**: OSS-Fuzz's ClusterFuzz backend is being retrofitted with FuzzBench comparative metrics to dynamically rebalance CPU time across fuzzer variants (libFuzzer, AFL++, Honggfuzz) per-project based on observed coverage gain rates.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Structured fuzzing via CUSTOMFuzzer API v2**: The current `LLVMFuzzerCustomMutator` ABI is single-threaded and cannot share state across workers. A proposed "CUSTOMFuzzer v2" API introduces a `LLVMFuzzerMutatorCreate`/`LLVMFuzzerMutatorMutate`/`LLVMFuzzerMutatorDestroy` lifecycle, enabling per-worker stateful mutators compatible with the `-fork=1` model.
+- **MLIR-level fuzzing targets**: As more compiler infrastructure migrates to MLIR dialects, dedicated fuzzer targets for dialect-level operations (fuzzing `mlir-opt` transformation passes using valid-but-adversarial MLIR text) are expected to supplant the current IR-level `llvm-opt-fuzzer`. Work has begun in `mlir/test/fuzzer/`.
+- **Coverage-guided property testing integration**: Research groups (building on the 2024 "Fuzzing with Coverage-Guided Property-Based Testing" paper by Goldsmith et al.) are integrating Hypothesis-style property shrinking with libFuzzer's corpus engine; a C++ counterpart library targeting `LLVMFuzzerCustomMutator` is under development at Google.
+- **Hardware-accelerated coverage feedback via Intel PT / Apple TMT**: The `perf-fuzz` approach (using Intel Processor Trace for ring-buffer branch recording without compile-time instrumentation) is being refined for integration into libFuzzer as a `-coverage-mode=hardware` option, enabling fuzzing of precompiled binaries and JIT-generated code.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **LLM-guided seed generation**: Research prototypes (including PromptFuzz and CovRL from 2024–2025) demonstrate that large language models can generate semantically valid fuzz seeds for API-level targets. By 2031, expect OSS-Fuzz to offer an optional LLM-augmented seed-generation pass that produces structured initial corpora for newly onboarded projects, reducing the cold-start coverage problem.
+- **Whole-program symbolic-fuzzing hybrids at scale**: Tools like Driller and QSYM (QEmu + Symbolic execution for fuzzing) require per-input SMT solving that does not scale. The Concolic Fuzzing with LLVM Concolic Engine project aims to build a scalable concolic execution backend into `compiler-rt`, sharing SanitizerCoverage infrastructure, enabling hybrid fuzzing without external process boundaries.
+- **Verified coverage instrumentation**: As formal verification of compiler transformations matures (spurred by Vellvm and Alive2), there is a research push to produce proof-carrying SanitizerCoverage passes — instrumentation whose coverage-soundness properties (no missed edges under defined optimization levels) are machine-verified, relevant for safety-critical fuzz-testing certification.
+
+---
+
 ## Chapter Summary
 
 - **LibFuzzer** is LLVM's in-process coverage-guided fuzzer. It calls `LLVMFuzzerTestOneInput` in a tight loop, using SanitizerCoverage feedback to guide mutation toward unexplored code paths.

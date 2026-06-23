@@ -898,6 +898,32 @@ The adjunction T ⊣ U satisfies: Hom_{Tiled}(T(M), N) ≅ Hom_{Untiled}(M, U(N)
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Categorical semantics for MLIR region kinds**: The ongoing MLIR RFC to formalize region semantics using fibered category theory (discourse.llvm.org, "Formalizing MLIR's Region Model") aims to assign each region kind (SSA, graph, isolated-from-above) a precise fiber over the dialect category, enabling machine-checked proofs of pass correctness via the Grothendieck construction (Section 188.7.1).
+- **Algebraic effects in MLIR side-effect modeling**: Efforts to model MLIR's `MemoryEffects` and `SideEffects` interfaces using free monad / algebraic effect structures (tracked in `mlir/include/mlir/Interfaces/SideEffectInterfaces.h`) are underway; near-term work will reify effect rows as functors, enabling composable pass schedulers that respect effect commutativity (Section 188.3.4).
+- **Lean 4 formalization of adjunction-based abstract interpretation**: The Lean 4 Mathlib4 library now includes Galois connections (`Order.GaloisConnection`) and is acquiring the categorical machinery (adjoint functors via `CategoryTheory.Adjunction`) needed to formally verify Cousot-style abstract interpreters. First soundness proofs for interval and octagon domains are targeted for Lean 4 release cycles through mid-2026.
+- **String diagram tooling for circuit and hardware IRs**: The `catlab.jl` project (Julia) and QASM's use of ZX-calculus (Section 188.6.3) are converging toward interoperability; near-term milestones include string-diagram export from CIRCT's `hw` and `comb` dialects, enabling graphical proof of combinational equivalence.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Topos-theoretic type checking in Lean 5 / Coq-ng**: The next major revision of proof assistants is expected to adopt realizability toposes (Section 188.9.3) as the foundational semantic model, replacing the current intensional type theory kernel with one based on the effective topos — this will allow built-in computational content extraction and stronger normalization guarantees for dependent type compilation.
+- **2-categorical specification of MLIR pass pipelines**: Building on the work of Sprunger et al. ("String Diagrams for Compilers", POPL 2026 proceedings under review), MLIR's `PassManager` is expected to gain a formal 2-categorical description where pipeline composition is horizontal composition and pass refinement is vertical composition (Section 188.6.1), enabling automated confluence checking via the interchange law.
+- **Profunctor optics in bidirectional IR transformations**: The `optics` library approach (van Laarhoven lenses as profunctor natural transformations) is being explored for MLIR round-trip transformations (parse ↔ print); mid-term work targets a `ProfiledRewritePattern` API that encodes bidirectional rewrites as profunctors in the double category of IR transformations (Section 188.6.3), supporting automated correctness proofs.
+- **Kan extension-based kernel fusion in XLA/OpenXLA**: XLA's `HloFusionAnalysis` pass currently uses ad-hoc heuristics; planned work (tracked in openxla/xla GitHub issues) replaces this with a Kan extension computation (Section 188.8.2) over the computation-graph category, finding the optimal fusion boundary as the left Kan extension of per-operation cost functors along the graph embedding functor.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Full CHL-correspondence compiler pipeline**: A compiler front-end where types, proofs, and categorical morphisms are unified under the Curry-Howard-Lambek correspondence (Section 188.4) — building on Lean 4's metaprogramming and MLIR's dialect infrastructure — could generate formally verified machine code by extracting compilation passes as morphisms in a fibered CCC and verifying semantic preservation as a natural transformation condition.
+- **Categorical infrastructure for heterogeneous hardware targets**: As MLIR expands to cover GPU, NPU, and quantum targets simultaneously, the dialect lattice will require a genuine topos-theoretic treatment (Section 188.9) where each hardware target contributes a Grothendieck site; "cross-target" programs will be sections of a sheaf over this site, and the internal logic will provide a uniform notion of correctness across all targets.
+- **Automatic derivation of abstract domains via adjoint functor theorem**: The Freyd Adjoint Functor Theorem (Section 188.2.4) characterizes when a concrete-to-abstract map has an optimal abstract domain. A tool that enumerates candidate abstract domains for a given analysis specification (expressed as a limit-preserving functor) by mechanically applying the AFT — searching for the initial solution set — would automate the design of program analyses and could replace manual domain selection in industrial static analyzers.
+
+---
+
 ## Chapter Summary
 
 - A category consists of objects, morphisms, identity, and associative composition. **Pos**, **Set**, **Grp**, **Hask**, and **Cat** are the canonical examples; every poset is a category, making **Pos** a full subcategory of **Cat**.

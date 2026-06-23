@@ -595,6 +595,32 @@ Each layer maps to a concrete compiler phase. The Chapter 207 §207.3 build road
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Phase 0 reference interpreter prototype**: Complete the Haskell/Agda reference interpreter covering Layers 1–5 of this specification; target the three hardest type interactions (§204.6.3) as the formal soundness gate before any production build begins. Track progress against the Chapter 207 §207.3 Phase 0 milestones.
+- **MCP type-checker server (Phase 2 early preview)**: Expose the Layer 4 typing judgement `Γ ; Φ ⊢ e : T ! E` as an MCP tool using the Anthropic MCP SDK; implement the effect-row inference and tensor shape Z3 backend as the first two tool endpoints, mirroring the AlphaProof oracle interface discussed in §204.7.
+- **`logos`+`chumsky` lexer/parser (Phase 1)**: Ship the Rust Phase 1 production lexer and PEG parser targeting the Layer 1–2 EBNF grammar in §204.2–§204.3; include structured JSON error output with span and expected-token trace for LLM consumption, as the LLM-readable error format is a hard design requirement.
+- **LLVM/MLIR RFC for `tensor_named` dialect**: Draft and post to discourse.llvm.org an RFC for a new MLIR dialect representing named tensor dimensions (Batch, SeqLen, DModel) that survive lowering through `linalg` to StableHLO, addressing the shape-erasure problem identified in §204.7 Phase 3.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Production type checker with Z3 + Lean 4 backend (Phase 2 complete)**: Full Layer 4 implementation with the refinement predicate SMT backend (Z3 4.x), the Lean 4 elaborator for Σ/Π types, the QTT usage counter for linear types, and the IFT label lattice checker — all exposed as MCP tool endpoints supporting batch type-checking for LLM agent workflows.
+- **`effects` MLIR dialect (Phase 3)**: Implement the MLIR `effects` dialect for `{Stochastic}` (PRNGKey threading following JAX's functional PRNG model) and `{Gradient}` (reverse-mode VJP insertion via `enzyme`-style differentiation), with lowering to StableHLO for TPU/GPU targets following the IREE execution model (Chapter 179 §179.4).
+- **Content-addressed build system (Unison model)**: Implement the SHA-256 AST identity model from §204.4 as a build-system layer, enabling incremental recompilation based on structural content rather than file timestamps; integrate with the Nix/Bazel dependency graph for hermetic builds, matching the reproducibility requirement in §204.3.
+- **Linear handler calculus formalization**: Publish and upstream a formalization of the linear handler calculus extension identified in §204.6.3 interaction 3 (linear resources in handler continuations `resume : T → U`), extending the algebraic effects theory in Bauer & Pretnar (2015) to handle QTT quantities in handler definitions.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Probabilistic session types (Phase 6)**: Implement the probabilistic session type theory sketched in Chapter 206 §206.1, extending the Layer 4 type rules to handle multi-agent communication protocols with stochastic branching; this requires new type theory beyond existing session type literature (Honda et al.) and is currently an open research problem listed in §204.7 Phase 6+.
+- **Certified `patch` via Σ-types (Chapter 207 §207.1)**: Realize the `patch : Π(P: Program, M: MetaModel P) → Σ(Q: Program, Q satisfies spec P)` signature in a production compiler, requiring the Layer 4 Σ-type and Π-type rules from §204.5 to be fully verified in Lean 4 and the MLIR backend to emit code that preserves proof obligations through codegen.
+- **Shard types and collective communication (Phase 4 complete)**: Ship the Phase 4 shard type system for data/tensor parallelism annotations, resolving the hardest compiler interaction in the entire roadmap — the composition of `{Gradient}` effect with shard types across multi-device boundaries — building on XLA's SPMD partitioner and integrating with the OpenXLA collective communication abstractions (Chapter 179 §179.6).
+
+---
+
 ## Chapter 204 Summary
 
 - The unified AI-first PL requires a six-layer specification because each AI-first design pressure from Chapter 203 §203.1 imposes requirements at a different level of language implementation.

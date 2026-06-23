@@ -483,6 +483,32 @@ Pass analysis objects must be computed before calling `applyPatternsGreedily` an
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **PDL (Pattern Description Language) stabilization**: The MLIR PDL dialect and `pdl_interp` lowering pipeline are being hardened for production use — ongoing effort to close feature parity gaps between native `OpRewritePattern` and PDL-expressed patterns; tracked in the `mlir/lib/Rewrite/` directory. Expect upstream patches completing the `pdl.apply_native_rewrite` and `pdl.apply_native_constraint` hooks.
+- **`GreedyRewriteConfig` listener API consolidation**: The `RewriterListener` injection point (added in LLVM 18) is being extended to expose more granular notifications for worklist insertions and pattern selection order, enabling external profiling tools. Watch for RFC on discourse.llvm.org under the MLIR umbrella.
+- **Parallel greedy driver prototype**: Experimental multi-threaded greedy rewriter (`applyPatternsGreedily` with `MLIRContext::enableMultithreading`) is advancing; early patches partition the op worklist by independent def-use subgraphs and apply pattern sets concurrently. Correctness relies on per-op locking in `PatternRewriter`.
+- **`applyOpPatternsGreedily` integration with Transform dialect**: The `transform.apply_patterns` op (Chapter 150) is being extended to thread `GreedyRewriteConfig` fields — `maxIterations`, `strictMode`, `useTopDownTraversal` — as named parameters in the Transform IR rather than hardcoded defaults.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Declarative canonicalization via TableGen DAG patterns**: A long-standing RFC proposes extending MLIR TableGen to support DAG-to-DAG rewrite rules analogous to LLVM's `InstCombine` patterns, automatically generating both `getCanonicalizationPatterns` entries and `fold()` implementations from a single declarative source. This would subsume ad hoc `m_Constant`/`m_Zero` matcher chains for common algebraic identities.
+- **Cost-model-aware greedy scheduling**: The current `PatternBenefit` integer is a coarse priority signal. A proposed extension adds a `PatternCostModel` interface queried at match time (rather than registration time) to compute data-dependent benefit estimates, enabling the driver to skip unprofitable patterns based on operand types, tensor shapes, or target-specific heuristics.
+- **Incremental pattern rewriting with cached analysis results**: Current `applyPatternsGreedily` invalidates all cached analyses after each pattern fires. Ongoing work — inspired by LLVM's `PassInstrumentationCallbacks` — aims to give patterns access to an `AnalysisManager` that preserves analysis results across rewrites when the pattern declares it does not invalidate them, reducing recomputation in analysis-heavy passes.
+- **Pattern debugger TUI**: A standalone `mlir-pattern-debugger` tool is prototyped, providing step-through visualization of the greedy driver worklist, pattern matching attempts, and IR deltas in a terminal UI; depends on the extended `RewriterListener` API landing.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Verified pattern rewrites via Alive2-style semantics**: Research building on Vellvm and Alive2 aims to provide machine-checkable proofs of pattern correctness at the MLIR level. `RewritePattern::matchAndRewrite` semantics would be formally modeled, with refinement checks dischargeable by SMT solvers (Z3/Bitwuzla), closing the gap between trusted canonicalization folklore and verified transformations.
+- **Pattern synthesis from test cases**: ML-assisted pattern synthesis — given a corpus of before/after IR pairs — would infer `RewritePattern` implementations, analogous to techniques in Halide autoscheduling. The greedy driver's fixpoint semantics provide the correctness oracle for generated pattern candidates.
+- **First-class multi-result and region-based pattern matching**: Current patterns operate on single-root ops with optional region inspection. Longer-term, the PDL type system is expected to support hyper-edge patterns spanning multiple ops simultaneously (e.g., fuse-and-lower patterns that match producer-consumer pairs as a unit), enabling more aggressive transformations without multi-step workarounds.
+
+---
+
 ## Chapter Summary
 
 - **Pattern rewriting** separates the "what to transform" (patterns) from "how to schedule transforms" (greedy driver), enabling composable, order-independent transformations.

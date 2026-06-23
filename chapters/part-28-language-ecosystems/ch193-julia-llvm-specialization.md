@@ -849,6 +849,32 @@ Julia 1.9 introduced **concurrent compilation**: a dedicated compiler thread poo
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Julia 1.12 LLVM 19 migration**: Julia's upstream tracking of LLVM 19 (from LLVM 16 in Julia 1.10/1.11) is underway, requiring porting of the four remaining custom GC patches (`GCRootPlacementPass`, `FinalLowerGCPass`, `LowerPTLS`, AArch64 SVE fixes) to the LLVM 19 API; the Julia compiler team has an open tracking issue at [https://github.com/JuliaLang/julia/issues/52493](https://github.com/JuliaLang/julia/issues/52493).
+- **Concurrent GC improvements under Julia 1.12**: The concurrent old-generation mark-and-sweep collector introduced in Julia 1.10 is receiving refinements — in particular, reducing the stop-the-world sweep phase via incremental sweeping driven by the `SafepointIRVerifier`-verified stack maps. Follow progress at [https://github.com/JuliaLang/julia/pulls?q=label%3Agc](https://github.com/JuliaLang/julia/pulls?q=label%3Agc).
+- **`AbstractInterpreter` API stabilization**: Julia's compiler plugin interface (`Core.Compiler.AbstractInterpreter`) has been marked public API in Julia 1.11, but the `abstract_call_known` and `abstract_eval_statement` hooks are still evolving; the 1.12 cycle is focusing on stabilizing signatures so that `Enzyme.jl`, `Diffractor.jl`, and `Zygote.jl` can drop their version-specific workarounds.
+- **Metal.jl AIR backend maturation**: `Metal.jl` v1.3 is targeting stable compilation of Julia kernels to Apple AIR (via LLVM's experimental Apple GPU backend) without falling back to host-side emulation for double-precision arithmetic; see [https://github.com/JuliaGPU/Metal.jl/milestone/5](https://github.com/JuliaGPU/Metal.jl/milestone/5).
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Zero-patch LLVM build**: The Julia project's stated goal of shipping against an unmodified upstream LLVM requires upstreaming `GCRootPlacementPass` and `FinalLowerGCPass` as first-class LLVM GC strategy passes; the precedent is set by the existing `RewriteStatepointsForGC` and `PlaceSafepoints` passes, and Julia contributors have opened [LLVM RFC: First-class moving-GC support](https://discourse.llvm.org/t/rfc-first-class-moving-gc-support-in-llvm/69609) to drive this work.
+- **`Diffractor.jl` forward/reverse unification**: `Diffractor.jl` is being redesigned to unify its forward-mode and reverse-mode differentiation passes into a single `AbstractInterpreter`-based pipeline that generates both primal and tangent `CodeInfo` in one inference pass, eliminating the current two-pass overhead; the design document is at [https://github.com/JuliaDiff/Diffractor.jl/blob/main/docs/design.md](https://github.com/JuliaDiff/Diffractor.jl/blob/main/docs/design.md).
+- **MLIR-based Julia IR (`Brutus.jl` successor)**: The `Brutus.jl` research prototype demonstrated lowering Julia typed IR to MLIR's `func` and `arith` dialects; a production-quality successor is expected to target MLIR for polyhedral loop optimization of Julia array loops (via the Affine dialect) and to expose Julia specializations to IREE for deployment on heterogeneous hardware — a capability gap that `GPUCompiler.jl`'s direct LLVM approach cannot address without per-target backend duplication.
+- **Precompilation of full package specialization graphs**: Julia 1.9 introduced per-package `.ji` precompilation; by 2028 the expectation is precompilation of entire *package ecosystems* (cross-package inference graphs) using a distributed `.ji` sharing mechanism, effectively reducing time-to-first-execution to near zero for common workloads in scientific computing stacks like Plots.jl + DifferentialEquations.jl.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Thread-local `LLVMContext` per compiler thread**: The current design serializes type internment through a shared `llvm::LLVMContext` even with the Julia 1.9 concurrent compiler pool; a fully thread-safe design — giving each compiler thread an independent `LLVMContext` with a shared type identity table — is a prerequisite for scaling Julia's JIT to many-core machines (64+ cores), and requires either LLVM's proposed `LLVMContextGroup` RFC or a Julia-side type interning layer above `LLVMContext`.
+- **Ahead-of-time compilation of full Julia programs**: The `PackageCompiler.jl` approach of AOT-compiling a set of known specializations is being extended toward full-program AOT with `StaticCompiler.jl`; by 2031 the expectation is a Julia-to-native compiler mode that produces ELF/Mach-O binaries with no JIT runtime, targeting embedded and safety-critical systems where dynamic code generation is prohibited.
+- **Enzyme LLVM pass upstreaming and GPU AD**: The `Enzyme` LLVM pass ([https://github.com/EnzymeAD/Enzyme](https://github.com/EnzymeAD/Enzyme)) is a candidate for upstreaming as an LLVM transformation pass, enabling Enzyme-powered AD for any LLVM frontend (not just Julia); simultaneously, Enzyme's GPU kernel differentiation path (`Enzyme.jl` + `CUDA.jl`) is expected to mature into the primary training-loop backend for Julia-based ML frameworks, competing with JAX/XLA for scientific ML workloads.
+
+---
+
 ## Chapter Summary
 
 - Julia's compilation model — **type-specialization on demand** — compiles a native specialization for each unique argument type tuple at the point of first call, caching the result in a `MethodInstance`. This is distinct from AOT monomorphization (Rust/C++), tracing JIT (LuaJIT), and profiling JIT (JVM).

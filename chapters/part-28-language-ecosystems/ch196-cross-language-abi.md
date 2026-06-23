@@ -1462,6 +1462,32 @@ diff <(grep -A20 "struct MyStruct" src/lib.rs) \
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **`extern "C-unwind"` stabilization follow-through**: Rust 1.71 stabilized the ABI specifier; ongoing work tracks the `C-unwind` propagation semantics through LLVM unwind tables for non-Itanium targets (Windows SEH, WASM). Track [`rust-lang/rfcs#2945`](https://github.com/rust-lang/rfcs/blob/master/text/2945-c-unwind-abi.md) and the Fuchsia and MSVC SEH follow-on issues.
+- **Swift/C++ interoperability feature completion**: Swift 6's Swift/C++ interop workgroup is stabilizing direct import of C++ standard library containers (`std::vector`, `std::map`) and C++ move-only types. Watch the [Swift forums Swift/C++ Interop](https://forums.swift.org/c/development/compiler/swift-c-interoperability/75) category for the Xcode 17 feature lock.
+- **WebAssembly Component Model 1.0 finalization**: The W3C WebAssembly CG is targeting a CR (Candidate Recommendation) for the Component Model spec in 2026 H1. `cargo-component` and `wit-bindgen` will stabilize their APIs in step; watch the [Bytecode Alliance blog](https://bytecodealliance.org/articles/) for `wasi:http/0.3` and `wasi:cli/0.3` stabilizations.
+- **`bindgen` libclang-18 / LLVM 22 compatibility pass**: Every Clang major release requires a `bindgen` compatibility audit for new attribute syntax, C23 features (`_BitInt`, `_Decimal32`), and changed anonymous struct/union heuristics. The `rust-lang/rust-bindgen` issue tracker tracks LLVM-22-specific regressions.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Rust safe transmute and ABI stability RFC**: The `safe_transmute` feature ([`rust-lang/rfcs#2835`](https://github.com/rust-lang/rfcs/pull/2835)) combined with the `StableAbi` trait work will allow the compiler to prove layout compatibility between `#[repr(C)]` types without `unsafe`, eliminating an entire class of silent FFI misuse. Stabilization is expected post-2027 given the complexity of the layout checker.
+- **UniFFI async support maturation**: UniFFI's async scaffolding (tracking issue [`mozilla/uniffi-rs#1347`](https://github.com/mozilla/uniffi-rs/issues/1347)) is experimental as of 2026. Full stabilization with Kotlin coroutines, Swift async/await, and Python `asyncio` interop across all backends is a 2027–2028 target.
+- **WASI 0.3 and the WIT async model**: The WASI 0.3 preview introduces `stream<T>`, `future<T>`, and backpressure primitives into WIT, fundamentally changing how components interoperate over async channels. `wasmtime`, `jco` (JavaScript component tooling), and `cargo-component` all require updates. Full ecosystem convergence is a multi-year effort tracked at [wasi.dev](https://wasi.dev).
+- **Kotlin/Native `cinterop` rewrite for LLVM 22**: Kotlin/Native's C interop layer uses its own LLVM fork; the ongoing `kotlin/kotlin-native` LLVM upstreaming effort will align `cinterop` with `bindgen`'s `libclang` approach, eliminating platform-specific divergence in bitfield layout and anonymous union handling.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Cross-language ownership model via MLIR**: Research projects (including work at ETH Zurich on the `xDSL` project and MIT's CRELLVM successor) are exploring MLIR dialects with affine ownership types that could replace the manual `UniquePtr`/`rust::Box` ownership-bridge patterns in `cxx`. If a stable `ownership` dialect lands in mainline MLIR, binding generators could emit ownership-safe cross-language interfaces without the current `unsafe` shim layer.
+- **GraalVM Polyglot ABI convergence**: GraalVM's Truffle framework and its `@CEntryPoint` mechanism are converging toward a unified polyglot dispatch protocol. By 2031, a JVM language, a Python script, and a Rust library may interoperate through a common GraalVM ABI layer without JNI overhead, tracked in the [GraalVM RFC process](https://github.com/oracle/graal/discussions).
+- **Standardized cross-language exception ABI**: The [Itanium C++ ABI Committee](https://itanium-cxx-abi.github.io) and the Rust language team have informal discussions about a standardized `ForeignException` type that all Itanium-EH languages (C++, Rust, Swift, Zig) can propagate without converting to `abort` or opaque `void*` payloads. This would make `cxx`-style exception bridges unnecessary at the low level.
+
+---
+
 ## Chapter Summary
 
 - **C is the universal FFI substrate**: every language achieves cross-language calls by mapping to C calling conventions (`cc 0` in LLVM IR), C type layouts, and C-compatible symbol names

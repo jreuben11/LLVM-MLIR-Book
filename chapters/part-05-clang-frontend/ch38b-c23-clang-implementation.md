@@ -715,6 +715,32 @@ The `aligned` attribute ensures the embedded array starts at a 4-byte boundary, 
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **`_BitInt` ABI stabilization for RISC-V and AArch64-SVE.** The `_BitInt` ABI specification in the Itanium C++ ABI supplement remains incomplete for scalable-vector targets. Active RFC discussion on discourse.llvm.org ("`_BitInt` ABI for AArch64 SVE/SME", 2025) covers how wide `_BitInt` values interact with SME streaming mode and ZA register state, with patches expected mid-2026.
+- **`#embed` performance optimizations for LTO.** Clang's `tok::annot_embed` avoids token explosion during preprocessing, but LTO materializes `ConstantDataArray` globals in full. A WIP LLVM patch series (D152924 follow-ons) aims to represent large embedded globals as module-level `llvm.used` constants with deferred serialization in Bitcode, reducing ThinLTO memory pressure for firmware builds embedding multi-megabyte blobs.
+- **`counted_by` attribute graduating from Clang extension to C23 DR.** The `__attribute__((counted_by(field)))` extension for flexible array members — critical to `-fstrict-flex-arrays=3` and FORTIFY_SOURCE accuracy — is being proposed as a C23 Defect Report addition (WG14 N3369). Clang's implementation in `CodeGen/CGBuiltin.cpp` is being refined to emit `@llvm.objectsize` with dynamic counts more accurately when `counted_by` is present.
+- **C23 checked arithmetic builtins in `<stdckdint.h>` hardware specialization.** On x86-64 with `adcx`/`adox` and RISC-V with `Zicond`, WG14 N3394 proposes that `ckd_add`/`ckd_mul` implementations exploit hardware carry/overflow flags rather than the generic `@llvm.sadd.with.overflow` lowering. Clang/LLVM backend patches for x86-64 targeting this optimization are in review.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **C2y (`C26`) standardization and Clang tracking.** WG14 has chartered the next revision (informally "C26" or "C2y") with chartered features including: `defer` statement (scope-exit actions without C++ destructors), `_Lengthof` for array length queries, enhanced `_Generic` with pattern matching, and a `nullptr_t` literal in `_Generic` associations. Clang's `LangStandard` infrastructure for `lang_c26` / `lang_gnu26` will need adding, with feature-by-feature tracking similar to the C23 delivery table in section 38b.1.1.
+- **`_BitInt` backend codegen improvements for cryptographic widths.** 256-bit and 512-bit `_BitInt` arithmetic on x86-64 with AVX-512 is currently legalized to scalar multi-word arithmetic. A planned LLVM SelectionDAG enhancement (tracked in LLVM GitHub issue #67991) targets using `VPADDQ`/`VPCMPEQQ` and similar for wide-integer field operations in elliptic-curve libraries, specifically targeting the HACL* and Botan use cases described in section 38b.2.6.
+- **`#embed` in constant expressions.** C23 specifies that `#embed` expands to integer constant expressions, but Clang's constant evaluator currently cannot fold an entire `#embed`-initialized array as a single `ConstantDataArray` during `constexpr` evaluation. A proposed extension would allow `constexpr unsigned char kCert[] = { #embed "cert.pem" };` to be usable in other constant contexts (e.g., passed to `std::span` in mixed C/C++ headers); this requires ASTContext changes to store `EmbedAnnotationData` as a first-class constant expression node.
+- **Sanitizer integration with `-fstrict-flex-arrays=3` in the Linux kernel.** The Linux kernel security hardening roadmap (KSPP) targets enabling `-fstrict-flex-arrays=3` in the default defconfig by kernel 6.14–6.16. This requires eliminating remaining `[0]`-FAM patterns in drivers, estimated at ~1,200 sites as of 2026; clang-tidy check `cppcoreguidelines-avoid-zero-length-arrays` is being extended to assist with the migration.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Formal verification of C23 semantics in Cerberus/Vellvm.** The Cerberus C semantics project (Cambridge) and Vellvm (UPenn) are independently working toward machine-checked models of C23's enriched constant expression evaluation and `_BitInt` arithmetic. The goal is a verified reference interpreter that can be used to validate Clang's C23 implementation against the formal standard, analogous to CompCert's role for C11.
+- **`_BitInt` as the foundation for a portable SIMD integer model.** WG14 and the LLVM vector type proposals are exploring whether `_BitInt(N)` can unify with `__attribute__((vector_size(M)))` to produce a standards-conformant portable SIMD programming model. The research direction (informed by RISC-V Vector Extension and ARM SVE experience) targets a `vector_bitint(N, K)` type representing K-element vectors of `_BitInt(N)`, with `_Generic`-dispatch across width and count.
+- **C standard library C23 feature adoption across all embedded runtimes.** Newlib, picolibc, and LLVM's `libc` project are all tracking C23 library completeness. By 2031, the expectation is that LLVM's in-tree `libc` (currently targeting POSIX + C17) will achieve full C23 library conformance including `<stdbit.h>`, `<stdckdint.h>`, and thread-safe `va_list` handling, making the Clang-built-in-header fallbacks described in section 38b.10.2 unnecessary for all major embedded targets.
+
+---
+
 ## 38b.11 Chapter Summary
 
 - **C23 (ISO/IEC 9899:2024)** is the largest C revision since C99; Clang 22 supports the full feature set at `-std=c23` with `__STDC_VERSION__ == 202311L`. The `-std=c2x` alias is retained for backward compatibility.

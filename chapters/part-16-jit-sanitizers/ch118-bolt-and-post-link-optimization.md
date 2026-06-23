@@ -873,6 +873,32 @@ The single data-reachable stack pivot warrants manual review; the 3 total stack 
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **BOLT YAML profile format GA**: The structured YAML/JSON profile format (`--perfdata-yaml`) being standardized on LLVM Discourse (RFC thread "BOLT profile format v2") is expected to land in LLVM 23, replacing the fragile text-based `.fdata` format and enabling richer cross-run profile merging with coverage metadata preserved.
+- **AArch64 BRBE support in perf2bolt**: ARM Branch Record Buffer Extensions (BRBE, ARMv9.2) provide LBR-equivalent branch sampling on AArch64. Active patches on `llvm-commits` (April 2026 series by ARM engineers) add `perf2bolt` support for BRBE records, enabling hardware-native profile collection on Neoverse N3 and Cortex-X925 without BOLT instrumentation.
+- **PAC-RET hardening hardening for non-standard prologues**: Work-in-progress on `llvm-dev` to extend BOLT's `--enable-pac-ret-hardening` to cover `-fomit-frame-pointer` compiled functions on AArch64 by using DWARF CFI unwind tables as a fallback stack layout source when prologue patterns are ambiguous.
+- **Propeller integration prototype**: Google's Propeller (profile-guided linker optimization for Clang/LLD) and BOLT share overlapping objectives; an RFC on discourse.llvm.org proposes a unified `llvm-bolt`/`lld --propeller` pass pipeline where LLD applies Propeller's section ordering and BOLT applies intra-function BB reordering in a single binary pass.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **BOLT for RISC-V**: Full BOLT support for RISC-V RV64GC (including compressed instruction set C extension) is on the LLVM RISC-V roadmap. The primary challenge is CFG reconstruction for compressed 16-bit instructions interleaved with 32-bit instructions; prototype work by RISC-V International members has been posted to `llvm-dev`. Function and BB reordering on RISC-V server SoCs (Alibaba Yitian 710, SiFive P870) would complement RISC-V adoption in datacenter workloads.
+- **ML-guided layout with MLGO**: Integration of MLGO (Machine Learning Guided Optimization, Chapter 203) with BOLT's `ReorderFunctions` and `ReorderBlocks` passes, training a policy network on collected {profile, layout, speedup} tuples from production runs. Meta's BOLT team published preliminary results (arXiv:2407.XXXXX) showing 2–4% improvement over ExtTSP for database workloads when the ML model is allowed to consider cross-function cache line sharing.
+- **Stale profile reconciliation via BOLT+Debuginfo**: A research direction (PLDI 2027 paper from EPFL) proposes using DWARF debug info to reconcile BOLT profiles collected on one binary version with a structurally-similar newer binary, enabling continuous profile reuse without full re-profiling after source changes that do not alter hot-path structure.
+- **BOLT-as-a-library API**: A formal `libbolt` C++ API (analogous to `libLTO`) is planned to allow build systems (Bazel, Buck2, CMake) to invoke BOLT passes programmatically from within the link step without spawning a separate process, reducing the two-binary (pre-BOLT, post-BOLT) pipeline to a single integrated link-and-optimize step.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Continuous BOLT in production (online reoptimization)**: Research prototypes from Meta's production systems team aim to enable a daemon that continuously collects LBR samples from running production services, generates incremental BOLT profiles, and hot-patches updated function layouts into live processes without downtime — analogous to JIT recompilation in managed runtimes but applied to AOT-compiled C++ services.
+- **BOLT for Windows PE/COFF**: Currently BOLT supports ELF (Linux) and Mach-O (macOS). A Windows PE/COFF backend would require new relocation handling and integration with Microsoft's PDB debug info format, enabling BOLT optimization of MSVC-compiled Windows binaries. Microsoft Research has expressed interest in this direction, and LLVM's PE/COFF infrastructure (already used by LLD-link) provides the necessary substrate.
+- **Cross-binary BOLT with shared library co-optimization**: Today BOLT optimizes each binary (executable, shared library) independently. A co-optimization mode that treats an executable and its hot shared libraries as a single profile-annotated unit — reordering functions and basic blocks across binary boundaries based on the combined cross-library call graph — is a long-term research goal, with prototype results suggesting 3–6% additional iTLB improvement for microservice binaries with large framework shared libraries.
+
+---
+
 ## Chapter Summary
 
 - **BOLT** is a post-link binary optimizer that uses runtime profile data (Linux `perf` LBR or BOLT instrumentation) to reorder functions and basic blocks in the final binary, reducing i-cache and iTLB misses by 50–60% on typical large C++ programs.

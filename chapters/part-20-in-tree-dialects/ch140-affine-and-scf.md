@@ -633,6 +633,32 @@ Cross-reference: [Ch70 — Foundations: Polyhedra and Integer Programming](../pa
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **`scf.forall` → GPU mapping hardening**: Ongoing MLIR community work to stabilize the `scf.forall`-to-`gpu.launch` lowering path, including thread/block binding annotations (`mapping` attribute) and verification that `tensor.parallel_insert_slice` operations are non-overlapping; tracked in active patches on the MLIR Discourse and `mlir/lib/Conversion/SCFToGPU/`. See [discourse.llvm.org thread on forall-to-gpu](https://discourse.llvm.org/c/mlir/9).
+- **Affine loop transformation via Transform dialect unification**: The `transform.structured.tile_using_for` and `transform.structured.tile_using_forall` operations are being extended so that affine-eligible loops produced by tiling automatically adopt `affine.for` when bounds are provably affine, avoiding a subsequent `--convert-linalg-to-affine-loops` pass; RFC discussion active on MLIR Discourse.
+- **Presburger library: Barvinok volume approximation hardening**: `mlir/lib/Analysis/Presburger/` is gaining improved `computeVolume()` approximations using Barvinok's generating functions, replacing the current bounding-box heuristic; this enables loop trip-count estimation for cost models in affine fusion.
+- **`scf.for` pipelining via `scf.schedule` op proposal**: A community RFC proposes an `scf.schedule` op carrying software-pipelining annotations (stage assignments, distances) to make software pipelining on `scf.for` bodies target-independent and inspectable before lowering to LLVM `llvm.loop.pipeline` metadata.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Affine dialect extension for non-rectangular domains (quasi-affine maps)**: Extending `affine.for` and `affine.load` to accept quasi-affine expressions (floordiv and ceildiv by symbolic constants) without losing decidability, enabling direct representation of triangular loop nests (`for j = 0 to i`) at the affine level rather than requiring early lowering to `scf.for`.
+- **Presburger-backed schedule legality in the Transform dialect**: Integrating the MLIR Presburger library with Transform dialect scheduling ops so that `transform.affine.schedule_band` verifies legality of arbitrary affine schedules (Feautrier multi-dimensional scheduling) without the Polly dependency, enabling in-tree polyhedral scheduling for MLIR pipelines.
+- **`scf.forall` as the universal parallel IR across GPU and CPU targets**: Replacing `scf.parallel` with `scf.forall` (already deprecated in favor) and completing the lowering paths to OpenMP `parallel do`, SYCL `nd_range`, and CUDA cooperative groups, so that a single `scf.forall` nest maps to all parallel backends via target-specific `mapping` attributes.
+- **Quantifier elimination for affine dependence analysis**: Upgrading the affine dependence checker in `mlir/lib/Analysis/AffineAnalysis.cpp` to handle `PresburgerRelation` (union of polyhedra) domains rather than single-polyhedron iteration spaces, enabling exact dependence analysis for loop nests with affine `if` peeled cases.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Fully automated affine scheduling integrated with MLIR's cost model**: A production-quality polyhedral scheduler (comparable to Pluto/PolyMage) operating entirely within MLIR's `affine` dialect and Transform dialect, replacing the external Polly pipeline for CPU targets while sharing cost models with GPU mapping passes for `scf.forall` — eliminating the affine-to-Polly-to-LLVM detour.
+- **Decidable extended Presburger arithmetic for symbolic arrays**: Research into extending MLIR's Presburger library to handle symbolic array-dimension constraints (e.g., `N ≡ 0 mod 16`) during dependence analysis, leveraging advances in parametric integer programming (building on Verdoolaege's isl PIP work) to enable dependence-free assertions for tiled tensor programs without user annotations.
+- **SCF-level speculative and transactional parallelism**: Extending `scf.forall` with transactional-memory semantics — speculative execution of iterations with commit/abort on conflict — driven by hardware transactional memory (Intel TSX successors, RISC-V Zacas) and supported in the lowering to LLVM IR `atomicrmw` and runtime conflict-detection libraries.
+
+---
+
 ## Chapter 140 Summary
 
 - The `affine` dialect represents loop nests and memory accesses as polyhedral (affine) expressions, enabling static dependence analysis and powerful loop transformations. `affine.for` requires affine loop bounds; `affine.load`/`affine.store` require affine index maps.

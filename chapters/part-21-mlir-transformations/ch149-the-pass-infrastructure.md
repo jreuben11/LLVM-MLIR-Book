@@ -576,6 +576,32 @@ The reproducer file contains the module state just before the crashing pass and 
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Pass manager dialect interface**: An RFC active on discourse.llvm.org proposes a `PassManagerInterface` that lets dialect authors declare op-specific invariants the pass manager can exploit for smarter scheduling and invalidation — reducing the need for explicit `markAnalysesPreserved` calls.
+- **`OpPassManager` serialization roundtrip**: Work in progress to make pipeline serialization (the text pipeline string) lossless for all option types, including `ListOption` with custom element types; targets `mlir::parsePassPipeline` / `printAsTextualPipeline` symmetry gap identified in LLVM issue #77893.
+- **Crash reproducer delta-reduction integration**: Patches under review to wire `mlir-reduce` automatically when `--mlir-pass-pipeline-crash-reproducer` fires, producing a minimized `.mlir` file without a separate manual reduction step.
+- **Finer-grained analysis invalidation signals**: Ongoing work to introduce `ChangeResult`-style invalidation tags (analogous to those in `DataFlowSolver`) so that transformation passes can declare *which* regions changed, avoiding whole-op analysis eviction when only a single block was modified.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Demand-driven / lazy pass scheduling**: Research prototypes (influenced by LLVM's proposed "on-demand" pass manager model) explore scheduling passes only when their results are requested by a consumer pass, eliminating wasted work in large pipelines where many passes are conditionally active.
+- **Inter-procedural analysis integration in the pass manager**: Current `AnalysisManager` is strictly intra-op; proposals extend it with an `InterproceduralAnalysisManager` that caches call-graph-level results (e.g., alias information across `func.func` boundaries) while preserving the isolation model.
+- **GPU-resident pass execution**: Experimental direction to run pass pipelines on GPU work-groups for embarrassingly parallel IR transformations over large numbers of independent `func.func` ops, leveraging MLIR's own GPU dialect for the scheduler itself.
+- **Typed pipeline descriptors**: Replacing stringly-typed pipeline text with a structured `PipelineDescriptor` type-checked at C++ compile time; reduces runtime parse errors and enables IDE tooling to validate pipelines before execution.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **ML-guided pass ordering**: Research combining profile-guided optimization data with reinforcement learning (analogous to work on LLVM MIR pass ordering by Leather et al.) to automatically sequence MLIR passes for a given workload class, integrated with the `PassInstrumentation` timing infrastructure.
+- **Formal verification of analysis invalidation**: Using Lean 4 / Coq-style mechanized proofs to certify that `markAnalysesPreserved` declarations in upstream passes are sound — part of the broader verified-compilation trajectory extending CompCert/Vellvm principles into the MLIR framework.
+- **Distributed pass execution across compilation shards**: Long-horizon work to partition a program's op tree across multiple machines (e.g., for warehouse-scale ML model compilation) with the pass manager acting as an orchestrator over an RPC layer, building on IREE's distributed execution experience.
+
+---
+
 ## Chapter Summary
 
 - MLIR passes are parameterized by op type (`OperationPass<T>`) or interface (`InterfacePass<I>`); this constraint enables safe parallel scheduling.

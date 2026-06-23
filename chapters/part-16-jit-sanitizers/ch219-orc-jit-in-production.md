@@ -572,6 +572,32 @@ The pure self-modification pattern described in Chapter 108 — instrument, prof
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Numba ORC migration completion**: Numba's in-progress transition from MCJIT to ORC (tracked in `numba/numba` GitHub issues and llvmlite PRs) is expected to land in llvmlite 0.44+, enabling lazy compilation, `ResourceTracker`-based specialization eviction under memory pressure, and concurrent JIT compilation across Python threads without the GIL as a serialization barrier.
+- **clang-repl REPL protocol stabilization**: The `clang::Interpreter` C++ API is being hardened for embedding in third-party tools (e.g., ROOT 6.34+, xeus-clang-repl Jupyter kernel). LLVM discourse RFC "Stabilize the IncrementalCompiler API" (posted Q1 2026) proposes versioned headers under `clang/Interpreter/` separate from the main Clang headers to allow downstream embedding without tracking internal header churn.
+- **PostgreSQL 18 JIT improvements**: PostgreSQL 18 development cycle (targeting mid-2026 release) includes patches to jit expression compilation that extend the JIT'd opcode coverage to `EEOP_NULLIF`, `EEOP_PARAM_EXEC`, and aggregate transitions, reducing the fraction of query plans that fall back to the interpreter for partial evaluation.
+- **ORC concurrent-compile API hardening**: LLVM 22 introduced `ConcurrentIRCompiler` and `IRCompileLayer` thread-pool support; the 23.x development cycle (open on llvm.org/docs/ORCv2.html) plans to document and test the concurrent path end-to-end, fixing races in `JITDylib::define` when multiple threads race to add the same weak symbol.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Halide autoscheduler + LLVM profile-guided feedback loop**: The Halide community is prototyping an autoscheduler variant that uses LLVM's `ReOptimizeLayer` to collect real execution profiles of compiled schedule candidates, feeding back into the schedule search instead of relying solely on benchmarking. This closes the self-modification loop described in §219.8 for image-pipeline workloads, where hardware prefetcher behavior and cache contention are difficult to model statically.
+- **WAVM tiered compilation with Cranelift baseline + LLVM tier-2**: WAVM has an open issue and RFC discussion to adopt a two-tier model: Cranelift for fast tier-1 compilation (matching Wasmtime's startup latency), with ORC `ReOptimizeLayer` promoting hot Wasm functions to LLVM-compiled tier-2. This directly addresses the startup latency problem identified in the §219.7 comparison table while retaining LLVM code quality for sustained workloads.
+- **LLDB expression evaluator migration to ORC v2 fully**: LLDB's expression evaluator still retains MCJIT fallback paths for older platforms in LLVM 22 (`lldb/source/Plugins/ExpressionParser/Clang/ClangExpressionParser.cpp`). By 2028, the plan (tracked on LLDB's GitHub project board) is to remove all MCJIT paths, replacing them with ORC's `EPCGenericJITLinkMemoryManager` for remote-process injection, enabling expression evaluation in out-of-process debugger scenarios (e.g., cross-device debugging on embedded targets).
+- **Numba CUDA target via MLIR NVVM dialect**: The Numba project is evaluating replacing direct PTX emission from llvmlite with a path through MLIR's `nvvm` and `gpu` dialects, then lowering to PTX via `mlir-translate`. This would give Numba access to MLIR's loop transformation infrastructure (`affine` and `linalg` dialects) for GPU kernel optimization, improving code quality for stencil and tensor workloads beyond what the current direct-PTX backend achieves.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Unified JIT ABI for embedding in language runtimes**: The proliferation of per-project JIT embedding patterns (each of the six systems in this chapter has its own bespoke ORC wiring) has motivated a proposal in the LLVM community for a stable `libjit` C ABI — a versioned shared library wrapping ORC that language runtimes (Numba, Julia, PostgreSQL, Halide) could link against without tracking LLVM C++ ABI changes. This would replicate PostgreSQL's C-API approach at the level of the full ORC stack, enabling independent LLVM upgrades in packaging systems like conda and Homebrew.
+- **ORC-native ahead-of-time caching (persistent code cache)**: All six systems currently recompile from scratch on process restart. A persistent ORC code cache — serializing compiled `ObjectLayer` output keyed on a cryptographic hash of the input IR + target features — is a long-requested feature (LLVM RFC #0072, discourse.llvm.org, 2023). By 2031, a stable cache format would allow clang-repl sessions, PostgreSQL query plans, and Halide schedules to survive restarts, reducing startup latency for warm workloads to near-zero.
+- **Wasm GC and component model support in WAVM-style LLVM backends**: The W3C WebAssembly GC proposal (finalized 2024) and the Component Model specification (in progress) introduce reference types, struct/array heap types, and inter-component function calls that do not map cleanly to LLVM's current type system. LLVM IR extensions for GC reference types (the `gc` attribute family, `statepoint`/`patchpoint` infrastructure) will need to be extended to handle Wasm GC's type hierarchy; this is an active area at the intersection of the Wasm CG and LLVM community, with prototype patches expected by 2027–2028 and production-quality support by 2030–2031.
+
+---
+
 ## Chapter Summary
 
 - The ORC production recipe has six steps: obtain IR, create JITDylib, add module, look up symbol, call, release. Every deployment in this chapter is a variation on these steps.

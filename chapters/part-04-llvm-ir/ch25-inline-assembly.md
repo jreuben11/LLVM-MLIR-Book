@@ -798,6 +798,32 @@ Inline assembly is the tool of last resort: powerful, portable across compilers 
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **`asm goto` with output values stabilization**: The `callbr`-with-outputs path introduced for Linux kernel 5.13+ asm goto patterns is undergoing hardening in LLVM 22/23; expect fixes to register allocation edge cases where label and register outputs interact incorrectly under heavy loop optimization (tracked in LLVM issue #63957 and related PRs on the `callbr` path in `SelectionDAGBuilder`).
+- **AVX-512 inline asm constraint completeness for APX registers**: Intel Advanced Performance Extensions (APX) adds 16 new GPRs (`r16`–`r31`) and EGPR-extended encodings; LLVM 22 partially supports APX but inline asm `r` constraints and brace-named-register constraints for `{r16}`–`{r31}` are being completed in `X86ISelLowering::getRegForInlineAsmConstraint`, with the remaining cases tracked in the LLVM APX meta-issue.
+- **RISC-V inline asm for Zicfilp/Zicfiss (CFI extensions)**: The RISC-V control-flow integrity extensions Zicfilp (landing pads) and Zicfiss (shadow stack) introduce new instructions (`lpad`, `sspush`, `sspop`) that currently lack inline asm constraint mappings; upstream patches on discourse.llvm.org (`[RISCV] Add Zicfilp/Zicfiss support`) are targeting LLVM 23.
+- **Improved `~{memory}` modeling in MemorySSA**: An RFC on discourse.llvm.org ("Refine MemorySSA handling of inline asm clobbers") proposes distinguishing asm blocks that declare only specific pointer clobbers via `"=*m"` constraints from those with a blanket `~{memory}`, allowing alias analysis to prove non-aliasing across tightly constrained asm nodes.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Typed inline assembly via a structured `InlineAsm` IR extension**: A long-standing community discussion (originating from the 2022 "TypedPointers" transition) proposes richer type annotations on `InlineAsm` operands — replacing the current `elementtype` attribute hack with first-class operand type metadata — allowing the verifier and alias analysis to reason more precisely about memory effects without relying on the flat constraint string.
+- **MSVC `__asm` support for AArch64 Windows targets**: Microsoft is expanding MSVC AArch64 intrinsic and inline asm support; Clang's MSVC compatibility layer (`-fms-compatibility`) is expected to gain `__asm` block support for AArch64 as Windows on Arm developer toolchain demand grows, filling the current gap documented in section 25.9.
+- **Constraint-aware optimization passes**: As of LLVM 22, passes like GVN and LICM treat non-volatile inline asm as a black box pure function. An RFC on discourse.llvm.org ("Allow passes to inspect InlineAsm constraints for optimization") proposes letting GVN inspect the constraint string to determine whether two asm blocks with different constraint alternatives but identical semantic effect can be CSE'd.
+- **Inline asm in `GlobalISel` path**: GlobalISel's `IRTranslator` handles `InlineAsm` but falls back to SelectionDAG for complex constraint patterns; closing these gaps is a tracked GlobalISel milestone, particularly for AArch64 SVE and SME register constraints (`{za}`, `{zt0}`) that the SelectionDAG path handles but GlobalISel's `InlineAsmLowering` does not yet fully cover.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Safe inline assembly via a higher-level Clang DSL**: Compiler researchers (including work building on the "Asm Unsafe" analysis in GCC and the Clang `__attribute__((asm_operand_constraint))` proposals) are exploring a higher-level surface syntax that replaces the constraint string with a typed DSL, enabling the compiler to statically verify that operand types, register classes, and clobber declarations are consistent with the asm template text — eliminating the class of silent miscompilations caused by wrong constraint letters.
+- **RISC-V P-extension (packed SIMD) and custom-extension inline asm**: As RISC-V vendor custom extensions proliferate (SiFive X280, Alibaba C910, RISC-V P-extension for embedded DSP), the inline asm constraint vocabulary will need a plugin/target-hook mechanism for extension-specific register classes beyond the current hard-coded `r`, `f`, `vr`, `vm` letters, enabling out-of-tree RISC-V targets to register their own constraint letters without patching `RISCVISelLowering.cpp`.
+- **Formal verification of constraint string semantics**: Projects in the vein of Alive2 (as covered in Chapter 165) could be extended to verify that an inline asm block's declared constraints — output register classes, clobber lists, and `volatile` status — are consistent with the assembly text's actual ISA-level register access patterns, using an SMT-backed ISA semantics model (e.g., derived from Sail-generated RISC-V or x86 formal models).
+
+---
+
 ## Chapter Summary
 
 - The `InlineAsm` class (`llvm/IR/InlineAsm.h`) holds the asm string, constraint string, and the `hasSideEffects`, `isAlignStack`, dialect, and `canThrow` flags; it is created via `InlineAsm::get()` and used as the callee of a `call` or `callbr` instruction.

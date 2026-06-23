@@ -442,6 +442,32 @@ The MC layer itself has a separate test directory: `llvm/test/MC/<Target>/`. The
 
 The `llvm-mc` tool is the standalone MC layer driver; it can assemble `.s` files to objects, disassemble hex bytes, and dump object file structure.
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **MCStreamer API stabilisation for COFF ARM64EC**: ongoing patches to `WinCOFFObjectWriter` and `MCELFObjectTargetWriter` to fully support ARM64EC relocation types (`IMAGE_REL_ARM64_REL32`, `IMAGE_REL_ARM64EC_*`) needed for Windows-on-ARM hybrid binaries; tracked in several active LLVM Phabricator / GitHub PRs targeting the `llvm/lib/MC/WinCOFFObjectWriter.cpp` path.
+- **`update_mir_test_checks.py` extension to MIR virtual-register numbering**: the script currently regenerates `CHECK:` lines but does not handle renumbered virtual registers stably across rebuilds; a community RFC discussion on discourse.llvm.org proposes canonicalising virtual register names to make generated `CHECK:` lines diff-stable.
+- **MC-layer support for RISC-V Zicond / Zfbfmin extensions**: TableGen encoding patterns and `MCFixupKind` entries for the new RISC-V conditional operations and BF16 FP extension are landing in `llvm/lib/Target/RISCV/MCTargetDesc/`; integration tests in `llvm/test/MC/RISCV/` are being added in parallel.
+- **`llvm-mc` diagnostic improvements**: improved source-location tracking through `SMLoc` propagation in `MCObjectStreamer::emitInstruction()` to surface more actionable error messages when inline assembly contains invalid encodings.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Typed MCInst operands via MC-layer trait annotations**: a multi-stage RFC (`[RFC] Typed MCOperand` on discourse.llvm.org) proposes extending `MCOperand` with type metadata derived from TableGen `Operand` classes, enabling static validation of operand widths and types in the MC layer before byte emission, reducing silent encoding bugs in new-target bringup.
+- **Incremental MC assembly for JIT workloads**: the current `MCAssembler::Finish()` model processes an entire translation unit at once; proposals for an incremental layout API (motivated by ORC JIT's per-function emission model) aim to reduce per-function assembly latency by amortising the fixup-resolution pass over streaming function emission.
+- **MIR serialisation for inter-process caching**: extending the `.mir` format (YAML preamble + body) to serve as a stable on-disk cache key for individual machine functions, enabling distributed build caches (e.g., `ccache`-style) to cache post-ISEL or post-RA MIR and skip redundant backend passes for unchanged functions.
+- **Unified disassembler feedback loop with `MCInstrAnalysis`**: current `MCDisassembler` implementations are largely TableGen-driven with minimal semantic annotations; planned work extends `MCInstrAnalysis` to expose side-effect, memory-access, and control-flow properties directly from disassembled `MCInst`s, enabling richer binary analysis tools without re-running the full CodeGen pipeline.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **MC layer support for post-quantum cryptography instruction extensions**: as ISA vendors (Intel, Arm) add hardware acceleration for lattice-based or hash-based PQC primitives, the MC layer fixup/relocation infrastructure will need new `MCFixupKind` entries and `ELFObjectWriter` relocation record types; the LLVM MC layer is the bottleneck integration point for all such ISA additions.
+- **Formal specification of the MIR serialisation format**: long-term plans discussed at LLVM Developers' Meetings include a machine-readable YAML schema for `.mir` files (analogous to how `mlir-lsp-server` validates MLIR files), enabling IDE tooling (language servers, linters) for `.mir` test authoring and cross-version compatibility checking.
+- **Target-independent MC relaxation engine**: current relaxation in `MCAssembler::layoutOnce()` iterates to fixpoint but is implemented independently per-target; a proposed refactoring extracts a shared relaxation framework driven by TableGen-declared encoding-width variants (short/long form), reducing the per-target code burden for new architectures and ensuring correctness properties can be proven across targets uniformly.
+
+---
+
 ## Chapter Summary
 
 - The MC layer (`MCInst`, `MCStreamer`, `MCAssembler`, `MCObjectWriter`) bridges register-allocated `MachineInstr`s and concrete object file output; the same API drives both text assembly and binary object generation.

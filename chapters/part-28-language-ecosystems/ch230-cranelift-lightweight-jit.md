@@ -352,6 +352,32 @@ Runtime performance with Cranelift is typically 10–15% slower than LLVM's debu
 
 QBE ([c9x.me/compile/](https://c9x.me/compile/)) is a minimal IR-to-machine-code library in ~15 KLOC C, suitable for hobby compilers. Cranelift fills the space between QBE (too minimal for production) and LLVM (too heavy for JIT latency requirements).
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **`rustc_codegen_cranelift` stabilization**: The `rustc-codegen-cranelift-preview` rustup component is tracked for promotion out of preview status; work is ongoing to close gaps in inline assembly support on x86-64 and SIMD codegen coverage — follow [rust-lang/rustc_codegen_cranelift#1540](https://github.com/rust-lang/rustc_codegen_cranelift/issues/1540) and related tracking issues.
+- **Wasmtime Winch AArch64 completion**: The Winch baseline compiler's AArch64 backend reached feature parity with x86-64 in 2025; remaining work covers floating-point edge cases and tail-call lowering — tracked in the Wasmtime CHANGELOG and [bytecodealliance/wasmtime](https://github.com/bytecodealliance/wasmtime/issues) milestones.
+- **WebAssembly GC proposal full integration**: Cranelift's `r32`/`r64` reference types underpin the Wasm GC proposal; Wasmtime's GC implementation using `regalloc2` safepoint slots is being finalized to handle collection of struct and array heap types per the [Wasm GC Phase 4 spec](https://github.com/WebAssembly/gc).
+- **ISLE coverage for RISC-V Vector extension**: Cranelift's RISC-V backend is adding ISLE rules for the `V` extension (RVV), enabling SIMD codegen on RISC-V targets used in embedded and server domains — tracked in [bytecodealliance/wasmtime PR history](https://github.com/bytecodealliance/wasmtime/pulls?q=riscv+vector).
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **E-graph-based mid-end optimizer (egg/egglog integration)**: The Bytecode Alliance has prototyped applying e-graph equality saturation (as used in the `egg` crate) to CLIF optimization, combining instruction selection and algebraic simplification into a single rewriting phase. A production mid-end using `egglog` is a stated roadmap goal to narrow the 14% code-quality gap vs. LLVM at near-constant compile time — see [cfallin's blog series on aegraphs](https://cfallin.org/blog/2023/01/20/cranelift-aegraph/).
+- **`regalloc2` second-chance bin-packing and coalescing improvements**: Ongoing research into register coalescing (eliminating copy instructions from live-range splits) within `regalloc2` to reduce code bloat in Cranelift's output; the allocator is also being evaluated for adoption in other runtimes (V8's Maglev tier has examined it).
+- **Wasm threads and shared memory in Cranelift**: Atomic memory operations and the `shared-everything-threads` Wasm proposal require new Cranelift IR opcodes and memory-ordering semantics; integration work follows the [WebAssembly threads spec](https://github.com/WebAssembly/threads) progression.
+- **Stable Cranelift ABI for embedders**: The `cranelift-jit` and `cranelift-object` crates provide a dynamic and object-file emission surface; a stable, semver-guaranteed public API is planned to make Cranelift usable as a standalone library by language runtimes beyond wasmtime (e.g., the `rlox` and `lox-rs` JIT prototypes already use it experimentally).
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Verified ISLE correctness via Verilog/SMT backends**: Research into formally verifying ISLE rewrite rules using SMT solvers (building on work like Alive2 for LLVM) is an open academic problem; the ISLE compiler's decidable overlap checker provides a foundation for extending formal verification to semantic correctness of rewrites, not just coverage.
+- **Cranelift as a WebAssembly-native portable backend**: The Component Model and WASI 0.3 roadmap aim to make Wasm a universal portable ABI; Cranelift's role as Wasmtime's production backend positions it to become the de-facto reference implementation for component linking and AOT-ahead-of-time compilation in the Wasm ecosystem, potentially displacing LLVM for Wasm-to-native toolchains.
+- **Profile-guided CLIF optimization without IR changes**: Sampling-based PGO integrated at the Cranelift tier (rather than requiring frontend cooperation) using block frequency estimates derived from hardware performance counters, enabling runtime adaptive recompilation closer to the JIT model used by HotSpot's C2 or V8's Turbofan — a long-term Wasmtime design aspiration for server-side Wasm workloads.
+
+---
+
 ## Chapter Summary
 
 - Cranelift is a production-quality, Rust-written codegen backend targeting sub-millisecond compilation, used in Wasmtime and as an alternative Rust codegen backend

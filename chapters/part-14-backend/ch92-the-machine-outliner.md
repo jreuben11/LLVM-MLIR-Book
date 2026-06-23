@@ -560,6 +560,32 @@ Choose `MachineOutliner` when:
 
 In practice, production `-Oz` pipelines on AArch64 often run both: `IROutliner` captures structural similarity at the IR level, and `MachineOutliner` then captures any remaining repeated sequences visible only after register allocation and instruction selection.
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **RISC-V Machine Outliner parity with AArch64**: The RISC-V backend's `getOutliningType` and `buildOutlinedFrame` hooks are undergoing refinement (tracked in [D149568](https://reviews.llvm.org/D149568) and follow-on patches) to handle RA (return address) save/restore strategies analogous to AArch64's three-frame-type model, including support for Zicfiss (shadow-stack CFI) landing pads when the extension is enabled.
+- **IROutliner + MachineOutliner pipeline ordering study**: An LLVM RFC thread (discourse.llvm.org, late 2025) proposes a formal cost-model study measuring the interaction between IROutliner and MachineOutliner at `-Oz` on AArch64, with the goal of automatically suppressing MachineOutliner for regions already handled by IROutliner to avoid redundant suffix-tree construction overhead.
+- **Outlined function section placement under `-ffunction-sections`**: When `-ffunction-sections` places each function in its own ELF section, outlined functions currently land in a default `.text.outlined.*` section. A pending patch adds a heuristic to co-locate the outlined function section with its most frequent call-site's section, reducing inter-section branch penalties on targets with 26-bit branch-range limits.
+- **Improved debug-info fidelity for outlined regions**: DWARF location-list generation for outlined machine instructions is incomplete when the call-site and the outlined function body are in different CUs; active work on `DWARFLinker` and the outliner's `DebugInstrRef` integration aims to produce correct `DW_AT_abstract_origin` chains for outlined frames by LLVM 23.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Profile-guided outlining threshold tuning**: Integration with the AutoFDO / BOLT feedback loop is planned to allow the outliner's `TotalSavedBytes` threshold and call-overhead constants to be calibrated per-binary from sampled profiling data, rather than relying on static ISA-average estimates. This aligns with the broader LLVM initiative to make cost models data-driven (see the "learned cost models" RFC on discourse.llvm.org, 2025).
+- **Cross-DSO outlining under `-fvisibility-default`**: Current MachineOutliner constraints prohibit outlining across shared-library boundaries because outlined functions cannot have `PLT`-mediated calls. Extending the outliner to emit `local_ifunc` trampolines (ELF) or `__declspec(selectany)` stubs (COFF) would allow cross-DSO deduplication for large frameworks shipping many shared objects with common runtime patterns.
+- **Suffix-tree replacement with Aho–Corasick-based indexing**: The `SuffixTree` construction at O(n) time but O(n) memory is a bottleneck for very large ThinLTO modules (10 M+ instructions). Research prototypes (presented at the 2024 LLVM Developers' Meeting) explore Aho–Corasick automata over a rolling-hash alphabet as a drop-in replacement, reducing peak memory by ~40% with equivalent candidate recall.
+- **IRSimilarityIdentifier extension to MLIR**: Analogous IR similarity detection for MLIR ops is being prototyped (`mlir-outliner` RFC, MLIR discourse, 2025) to enable ISA-independent outlining of TOSA/LinAlg op sequences before lowering. This would bring Machine-Outliner-style savings to ML compiler pipelines targeting heterogeneous accelerators.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Learned outlining policies via reinforcement learning**: Research groups (UC San Diego, ARM Research) are exploring RL agents trained on code-size/performance Pareto frontiers to replace the greedy `pruneOverlaps` heuristic with a policy that jointly optimizes outlining decisions across an entire module, anticipating downstream inliner and scheduler interactions.
+- **Outliner-aware linker deduplication (COMDAT generalization)**: A long-term standards-track effort in the ELF ABI working group aims to define a "structural COMDAT" mechanism where the linker, not the compiler, performs final deduplication of identical machine-code sections; this would allow outlining to operate at link time across independently compiled static archives without requiring LTO.
+- **Formal verification of outliner correctness**: Extending the Alive2 / MC-Semantics framework to verify that `buildOutlinedFrame` transformations preserve program semantics for all legal LR-save frame types, including interactions with stack unwinding (`.eh_frame`) and sanitizer shadow stacks, addressing a class of correctness bugs historically found only through fuzzing.
+
+---
+
 ## Chapter Summary
 
 - `MachineOutliner` operates as a module-level post-RA pass, detecting repeated instruction sequences globally across all functions using a suffix tree.

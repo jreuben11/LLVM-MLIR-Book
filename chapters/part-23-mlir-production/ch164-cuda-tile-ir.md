@@ -402,6 +402,32 @@ Achieving near-cuBLAS performance with MLIR-generated code requires:
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Blackwell (sm_100) nvgpu dialect extensions**: NVIDIA's Blackwell architecture (B100/B200) introduces the new UMMA instruction (replacing WGMMA with a persistent-across-CTA interface) and TMEM (Tensor Memory — a new scratchpad tier). Active MLIR RFC discussion on llvm/llvm-project GitHub around mid-2026 aims to add `nvgpu.umma` and `nvgpu.tmem.*` ops mirroring the Hopper pattern.
+- **`transform.nvgpu.rewrite_matmul_as_mma_sync` stabilization**: The transform op is currently experimental; the 6-month target is promoting it to a stable, versioned transform dialect op and expanding it to cover grouped GEMMs and batched-GEMM via `nvgpu.warpgroup.mma` with multi-warpgroup scheduling.
+- **TMA multicast lowering in MLIR**: The `nvgpu.tma.async.load` op currently lacks multicast (broadcasting one TMA load to multiple CTAs in a cluster). An in-progress patch series on the LLVM Phabricator/GitHub adds `nvgpu.tma.async.load.multicast` and the corresponding cluster barrier semantics.
+- **`mlir-opt --convert-nvgpu-to-nvvm` robustness improvements**: Several edge cases in the NVGPUToNVVM conversion pass (particularly around multi-stage mbarrier phase alternation and swizzle selection) have open bugs; target is resolving these for a reliable Hopper GEMM end-to-end pipeline in `mlir-opt`.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Unified Tile IR dialect (upstream)**: The in-progress `tile` dialect RFC (tracked informally as "CUDA Tile IR") aims to introduce hardware-agnostic tile-level operations (`tile.matmul`, `tile.load`, `tile.store`) that lower to `nvgpu` on NVIDIA, `amdgpu.wmma` on AMD RDNA4/CDNA4, and Intel XMX on Xe2. This is the central multi-year effort for the MLIR GPU stack.
+- **CuTe layout types in MLIR type system**: Exposing CuTe `Layout<Shape, Stride>` as a first-class MLIR type (discussed in NVIDIA internal RFC and partially in upstream issues) would allow the compiler to verify layout compatibility statically and select swizzle patterns automatically — eliminating the current need for programmer-specified `swizzle = "swizzle_128B"` annotations.
+- **Persistent kernel support via cooperative groups**: NVIDIA's persistent-kernel pattern (a warpgroup stalls on a work queue rather than exiting) requires `scf.while` + `nvgpu.warpgroup.barrier` fusion. The Transform dialect roadmap includes `transform.gpu.pipeline_persistent_kernel` targeting 2027–2028 availability.
+- **Auto-tuning integration with MLIR codegen**: Integration of the OpenTuner / MLGO / ML-driven auto-tuner into the MLIR Hopper codegen pipeline to automatically select pipeline depth, block dimensions, and swizzle patterns — analogous to how cuBLAS selects heuristics per problem size. Google's IREE team and NVIDIA's compiler group have both signalled intent here.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Cross-architecture portability of Tile IR kernels**: A single `tile.matmul` + Transform sequence that achieves near-peak performance on NVIDIA (Blackwell+), AMD (CDNA5+), and Intel (Xe3+) through a shared abstraction over hardware-specific MMA instructions, DMA engines, and scratchpad hierarchies — the long-term goal of the unified Tile IR effort.
+- **Formal verification of tiling transformations**: Integration of Lean 4 or Coq proofs for correctness of tile algebra compositions (the CuTe `zipped_divide` and `zipped_product` lattice operations), establishing that MLIR Tile IR lowerings preserve tensor semantics — building on the Vellvm/Alive2 tradition for LLVM IR.
+- **Compiler-driven Tensor Memory management (post-Blackwell)**: As NVIDIA's TMEM and future scratchpad tiers proliferate, an MLIR memory placement pass that reasons over tile liveness, hardware capacity constraints, and bandwidth-optimal placement across TMEM/SMEM/L2/HBM — analogous to register allocation but for the multi-level GPU memory hierarchy.
+
+---
+
 ## Chapter Summary
 
 - Hopper introduces three hardware features: WGMMA (128-thread 64×128×16 matmul), TMA (async bulk copy with tensor maps), and CTA clusters (inter-CTA SMEM sharing).

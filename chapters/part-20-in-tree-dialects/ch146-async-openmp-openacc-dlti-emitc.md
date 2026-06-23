@@ -965,6 +965,32 @@ These five dialects often appear together in real pipelines:
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **OpenMP 6.0 dialect coverage**: The OpenMP 6.0 standard (published November 2025) introduces `omp.assume` with assumption attributes, metadirectives with `when` clauses, and extended `interop` constructs for GPU interoperability. Upstream `omp` dialect patches tracking these features are in review on [discourse.llvm.org/c/mlir](https://discourse.llvm.org/c/mlir); Flang's OpenMP lowering (Chapter 127) depends on them for correct 6.0 semantics.
+- **EmitC C++ output mode**: RFC ["EmitC: Add C++ emission mode"](https://discourse.llvm.org/t/rfc-emitc-c-emission-mode) proposes extending `mlir-translate --mlir-to-cpp` to emit valid C++ with templates and `constexpr`, targeting TFLite Micro and ONNX Runtime Micro use cases where a C++ runtime is available but LLVM is not.
+- **MPI dialect non-blocking collectives**: `mpi.iallreduce` / `mpi.isend` / `mpi.irecv` with `!mpi.request` handle type — currently in draft patches — would allow MPI dialect to model communication/computation overlap, unlocking `--mpi-overlap` optimization passes similar to NCCL's pipelining.
+- **DLTI heterogeneous address space entries**: Patches under review extend `#dlti.dl_spec` to include address-space-tagged pointer entries (`!llvm.ptr<addrspace(1)>` → GPU global memory layout), which is required for correct `gpu`-to-LLVM lowering on targets where each address space has distinct pointer widths and alignment requirements.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Structured async concurrency with cancellation**: The `async` dialect's current model lacks first-class cancellation; a proposed `async.cancel_token` type and `async.cancel` op would align the dialect with C++26 `std::stop_token` semantics and enable deadlock-free task tree cancellation in distributed ML training pipelines.
+- **OpenACC 4.0 dialect operations**: OpenACC 4.0 (expected 2027) is planned to add `acc.tile`, extended `async` clause semantics on `acc.data`, and `acc.unified_memory` to model unified virtual addressing on NVIDIA H100/Grace-Hopper architectures; the MLIR `acc` dialect will require corresponding ops and updated Flang lowering.
+- **EmitC MISRA-C and AUTOSAR compliance mode**: Automotive and safety-critical compiler toolchains (AUTOSAR Adaptive Platform, FACE) require C output to conform to MISRA-C:2023 or AUTOSAR C++14 rules. A planned `emitc.dialect_option` attribute and a MISRA compliance verifier pass would flag or rewrite patterns (implicit casts, unbounded recursion) that violate the relevant rule sets.
+- **WasmSSA garbage collection and exception handling ops**: WebAssembly GC (references, `anyref`, `structref`, `arrayref`) and WasmEH (zero-cost exception handling via `try`/`catch` blocks) are now standardized and shipping in V8/SpiderMonkey; the WasmSSA dialect will require new typed reference ops and exception region constructs to support Kotlin/Wasm, Dart-to-Wasm, and Mojo-to-Wasm targets that use GC types.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Unified async/omp/acc concurrency model**: Research proposals (see "Unifying Parallel Dialects in MLIR", EuroLLVM 2025) argue for a single `parallel` dialect that subsumes `async`, `omp`, and `acc` compute constructs under a common execution model with pluggable runtime backends; this would allow a single pass pipeline to target POSIX threads, OpenMP runtimes, and GPU accelerators from one IR.
+- **DLTI-driven ABI specification for novel ISAs**: As RISC-V custom extensions (RVV2, Zvkned, LLVM vendor extensions for AI accelerators) proliferate, DLTI is the natural place to encode extension-specific data layout rules (vector register widths, segment load/store alignment). A five-year roadmap item is a complete RISC-V ABI specification in DLTI that supersedes LLVM's DataLayout strings for MLIR-first RISC-V compiler stacks.
+- **WasmSSA as primary compilation target for browser-deployed MLIR tools**: As WebAssembly Component Model matures and Wasm runtimes achieve near-native performance for SIMD workloads, the WasmSSA dialect is positioned to become the default output target for MLIR-based language compilers (Mojo, Modular AI Engine) deploying inference kernels to browsers and edge devices, eliminating the LLVM Wasm backend from those pipelines entirely.
+
+---
+
 ## Chapter 146 Summary
 
 - The `async` dialect provides structured asynchronous execution: `async.execute` dispatches work asynchronously, returning `!async.token` and `!async.value<T>`. `async.await` synchronizes. The fan-out/fan-in pattern uses `!async.group`. Lowering pipeline: `--async-to-async-runtime` (coroutinizes), `--async-runtime-ref-counting`, `--convert-async-to-llvm` (maps to thread pool runtime).

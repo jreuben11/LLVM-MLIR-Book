@@ -1209,6 +1209,32 @@ The `dot()` built-in demonstrates the element-count dispatch pattern:
 
 The integer dot product operations (`dot4add_i8packed`) introduced in SM 6.4 are exposed as HLSL built-ins only when targeting `cs_6_4` or higher, enforced by the Clang HLSL sema layer through the `AvailableAtShaderModel` attribute on built-in declarations.
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Clang HLSL frontend feature parity with DXC**: Active upstream effort to close the gap between Clang's in-tree HLSL support and Microsoft's standalone `dxc` fork, covering SM 6.7/6.8 features including sampler feedback (`WriteSamplerFeedback`, `WriteSamplerFeedbackBias`) and work graph node I/O types. Tracked on LLVM Discourse under the HLSL Working Group and in the HLSL RFC series at discourse.llvm.org.
+- **DXIL validator (`dxil-val`) integration into the in-tree backend**: The open-source DirectXShaderCompiler validator is being upstreamed as `DXILPostOptimizationValidation`; near-term work focuses on completing struct-layout, resource-handle aliasing, and DXIL signing checks so the in-tree path can produce production-valid containers without calling `dxc` for signing. See [`llvm/lib/Target/DirectX/DXILPostOptimizationValidation.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/llvm/lib/Target/DirectX/DXILPostOptimizationValidation.cpp).
+- **SM 6.8 Work Graph lowering in the in-tree backend**: The `dx.op` opcodes 199–220+ for work graph node handle creation, `GetThreadNodeOutputRecords`, and `OutputComplete` are being implemented in `DXILOpLowering.cpp` and `DXIL.td`; goal is functional lowering for `[Shader("node")]` entry points by LLVM 23.
+- **`dxc -spirv` community-fork alignment**: Efforts to align the community-contributed SPIR-V backend in `DirectXShaderCompiler` with upstream LLVM's SPIR-V target (Chapter 104) so HLSL-to-SPIR-V can eventually use the in-tree Clang HLSL + SPIR-V backend pipeline rather than the fork. RFC discussion active on Mesa and Khronos lists.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Shader Model 7.x and DXIL 2.0**: Microsoft's DirectX roadmap post-SM 6.9 involves expanded neural inference primitives (matrix-multiply, quantized weight loading) directly as first-class DXIL operations rather than packed integer dot products. This will require new `dx.op.*` opcodes and DXIL container chunk extensions — tracked in the DirectX Agility SDK previews and the DXIL spec repository at github.com/microsoft/DirectXShaderCompiler/docs.
+- **Opaque resource handles and typed buffer unification**: The SM 6.6 AnnotateHandle path partially decouples handle creation from type info; a mid-term proposal is to fully unify the `target("dx.Texture", ...)` typed extension types with the DXIL bitcode serialization, eliminating the `DXILPrepareModule` typed-pointer normalization pass and aligning with LLVM's opaque pointer model. Active in-tree issue discussions on GitHub.
+- **DXIL-level link-time optimization (LTO) for library shaders**: Current DXIL library linking occurs at D3D12 state object creation time by the driver, not by LLVM. A proposal to add DXIL LTO in the LLVM linker layer would allow cross-module inlining of `export` functions and callable shaders before container emission, enabling better optimization of DXR pipelines. Analogous to SPIR-V's `spirv-link` toolchain.
+- **PIX / RenderDoc integration with in-tree backend debug info**: The `ILDB` and `PRIV` container chunks used by PIX require specific metadata encoding beyond standard LLVM DWARF. Near- to mid-term work involves formalizing the debug-info serialization in the `DXILBitcodeWriter` to produce PIX-compatible containers from the in-tree path, eliminating the need to roundtrip through `dxc` for debugging.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Full convergence of the in-tree Clang HLSL path with `dxc`**: The long-term goal of the HLSL Working Group is for Microsoft to deprecate the LLVM 3.7 fork in `DirectXShaderCompiler` and migrate Windows SDK tooling to use the upstream LLVM/Clang HLSL frontend. This requires DXIL signing support, full SM feature parity, and ABI stability of the DXContainer format from the in-tree backend.
+- **Neural / AI-specific GPU ISA intrinsics in DXIL**: As AMD RDNA4, Intel Xe2, and NVIDIA Blackwell architectures expose dedicated matrix-engine instructions (analogous to CUDA's `mma` / `wmma` and ROCm's `mfma`), DXIL will need first-class support for tile-matrix types and cooperative-group operations directly in the shader model, rather than emulating them via SM 6.4 integer dot products. This follows SPIR-V's `CooperativeMatrixKHR` extension trajectory.
+- **Verified DXIL compilation via Alive2-style equivalence checking**: The Alive2 framework (Chapter 131) has been extended to verify LLVM IR transformation correctness; long-term research aims to apply equivalence checking to DXIL-lowering passes (`DXILOpLowering`, `DXILPrepareModule`) to formally verify that HLSL semantics — including IEEE floating-point modes, resource-access ordering, and wave-divergence invariants — are preserved through the compilation pipeline. Initial exploration in academic work building on Zhao et al.'s Vellvm and Lopes/Hur's Alive2.
+
+---
+
 ## Chapter 105 Summary
 
 - **DXIL** is LLVM 3.7-era bitcode with structural restrictions enabling safe driver-side JIT compilation; the DXContainer wraps it alongside reflection, root signature, and validation metadata chunks.

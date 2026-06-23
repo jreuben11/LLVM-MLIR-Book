@@ -451,6 +451,32 @@ llvm-lit --param cc=/path/to/clang-old \
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **`-ftime-trace` expansion to MLIR pipelines**: Active work on extending Clang/LLVM's Chrome-trace profiling to cover MLIR pass pipelines end-to-end, surfacing per-dialect pass timing in the same JSON artifact; tracked in [D149456](https://reviews.llvm.org/D149456) follow-ons and discussed on LLVM Discourse under "MLIR Performance Tooling".
+- **LLVM CMake preset stabilization**: The `CMakePresets.json` infrastructure introduced in LLVM 18 is expected to reach a stable, documented set of developer presets by late 2026, replacing the ad-hoc `-DLLVM_CCACHE_BUILD`/`-DLLVM_USE_LINKER` flag combinations that developers currently memorize manually.
+- **`llvm-mca` throughput model updates for Zen 5 and Lion Cove**: AMD Zen 5 and Intel Lion Cove µarch scheduling models were added in LLVM 19–20; remaining latency/throughput gaps (especially for AVX-512 gather/scatter and AMX) are being closed by community contributors tracking vendor disclosure cycles.
+- **BOLT integration into the LLVM test-suite performance tracking CI**: Meta and Google are driving BOLT into the upstream `llvm-test-suite` continuous benchmarking pipeline so per-commit BOLT regressions can be caught automatically, complementing existing PGO CI jobs.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Parallel pass manager with finer-grained analysis sharing**: The new pass manager's analysis cache is not thread-safe, blocking module-level parallelism within a single TU. Active RFC threads on discourse.llvm.org ("Parallel NewPM") propose a read-lock-for-analyses / write-lock-for-transforms scheme allowing independent SCC components to be optimized concurrently, potentially halving `-O2` compile times on large modules with many independent translation units merged by LTO.
+- **Profile-guided build-system caching via Bazel/Buck2 remote cache integration with PGO profiles**: Efforts to co-locate PGO profile artifacts in the same content-addressable storage used by Bazel remote-execution so incremental PGO rebuilds require transmitting only changed profile slices, rather than full `.profdata` files. This is under discussion in the LLVM build-system working group.
+- **`perf` event-based thinLTO feedback loop**: Google's AutoFDO2 project extends sampling-based PGO to ThinLTO by propagating LBR (Last Branch Record) profiles across module boundaries at link time. Upstream integration is planned once the cross-module profile consistency guarantees are formalized.
+- **Memory-layout–aware register allocation using hardware PMU feedback**: Research prototypes (see "PMU-Guided RA", CGO 2025) feed L1/LLC miss profiles back into the register allocator's spill cost model, reducing stack-spill traffic for hot functions. Integration with LLVM's `RegAllocGreedy` is a medium-term goal of the LLVM performance working group.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Compiler-as-a-service (CaaS) persistent compilation daemons with fine-grained IR caching**: Rather than re-parsing and re-optimizing translation units from scratch, a long-running compiler daemon maintains an IR cache keyed by preprocessed source hash, invalidating at the granularity of top-level declarations. This would make incremental compile times approach zero for single-function edits even in large monorepos, analogous to `clangd`'s preamble PCH but for the optimization pipeline.
+- **Machine-learning–driven pass ordering replacing heuristic pipelines**: Building on the `MLGOTraining` and `MLGO` projects already upstreamed for inliner and register allocator, a full learned pass pipeline (predicting optimal `-O3`-equivalent pass sequences per function from IR features) would replace the fixed `PassBuilder` pipeline, particularly for embedded and ML-inference targets where the default x86-tuned heuristics misfire badly.
+- **Unified compile-time and runtime profiling representation**: Long-term convergence of `-ftime-trace` (compile-time) and LLVM's SampleProfile/InstrProfile (runtime) into a single hierarchical profiling artifact that maps hot runtime call chains back to the compiler decisions (inlining, vectorization, unrolling) responsible for them — enabling automated feedback from production deployments directly into the optimization pipeline without manual engineering.
+
+---
+
 ## Chapter Summary
 
 - **`perf stat`** with `-e instructions,cycles,cache-misses,branch-misses` gives reliable compile-time and runtime measurements; wall-clock time is noisy — prefer instruction counts for algorithmic comparisons.

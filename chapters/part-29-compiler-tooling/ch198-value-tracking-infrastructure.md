@@ -1037,6 +1037,32 @@ LLVM's code review culture for InstCombine patches requires either a proof sketc
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Freeze-based KnownBits propagation**: The LLVM community has ongoing discussion ([discourse.llvm.org thread on `freeze` semantics and KnownBits](https://discourse.llvm.org/t/rfc-improving-freeze-handling-in-computeknownbits)) about teaching `computeKnownBits` to propagate through `freeze` instructions more precisely — currently `freeze` produces an opaque unknown, but for values with partial known bits it could preserve those facts.
+- **`ConstantRange` for floating-point (`computeKnownFPClass` tightening)**: Active patches in LLVM 22 extend `computeKnownFPClass` to track `[finite, positive]` sub-lattices more precisely, driven by demand from vectorization of NumPy-style kernels where `-ffast-math` is not acceptable but `isfinite()` guards are common.
+- **`LazyValueInfo` cache invalidation improvements**: Ongoing work (D140234-style patches for LLVM 23 planning) to improve LVI's cache invalidation strategy when `JumpThreading` modifies the CFG mid-pass, reducing redundant re-queries that account for measurable compile-time regressions on large C++ translation units.
+- **`AssumptionCache` per-block indexing**: A planned refactor to index `@llvm.assume` calls by basic block (not just by value) to support the `DomConditionCache` path that backs the `CondContext` field of `SimplifyQuery`, reducing the dominator-tree queries from O(assumes) to O(1) for the common case.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Widening `MaxAnalysisRecursionDepth` with memoization**: The fixed depth-6 limit in `computeKnownBits` misses patterns across longer chains (common in SPIR-V shader lowering and XLA HLO lowering). A memoized variant — caching `(Value*, Depth, context-hash) → KnownBits` — would allow larger depths without exponential blowup, enabling more aggressive folding in MLIR-to-LLVM lowering pipelines.
+- **Interprocedural `KnownBits` / `ConstantRange` via LTO summary**: Integration of per-function value-tracking facts into the ThinLTO module summary (similar to how `summary.yaml` already carries noinline/norecurse attributes) would allow `computeKnownBits` to propagate known bits from constant-argument callsites into callees, improving optimizations in hot inner loops called from templated code.
+- **Probabilistic value profiling feeding `LazyValueInfo`**: Post-link optimization pipelines (BOLT, Propeller) already carry branch probability profiles. A research direction being explored in the MLGo / LLVM-ML-Optimizations project is to feed PGO probability data into LVI's lattice as a "likely range" that influences (but does not strictly determine) branch-threaded optimizations, with a graceful fallback to conservative bounds at low profile confidence.
+- **`DemandedBits` integrated into the SLP vectorizer**: The SLP vectorizer currently duplicates narrow-width reasoning ad hoc. A formally integrated `DemandedBits` query at each SLP node would allow the vectorizer to pack more lanes into narrower vector operations (e.g., `i8` shuffles instead of `i32` extracts) without hand-coding bit-manipulation transfer functions.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Verified value-tracking lattice in Lean 4**: An active academic direction (building on the Vellvm and Alive2 ecosystems) is to formally specify the `KnownBits` transfer functions in Lean 4 / Coq and prove the full lattice-monotonicity and soundness properties mechanically, then extract a certified C++ implementation via code extraction — eliminating the class of soundness bugs that Alive2 catches empirically but does not prevent at the source level.
+- **Constraint-aware SSA form with integrated range metadata**: Future LLVM IR revisions (discussed in the LLVM 2030 roadmap threads on discourse) may embed `ConstantRange` and `KnownBits` facts directly into SSA value types rather than as opt-in metadata, making value-tracking facts first-class IR invariants that pass managers can preserve or invalidate explicitly — analogous to how MLIR's type system encodes integer signedness and bit-width.
+- **Cross-language value tracking for MLIR-emitted LLVM IR**: As more frontends (Mojo, Carbon, CIR, Julia's Julia LLVM backend) emit LLVM IR via MLIR lowering pipelines, value facts established at the MLIR level (e.g., `arith.addi` with verified `overflow: none` in the MLIR integer range analysis) are currently lost at the MLIR-to-LLVM lowering boundary. A standardized protocol for emitting `!range` metadata and `@llvm.assume` bundles from MLIR passes would allow the LLVM value-tracking infrastructure to consume upstream facts, eliminating redundant re-derivation at the LLVM IR level.
+
+---
+
 ## 198.10 Summary
 
 - **ValueTracking** (`llvm/Analysis/ValueTracking.h`) is a stateless library of ~80 free functions that answer compile-time predicate questions about `Value*` objects, recursing up to `MaxAnalysisRecursionDepth = 6` levels through the def-use graph.

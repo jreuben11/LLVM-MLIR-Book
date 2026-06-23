@@ -711,6 +711,32 @@ The UB report identifies the exact instruction, the concrete pointer value, the 
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **llubi stabilization and integration**: `llubi` (the LLVM UB-aware IR interpreter, tracked in [LLVM Discourse RFC: "UB-aware interpreter for LLVM IR"](https://discourse.llvm.org/t/llubi-ub-aware-llvm-ir-interpreter)) is targeting stable inclusion in the default LLVM tool distribution by LLVM 23; the primary blockers are floating-point semantics and vector type coverage.
+- **`llvm-reduce` new reduction strategies**: ongoing patches on Phabricator/GitHub add metadata reduction (stripping `!dbg`, `!tbaa`, `!alias.scope` one-by-one), function argument reduction, and global variable elimination, reducing minimization time for large modules by 30–50%.
+- **`--print-changed` diff mode**: an RFC on discourse.llvm.org proposes adding a side-by-side IR diff output mode to `--print-changed`, making it visually obvious which instructions changed rather than printing full before/after dumps.
+- **Clang `-ftime-trace` extension to MLIR lowering**: Clang's Chrome-trace output currently covers only the Clang→LLVM IR stage; work is underway to extend it through the full MLIR lowering pipeline when Clang uses ClangIR as an intermediate representation (Part VIII).
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Incremental `mlir-lsp-server` parsing**: the current server re-parses the entire `.mlir` file on every keystroke; an incremental parser tracking only changed regions (similar to tree-sitter) is a stated MLIR project goal, enabling real-time IDE feedback for modules exceeding 100k lines without lag.
+- **`llvm-reduce` miscompilation mode**: current `llvm-reduce` handles crash reproducers well but requires a hand-written "is-interesting" script for miscompilations (wrong output, not crashes); a proposed integrated miscompilation mode would compare input/output IR semantics using an embedded Alive2 or llubi invocation, making miscompilation minimization one-step.
+- **Structured UB-tracking in the MLIR verifier**: a long-standing MLIR RFC proposes extending `mlir::Operation::verify()` to track poison semantics at the dialect level — dialects could annotate which ops produce poison under which conditions, enabling `--mlir-verify-each` to catch poison misuse the same way LLVM's verifier does.
+- **`git bisect` integration with Compiler Explorer (Godbolt)**: the LLVM community has discussed a web-based bisection service that runs `git bisect` against pre-built LLVM snapshots, eliminating the need for local LLVM builds to isolate regressions — expected to land as part of LLVM infrastructure improvements.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Compiler debugging as a first-class MLIR service**: the MLIR project's long-term vision (articulated in the "MLIR as a platform" design doc) includes a unified debugging API where passes register structured diagnostic hooks — replacing ad-hoc `LLVM_DEBUG` macros with a queryable, filterable, and IDE-consumable stream of pass events.
+- **Formal specification of `LLVM_DEBUG` tagging conventions**: as LLVM scales toward hundreds of in-tree passes plus out-of-tree dialects, a community effort is emerging to standardize `DEBUG_TYPE` naming hierarchies (e.g., `transform.loop.unroll` rather than flat `loop-unroll`) enabling hierarchical `--debug-only` filtering and automated debug-output documentation generation.
+- **AI-assisted compiler bug isolation**: research prototypes (e.g., from PLDI 2025 and CGO 2026 papers on neural delta debugging) demonstrate LLM-assisted `llvm-reduce` that predicts which IR elements are likely irrelevant to a bug based on the crash signature, reducing minimization steps by an order of magnitude; productionization into the LLVM toolchain is a stated long-term goal.
+
+---
+
 ## Chapter Summary
 
 - **`--print-before-all`/`--print-after-all`/`--print-changed`**: dump IR at every pass boundary; `--print-changed` is the most useful for narrowing down which pass introduced a bug.

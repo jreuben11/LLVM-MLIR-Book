@@ -910,6 +910,32 @@ if (Failed || !CS.IsSatisfied) {
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **C++26 pack indexing full support**: The `Ts...[I]` `PackIndexingExpr` AST node landed in Clang 22 but several edge-cases around dependent indices in constexpr contexts and nested pack expansions remain open; patches targeting P2662R3 compliance are tracked in the Clang GitHub milestone for C++26 conformance.
+- **CTAD alias template deduction (P2398)**: C++23 alias-template CTAD via deduction-guide synthesis from `using A = C<T>` aliases requires extending `Sema::DeclareImplicitDeductionGuides()` to handle alias indirections; the remaining ASI (alias-substitution-into) edge cases are under active review on the `cfe-dev` mailing list and Phabricator arc D159387.
+- **Constraint satisfaction caching invalidation**: The `ConstraintSatisfactionCache` `ContextualFoldingSet` does not yet handle ODR-merged modules correctly; a patch series to key cache entries on the canonical module owner of the constraint expression is being reviewed for Clang 23.
+- **Improved "concept not satisfied" diagnostics via `DiagnoseUnsatisfiedConstraint`**: LLVM RFC "Better concept diagnostics" (discourse.llvm.org, November 2025) proposes surfacing the first-failing `RequiresExpr` requirement expression with a reconstructed substituted form, analogous to GCC 14's `note:` output; initial patches are under review for backport to 22.1.x.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Reflection (P2996 / C++26 static reflection)**: The `meta::info` reflective type and the `[:…:]` splicer syntax require a new `ReflectionExpr` / `SpliceExpr` family in the AST and new `Sema::ActOnReflection()` + `Sema::ActOnSplice()` entry points; constraint satisfaction must be extended to evaluate reflection-based predicates. The Clang reflection prototype branch (`users/mpark/p2996`) already exists and is being upstreamed in stages.
+- **Contracts (P2900)**: The C++26 Contracts proposal introduces `pre:`, `post:`, and `assert:` contract annotations whose satisfaction conditions interact with template instantiation and constraint normalization; `SemaTemplate.cpp` and `SemaConcept.cpp` must be extended to defer contract checking to instantiation time. An LLVM RFC for the contracts implementation plan was posted in early 2026.
+- **`consteval if` and `if consteval` in templates (P1938, fully C++23)**: Full propagation of `if consteval` through `TreeTransform<TemplateInstantiator>` to ensure that `TemplateInstantiator::TransformIfStmt()` correctly folds the condition at instantiation time when the context is a manifestly-constant-evaluated expression. Some lambda-in-template interactions remain unfixed.
+- **Deduction guides for inheriting constructors with constraints (CWG 2707)**: A core-language defect report requires that inheriting-constructor deduction guides inherit the associated constraints of the base class constructor; `Sema::DeclareImplicitDeductionGuides()` must propagate the `TemplateParameterList`-level `requires`-clause through the synthetic guide's parameter list.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Scalable template instantiation via on-demand AST serialization**: The current `PendingInstantiations` deque approach serializes all pending work at end-of-TU; a long-term redesign — discussed in the LLVM 2024 dev-meeting session "Scalable Template Instantiation" — aims to serialize deferred work into PCH/module files and instantiate on-demand during linking, enabling multi-TU deduplication of `ClassTemplateSpecializationDecl` nodes and eliminating redundant constraint evaluations across TUs.
+- **Formal verification of the constraint subsumption algorithm**: Research prototypes (following Siek & Taha's incremental approach and the Coq mechanization of C++ concepts in Strub et al.) aim to produce a mechanically-verified reference implementation of `IsAtLeastAsConstrained()` / `NormalizedConstraint` normalization against the C++20 standard prose, exposing any divergence between Clang's implementation and the standard's intent.
+- **Higher-kinded template template parameters (post-C++26 evolution)**: The C++ Evolution working group has active papers (P3289, P3290) proposing variadic template template parameters that accept templates of varying arities; full support requires extending `TemplateTemplateParmDecl`, the partial-ordering machinery in `Sema::getMoreSpecializedTemplate()`, and the constraint subsumption check for template template arguments.
+
+---
+
 ## Chapter Summary
 
 - The `TemplateDecl` hierarchy (`FunctionTemplateDecl`, `ClassTemplateDecl`, `VarTemplateDecl`, `TypeAliasTemplateDecl`, `ConceptDecl`) stores parameters in a `TemplateParameterList` and specializations in a folding set.

@@ -500,6 +500,32 @@ See [Chapter 122 — libc++abi](ch122-libcxxabi.md) for the personality function
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **RISC-V vector register unwinding**: Ongoing LLVM patches to add `Registers_riscv` support for the V-extension vector registers (v0–v31, each up to 512 bits wide); DWARF register columns 96–127 for RISC-V V must be handled in `UnwindCursor.hpp`. Tracked under LLVM RISC-V backend development on discourse.llvm.org.
+- **AArch64 SME/SME2 register context**: The ARM Scalable Matrix Extension adds ZA storage and SVE2 streaming registers; libunwind must save/restore the SME ZA tile array and ZT0 register during unwinding. Patches tracking upstream ACLE/AAPCS64 addenda for unwinding across `smstart`/`smstop` boundaries.
+- **Compact unwind for AArch64 on Apple platforms**: Apple's `__compact_unwind` format on arm64 uses encoding modes distinct from x86_64; `CompactUnwinder.hpp` AArch64 paths are being extended to cover PAC-signed return addresses with `UNWIND_ARM64_MODE_FRAMELESS` variants for leaf functions with PAC stripping embedded in the encoding.
+- **`_Unwind_Find_FDE` performance under ASLR-heavy workloads**: Ongoing investigation (LLVM PR #85432-class issues) into `DwarfFDECache` eviction contention under many-DSO workloads; proposals to use a concurrent hash map rather than a singly-linked cache chain for `dl_iterate_phdr`-discovered segments.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **CHERI/Morello capability-aware unwinding**: Arm Morello and CHERI-RISC-V architectures store return addresses as capabilities (128-bit sealed pointers); libunwind must handle capability-size stack slots and capability-encoded return address columns in DWARF. The CheriBSD and CHERI-LLVM projects are developing the necessary ABI extensions and `Registers_cheri` context class.
+- **`PT_GNU_EH_FRAME` replacement with SFrame**: The SFrame (Simple Frame) format proposal (IETF draft, GNU toolchain initiative) aims to replace `.eh_frame` with a simpler fixed-format unwind table optimised for async-signal-safe stack walking and `perf` tooling. LLVM libunwind will need a parallel `SFrameParser.hpp` alongside `DwarfParser.hpp` if the Linux kernel adopts SFrame for ORC-equivalent user-space unwinding.
+- **MTE-aware unwinding on AArch64**: Memory Tagging Extension stacks change the address space semantics of saved registers; the libunwind `jumpto()` assembly trampoline must strip or re-apply MTE tags when restoring SP and re-entering a landing pad. ARM's ABI Working Group is drafting the tag-propagation rules for exception landing pads.
+- **Async Rust and C++ coroutines CFI**: Stackful coroutines (C++23 `std::generator`, Rust async tasks with `tokio` stack switching) require per-coroutine `.eh_frame` sections registered at runtime via `__register_frame`; work is underway to integrate this with libunwind's `DwarfFDECache` and to support GDB/LLDB coroutine-aware stack walking that calls `unw_step` across coroutine switch points.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Formally verified unwinding logic**: The `DwarfParser.hpp` CFI opcode interpreter is a security-critical component (malformed unwind tables can cause arbitrary code execution during stack unwinding); research efforts inspired by CompCert and Vellvm aim to produce a verified DWARF CFI evaluator in Lean 4 or Coq that can be extracted to C++ for use in libunwind, closing the gap identified in "Unwinding the Stack: Exploring the LLVM Unwinder" (LLVM Dev Meeting 2023).
+- **Kernel-bypass async-safe unwinding**: Current `_Unwind_Backtrace` is not async-signal-safe due to `dl_iterate_phdr` taking a lock. Long-term designs involve pre-registering all EH frame sections in a lockless concurrent data structure (similar to the Linux kernel's ORC unwinder) accessible without any system call, enabling truly async-signal-safe stack capture for `perf`, `eBPF` user-space helpers, and sanitizer fast paths.
+- **Wasm exception handling integration**: WebAssembly exception handling (WasmEH proposal, now in Phase 4) introduces `try_table`/`catch` instructions; `libunwind` on Wasm targets (`wasm32-wasi-threads`) will need an Emscripten/WASI-compatible ABI layer that maps `_Unwind_RaiseException` onto WasmEH control-flow instructions, replacing the current JavaScript-trampoline approach.
+
+---
+
 ## Chapter Summary
 
 - libunwind implements the Itanium `_Unwind_*` ABI — the language-independent stack-walking interface used by C++ exceptions, `pthread_cancel`, and debugger backtraces.

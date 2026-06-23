@@ -415,6 +415,32 @@ llvm-profdata merge --infer-missing-counters \
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **MemProf YAML serialization stabilization**: The `--yaml` flag for `llvm-profdata show --memory` (merged in LLVM 25) is being hardened for round-trip fidelity; expect RFC patches on discourse.llvm.org to finalize the schema so tooling (e.g., Google's internal profile analysis pipelines) can consume it portably.
+- **Binary PGO profile format v9**: An ongoing series of LLVM patches (tracked in `llvm/lib/ProfileData/`) aims to encode value-profiling histograms more compactly by switching from flat arrays to sparse run-length encoding, reducing `.profdata` file sizes by 30–50% for large binaries.
+- **CSSPGO + ThinLTO full-pipeline integration**: The `SampleProfileLoader` context-sensitive path historically required a separate LTO pass ordering; LLVM 22 patches are landing to unify the hot/cold call-graph trie propagation with the ThinLTO summary index in a single pipeline step (see discourse.llvm.org thread "CSSPGO ThinLTO unification").
+- **Profi counter pruning**: A follow-on to the 2021 Profi paper proposes pruning redundant counters at instrumentation time (not just at inference time), reducing instrumentation overhead by ~15% without sacrificing inference accuracy; patches are in review in `llvm/Transforms/Instrumentation/PGOInstrumentation.cpp`.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Hardware-assisted PGO via Intel PEBS / ARM SPE**: Rather than software edge counters, near-term processors expose precise branch sampling (Intel PEBS, AMD IBS, ARM Statistical Profiling Extension) with sub-percent overhead. LLVM's AutoFDO pipeline is being extended to consume SPE profiles natively without the `create_llvm_prof` conversion step, enabling always-on production profiling at negligible cost.
+- **MemProf struct field reordering as a first-class pass**: The per-field access count infrastructure added in 2024 (`llvm/include/llvm/ProfileData/MemProf.h`) will evolve into an opt-in `-fmemory-layout-optimize` pass that rewrites struct definitions and their use sites, directly reducing cache line pressure for hot allocations — a feature previously available only via manual annotation or PGO-informed link-time struct splitting tools.
+- **Temporal PGO (tPGO)**: Meta and Google are experimenting with profiles that record *when* during program execution code is hot (startup vs. steady-state), not just *how often*. This enables startup-specific code placement separate from steady-state hot paths, potentially reducing time-to-first-request for services. LLVM infrastructure work for tPGO is tracked in the `llvm-dev` list discussion "Temporal profile encoding for startup optimization."
+- **Probabilistic profiling for ML workloads**: As LLVM backends target ML accelerators (NVPTX, AMDGPU, TPU via MLIR), traditional edge-count PGO doesn't translate. Research into probabilistic profile representations that encode distribution of tensor shapes and loop trip counts (rather than single counts) is active, with prototypes in the IREE project and proposals to upstream shape-profile metadata to LLVM's `!prof` infrastructure.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Profile-guided register allocation**: Current PGO feeds inlining and branch prediction but rarely influences register allocator spill decisions. Long-term research (building on the PBQP and greedy allocator work) aims to use block frequency information to bias spill selection toward cold blocks, reducing spill/reload traffic on hot paths — a direction outlined in several CGO and PLDI papers on profile-aware RA.
+- **Continuous runtime reoptimization (JIT + PGO loop)**: Combining LLVM's ORC JIT (Chapter 103) with an always-on MemProf + edge-count profiler, future runtimes could automatically recompile hot functions with updated profiles without stopping execution. This closes the PGO feedback loop to seconds rather than hours, following the direction of Java HotSpot's tiered compilation but at the C++ binary level.
+- **Differential PGO for A/B testing**: Enterprise deployments want to compare profile-optimized binaries across code versions. A proposed `llvm-profdata diff` sub-command (beyond the current `overlap`) would compute statistically significant hotness deltas between profdata files, enabling automated regression detection in CI when a code change shifts the hot path.
+
+---
+
 ## Chapter Summary
 
 - Instrumentation-based PGO uses `-fprofile-generate` / `-fprofile-use`; the instrumented binary writes `default.profraw`, merged with `llvm-profdata merge`.

@@ -772,6 +772,32 @@ The core intent is the same — cryptographic return-address integrity and hardw
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **GlobalISel completion for Thumb-1**: The ongoing LLVM effort to complete GlobalISel coverage for ARMv6-M (Cortex-M0/M0+) is tracked in several Phabricator reviews and discourse.llvm.org threads. The primary blockers — Thumb-1 low-register constraints (r0–r7 only) and the absence of 32-bit Thumb-2 forms — are being addressed by extending `ARMLegalizerInfo` and `ARMInstructionSelector` to handle `G_ADD`/`G_SUB`/`G_LOAD`/`G_STORE` under Thumb-1 register constraints.
+- **Armv8.1-M Helium (MVE) vector intrinsics stabilization**: The M-Profile Vector Extension (MVE/Helium) introduced in Cortex-M55/M85 exposes 128-bit SIMD over the Thumb-32 encoding space. As of LLVM 22.1.x, the auto-vectorizer backend for MVE is functional but conservative; near-term work focuses on widening the loop vectorizer's cost model to correctly account for MVE's single-issue execution on Cortex-M55 and improving the `ARMMVEVectorIselLowering` patterns for shuffles and reductions.
+- **PACBTI key management in TrustZone-M environments**: The Armv8.1-M PACBTI extension interacts with TrustZone-M (Armv8-M Security Extension) in that the IA signing key must be saved/restored across Non-Secure to Secure transitions. An LLVM patch series (tracked under `[ARM] PACBTI TrustZone interaction`) is adding `VLSTM`/`VLLDM` lazy context save support in the prologue/epilogue inserter for functions marked `__attribute__((cmse_nonsecure_entry))`.
+- **LLD veneer generation for BTI-enabled M-profile binaries**: When linking Cortex-M85 firmware with BTI enabled, LLD must ensure that auto-generated interworking veneers are themselves BTI-compatible (i.e., begin with a `BTI` or `PACBTI` instruction). The RFC for BTI-safe LLD veneers on M-profile is under active review at discourse.llvm.org/t/bti-safe-veneers-for-m-profile.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Cortex-M52/M55/M85 scheduling models in LLVM**: LLVM currently lacks production-quality scheduling models for the Cortex-M55 (dual-issue in-order, MVE pipeline) and Cortex-M85 (two-way superscalar, branch prediction, PACBTI). Accurate `ARMScheduleM55.td` and `ARMScheduleM85.td` models are needed for the loop vectorizer and instruction scheduler to exploit instruction-level parallelism on these cores.
+- **Armv9.2-M (anticipated)**: Arm's public roadmap suggests continued iteration of the M-profile ISA in the Armv9 generation, likely adding Reliability/Availability/Serviceability (RAS) extensions and additional PACBTI capabilities. LLVM will need new `ARMSubtarget` feature bits, updated `ARMTargetInfo`, and encoding support in `ARMDisassembler` for any new hint and diagnostic instructions.
+- **32-bit ARM GlobalISel reaching feature parity with SelectionDAG**: The LLVM community goal is for GlobalISel to be the default instruction selection pipeline for 32-bit ARM by the end of this horizon. Remaining work includes: atomic LL/SC lowering, VFP/NEON register pairing during regbank assignment, Thumb-2 complex shuffle lowering, and integration of the `MachineCombiner` for VFP instruction combining.
+- **LLVM BOLT support for AArch32 binaries**: BOLT (Binary Optimization and Layout Tool) currently targets AArch64 and x86-64. Extending BOLT to AArch32 (32-bit Linux binaries on A-profile hardware) would enable profile-guided function reordering and basic-block reordering for legacy ARMv7-A Android and embedded Linux workloads. Initial design discussions have appeared on the LLVM mailing list.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Automated ISA coverage testing via LLVM MC fuzzing**: As the 32-bit ARM ISA is frozen (no new public A32/Thumb-2 extensions are expected beyond those already in ARMv9), focus shifts to test completeness. Systematic fuzzing of `ARMDisassembler` and `ARMAsmParser` against the Arm Architecture Validation Suite (AVS) and the `riscv-isa-sim`-style reference model will expose encoding corner cases, particularly in IT block decoding, VFP/NEON coexistence, and M-profile-specific Thumb encodings.
+- **Formal verification of the 32-bit ARM backend via Alive2 integration**: The Alive2 tool (developed at UCSD/UTAustin, now integrated into LLVM CI for x86) verifies peephole optimizations by encoding source and target patterns as SMT queries. Extending Alive2's backend models to cover ARM32 register constraints, condition codes, and the barrel-shifter operand encoding would allow formal verification of the hundreds of ARM-specific peephole patterns in `ARMInstrInfo.cpp`.
+- **Rust and Safety-Critical C++ toolchain certification for Cortex-M**: Safety standards bodies (ISO 26262, IEC 61508, DO-178C) are increasingly interested in certifying LLVM-based toolchains for M-profile targets. By 2031, TÜV SÜD and similar bodies are expected to have published qualification kits for LLVM/Clang targeting Cortex-M3 through Cortex-M85, requiring that the `arm-none-eabi` backend pass deterministic reproducibility, diagnostic quality, and regression baselines against the Arm Compiler 6 reference toolchain.
+
+---
+
 ## Chapter Summary
 
 - The 32-bit ARM backend supports three ISA modes: A32 (uniform 32-bit with condition codes and barrel-shifter in every instruction), Thumb-1 (16-bit restricted to low registers), and Thumb-2 (mixed 16/32-bit with most A32 capabilities, including 12-bit immediates and high-register access).

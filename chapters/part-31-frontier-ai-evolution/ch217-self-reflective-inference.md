@@ -627,6 +627,32 @@ Self-reflective inference (Ch217) sits at the intersection of the offline and on
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **GRPO variants and extensions**: Ongoing work on Group Relative Policy Optimization has spawned follow-up methods (Dr. GRPO, DAPO, REINFORCE-Leave-One-Out) that address reward variance and length-bias artifacts seen in DeepSeek-R1's extended `<think>` traces. Expect mainline adoption in open-weight training recipes (TRL ≥ 0.16, OpenRLHF) by mid-2026.
+- **TransformerLens v3 and production probing**: The TransformerLens roadmap (github.com/TransformerLensOrg/TransformerLens/issues) includes performance-critical `run_with_cache_on_device` paths that reduce peak memory for inference-time activation probing by 3–4× on long contexts; targeted for release alongside nnsight 0.4 with a unified hook API, making L2 capability probing feasible in production inference pipelines.
+- **Calibrated confidence in chain-of-thought self-diagnosis**: Research groups at MIT and Stanford (building on Kadavath et al. 2022, arXiv 2207.05221) are releasing instruction-tuned checkpoints that treat calibrated verbalized uncertainty as a first-class training objective rather than a post-hoc RLHF signal; initial results for Llama-3 and Mistral-family base models expected in Q3 2026.
+- **Self-refinement without fixed-template critique prompts**: Reinforced Self-Training (ReST) and Iterative RPO (arXiv 2404.19733) are converging with SELF-REFINE into a unified online RLHF recipe where the critique dimension set is itself learned from reward signal, eliminating the task-conditional hand-engineered critique templates used in §217.3.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Inference-time activation routing in production serving frameworks**: vLLM, SGLang, and TensorRT-LLM are each pursuing speculative decoding extensions that cache activation states across self-refinement iterations; by 2028 expect standard serving infrastructure to expose a `capability_score` API endpoint backed by resident probing classifiers, removing the need for separate TransformerLens instrumentation.
+- **Mechanistic interpretability–guided targeted TTT at scale**: ROME and MEMIT (Ch214) currently operate on models up to 70B parameters with handcrafted causal tracing; the Automated Interpretability agenda (Anthropic's APG team, DeepMind's Gemini-probing line) aims to produce per-layer causal maps automatically, enabling the targeted-TTT masking in §217.8 to be instantiated for any checkpoint without manual circuit analysis.
+- **Verifiable-reward self-reflection beyond math and code**: DeepSeek-R1's GRPO depends on ground-truth evaluators; for open-ended domains (scientific writing, multi-step planning) there are no deterministic oracles. Work on LLM-as-judge with self-consistency ensembling (arXiv 2404.11672) and formal proof checking via Lean 4 (targeting the Lean-STaR recipe) is moving toward reliable verifiable rewards for a much broader task surface by 2028.
+- **Adaptive compute allocation without explicit length rewards**: R1 requires length-penalty tuning to prevent runaway `<think>` trace inflation; by 2028 expect mechanism-level solutions — early-exit probing classifiers that halt the reasoning trace when the activation-level capability score crosses a threshold, replacing the current token-budget heuristics.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Closed-loop self-modification architectures in deployed systems**: The reflect→identify→adapt loop in §217.8 currently requires human-approved deployment of TTT-modified weights; five-year research aim is fully automated closed-loop deployment where a model can accumulate targeted weight updates between inference calls, with formal safety invariants (analogous to §216.4's monotonic improvement constraint) enforced by a verified runtime that prevents capability regression.
+- **Self-generated evaluation as a substitute for human benchmarking**: The ACL/NeurIPS community is actively debating whether saturated human benchmarks (MMLU, HumanEval) should be supplemented or replaced by model-self-generated adversarial test suites; by 2031 expect standardized protocols for ECE-calibrated self-generated benchmark construction to be part of standard model evaluation practice, with interpretability-level verification that the self-generated tests probe genuine capability boundaries rather than surface-level recall.
+- **Unified theory of test-time compute allocation**: Balancing L0 (SELF-REFINE), L1 (SPIN), L2 (activation probe), and L3 (TTT) in a single cost model is an open optimization problem; five-year research goal is a principled framework — analogous to compiler cost models for inlining decisions — that predicts the marginal value of each additional layer of self-reflection given the current capability score and the available compute budget.
+
+---
+
 ## Chapter Summary
 
 - **Test-time compute for self-understanding** redirects inference tokens from solving external tasks to reasoning about the model's own capability state — knowledge gaps, failure modes, and distributional mismatch relative to the current input.

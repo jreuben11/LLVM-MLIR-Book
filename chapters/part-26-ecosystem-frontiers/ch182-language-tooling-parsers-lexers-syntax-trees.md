@@ -927,6 +927,32 @@ TreeSitter deliberately accepts ambiguous and malformed input. Its error recover
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Logos 0.15 proc-macro rewrite**: the Logos maintainers have an open RFC to replace the legacy `logos-codegen` proc-macro backend with a new `logos-codegen2` crate that resolves long-standing issues with overlapping regex priorities and improves compile-time DFA minimisation diagnostics. Track at [github.com/maciejhirsz/logos/issues/](https://github.com/maciejhirsz/logos/issues/).
+- **chumsky 0.10 stable API stabilisation**: chumsky 0.10 (moved to Codeberg) re-architected the `Parser` trait with GATs to eliminate `Clone` bounds and unify zero-copy and owned-output parsers. The `pratt` combinator closure arity stabilisation and `MapExtra` API finalisation are the remaining blocking items before a 1.0 release candidate.
+- **TreeSitter 0.25 ABI freeze**: TreeSitter's C ABI has been informally stable but the project has signalled an intent to freeze the `TSLanguage` struct layout at 0.25 for embedding in editors without runtime version negotiation. This affects grammar authors linking against `tree-sitter-language` crates in Rust.
+- **LALRPOP error recovery improvements**: LALRPOP issue [#678](https://github.com/lalrpop/lalrpop/issues/678) tracks extending the `!` error-recovery token with configurable synchronisation sets, similar to ANTLR4's `DefaultErrorStrategy`, enabling multi-error reporting in DSL toolchains.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **LLVM clang-pseudo reaching production readiness**: `clang-pseudo` ([llvm-project/clang-tools-extra/clang-pseudo/](https://github.com/llvm/llvm-project/tree/main/clang-tools-extra/clang-pseudo)) is an experimental GLR-based C++ parser intended for tooling use cases where Clang's full parser is too expensive. The project aims to support incremental reparsing on edit events similar to TreeSitter, closing the performance gap between `clangd` and TreeSitter-based editor plugins for large TUs.
+- **Winnow streaming I/O integration with async Rust**: Winnow's `Partial<&[u8]>` streaming model is synchronous. A tracked RFC ([github.com/winnow-rs/winnow/discussions/](https://github.com/winnow-rs/winnow/discussions/)) explores an async `AsyncParser` trait that integrates with `tokio::io::AsyncRead`, enabling zero-copy protocol parsing without blocking executor threads — relevant for language servers that parse over stdin.
+- **ANTLR5 ALL(*) successor grammar**: Terence Parr has described ANTLR5 as moving from the ALL(*) algorithm to a PEG-with-left-recursion algorithm (similar to the approach in `rats!`), which would give O(n) guaranteed parse time and eliminate the dynamic prediction overhead of ALL(*). This would make ANTLR5 competitive with LALRPOP for deterministic languages while retaining the polyglot runtime.
+- **Rowan typed-CST code generation standardisation**: rust-analyzer's `ungrammar` format (which describes typed AST node wrappers over Rowan's raw tree) has been proposed as a shared standard for languages building on Rowan. A community effort to publish `ungrammar` as a standalone crate and toolchain (separate from `ra_ap_syntax`) would allow other language servers to generate Rowan wrappers without forking the rust-analyzer infrastructure.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Verified parser generators with Lean 4 or Coq backends**: research from the Iris/CompCert communities has explored mechanically verifying LALR and LL parser generators — ensuring that the generated parser is a correct implementation of the grammar. A practical tool (targeting Rust output with a Lean 4 proof certificate) would eliminate parser-generator bugs as a class of security vulnerability in language tooling, analogous to Alive2's role in verifying LLVM optimisations.
+- **TreeSitter as a universal IDE protocol layer**: the Language Server Protocol currently requires each language server to implement its own syntax highlighting, folding, and breadcrumbs. An LSP extension that allows language servers to supply TreeSitter grammars and node-kind-to-semantic-token mappings would let editors use a single incremental parsing engine for all languages, reducing duplicated effort and enabling richer cross-language tooling (e.g., polyglot notebooks).
+- **Incremental parser combinators for streaming source edits**: current combinator libraries (Winnow, chumsky) rebuild the entire parse from the changed token onward. Research into *online* or *reusable* parser combinators — where each combinator node caches its last parse result and invalidates only when its input span overlaps an edit — would bring Rowan-style incremental reparsing to combinator-based parsers, making them viable for IDE backends at the scale of rust-analyzer.
+
+---
+
 ## Chapter Summary
 
 - The tooling-vs-compilation axis separates two regimes with genuinely different requirements: production parsers optimise for correctness and diagnostics; IDE parsers optimise for error tolerance and incremental updates.

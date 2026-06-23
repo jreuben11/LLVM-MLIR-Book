@@ -435,6 +435,32 @@ For complex numbers, CIR uses `cir.complex<cir.float>` types and `cir.complex.cr
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Complete ABI argument-passing coverage**: The remaining `ABIArgInfo` kinds — `Indirect`, `Expand`, `CoerceAndExpand`, and `InAlloca` — are tracked as `MissingFeatures` entries in `CIRGenCall.cpp`; completing them is a prerequisite for upstreaming non-trivial C ABI call conventions (e.g., SysV AMD64 struct splitting, AAPCS homogeneous aggregates). Active patch series are being reviewed on [LLVM Discourse / ClangIR Working Group](https://discourse.llvm.org/c/clangir/58).
+- **Thread-local storage (TLS) emission**: `cir.global` with TLS models (`__thread`, `thread_local`) is listed as a near-term milestone in the ClangIR upstreaming plan. Emission must integrate with ELF `.tbss`/`.tdata` section handling through `CXXABILoweringPass`.
+- **Non-trivial global initializers and `__cxa_atexit`**: C++ globals with non-trivial constructors require emitting `cir.global_ctor` regions and registering teardown via `__cxa_atexit`; this is the primary remaining gap blocking real-world C++ translation-unit parity.
+- **`cir.switch` range-case and string-switch lowering**: Extending `cir.switch` to model compiler-synthesized range cases (used by Clang's `EmitSwitchStmt` for dense integer sets) and `llvm.memcmp`-based string switches, enabling CIR-level jump-table optimizations before LLVM lowering.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Full C++23/C++26 AST → CIR coverage**: Emission for C++23 features (explicit object parameters, `std::expected`, `if consteval`) and prospective C++26 features (pattern matching via `inspect`, pack indexing) must be added to `CIRGenFunction`; the structured-op model of CIR is well-suited to express `inspect` alternatives as multi-region ops analogous to `cir.switch`.
+- **CIR serialization round-trip with AST cross-references**: The current in-process AST pointer scheme (§53.7) precludes offline/distributed compilation. A planned attribute scheme using `SourceLocation` + mangled-name tokens as a serializable surrogate, combined with re-parsed AST stubs, would enable distributing `.cir` artifacts across build clusters.
+- **Lifetime analysis and borrow-checking at CIR level**: Because `cir.alloca` retains `VarDecl*` links and `cir.scope` models lexical scopes, CIR is a candidate for a C++ lifetime-safety analysis layer analogous to the Rust borrow checker — tracked in the `[[clang::lifetime_capture_by]]`/Lifetime Safety Profile work originated by Herb Sutter and now revived in the C++ Safety Study Group (SG23).
+- **CIR-to-CIR inlining and interprocedural passes**: Implementing an inliner operating on `cir.func` ops before LLVM lowering could expose C++-aware optimizations (e.g., `[[likely]]`-annotated branch specialization, `nodiscard` devirtualization) that are currently lost once the AST is discarded.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Verified lowering from CIR to LLVM IR via Vellvm/Alive2 semantics**: The AST back-reference model in CIR (§53.7) provides a natural proof anchor for mechanized correctness arguments; a long-term research direction is connecting `CIRGenFunction` output to Alive2-style refinement checks, verifying that each `cir.binop`/`cir.cast`/`cir.call` emission preserves source-level C++ semantics under the ISO memory model.
+- **ClangIR as the universal Clang IR for all targets and language frontends**: The upstreaming roadmap envisions CIR replacing the `-emit-llvm` direct path as the default Clang IR, with targets (SPIR-V, AMDGPU, NVPTX, RISC-V) consuming CIR directly through target-specific lowering passes rather than routing through LLVM IR — reducing target-specific hacks in `CodeGenFunction` by centralizing them in CIR passes.
+- **Integration with C++ reflection (P2996) and CIR attribute emission**: C++26/27 static reflection (P2996/P3395) exposes AST-level metadata at compile time; CIR's AST back-reference architecture positions it to emit reflection-query results as CIR attributes evaluated at the `CIRGenModule` phase, making reflected type information first-class in the IR and enabling specialization strategies not expressible in LLVM IR.
+
+---
+
 ## Chapter Summary
 
 - `CIRGenerator` is an `ASTConsumer` that drives `CIRGenModule` and `CIRGenFunction` to produce an MLIR module.

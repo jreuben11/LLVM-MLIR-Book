@@ -594,6 +594,32 @@ bool SelectionDAGISel::runOnMachineFunction(MachineFunction &MF) {
 
 The fixpoint loop is necessary because legalization can introduce new illegal nodes — for example, expanding an `i64` multiply may introduce `MULHU` which itself needs legalization on targets that lack unsigned high-multiply.
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **GlobalISel convergence for remaining targets**: The LLVM community continues porting AArch64, RISC-V, and SPARC backends away from SelectionDAG toward GlobalISel. RFC discussions on discourse.llvm.org (e.g., "GlobalISel: status and next steps") track the remaining SelectionDAG-only code paths that must be replicated; by October 2026 the AArch64 GlobalISel path is expected to reach full parity with the SelectionDAG path for non-SVE code.
+- **Improved scalable-vector type legalization for RISC-V V and ARM SVE**: Current `SelectionDAGLegalizeTypes` type actions (`TypeSplitVector`, `TypeWidenVector`) assume fixed-width vectors. Patches in review (e.g., D157xxx series) extend `DAGTypeLegalizer` to propagate scalable-vector legality across `vscale`-dependent types so that `<vscale x 4 x i32>` vectors no longer require manual custom-lowering hooks in every target.
+- **`ISD::PTRADD` opcode for pointer arithmetic**: An RFC (discourse.llvm.org, 2025) proposes a dedicated `ISD::PTRADD` node to replace the current pattern of using `ISD::ADD` on pointer-typed GEP lowerings. This separates integer arithmetic from pointer semantics and enables alias-analysis-aware DAG combines without losing provenance.
+- **Atomic operation legalization in `AtomicExpandPass` for RISC-V Zalrsc/Zabha**: The RISC-V `Zabha` extension (byte and halfword atomics, ratified 2024) requires new legalization rules in `AtomicExpandPass` and `SelectionDAGBuilder::visitAtomicRMW` to emit native `AMOADD.B`/`AMOADD.H` instructions rather than CAS loops for byte/halfword RMW; patches expected upstream by Q3 2026.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **SelectionDAG → MIR lowering for wide SIMD (AVX-512, RISC-V V, SME)**: As 512-bit and scalable-length vector types become mainstream, the `TypeSplitVector`/`TypeWidenVector` infrastructure will need refactoring to handle hierarchical splitting (e.g., `v64i8` → `v32i8` → `v16i8` on a target with 256-bit registers) without quadratic growth in DAG nodes. Proposals to represent split hierarchies as DAG meta-nodes are under early discussion.
+- **Type legalization for 8-bit and 4-bit floating-point (FP8/FP4)**: The IEEE 754-2025 draft and ML hardware (e.g., NVIDIA H100, AMD MI300X) introduce `e4m3`, `e5m2`, and 4-bit formats. `SelectionDAGLegalizeTypes` will need `TypeSoftenFloat` paths for these sub-byte FP types, mapping them to integer bitpatterns and libcalls analogous to the existing `ppcf128` handling, plus DAG combines to fuse adjacent conversions.
+- **Memory legalization for non-temporal and streaming stores**: ARM SME and Intel AMX introduce new memory semantics (streaming-mode loads/stores, tile memory) that do not fit the existing `MemSDNode` model. Extending `MachineMemOperand` flags and `SelectionDAGBuilder::visitStore` to carry streaming/tile annotations — without breaking existing alias analysis — is a multi-year effort tracked in the LLVM memory model subgroup.
+- **Incremental/partial DAG re-legalization after late IR changes**: Machine Function Passes that lower intrinsics after initial SelectionDAG construction (e.g., StackProtector, SafeStack) currently work around the fixpoint loop by inserting pseudo-instructions. A cleaner design would allow late IR changes to trigger a partial re-legalization of only affected DAG subgraphs, avoiding full re-construction of the DAG.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Unified legalization framework spanning SelectionDAG and GlobalISel**: Both frameworks currently maintain separate legalization tables (`TargetLowering::getTypeAction` vs. `LegalizerInfo`). A long-term unification effort would derive both from a single declarative `LegalityRules` specification (analogous to how `tablegen` already generates instruction matchers), reducing duplicated target code by an estimated 30–50% per target backend.
+- **Formal verification of SelectionDAG legalization correctness via Alive2/Vellvm**: The Alive2 framework (Lopes et al.) currently verifies peephole optimizations over LLVM IR; extending it to verify that `DAGTypeLegalizer` expansions (e.g., `ExpandIntRes_MUL`, `ExpandRes_FADD`) produce semantically equivalent DAG subgraphs would provide machine-checked correctness guarantees analogous to CompCert's verified code generator, but targeting the open-source LLVM backend.
+- **AI-guided legalization heuristic selection**: Research prototypes (e.g., MLgo for inlining, MLGO for register allocation) demonstrate that ML models can outperform hand-tuned heuristics for compiler decisions. Applying reinforcement learning to choose among `Expand`, `Custom`, `LibCall`, and `Promote` actions — optimizing for code size or latency on a target micro-architecture — is a plausible 5-year research direction given the structured action space of `getOperationAction`.
+
+---
+
 ## Chapter Summary
 
 - `SelectionDAGBuilder` translates LLVM IR to a target-independent DAG of `ISD::` opcodes, one basic block at a time. Key visitors include `visitAdd`, `visitLoad`, `visitStore`, `visitCall`, and `visitBr`; intrinsics lower to `INTRINSIC_WO_CHAIN` or `INTRINSIC_W_CHAIN` nodes.

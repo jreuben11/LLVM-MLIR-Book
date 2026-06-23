@@ -222,6 +222,32 @@ The improvements are modest in absolute terms but significant at Google-scale co
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **TFLite → XNNPack / ONNX Runtime migration**: The LLVM community has discussed replacing the TFLite inference backend with a lighter, more portable runtime (ONNX Runtime or a custom tiny-inference engine) to reduce the external build dependency and enable Windows/macOS support without TensorFlow; tracked in LLVM RFC "Rethinking the ML backend for LLVM" on discourse.llvm.org (2025).
+- **Expanded ML inliner feature set**: Ongoing patches (e.g., D156xxx series) add per-call-site profile-guided hotness hints, module-level call-graph topology features (SCC size, recursion depth), and inter-procedural constant propagation signals to the feature vector to improve model accuracy on C++ templates and thin-LTO scenarios.
+- **Upstream of MLGO's interactive training mode**: The `ml-compiler-opt` project (github.com/google/ml-compiler-opt) has in-progress work to wire a gRPC-based interactive training channel directly into `clang`/`opt` builds so that training episodes can run without a custom compiler fork, lowering the bar for community-contributed training runs.
+- **ML eviction advisor for AArch64 and RISC-V**: The published model targets x86-64 register files; AArch64-specific training corpora (targeting server and mobile workloads) are being assembled to retrain and ship a second eviction model, with a RISC-V (RVV vector registers) variant planned as a follow-on.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Whole-pipeline ML policy (inlining + unrolling + vectorization jointly)**: Research at Google and Meta is exploring replacing independent per-pass heuristics with a single policy network that observes the full mid-end optimization sequence and co-optimizes inlining, loop unrolling, and SLP vectorization decisions jointly, sharing a common feature representation built on LLVM IR embeddings (IR2Vec-style).
+- **Sparse-transformer IR embeddings replacing hand-crafted feature vectors**: Projects like ProGraML (Cummins et al.) and CodeBERT-IR propose learning a latent IR representation that replaces the brittle hand-engineered feature set; integration into `MLInlineAdvisor` would allow the model to generalize to new IR idioms without feature engineering.
+- **Online / continual learning during LTO**: Thin-LTO and Full-LTO have access to whole-program call graphs; research prototypes propose allowing the ML policy to update its parameters incrementally during a single LTO link job using a small gradient step, adapting to the specific program being compiled rather than relying solely on the offline-trained prior.
+- **Hardware-cost-model-aware reward functions**: Current reward signals are proxy metrics (code size, spill count). Mid-term work targets plugging microarchitecture simulation (LLVM's `llvm-mca`, or external simulators like gem5/Sniper) into the RL reward loop so that the policy directly optimizes cycle counts on a specific micro-architecture.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **ML-guided register allocation for GPU/vector targets (AMDGPU, NVPTX, SPIRV)**: GPU register files are orders of magnitude larger and more constrained than CPU files; long-range work targets generalizing the eviction policy to AMDGPU's VGPR/SGPR allocation problem where the tradeoff between occupancy (waves in flight) and register pressure is fundamentally different from scalar CPU allocation.
+- **Foundation-model-backed compilation policy**: Analogously to LLM code generation, a multi-billion-parameter model pre-trained on LLVM IR corpora could serve as a universal compilation-decision prior, fine-tuned per optimization pass — enabling zero-shot generalization to new hardware targets or programming patterns without per-target training data collection.
+- **Formal verification of learned heuristics via abstract interpretation**: Work connecting ML policy outputs to static analysis invariants (e.g., ensuring an ML inliner never produces an inlining depth that violates a verified stack-depth bound) would allow ML policies to be deployed with correctness guarantees, addressing compiler-reliability concerns that currently prevent ML advisors from running by default in safety-critical toolchains.
+
+---
+
 ## Chapter Summary
 
 - LLVM's ML inliner replaces the threshold-based `DefaultInlineAdvisor` with a TFLite-evaluated model that learned from reinforcement learning on large codebases.

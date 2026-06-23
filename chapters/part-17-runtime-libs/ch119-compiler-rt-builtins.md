@@ -498,6 +498,32 @@ The key variable is `COMPILER_RT_BAREMETAL_BUILD`: it disables OS-dependent feat
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **RISC-V Vector soft-float builtins**: Ongoing patches on discourse.llvm.org to add `__rvv_*` builtins for targets using RISC-V Vector extension with `-mno-implicit-float`; the existing `riscv32/riscv64` `.S` files in `lib/builtins/` are being extended for RVV calling-convention-compliant soft-float wrappers.
+- **FP8 conversion builtins for ML workloads**: Follow-on to LLVM 22's `__float8_e4m3fn` and `__float8_e5m2` type additions; `__truncsffp8e4m3` and related conversion builtins are in review (LLVM RFC: "Adding FP8 type support to compiler-rt"), mirroring the BFloat16 precedent.
+- **MC/DC bitmap profile counters for embedded targets**: The `NumBitmapBytes` field introduced in LLVM 22's `__llvm_profile_data` layout is not yet supported in bare-metal profile configurations; work is underway to add `COMPILER_RT_BAREMETAL_BUILD`-compatible MC/DC counter serialization.
+- **Sanitizer interceptors for Fuchsia**: `sanitizer_common` Fuchsia support is being expanded to cover `zx_channel_*` system-call interception, tracked in the `llvm/compiler-rt` GitHub issues under the Fuchsia label.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **AArch64 SME/SVE2 builtins and AEABI2 soft-float wrappers**: As Armv9 SME (Scalable Matrix Extension) becomes mainstream, compiler-rt will need `__sme_*` runtime support functions for state management and streaming-mode transitions; the ARM AEABI specifications for SVE2 are still being finalised by Arm Ltd.
+- **LoongArch assembly-optimised builtins**: The `loongarch/` directory in `lib/builtins/` currently has only C fallbacks; community members from Loongson are expected to contribute hand-written `.S` files for divide, multiply, and soft-float operations matching the LoongArch SYSV ABI, similar to the existing `mips/` and `riscv/` contributions.
+- **Continuous-mode profile ring buffer for serverless workloads**: The current mmap-based continuous mode assumes a persistent file descriptor; a ring-buffer variant that exports profile snapshots via a shared-memory IPC channel is being prototyped to support ephemeral serverless runtimes that cannot rely on `atexit` flush semantics.
+- **compiler-rt built with C23 `_BitInt(N)` arithmetic**: LLVM's C23 `_BitInt` lowering currently falls back to ad-hoc multi-limb code in the backend; a proposal is in early design to route arbitrary-width integer arithmetic through extensible compiler-rt builtins (e.g., `__divbiN3`) using the same polyfill ABI as `__divti3`.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Verified builtins via formal proof**: Inspired by the Verified Software Toolchain (VST) approach applied to CompCert, there is academic interest in formally verifying the soft-float correctness of `__mulsf3`/`__muldf3` against IEEE 754-2019 using Coq or Lean 4; a collaboration between LLVM contributors and the Alive2 team (see [Chapter 148](../part-24-verified-compilation/ch148-alive2-translation-validation.md)) could produce machine-checked proofs for the arithmetic core.
+- **Unified ABI for 256-bit and 512-bit integer builtins**: As hardware moves toward wider SIMD-backed integer types (AVX-512 `__int512` experimentation in HPC contexts), a standardised compiler-rt ABI for 256- and 512-bit polyfills — analogous to the existing `__ti`/`ti_int` 128-bit layer — will be needed; this requires ABI committee coordination across GCC, LLVM, and MSVC.
+- **Profile runtime with eBPF-based out-of-process counter collection**: A long-range research direction replacing in-process counter arrays with eBPF programs that read hardware performance counters (PMU), eliminating instrumentation overhead entirely for production PGO workflows; early feasibility work is being published in CGO and PLDI proceedings.
+
+---
+
 ## Chapter Summary
 
 - compiler-rt replaces libgcc; it is a pure C ABI library with no C++ dependencies, safe for freestanding use.

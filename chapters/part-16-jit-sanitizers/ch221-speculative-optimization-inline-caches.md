@@ -692,6 +692,32 @@ This is equivalent to V8's Ignition→TurboFan tiering, implemented over LLVM OR
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **ORC `ReOptimizeLayer` stabilization**: the layer is currently experimental in LLVM 22; community effort on [discourse.llvm.org](https://discourse.llvm.org) is focused on graduating it to a supported API, including making `reoptimizeIfCallFrequent` production-ready and adding precise quiescing of in-flight tier-1 calls via `TaskDispatcher` epoch counting instead of the current `sleep_for` workaround.
+- **`@llvm.experimental.guard` promotion**: `GuardWidening.cpp` and the `@llvm.experimental.guard` intrinsic carry the "experimental" prefix; an LLVM RFC is in progress to formalize the guard IR design, clarify interactions with `MemorySSA`, and rename to `@llvm.guard` once semantics are frozen.
+- **Stackmap v4 format**: the current v3 stackmap format lacks per-record flags and per-location type metadata needed for precise deoptimization of SIMD values and vector types; a v4 proposal (tracking issue in LLVM bugzilla) adds a `Flags` field and extended location encoding for `<N x T>` types.
+- **Maglev LLVM backend experiments**: members of the V8 and LLVM communities have explored compiling Maglev's mid-tier IR through an LLVM backend rather than V8's own code generator; active prototype patches surfaced on the LLVM dev list in early 2026.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **ORC speculative type-profile integration**: extending `ReOptimizeLayer` to thread per-call-site type profiles (not just invocation counts) through the `AddProfilerFunc` / `ReOptimizeFunc` interface, enabling LLVM-hosted JITs to implement monomorphic-IC → polymorphic-IC re-specialization without bespoke profiling infrastructure.
+- **Deoptimization support for scalable vectors (SVE/SME)**: current `.llvm_stackmaps` location encoding is undefined for AArch64 SVE `<vscale x N x T>` types; deoptimizing through a JIT'd SVE loop body requires a new "indirect scalable" location kind and matching runtime support in `StackMapParser`; this is a prerequisite for speculative JIT use on AArch64 HPC targets.
+- **Hardware-accelerated ICs via BTI/PAC**: AArch64 Branch Target Identification and Pointer Authentication can be used to protect IC patch targets; ongoing standards work in the AArch64 ABI committee is defining a JIT-safe calling convention that allows patching IC pointer cells under PAC without disabling authentication — directly impacting IC performance under security-hardened kernels.
+- **LLVM `SpeculativeJIT` library**: the Julia, Swift, and Zig communities have each implemented speculative-optimization layers atop ORC with partially-overlapping infrastructure; a proposal is forming to consolidate common guard-insertion, deopt-bundle construction, and stackmap-parsing utilities into an in-tree `llvm/lib/ExecutionEngine/SpeculativeJIT` library, analogous to how `LLJIT` consolidated the previous scatter of JIT entry points.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Ahead-of-time profile-guided deoptimization (AOTPGD)**: merging offline PGO profile databases with JIT speculative profiles to pre-seed inline-cache states and guard thresholds before the first execution, eliminating the cold-start deoptimization spike; research prototypes exist for HotSpot (Project Leyden) and are expected to influence ORC's `ReOptimizeLayer` trigger design.
+- **Formal verification of deoptimization correctness**: extending the Alive2 / Vellvm verification frameworks to reason about deopt-bundle semantics — proving that the interpreter state reconstructed by a stackmap record is observationally equivalent to the interpreter state that would have existed had the JIT'd code never run; this is an open problem referenced in Lopes et al.'s Alive2 papers and a prerequisite for verified JIT correctness.
+- **Continuous adaptive recompilation via ML feedback**: replacing threshold-based tiering policies (call-count, back-edge counter) with learned policies that predict deoptimization risk from runtime features (branch history, IC state distribution, allocation rate), drawing on ML-guided compiler work in TensorFlow XLA's cost models and LLVM's `MLInlineAdvisor` infrastructure; expected to appear first in server-side JIT deployments where profile data is abundant.
+
+---
+
 ## Chapter Summary
 
 - Speculative compilation exploits observed runtime stability — direct calls, branch-free fast paths, null-check elimination — and requires a correct deoptimization path for every assumption

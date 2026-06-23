@@ -398,6 +398,32 @@ For the distributed self-modification scenario (Chapter 220 §220.11), verifying
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Alive2 inter-procedural coverage**: The ongoing work in `llvm/utils/alive2/` to extend Alive2 beyond function-scope to inter-procedural refinement (tracked in LLVM Discourse RFC "Alive2 for IPO passes") is expected to land initial inlining and argument promotion support, expanding the LLM-VeriOpt pass vocabulary to include `inliner` and `argpromotion`.
+- **LLM-VeriOpt open-source release**: The CGO 2026 paper system is expected to be open-sourced (as signaled in author correspondence) with pre-trained Qwen-3B weights and the Alive2-backed reward harness, enabling community benchmarking against SPEC CPU 2017 in addition to SPEC CPU 2006.
+- **Surrogate reward model (fast Alive2 predictor)**: Early experiments on training a lightweight GNN or Transformer to predict Alive2's verdict in < 5 ms (vs. 50–500 ms for Z3) are underway; initial results on `instcombine` patterns expected by mid-2026.
+- **SMT portfolio solvers as Alive2 backend**: LLVM issue [#89765](https://github.com/llvm/llvm-project/issues/89765) tracks replacing Alive2's single Z3 backend with a portfolio of Z3 + Bitwuzla + cvc5 to reduce timeout rates from ~7% to < 3%, directly improving reward signal quality during training.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Whole-program Alive2 via modular abstraction**: Research into inter-procedural refinement using summary-based bi-abduction (building on Facebook Infer's approach) should yield function summaries that let Alive2 check whole-module transformations in time linear in module size, enabling LLM-VeriOpt to cover LTO passes.
+- **Larger policy models with verification-guided GRPO**: Scaling LLM-VeriOpt from Qwen-3B to 7B–13B parameter models using Group Relative Policy Optimization (GRPO, as in DeepSeek-R1) with Alive2 as the process reward model — verification at each reasoning step, not just episode end — is projected to push correctness rates above 97% and IR reduction above 15%.
+- **Domain-adapted vocabularies for ML accelerators**: Transfer learning from the in-tree LLVM pass vocabulary to out-of-tree target-specific passes (e.g., IREE codegen pipelines, Triton backend transformations) using adapter fine-tuning; Alive2 extensions for MLIR's `arith` and `linalg` dialects will serve as the oracle.
+- **AlphaVerus integration with LLVM's existing verified passes**: Connecting AlphaVerus's MCTS tree search to the emerging LLVM verified-by-construction pass infrastructure (tracked in the LLVM Discourse thread "Verified optimization passes via Lean 4") to guarantee that newly generated passes are formally correct before upstreaming.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Real-time Alive2 for JIT self-modification**: A learned surrogate model achieving < 1 ms Alive2 prediction with < 0.01% false positive rate would make formal verification compatible with hot-swap latency budgets (< 10 ms), enabling the full verified self-modification loop of Chapter 220 to operate with formal — rather than empirical — correctness guarantees at runtime.
+- **Verified meta-compilation**: Extending the LLM-VeriOpt reward loop to pass *generators* (not just pass sequences) — where the LLM generates new `opt` passes in LLVM C++ or MLIR pattern rewriting DSL that are then formally verified by Lean 4 before JIT-compiling and adding to the pass registry — closing the loop between AI-generated compiler transformations and machine-checked proofs.
+- **Universal refinement oracle across IRs**: A unified semantic equivalence checker covering LLVM IR, MLIR dialects, SPIR-V, and WebAssembly would allow LLM-VeriOpt-style training to span the entire compilation stack from source to binary, with a single formal gate ensuring end-to-end correctness across IR-to-IR lowering passes.
+
+---
+
 ## Chapter Summary
 
 - Verification-in-the-loop replaces fragile performance reward with Alive2's formal refinement check as a hard correctness gate; no incorrect transformation can receive reward

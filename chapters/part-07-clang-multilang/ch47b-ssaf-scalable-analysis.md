@@ -904,6 +904,32 @@ The SARIF format is consumable by CodeChecker's web UI, GitHub's code scanning i
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Stabilize the `-analyze-ssaf` flag surface**: the chapter explicitly notes that flag names "may differ from the final production flag" — the near-term goal is freezing the Clang frontend action flag, the `-ssaf-output` / `-ssaf-compilation-id` options, and the `clang-ssaf-analyzer-driver` CLI so downstream build-system integrations stop tracking in-flux internals.
+- **Land the three built-in checkers** (`CrossTU.UseAfterFree`, `CrossTU.NullDereference`, `CrossTU.MemoryLeak`) with test suites exercising the cross-module scenarios described in §47b.6.3 and §47b.10 so that SSAF ships more than just the data model in `libclangAnalysisScalable.a`.
+- **SARIF 2.1 diagnostic output from `clang-ssaf-linker`**: completing the round-trip from summary file to a SARIF report consumable by CodeChecker ([ericsson/codechecker](https://github.com/Ericsson/codechecker)) and GitHub's code scanning endpoint, reusing the diagnostic format already used by the clang static analyzer.
+- **Integration with `compile_commands.json` driver**: productionize `clang-ssaf-analyzer-driver` to the level of `run-clang-tidy` — stable `--jobs`, `--output-dir`, and incremental-skip-if-unchanged logic — so CI adoption does not require per-project CMake plumbing.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **IFDS/IDE-style context-sensitive summaries**: upgrade the per-TU may-analysis from a flat boolean `mayReturnNull` representation to an IFDS (Interprocedural Finite Distributive Subset) or IDE (Interprocedural Distributive Environment) lattice (Reps–Horwitz–Sagiv, POPL 1995), capturing the calling-context dependence that currently forces conservative overapproximation of polymorphic callees and function-pointer dispatch.
+- **SSAF-to-path-sensitive feedback loop** (the direction stated in §47b.5.3 and §47b.11): feed `mayReturnNull: false` and ownership facts computed by the SSAF link step back into the clang static analyzer as pre-analysis modeling constraints, reducing the state-space of `ExplodedNode` exploration and the analyzer's false-positive rate on cross-module APIs; builds on the existing `crosscheck-with-z3` Z3-refutation pathway (`-analyzer-config crosscheck-with-z3=true`).
+- **Binary / CBOR summary format**: replace the JSON serialization (§47b.4.2) with a compact binary format analogous to ThinLTO's `GLOBALVAL_SUMMARY_BLOCK` in LLVM bitcode (see [Chapter 77 — LTO and ThinLTO](../part-13-lto-whole-program/ch77-lto-and-thinlto.md) §77.3), reducing summary file size and link-time parse cost for programs with tens of thousands of exported functions.
+- **`clangd` / IDE integration**: surface SSAF cross-TU diagnostics inside `clangd`'s in-editor flow by running the link-time pass on the indexed symbol database that `clangd` maintains for code navigation, analogous to how `clangd` exposes clang-tidy diagnostics without running the full build pipeline.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Cross-language summaries**: extend `EntityName` / `SummaryName` to span Clang IR (ClangIR; see [Chapter 48 — ClangIR](../part-08-clangir/ch48-clangir-overview.md)) and MLIR module boundaries, enabling SSAF-style whole-program analysis over mixed C++/Fortran (`flang`) or C++/Swift codebases compiled through a shared MLIR lowering layer.
+- **Formal soundness annotation**: provide a machine-checked proof (in Lean 4 or Coq) that the bottom-up callgraph transfer function in §47b.6.1 is a sound conservative approximation of the concrete small-step semantics; the CompCert verified-compilation lineage (Leroy, JACM 2009) and Alive2 (Lopes et al., PLDI 2021) demonstrate that such proofs are achievable for production compiler passes.
+- **Distributed link-time analysis for monorepos**: mirror the distributed ThinLTO pattern used in Chrome's build (where the ThinLTO backend is sharded across many machines) to shard the SSAF `clang-ssaf-linker` SCC traversal across a cluster, so the link-time step for a 50M-LOC monorepo scales sub-linearly with program size rather than remaining a single-machine sequential bottleneck.
+
+---
+
 ## 47b.11 Chapter Summary
 
 - SSAF (Scalable Static Analysis Framework) solves the whole-program analysis problem by separating per-TU summary generation from link-time aggregation, using the same two-phase pattern as ThinLTO.

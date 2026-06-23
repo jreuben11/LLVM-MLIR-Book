@@ -536,6 +536,32 @@ This is not a silver bullet — Brooks was right that no technology eliminates e
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Typed `LLMCall` RFC in MLIR/LLVM community**: An RFC or BoF session at LLVM Dev Meeting 2026 to standardise a structured LLM invocation dialect in MLIR — analogous to the 2023 `async`-region discussions — providing `LLMCall[Model, In, Out, Budget]` as a first-class MLIR operation with FSM-constrained output and linear token-budget operands.
+- **DeepSeek-Prover-V2 and LeanCopilot integration hardening**: Follow-on work from arXiv 2504.21801 and 2404.12534 expected by late 2026 to extend recursive subgoal decomposition beyond miniF2F to software verification benchmarks (e.g., VeriBench), enabling the MCP type-checker oracle pattern (Paradigm 1) on realistic coding tasks.
+- **Lean4Lean soundness completeness**: The Lean4Lean project (arXiv 2403.14064) targets a complete verified typechecker for Lean 4 core by end of 2026; this closes the reflective loop needed for `describe : Program → MetaModel[P]` to have a formal correctness guarantee, unblocking Phase 0 of the build roadmap.
+- **MLIR `tensor_named` dialect prototype**: Early-stage community work on named-dimension tensors in MLIR (tracked in LLVM Discourse thread `mlir-named-dimensions`) is expected to produce a prototype lowering through `linalg` to StableHLO by mid-2026, directly enabling Phase 1 compiler work.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Probabilistic refinement types with decidable fragments**: Academic prototypes (building on work by Clarkson/Scedrov on hyperproperties and Barthe et al. on probabilistic relational logic) are expected to yield a sound-but-incomplete checker for `(p, δ, k)`-satisfaction contracts (Phase 3 of the roadmap), with at least one implementation in Agda or Lean 4 serving as a reference for compiler integration.
+- **Choreographic programming for LLM participants**: Extension of HasChor (Haskell) or Pirouette (arXiv 2111.03484) to handle probabilistic session types where one participant is an LLM — the open problem identified as "3–5 years" in §207.4 — is expected to have a theoretical formulation and prototype implementation by 2028, driven by the multi-agent coordination demand from production AI pipelines.
+- **AlphaProof-style RL-from-formal-oracle for program synthesis**: Following the IMO silver-medal result (Nature 2025), DeepMind and competing groups (Lean FRO, OpenAI) are expected to extend adversarial kernel training from pure mathematics to software correctness benchmarks (SWE-bench, HumanEval-Plus with Dafny annotations), making the MCP type-checker oracle pattern production-ready by 2028.
+- **MLIR effect system standardisation**: A dialect for algebraic effects and handlers in MLIR (analogous to `async`/`gpu`/`omp` dialects) is expected by 2028, enabling the `{Stochastic, Gradient, RequiresHumanApproval}` effect rows from Chapter 204 to lower to concrete hardware and workflow backends rather than requiring a custom compiler.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Certified self-modification (`patch` with proof) in a production language**: Combining RL convergence theory with dependent type theory to produce a formally sound `mape_k` loop — the hardest open problem identified in §207.4 — is expected to have a research prototype by 2031, requiring the bridge between RL theory (convergence bounds) and certified program transformation (as in CompCert's RTL-to-Asm proofs, arXiv Vellvm).
+- **Intent-level type theory**: The open problem of formalising semantic intent divergence as a static type (identified in §207.4 as "entirely open") is expected to see the first credible theoretical framework by 2031, drawing on advances in natural language semantics formalisation (e.g., Montague semantics in dependent type theory, work of Ranta and Chatzikyriakidis) and empirical Semantic Consensus metrics.
+- **Universe-polymorphic `Syntax` type with dependent typing**: Closing the gap identified in the Reflective Gap Table — Lean 4's `Syntax` is currently untyped and not itself a dependent type — is a multi-year dependent-type-theory research problem; by 2031, a successor to Lean 4 or a major Lean 5 release is expected to expose `Syntax` as a universe-polymorphic type constructor, enabling `describe : Program → MetaModel[P]` as a user-facing first-class operation.
+
+---
+
 ## Chapter Summary
 
 - **Reflective code** requires five properties: static introspection (Lean 4 `MetaM`), dynamic introspection (execution trace types, open), homoiconicity (Lean 4 `Syntax`, ρ-calculus `quote`/`unquote`), certified self-modification (`patch : Program → MetaModel → Σ(Program, Proof)`, no production implementation), and self-improvement (AlphaVerus, SICA; formal convergence proofs open). Lean 4 is the closest existing system; the Lean4Lean project closes the reflective loop by verifying the typechecker in Lean itself.

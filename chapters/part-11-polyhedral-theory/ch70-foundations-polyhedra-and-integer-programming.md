@@ -390,6 +390,32 @@ ISL uses heuristics to avoid exponential blowup in practice:
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **ISL 0.27 and semi-affine extensions**: Verdoolaege's ISL roadmap targets better support for semi-affine constraints (where loop bounds include `min`/`max` and floor-division terms that arise in tiled code). Ongoing patches on the ISL mailing list aim to reduce coalescing failures in these cases, directly improving Polly and MLIR Affine tile-size inference.
+- **MLIR Presburger library hardening**: The `mlir/lib/Analysis/Presburger/` subtree (introduced to decouple MLIR from ISL for lightweight analyses) has active development on its `IntegerRelation::computeReprWithOnlyDivs` path and parametric polytope support; patches tracking upstream under the MLIR "Presburger" umbrella on discourse.llvm.org aim for parity with ISL's Omega-test coverage by mid-2026.
+- **Barvinok counting in ISL for trip-count analysis**: ISL's `isl_set_card` (Barvinok-based exact cardinality) is being plumbed into LLVM's `ScalarEvolution` to give precise symbolic trip counts for polyhedral loops; RFC posted to llvm-dev in Q1 2026 proposes a new `llvm::PolyhedralTripCount` interface backed by ISL PIP.
+- **Cooper's QE performance improvements**: A 2025 patch series by Arjun Pitchanathan (ETH Zürich) rewrites the DNF normalization step in ISL's quantifier-elimination path using BDD-based simplification, targeting a 3–5× speedup on formulas with ≥ 4 quantifier alternations (relevant to deep loop nests and parametric tile-size selection).
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Approximate integer hull algorithms for large SCoPs**: The integer hull (tightest ILP-feasible polyhedron enclosing all integer points) is exponentially hard in general, but recent work on **lattice-width-based approximations** (Dadush et al., FOCS 2025) promises polynomial-time (1+ε)-approximate hulls; integrating these into ISL's `isl_set_polyhedral_hull` would extend tractable polyhedral analysis to SCoPs with 10+ loops, currently out of reach for Pluto.
+- **Floating-point polyhedral analysis**: Extending Presburger arithmetic to handle floating-point loop bounds (e.g., `for (float f = 0.0; f < N; f += 0.5)`) requires an interval/affine approximation layer atop integer polyhedra; LLVM's Polly team has a long-standing RFC to add FP-bound SCoPs using interval arithmetic projection, targeting inclusion in LLVM 25.
+- **Satisfiability Modulo Theories (SMT) integration for dependence analysis**: Replacing or augmenting the Omega test with SMT calls (specifically Z3's quantifier-free linear integer arithmetic) in Polly's dependence analysis; early benchmarks show SMT can solve certain classes of modular-arithmetic dependences (e.g., stride-2 accesses with unknown alignment) that the Omega gray shadow misses, at comparable cost on modern hardware with parallel Z3 invocations.
+- **Parallel PIP (Parametric Integer Programming)**: Feautrier's PIP is inherently sequential in its dual-simplex recursion; work by Sven Verdoolaege and Louis Nussbaum on parallelizing PIP over independent parameter regions is ongoing, with a prototype published at IMPACT 2026 showing 4× speedup on 8-core machines for large multi-statement SCoPs common in tensor contraction kernels.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Machine learning-guided ILP branching for schedule search**: Polly's Pluto-style scheduler currently uses fixed-priority branching in its ILP; research at Inria (Bondhugula's successors) is exploring learned branching heuristics (combining graph neural networks over the SCoP dependence graph with branch-and-bound) that could reduce schedule search time by an order of magnitude for the large SCoPs in deep learning compiler workloads, enabling polyhedral scheduling at O(100)-statement granularity.
+- **Tropical geometry for schedule space exploration**: Tropical (min-plus) algebra provides a different algebraic structure for iteration space analysis that naturally handles piecewise-linear schedules without case splits; connections to the polyhedral model via tropical convex hulls (Develin-Sturmfels 2004; recent COCOA 2027 work) may yield new exact algorithms for multi-dimensional scheduling that avoid ISL's exponential worst case in quantifier alternation.
+- **Verified polyhedral arithmetic in Lean 4**: CompCert's verified integer arithmetic (Coq) and Vellvm's verified IR provide precedent; a Lean 4 formalization of the Omega test and ISL's core set operations would let verified compilers (Chapter 107) emit correctness certificates for every polyhedral transformation, closing the gap between theoretical decidability of Presburger arithmetic and production compiler trustworthiness.
+
+---
+
 ## Chapter Summary
 
 - A **convex polyhedron** P = {x | Ax ≤ b} is the H-representation; the V-representation via vertices and rays is equivalent (Minkowski-Weyl). Faces, facets, and vertices are the geometric vocabulary of iteration space analysis.

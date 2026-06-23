@@ -541,6 +541,32 @@ The following table summarizes the IR lowering for each construct:
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Typed pointers for GEP safety**: The LLVM community's ongoing migration to opaque pointers (completed in LLVM 17) enables cleaner GEP-based lowering; active work on `getelementptr` range-metadata annotations (RFC on discourse.llvm.org, 2025) will let frontends embed bounds-check evidence directly in GEP metadata, reducing redundant `icmp` guards in bounds-safe languages.
+- **`CoroElidePass` stack-allocation improvements**: LLVM 22's `CoroElidePass` already elides heap frames for bounded lifetimes; near-term patches tracked in `llvm/lib/Transforms/Coroutines/CoroElide.cpp` extend elision to coroutines crossing basic block boundaries via escape analysis, reducing `malloc` overhead for generator-style coroutines in language frontends.
+- **Tagged-union niche optimization at the IR level**: Rust's MIR-to-LLVM lowering of `enum` niches (encoding discriminants in unused bit-ranges of payloads) is actively being generalized in upstream LLVM via a `!niche` metadata scheme discussed in the LLVM developers' list (2025–2026); frontends can begin attaching `!range` metadata on tag loads to feed existing constant-folding machinery.
+- **Clang's virtual-dispatch devirtualization for opaque vtables**: Clang's `-fwhole-program-vtables` and `!vcall_visibility` metadata are being extended (LLVM 22 branch, D143215 follow-ups) to support devirtualization of vtable calls emitted by non-C++ frontends that follow the Itanium layout documented in this chapter.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **LLVM closure-calling-convention canonicalization**: An RFC expected by 2027 proposes a first-class `closurecall` calling convention (or ABI tag on function attributes) that lets the middle-end recognize `{ fn_ptr, env_ptr }` pairs and apply interprocedural specialization without frontend-specific heuristics; this would supersede the current convention of encoding closures as anonymous `InternalLinkage` functions.
+- **Coroutine frame layout hints via `!coro.frame` metadata**: The coroutines working group (see `llvm/docs/Coroutines.rst` roadmap section) plans structured metadata describing the coroutine frame's field layout, allowing alias analysis and SROA to decompose frames more aggressively and enabling DWARF debug information for suspended coroutine state.
+- **RTTI for non-C++ languages via a standardized LLVM metadata scheme**: The LLVM language-extensibility working group is scoping a `!type_descriptor` metadata node that lets arbitrary language runtimes attach type identity information to globals without committing to the Itanium `__*_type_info` struct layout, enabling cross-language `instanceof`-style checks in polyglot runtimes built on LLVM.
+- **ABI-aware struct passing via `TargetTransformInfo` frontend callbacks**: Ongoing work (see D145000 series) to expose `TargetTransformInfo::getAggregatePassingStrategy()` so that frontends can query coercion vs. `sret` decisions at IR construction time rather than reconstructing DataLayout heuristics manually, directly impacting the §57.1.3 ABI patterns.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **First-class sum-type IR representation**: Longer-range LLVM design discussions (LLVM Developers' Meeting 2024–2025 talks on "High-level IR concepts") explore adding a native `tagged_union` IR type that encodes discriminant + payload without requiring manual byte-array unions, enabling the optimizer to reason about tag exhaustiveness and avoid redundant switch-dispatch in pattern-match-heavy code.
+- **Ownership-aware closure lowering**: As Rust and future ownership-typed languages gain LLVM frontend traction, the middle-end may acquire ownership annotations (building on `!noalias.scope` and `swifterror`-style conventions) that allow the optimizer to eliminate environment heap allocations for move-only closures without requiring frontend escape analyses.
+- **Unified RTTI and reflection metadata infrastructure**: The convergence of LLVM-based language runtimes (Swift, Kotlin/Native, Carbon, Mojo) is expected to produce a shared LLVM-level reflection metadata standard by ~2030, replacing per-language `__type_info` clones and enabling cross-language reflection, profiling, and sanitizer tooling that currently requires bespoke ABI knowledge per language.
+
+---
+
 ## Chapter Summary
 
 - Struct field access lowers to `getelementptr inbounds` with a struct type and a constant field index.

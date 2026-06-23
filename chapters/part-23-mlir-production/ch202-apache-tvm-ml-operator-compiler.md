@@ -1198,6 +1198,32 @@ MLC-LLM demonstrates that TVM's schedule-synthesis approach scales from 10 KB MC
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **TVM Unity / Relax stabilization**: The `v0.17` and `v0.18` release series are converging on a stable Relax API, deprecating `tvm.relay` for new workloads; the Apache TVM community RFC "Relay Deprecation Path" ([apache/tvm#15400](https://github.com/apache/tvm/issues/15400)) targets a clean cut-over by mid-2026, requiring downstream BYOC backends to migrate their pattern tables to `tvm.relax.backend.contrib`.
+- **Meta-Schedule database portability**: Ongoing work to move from per-machine JSON tuning logs to a machine-description-indexed database format, enabling tuning records to transfer across similar microarchitectures (e.g., Cortex-A78 → Cortex-X3) without full remeasurement — tracked in [apache/tvm#15701](https://github.com/apache/tvm/pull/15701).
+- **MLC-LLM speculative decoding support**: MLC-LLM is adding a compiled speculative decoding path (draft model + verifier in a single Relax `IRModule`), requiring new Relax VM scheduling primitives for interleaved kernel dispatch; see [`mlc-ai/mlc-llm#1872`](https://github.com/mlc-ai/mlc-llm/issues/1872).
+- **RISC-V Vector (RVV 1.0) backend maturation**: TVM's RISC-V target is gaining first-class RVV 1.0 intrinsic support through `tensorize` hooks for `vfmacc.vf` and `vload`/`vstore` families, enabling Auto-Schedule to exploit scalable-width SIMD on SiFive P670 and Xuantie C910 cores.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **LLM-guided autotuning (learned cost models)**: The XGBoost-based cost model in Meta-Schedule is expected to give way to transformer-based learned surrogates trained on large corpora of (TIR program, hardware latency) pairs — analogous to the AlphaTensor or Mirhoseini placement work — substantially reducing the cold-start measurement requirement for new targets.
+- **Disaggregated compilation for heterogeneous SoCs**: As mobile SoCs integrate CPU clusters, DSP, NPU, and GPU on a single die with shared L3, TVM's BYOC model will evolve toward a partition-aware inter-device scheduling pass that reasons jointly about data transfer cost and compute placement, currently prototyped in the `tvm.meta_schedule.multi_device` RFC.
+- **Sparse and dynamic-shape operators in Meta-Schedule**: Sparse attention (flash attention variants, sliding-window attention) requires schedule primitives that operate on ragged tensors; ongoing discussion in the TVM RFC process (RFC-0019: Sparse Tensor Support in TIR) aims to introduce `T.sparse_buffer` and matching schedule primitives analogous to the dense `T.block` API.
+- **Formal schedule transformation verification**: A research direction coupling TVM's TIR with the Lean 4 / MLIR Quidditch proof infrastructure to machine-check that schedule primitives preserve loop-nest semantics — bridging the compiler correctness work in [Ch192 — Verified Compilation with Lean 4](../part-24-verified-compilation/ch192-verified-compilation-lean4.md) to production TVM schedules.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Unified ML compiler convergence on StableHLO/Relax interchange**: The three-way split between XLA's StableHLO, TVM's Relax, and IREE's MLIR dialects is likely to converge on a shared graph-level IR (possibly StableHLO-extended with dynamic shape variables) with each system providing its own lowering backend — making TVM's Meta-Schedule an available backend for XLA and IREE frontends.
+- **Hardware-aware compiler–silicon co-design**: TVM's schedule synthesis model is beginning to inform next-generation NPU ISA design (as seen in MIT's Gemmini and VTA projects); by 2031 this feedback loop is expected to produce ML-compiler-aware ISA extensions where the TIR `tensorize` primitive can directly target hardware-native tile DMA and systolic-array instructions without vendor library wrappers.
+- **Autonomous chip-in-the-loop autotuning**: Continuous integration pipelines that run Meta-Schedule tuning against silicon emulators (Gem5, Spike for RISC-V) as part of chip tape-out verification, generating tuning databases simultaneously with hardware bring-up — compressing the post-tape-out performance validation cycle from months to weeks.
+
+---
+
 ## Chapter Summary
 
 - **TVM's design center** is operator-level schedule synthesis: expressing how loop iterations are tiled, reordered, vectorized, and mapped to hardware intrinsics. This distinguishes it from XLA (graph-level, library-heavy) and IREE (MLIR-native VM dispatch).

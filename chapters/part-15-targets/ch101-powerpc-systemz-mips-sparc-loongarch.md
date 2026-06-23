@@ -948,6 +948,32 @@ grep -E "^	v(ld|st|add|mul)" test_ve.s
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **LoongArch GlobalISel completion**: The LoongArch GlobalISel port is actively expanding; LLVM 23 is expected to bring coverage of LSX/LASX vector operations through GlobalISel, closing the gap with the complete SelectionDAG path. Track patches on `llvm/lib/Target/LoongArch/GISel/` and the LLVM Discourse `[LoongArch]` tag.
+- **Power10 MMA auto-vectorization**: IBM is upstreaming passes that recognize BLAS-pattern loops and automatically lower them to Power10 MMA `xvf32gerpp`/`xvf64gerpp` outer-product sequences without manual intrinsics. Related RFC: "PowerPC MMA auto-detection in SLP vectorizer" (discourse.llvm.org, 2025).
+- **SystemZ z16 full instruction coverage**: IBM Z z16 (2022) added the NNPA (Neural Network Processing Assist) instruction set; LLVM patches to expose `NNPA` instructions as target intrinsics and lower `tosa`/`linalg` matmul ops to NNPA are in review as of early 2026.
+- **LoongArch TLSDESC default enablement**: The `-mllvm -loongarch-enable-tlsdesc` flag is expected to become the default for shared-library TLS in Clang 23, mirroring AArch64's TLSDESC promotion; the Loongson toolchain team is coordinating with the glibc LoongArch port maintainers for dynamic linker readiness.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **LoongArch v2.0 ISA extensions**: The LoongArch International Standards Organization is developing v2.0 extensions including LVZ (LoongArch Virtualization) and LCT (LoongArch Cryptography), with hardware shipping in the Loongson 3B6000/3C6000 server class. LLVM support will follow initial silicon tape-out, likely requiring new `LoongArchInstrLVZ.td` and `LoongArchInstrCrypto.td` files analogous to the existing LSX/LASX pattern.
+- **MIPS backend maintenance status**: LLVM's MIPS backend is at risk of demotion from tier-2 to tier-3 given declining upstream maintainer bandwidth. The LLVM Technical Council is expected to publish a formal policy on backend tiers; MIPS R6 microMIPS and MIPS16 support may be removed as orphaned code unless new maintainers step forward (Discourse thread: "MIPS backend future" by @lenary, 2025).
+- **PowerPC ELFv2 on OpenPOWER 5**: IBM is defining the POWER5 microarchitecture ABI extensions for POWER11 generation hardware (internal codename "Salazar"), including expanded MMA accumulator banks and a new form of the VSX register file addressing. LLVM codegen for `power11` (`-mcpu=power11`) is expected to begin upstreaming by 2027.
+- **NEC VE2 backend improvements**: NEC's SX-Aurora VE2 (second-generation vector engine) achieves 2× the vector register bandwidth of VE1; the `llvm-ve-rv` research project (github.com/sx-aurora-dev/llvm-ve-rv) is integrating its outer-loop vectorizer passes into upstream LLVM to enable VE2 targets to vectorize non-innermost loops and achieve 80–90% of peak hardware throughput.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **LoongArch as a first-class LLVM development target**: As Loongson 3A7000/3C7000 hardware proliferates in Chinese data centers, LoongArch is on a trajectory to become a tier-1 LLVM target with dedicated bot coverage, GlobalISel parity, and MLIR codegen backends for `vector` and `gpu` dialects analogous to AArch64 SVE support.
+- **SystemZ quantum-classical hybrid compilation**: IBM's quantum computing roadmap for 2029–2031 ("IBM Quantum System Two") includes hybrid classical-quantum programs where the classical control code runs on IBM Z. Research into LLVM IR extensions that model quantum gates as side-effectful intrinsics, with SystemZ as the host backend for the classical scheduler, is ongoing in IBM Research.
+- **SPARC sunset and LLVM deprecation**: SPARC has no active silicon roadmap beyond existing safety-critical LEON4/GR740 radiation-hardened variants. By 2031, SPARC is likely to follow the path of the Alpha backend (removed LLVM 3.5) — moved out-of-tree or placed on formal deprecation notice unless the space-systems embedded community (Cobham, CAES) takes active maintainership.
+
+---
+
 ## Chapter Summary
 
 - PowerPC's VSX register file (VS0–VS63) unifies FPRs and VMX vector registers; ELFv2 (ppc64le) eliminates function descriptors and passes up to 8 integer args in R3–R10, 13 FP args in F1–F13, and 12 vector args in V2–V13; Power10 MMA adds 512-bit accumulator registers for matrix outer-product instructions exploited by LLVM's modulo scheduler.

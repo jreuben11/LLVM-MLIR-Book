@@ -1363,6 +1363,32 @@ clang --target=thumbv7em-none-eabihf \
 
 For bare-metal, the ASan shadow memory and interceptors must be customized: the default 1/8-of-address-space shadow map does not fit in embedded SRAM. Embedded ASan implementations typically use a flat shadow region at a fixed address and override `malloc`/`free` with instrumented versions. This is feasible for development boards with hundreds of KB of RAM but not for ultra-constrained targets.
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **RISC-V Zce ratification and full LLVM integration**: The Zcmp (push/pop) and Zcmt (jump table) sub-extensions, ratified in the RISC-V ISA specification in 2023, are being upstreamed in LLVM 23; tracking PRs include D150990 and successors. Expect full `-march=rv32imac_zca_zcb_zcmp_zcmt` codegen support with measurable prologue/epilogue size reductions in LLVM 23 (~20% savings on function prologues based on GCC benchmarks).
+- **Arm Cortex-M85 and ARMv8.1-M MVE auto-vectorizer improvements**: Work is underway on LLVM's ARM TTI to improve Helium (MVE) vectorization cost models for Cortex-M55/M85 — specifically the tail-predicated loop transformation via `vctp`/`vpst`. Follow [discourse.llvm.org/t/arm-mve-vectorization](https://discourse.llvm.org/c/llvm/9) for RFC updates and the LLVM ARM backend review queue.
+- **picolibc 2.x integration with LLVM toolchain**: picolibc is moving toward full TLS-based `errno` (already supported in LLVM's bare-metal TLS model) and improved `printf`/`scanf` with Clang LTO visibility. The `--specs=picolibc.specs` workflow is expected to be adopted as the canonical Clang embedded C library path in LLVM 23, deprecating the GCC-compatible `newlib-nano` approach.
+- **Xtensa upstream completeness**: The in-tree Xtensa backend (merged in LLVM 20) is gaining windowed-ABI support and Espressif-specific CPU subtargets (`-mcpu=esp32`, `-mcpu=esp32s3`). Active patches are in review on Phabricator/GitHub PRs tracked at [github.com/llvm/llvm-project/labels/backend:Xtensa](https://github.com/llvm/llvm-project/labels/backend%3AXtensa).
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **RISC-V RVA23/RVA25 profile standardization and Clang multilib coverage**: The RISC-V International RVA23 profile (ratified 2023) and forthcoming RVA25 profile codify required extensions for application-class targets, but the embedded companion profiles (RVE20, RVE22) will drive a multilib matrix explosion. Expect LLVM's YAML-based multilib configuration to absorb RV32E, Zce, and P-extension combinations, with picolibc shipping pre-built multilibs for each.
+- **LLVM Machine Outliner improvements for heterogeneous Cortex-M firmware**: Current outliner (as of LLVM 22) does not outline across security domain boundaries (Secure/Non-Secure in TrustZone). Research at ASPLOS 2025 and RFC discussion (tracked at discourse.llvm.org) proposes cross-domain outlining with veneer generation, which could save 10–15% additional flash in CMSE-partitioned firmware.
+- **Bare-metal AddressSanitizer shadow memory for MCUs with 256 KB+ SRAM**: Work on a compact ASan shadow mapping (1:32 ratio rather than 1:8) suitable for Cortex-M4/M7 class devices is expected to land in compiler-rt. This would allow full heap and stack sanitization for development boards (STM32H7, i.MX RT1176) without requiring Linux-class memory.
+- **AVR backend register allocator overhaul**: The AVR backend's register pair allocation (for 16/32-bit values across 8-bit registers) is a known source of spill-slot inefficiency. A proposed rewrite using LLVM 17+ `RegisterBankInfo` and the Global ISEL framework is being prototyped; this would also fix long-standing bugs in 24-bit pointer handling for ATmega with extended flash (ELPM).
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **CHERI for embedded (Morello Thumb-2 / RISC-V Cheriot)**: Microsoft's CHERIoT RISC-V project and Arm's Morello research platform both bring hardware capability enforcement to embedded systems. LLVM support for CHERIoT (a RISC-V derivative with compressed capabilities for 256 KB RAM class MCUs) is expected to mature into a production embedded target, replacing ad-hoc MPU-based isolation in RTOS-based firmware.
+- **Certified Clang/LLVM for ISO 26262 ASIL-D**: Current certified Clang distributions (Green Hills, Arm Ltd.) certify only specific LLVM versions. The LLVM Foundation's Safety-Critical Working Group, formed in 2024, is building an open-source LLVM compiler qualification test suite targeting IEC 61508 SIL-3 / ISO 26262 ASIL-D — analogous to GCC's ACATS. Wide availability of a freely certified Clang for automotive applications is projected for the 2029–2031 timeframe.
+- **MLIR-based embedded code generation pipeline**: As MLIR's CodeGen path matures (see Parts XIX–XXI), there is active research interest in using MLIR's affine and structured-op dialects to drive code generation for constrained embedded targets — particularly for DSP kernels (FIR, FFT) targeting Helium MVE and RISC-V Vector (or P extension). Projects like IREE embedded runtime and microTVM demonstrate viability; a fully MLIR-driven embedded backend (bypassing SelectionDAG) is a credible 5-year horizon target for Cortex-M55/M85 and RISC-V V-extension MCUs.
+
+---
+
 ## Chapter 107 Summary
 
 - **Embedded compilation** differs from hosted targets in requiring bare-metal ABI, startup code, linker scripts, software FP builtins, and aggressive code size optimization.

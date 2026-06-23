@@ -835,6 +835,32 @@ For exported inline functions, Clang emits the function body into both the BMI (
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Reduced BMI stabilization and ThinLTO compatibility**: The `-fmodule-output` (combined BMI + object) path is currently incompatible with `-flto=thin` in Clang 22; active work tracked in [llvm/llvm-project#75850](https://github.com/llvm/llvm-project/issues/75850) aims to resolve the conflict by teaching the ThinLTO pipeline to skip re-serialization of already-written BMI data.
+- **`import std;` libc++ stabilization**: libc++ 22's `std.cppm` and `std.compat.cppm` are experimental; the libc++ team targets a stable, fully-populated standard library module for libc++ 23 (Clang 23 cycle), covering all headers including `<chrono>`, `<format>`, and `<ranges>`. Progress is tracked in [libc++ issue #62828](https://github.com/llvm/llvm-project/issues/62828).
+- **Header unit macro re-export through re-import chains**: The known limitation in Clang 22 where `export import <cassert>;` does not propagate the `assert` macro to consumers is being addressed in `Preprocessor::makeModuleVisible()` — patches are under review on discourse.llvm.org under the "C++20 Modules" umbrella thread.
+- **P1689 scanner performance improvements in `clang-scan-deps`**: The `DependencyScanningFilesystem` stat-cache miss rate on large codebases (LLVM itself, Chromium) is being profiled and improved; specifically, the `FileSystemStatCache` warm-up cost on the first scan is targeted for 30–40% reduction through pre-population from `compile_commands.json`.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Standardized BMI format (C++26 / SG15 Tooling Study Group)**: ISO WG21 SG15 is developing a standard ABI for BMI files so that modules compiled with different compilers (Clang, GCC, MSVC) can interoperate. The current LLVM bitstream format is Clang-specific; SG15 papers (P2577 and successors) propose an interchange schema. Clang's ASTWriter/ASTReader will need a parallel export path targeting this format.
+- **Incremental BMI recompilation (fine-grained invalidation)**: When only non-exported definitions change (e.g., implementation details in the module purview rather than the PMF), the BMI should not change. Work is being prototyped to split the BMI into a *stable interface hash* and a *full AST payload*, so that consumers can skip re-parsing when the interface hash is unchanged — directly addressing the "incremental compilation granularity" limitation noted in §37.12.6.
+- **Clang module-aware LTO and inliner cross-module visibility**: The existing LTO pipeline operates on post-codegen LLVM IR and is unaware of C++ module ownership. Mid-term work involves threading module ownership metadata into LLVM IR (`!llvm.module.flags` entries or a new `ModuleOwner` metadata) so that the inliner and IPO passes can respect module-linkage boundaries without merging internal symbols across module owners.
+- **`clangd` and `clang-tidy` first-class module support**: As of Clang 22, `clangd` must recompile module interfaces on-demand to build its index; structured support for persistent BMI caching inside `clangd`'s in-process PCM manager (see `ClangdServer::buildModule()` RFC on discourse.llvm.org, 2025-Q3) aims to reduce editor cold-start latency by 5–10x for modular projects.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Cross-compiler module interoperability**: If SG15's standardized BMI format reaches C++29 or a TS, all major compilers will need to both produce and consume it. For Clang, this means `ASTReader` gaining a second frontend capable of parsing the standardized format alongside the native LLVM bitstream, likely as a plugin or a dedicated `ReadStandardBMI()` path in `ModuleManager`.
+- **Distributed and cloud-native module caching**: Build farms such as Bazel Remote Execution and `sccache` will evolve to treat BMIs as content-addressed artifacts indexed by their `ASTFileSignature`. The `clang-scan-deps` P1689 output would be extended with the content hash of each produced BMI, enabling build clusters to skip BMI recompilation entirely when a cached artifact with the same hash is available — analogous to how CAS (Content-Addressable Storage) is used in Bazel today.
+- **Modules-aware debug information and DWARF extensions**: DWARF 6 is expected to include extensions for expressing module boundaries in debug information (motivated by LLVM's own modular build experiments). Clang's debug info emitter (`CGDebugInfo`) would annotate `DW_TAG_module` entries with C++ module ownership, enabling debuggers to enforce module-private access in interactive debugging sessions and to display module-qualified symbol names.
+
+---
+
 ## Chapter Summary
 
 - C++20 modules define a strict interface/implementation split through `export module M;`, `module M;`, partitions (`module M:P;`), the global module fragment (`module;` preamble), and the private module fragment (`module :private;`).

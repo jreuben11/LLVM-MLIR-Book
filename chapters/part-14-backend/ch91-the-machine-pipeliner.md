@@ -245,6 +245,32 @@ bool MachinePipeliner::canPipelineLoop(MachineLoop &L) {
 
 **Register pressure**: if pipelining would increase register pressure beyond the available register count (because multiple pipeline stages require separate registers for the same logical value), the pipeliner falls back to a non-pipelined schedule.
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **RISC-V SMS promotion from experimental to enabled**: The RISC-V backend pipeliner (gated by `--enable-pipeliner`) is under active review to remove the flag and enable it by default for in-order cores such as the SiFive X390; tracked in upstream patches under `llvm/lib/Target/RISCV/RISCVMachinePipeliner*`.
+- **TargetSchedule model accuracy improvements for Hexagon V73/V75**: Qualcomm contributors are refining the `HexagonScheduleV75.td` resource tables to reduce MII underestimation, enabling tighter kernels on the Hexagon Vector eXtensions (HVX) SIMD units.
+- **`ModuloScheduleExpander` register-pressure gating**: An RFC on discourse.llvm.org proposes making the stage-count register-pressure threshold target-tunable via a `MachinePipelineOptions` struct rather than the current hard-coded limit, which causes missed opportunities on register-rich ISAs.
+- **PowerPC e6500 soft-pipeline correctness fixes**: Several miscompile reports on in-order PowerPC Book-E cores (particularly under loop-carried FP recurrences) are being addressed in `PPCMachinePipeliner` to bring it to production status alongside Hexagon.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **RISC-V P-extension (packed-SIMD) pipelining**: As the RISC-V P ISA extension (ratified 2025) sees hardware adoption, the SMS scheduler will need resource models for its multiply-accumulate and SIMD reduction slots; this mirrors the work done for Hexagon HVX and requires `SchedMachineModel` entries covering packed 8/16-bit lanes.
+- **Polyhedral-guided II estimation**: Integration of ISL-derived dependence distances (as computed by Polly) into the `MachinePipeliner`'s RecMII calculation to produce tighter bounds for multi-dimensional affine loops, avoiding the current over-conservative single-distance approximation.
+- **Decoupled SMS node-ordering based on CP-SAT**: Replacement of the ASAP/ALAP heuristic ordering in `SwingSchedulerDAG::computeNodeOrder()` with a constraint-programming solver (e.g., OR-Tools CP-SAT) triggered only when the SCC decomposition yields ambiguous orderings — motivated by the academic result of Caballero et al. (PLDI 2022) on ILP-guided modulo scheduling.
+- **Arm Cortex-A5xx in-order microarchitecture pipeliner enablement**: As Arm introduces wider in-order Cortex-A cores for power-efficient edge inference, enabling `TargetSubtargetInfo::enableMachinePipeliner()` on those subtargets with accurate `SchedModel` data becomes a high-value optimization target.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **VLIW-on-RISC-V: software-bundled superword-level parallelism**: With emerging RISC-V custom VLIW extensions (e.g., EPFL XDSPV proposals), the `MachinePipeliner` VLIW bundling infrastructure currently used for Hexagon will be generalised through a target hook `TargetInstrInfo::getVLIWBundleConstraints()` so that new VLIW targets can adopt software pipelining without duplicating the bundling logic.
+- **Machine-learning cost model for II and profitability thresholds**: Integration of an ML inference model (following LLVM's existing `MLInlineAdvisor` pattern) that predicts optimal II, stage count, and trip-count profitability thresholds from loop feature vectors, replacing the current static `MaxIterations` and `MinTripCount` heuristics.
+- **Hardware-software co-designed rotating register files on open-source ISAs**: As CHERI-RISC-V and other open ISA derivatives explore adding modulo-rotating register windows for safe real-time DSP workloads, the `ModuloScheduleExpander` will need an abstracted interface distinguishing hardware rotation (zero-copy) from software register renaming (explicit copies), enabling correct code generation for hybrid architectures.
+
+---
+
 ## Chapter Summary
 
 - Software pipelining overlaps loop iterations to fill functional unit slots; the initiation interval II is bounded below by `max(ResMII, RecMII)` where ResMII is the resource limit and RecMII is the recurrence limit.

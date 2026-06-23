@@ -888,6 +888,32 @@ This interoperability is implemented in the SYCL runtime's backend abstraction l
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **OpenMP 6.0 `metadirective` and `dispatch` offload**: the OpenMP 6.0 specification (ratified early 2025) introduces `metadirective` trait selectors that choose device-specific code at compile time. Clang's `CGOpenMPRuntime` and `SemaOpenMP` need updates to lower `dispatch` constructs that route calls to device-specific variants; patches are under review on llvm-commits as of Q1 2026.
+- **In-tree SPIR-V backend capability completeness**: the `llvm/lib/Target/SPIRV/` backend continues to close extension coverage gaps versus the external `SPIRV-LLVM-Translator`. Outstanding work tracked in the LLVM SPIR-V backend project on GitHub includes `SPV_KHR_cooperative_matrix`, `SPV_EXT_mesh_shader`, and full `SPV_INTEL_*` extension coverage needed by Intel oneAPI Level Zero consumers.
+- **`libomptarget` next-generation plugin unification**: the `plugins-nextgen/` architecture (introduced in LLVM 15) is replacing the legacy `rtl/` plugins. The LLVM 22 release cycle includes merging the CUDA and AMDGPU next-gen plugins to share `GenericDeviceTy` infrastructure, reducing duplicated async queue management code — see the `[libomptarget] Unify DeviceImage handling` patch series on Phabricator/GitHub.
+- **SYCL upstream integration into mainline Clang**: Intel's DPC++ SYCL front end (`intel/llvm` fork) has ongoing upstreaming efforts. The SYCL 2020 `[[sycl::kernel]]` attribute infrastructure and `SemaSYCL.cpp` specialisation constant lowering are candidates for upstream merges in LLVM 22.x point releases; tracked in the llvm-project issue tracker under the `clang:sycl` label.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **OpenCL 3.0 "optional core" feature completeness across all Clang targets**: as GPU vendors implement remaining OpenCL 3.0 optional features (pipes, device-side enqueue, `cl_khr_subgroup_ballot`), Clang's `OpenCLOptions` target descriptions and `OpenCLBuiltins.td` must track each vendor's `cl_platform_profile` advertised feature sets. This includes Qualcomm Adreno, Arm Mali, and RISC-V Vector extensions mapped via SPIR-V.
+- **AdaptiveCpp / OpenSYCL full SYCL 2020 conformance on non-Intel targets**: AdaptiveCpp's Clang plugin-based approach currently lacks complete SYCL 2020 graph extensions (`sycl::ext::oneapi::experimental::command_graph`) and hierarchical parallelism. The SYCL-Graph extension (standardised in SYCL 2020 extension specification EXT-003) will require new AST consumer hooks and kernel extraction passes in AdaptiveCpp's Clang integration to represent persistent GPU command graphs.
+- **Unified Offload Model convergence (UOM)**: an active LLVM community effort to harmonise CUDA, HIP, OpenMP offload, SYCL, and OpenCL compilation pipelines into a single `clang-offload-packager`-based driver model. This encompasses standardising `OffloadKind` enumerations, merging `CGOpenMPRuntimeGPU` and `CUDARuntime` device-codegen infrastructure, and enabling cross-offload-model link-time optimization. RFC discussion began on discourse.llvm.org in 2024.
+- **SPIR-V 1.7 and Vulkan Compute integration**: Vulkan 1.4 promotes `VK_KHR_shader_subgroup_extended_types` and `VK_EXT_mesh_shader` to core. Clang's SPIR-V backend needs `glsl450` extended instruction set updates and `SPV_KHR_cooperative_matrix` (for tensor operations) to support Vulkan compute shaders as a first-class compilation target, enabling Clang to replace `glslang` as the primary Vulkan compute front end for C++.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **OpenMP 7.0 device memory model and persistent kernels**: anticipated OpenMP 7.x features include persistent kernel execution (long-running device threads that poll a work queue), heterogeneous tasking (`omp task target device(*)` that schedules across all available accelerators), and a revised memory model for scratchpad memories. These will require fundamental extensions to `CGOpenMPRuntime`, the `__tgt_*` runtime API, and `libomptarget`'s device state machine abstraction.
+- **SYCL 2025/next-generation specification with graph execution and dynamic library support**: the Khronos SYCL next specification is expected to standardise command graph execution (captured GPU work graphs for persistent GPU pipelines), device dynamic libraries (loading SPIR-V modules at runtime without host-side registration), and enhanced P2P memory access. Clang's SYCL front end will require new `SemaSYCL.cpp` constructs for graph capture annotations and a revised Kernel Integration Header generation model.
+- **RISC-V Vector and custom accelerator offload via OpenMP**: as RISC-V becomes a primary server/HPC platform (SiFive X990, Ventana Veyron V2, upcoming vector-extension machines), `libomptarget` will need RISC-V Vector plugins and Clang will need `CGOpenMPRuntimeRISCV` device codegen. The `-fopenmp-targets=riscv64-unknown-elf` path with custom accelerator extensions (matrix, crypto, AI tensor) will follow the NVPTX/AMDGPU pattern established by Clang's existing GPU offload infrastructure.
+
+---
+
 ## 50.9 Summary
 
 - Clang compiles OpenCL C/C++ with `-x cl`. Address spaces are enforced through `SemaOpenCL.cpp`'s `checkOpenCLAddressSpaces()`. For SPIR targets, `__constant` maps to addrspace(2), `__global` to addrspace(1), `__local` to addrspace(3) — verified against actual Clang 22.1.3 output.

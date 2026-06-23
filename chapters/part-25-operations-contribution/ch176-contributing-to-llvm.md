@@ -481,6 +481,32 @@ The C API has stricter deprecation: breaking changes to the C API require broade
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **GitHub Merge Queue adoption**: LLVM's CI infrastructure is migrating toward GitHub's native merge queue (replacing the phabricator-era `arc land` workflow). The October 2026 release cycle is expected to consolidate pre-merge testing into a single merge queue that serializes commits through Buildkite, reducing the frequency of broken-main incidents ([discourse.llvm.org/t/rfc-merge-queue](https://discourse.llvm.org/)).
+- **LLVM 23.0 release cadence shifts**: the community has discussed moving to a rolling-branch model where point releases (`.1`, `.2`) are cut on a fixed 8-week cadence rather than on-demand. The LLVM 23.x series starting October 2026 is the candidate for piloting this approach.
+- **Contributor onboarding automation**: work is underway to automate `good first issue` triage using an LLM-assisted labeling bot that scans new issues for complexity heuristics and code ownership, reducing the manual burden on `CODEOWNERS` reviewers.
+- **clang-tidy LLVM-specific checks expansion**: RFC discussions target adding `llvm-use-error-handling`, `llvm-no-raw-new-delete`, and `llvm-prefer-llvm-string-ref` checks that flag common new-contributor mistakes, with enforcement via CI by LLVM 23.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Structured RFC process with formal templates**: the LLVM community is actively discussing a formalized RFC lifecycle (draft → review → accepted/rejected → implementation tracking) analogous to Rust's RFC process, with a dedicated `rfcs/` directory in the monorepo for machine-readable RFC state. A prototype governance RFC was posted to discourse.llvm.org in early 2026.
+- **Sub-project governance charters**: MLIR, Clang, Flang, and libc are expected to adopt explicit governance charters (modeled on MLIR's informal practices) that document escalation paths, reviewer responsibilities, and sub-project-specific contribution requirements. This addresses recurring friction where contributors don't know which reviewers have authority.
+- **Reproducible build infrastructure**: LLVM's CI is moving toward fully hermetic, reproducible builds (using Bazel and/or CMake presets with locked dependency manifests), making it easier to reproduce CI failures locally without matching the exact CI environment. Target: all pre-commit CI jobs reproducible by LLVM 25 (April 2027).
+- **C API stability guarantees**: the long-standing community discussion about providing a stable, versioned C API subset (analogous to LLVM-C's existing surface but with explicit stability commitments) is expected to produce an RFC-to-implementation cycle. This would allow language binding maintainers (Rust `llvm-sys`, Julia, Swift) to build against a stable interface without rebuilding on every LLVM release.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Contributor attribution and credit systems**: LLVM is projected to adopt a formal contributor credit system (mapping commits to sub-projects, tracking review load, and generating per-contributor statistics) integrated with the LLVM Foundation's recognition programs. This addresses growing concerns about invisible review labor as the project scales.
+- **Automated correctness infrastructure for contributions**: Alive2 (the LLVM IR peephole verifier) and KnownBitsVerifier are expected to become mandatory pre-submit checks for all InstCombine, DAGCombine, and LLVM IR semantic changes, with the CI infrastructure automatically invoking Alive2 on changed fold rules and blocking merge on verification failure.
+- **Cross-project RFC federation**: as MLIR dialects are increasingly co-developed by multiple organizations (OpenXLA, Mojo/Modular, Intel MLIR extensions, SPIR-V), the contribution process is expected to evolve toward a federated RFC model where downstream projects can file binding objections during the RFC comment period, formalized through the MLIR Steering Committee structure introduced in 2025.
+
+---
+
 ## Chapter Summary
 
 - LLVM is governed by community consensus (not a BDFL); technical decisions happen through Discourse discussion and GitHub pull request reviews; `CODEOWNERS` identifies relevant reviewers.

@@ -716,6 +716,32 @@ Device code cannot use C++ exceptions. Clang enforces `-fno-exceptions` implicit
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Blackwell SM_120a / SM_121a full support**: LLVM's NVPTX backend and Clang's `OffloadArch` enum gained initial SM_120 entries; the 6-month window covers stabilizing PTX 9.x intrinsics for Blackwell sparse-tensor MMA, `tensormap.*` instructions, and the new `async.bulk.tensor` variants used by TMA (Tensor Memory Accelerator), tracked in [llvm/llvm-project#96019](https://github.com/llvm/llvm-project/issues/96019) and related patches.
+- **CUDA 13.x SDK support in `CudaInstallationDetector`**: Every new CUDA SDK release requires updating `CudaVersion::FULLY_SUPPORTED` / `PARTIALLY_SUPPORTED` and the `LibDeviceMap` in `Cuda.h`; CUDA 13.0 shipped in early 2026 and patch series to promote it from `PARTIALLY_SUPPORTED` are expected in the near term.
+- **`--offload-new-driver` becoming the default for CUDA**: The `clang-linker-wrapper`-based offload model (`--offload-new-driver`) is being promoted to default, retiring the legacy `fatbinary`-embedded-section path; this requires finalizing `llvm-offload-binary` container format stability and toolchain wrapper CMake installation (LLVM Discourse RFC "New Offload Driver", 2024).
+- **Unified `CGCUDARuntime` / `CGHIPRuntime` refactor**: A proposal to collapse `CGCUDANV.cpp` and `CGAMDGPU.cpp` into a shared offload CodeGen layer is under review on LLVM Discourse; it would unify stub synthesis and module registration for CUDA and HIP, reducing duplicated logic in ~3,000 lines of CodeGen.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **PTX 10.x and `cubin` direct emission**: NVIDIA has indicated intent to expose SASS-level assembler APIs publicly; Clang/LLVM may gain the ability to bypass `ptxas` and emit cubin directly from the NVPTX backend (analogous to how the AMDGPU backend emits GCN ELF objects), avoiding the proprietary `ptxas` round-trip and enabling LTO at the SASS level.
+- **CUDA graph support in Clang's CodeGen**: CUDA Graphs (launched via `cudaGraphLaunch`) require whole-graph capture and replay semantics; a proposed Clang attribute `[[cuda::graph_kernel]]` and corresponding CodeGen for `cudaGraphAddKernelNode` stubs is being prototyped to enable automatic graph compilation from annotated kernel call sites.
+- **Convergent control flow analysis (`ConvergenceUtils`)**: The `ConvergentAttr` is currently a conservative over-approximation; active work ([llvm-project#62398](https://github.com/llvm/llvm-project/issues/62398)) aims to replace it with cycle-based convergence tokens (LLVM convergence operands RFC) enabling more aggressive vectorization and loop transformations across warp-uniform branches, directly improving NVPTX codegen quality.
+- **Full C++26 device-side support**: `std::span`, `std::mdspan`, `consteval`, and reflection (`std::meta`) on the device side require Sema's `__host__ __device__` propagation rules to handle consteval contexts; the SemaCUDA implicit-attribute logic will need extensions in step with the C++26 standardisation timeline.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Clang-native fat binary format replacing NVIDIA's proprietary `fatbinary`**: The `llvm-offload-binary` container is already a step toward an open fat binary format; a long-term trajectory has Clang producing multi-arch device bundles entirely via open toolchain components, removing the `fatbinary` proprietary dependency for non-SASS (PTX-only) and potentially for cubin via the direct SASS emission path above.
+- **Heterogeneous unified IR (MLIR `gpu` dialect as Clang CodeGen backend)**: Research efforts such as Flang's GPU offload via MLIR and IREE's GPU codegen point toward a world where `__global__` kernels lower to MLIR `gpu.func` operations, enabling dialect-level transformations (tiling, vectorization, pipelining) before NVPTX IR emission; the LLVM community may converge on MLIR-based device CodeGen as the primary path for CUDA/HIP/SYCL.
+- **Formal memory model verification for CUDA in Clang**: CUDA's memory consistency model (CUDA C++ Memory Model, released 2019) is poorly enforced at the compiler IR level; research on integrating GPU memory model semantics into LLVM's `AtomicExpand` and Alias Analysis for NVPTX (analogous to how `llvm/lib/Transforms/Scalar/AtomicExpand.cpp` handles x86 TSO) is an open academic problem with implications for `__syncthreads()`, `__syncwarp()`, and cooperative group barriers.
+
+---
+
 ## Chapter Summary
 
 - Clang compiles `.cu` files with a dual-pass model: one `cc1` invocation for `nvptx64-nvidia-cuda` (device) and one for the host triple, orchestrated by the driver's CUDA-aware action builder.

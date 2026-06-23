@@ -461,6 +461,32 @@ CompCert's generated code is competitive with GCC at `-O1`:
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **CompCert 3.16 / RISC-V 64-bit hardening**: The AbsInt team is extending the verified RISC-V 64-bit backend to cover the B (bit-manipulation) and Zicsr extension instructions; ongoing PRs in [github.com/AbsInt/CompCert](https://github.com/AbsInt/CompCert) track Coq proofs for the new Asmgen rules.
+- **CompCertELF**: Research group at Cambridge (building on Sewell's work) is pushing a verified ELF linker that would close the "unverified assembler/linker" gap by replacing the `.s` text output with a verified binary emitter; prototype available at [github.com/rems-project/linksem](https://github.com/rems-project/linksem).
+- **Coq 9 / Rocq migration**: The Coq proof assistant is rebranding to Rocq and releasing Rocq 9.0; CompCert's 100 k-line proof base must be ported (tactic renames, universe changes); the AbsInt team began compatibility work in Q1 2026 targeting Rocq 9.0 final.
+- **C23 subset in Clight**: ISO C23 adds `_BitInt(N)`, `typeof`, and `nullptr`; discussions on the CompCert mailing list (March 2026) are scoping which C23 features can be added to Clight with accompanying Coq semantics proofs.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Verified auto-vectorization (CompCert-SIMD)**: A DARPA-funded collaboration between Princeton (Appel group) and AbsInt is prototyping a verified SIMD backend for AArch64 NEON; the key challenge is extending CompCert's memory model to handle `vload`/`vstore` aligned-vector semantics without breaking the block-offset abstraction.
+- **Compositional CompCert for LTO**: Stewart et al.'s Compositional CompCert (POPL 2015) has not yet merged into mainline; a follow-on effort using the Interaction Trees framework (Xia et al., POPL 2020) is restructuring inter-module proofs to support link-time optimization with verified inter-procedural constant propagation.
+- **CompCertTSO on AArch64**: The original CompCertTSO (Sevcik et al.) targeted x86 TSO; an AArch64 relaxed-memory variant using the ARMv8 Weakest Memory Model (modelled in Coq via the `cat` tool from the MEM group at Cambridge) is in active development, targeting publication at PLDI 2027.
+- **Verified register allocation via SMT**: Research at ETH Zürich (Grosser group) is exploring replacing CompCert's IRC-with-validator approach with a constraint-solving allocator whose output is certified by a Coq-reflective SAT/SMT checker, potentially eliminating the need to prove the validator itself.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Full-stack verified compilation for safety-critical RISC-V**: DO-178C DAL-A avionics software on RISC-V requires a certified toolchain from C source to binary; a consortium effort (AbsInt, Collins Aerospace, INRIA) aims to produce a CompCert-based toolchain with verified assembler, linker, and startup code targeting the RISC-V RV64GC profile, replacing the current x86-32/AArch64 deployments.
+- **CompCert meets LLVM: a verified LLVM IR back-end**: The CertiCoq project (Anand et al.) has demonstrated extracting Coq programs to C via CompCert; extending this to target LLVM IR — allowing verified passes to feed the LLVM backend for better code generation — requires formalizing LLVM IR semantics (see Vellvm, Chapter 169) and proving a CompCert-to-Vellvm simulation.
+- **Verified concurrency via CompCertC++**: A long-term goal is a verified compiler for a safe C++ subset (excluding UB-heavy features) with a concurrent memory model based on the RC11/C11 Promising Semantics; this would unify CompCertTSO-style relaxed-memory reasoning with the main CompCert correctness proof using a single Coq memory model parameterized over axiomatic execution models.
+
+---
+
 ## Chapter Summary
 
 - **CompCert** provides a machine-checked (Coq) proof that its compiler preserves the behavior of C (Clight) programs through 15+ compilation passes to PowerPC, ARM, x86-32, and AArch64 assembly.

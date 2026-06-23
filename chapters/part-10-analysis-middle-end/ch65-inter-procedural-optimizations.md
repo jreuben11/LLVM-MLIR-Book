@@ -271,6 +271,32 @@ opt -passes='cgscc(attributor-cgscc)' -S input.ll  # CGSCC variant
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **ML-guided inliner productionization**: The `MLInlineAdvisor` (using TensorFlow/ONNX models trained on LLVM's own benchmark suite) is moving toward being the default advisor for `-O3` pipelines; active tracking on discourse.llvm.org RFC "ML Inliner: path to default" and associated LLVM patches in the `ml-inliner` development branch.
+- **Attributor CGSCC convergence fixes**: Known fixpoint-iteration convergence issues when mutual recursion involves pointer aliasing (`AAPointerInfo` over SCCs) are being addressed; patches under review as of early 2026 targeting the `cgscc(attributor-cgscc)` variant.
+- **OpenMPOpt GPU offload region optimization**: Extension of `OpenMPOptPass` to handle `!omp target` outlined functions on AMDGPU/NVPTX targets, folding statically-known thread-count barriers and eliminating redundant `__tgt_*` runtime calls; tracked under the OpenMP offload hardening effort.
+- **ArgPromotion for opaque pointers**: With the opaque-pointer migration complete in LLVM 17+, `ArgumentPromotionPass` is being updated to use `TypeSize`-aware field-access heuristics that correctly handle scalable vectors and non-trivially-sized structs, targeting correctness gaps identified in SVE workloads.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Whole-program Attributor integration with LTO**: Merging the `AttributorPass` fixpoint engine with the thin-LTO summary framework so that abstract attributes (`AAPotentialValues`, `AANoReturn`, `AAMustProgress`) are serialized into the ThinLTO module summary and propagated across the link boundary without requiring full IR materialization.
+- **Profile-guided partial inlining**: Extending `PartialInlinerPass` to use block-frequency profiles (from PGO or AutoFDO) to identify partial-inlining boundaries dynamically rather than relying on static early-return heuristics, improving accuracy for non-trivial hot-path shapes.
+- **Inter-procedural range propagation via Attributor**: Making `AAValueConstantRange` a first-class consumer of `LazyValueInfo` data across call boundaries so that, for example, a callee can constrain its computation assuming the caller has already checked an argument's range, enabling redundant-check elimination at the IPO level.
+- **MergeFunctions hash-based pre-screening**: Replacing the current O(n²) pairwise IR comparison in `MergeFunctionsPass` with a locality-sensitive hash (LSH) bucketing scheme to scale to modules with tens of thousands of template instantiations, an ongoing scalability concern for large Chromium/Firefox builds.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Bidirectional IPO with demand-driven summaries**: A redesigned IPO pipeline where callers can request specific information from callees (demand-driven) and callees can push constraints to callers (supply-driven), unified through a persistent inter-procedural summary database that survives incremental recompilation, replacing the current CGSCC bottom-up-only traversal model.
+- **Verified IPO transformations via Vellvm/Alive2**: Formally verified correctness proofs for inlining and dead-argument elimination transformations using the Vellvm (Coq) or Alive2 (SMT-based) frameworks, integrated into the LLVM CI pipeline to prevent inlining-related miscompilations (cf. known soundness issues in `InlineFunction` around `byval` attribute semantics).
+- **Cross-language IPO for Rust/C++ interop**: With the maturing of Clang's C++ ABI emitter and rustc's LLVM backend, a unified IPO layer that can inline across `extern "C"` and `extern "Rust"` boundaries by materializing callee IR from Rust's ThinLTO summaries into Clang's CGSCC pass manager, enabling argument promotion and attribute inference across language boundaries.
+
+---
+
 ## Chapter Summary
 
 - `InlinerPass` is a CGSCC pass that inlines calls where the inline cost (estimated via `TargetTransformInfo`) is below a threshold; driven by an `InlineAdvisor` (default, ML, or replay).

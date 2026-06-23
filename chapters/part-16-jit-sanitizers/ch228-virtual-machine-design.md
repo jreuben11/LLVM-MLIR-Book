@@ -598,6 +598,33 @@ Key design choices: Warp JIT replaced IonMonkey in Firefox 83; Warp performs typ
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **CPython 3.14 JIT maturation**: The copy-and-patch tier-1 JIT (PEP 744) is being extended with a tier-2 "micro-op" optimizer that translates uop traces to optimized native code via LLVM or a custom backend; CPython 3.14 alpha cycles are refining the uop IR and the specialization pipeline. Follow discourse at [bugs.python.org](https://bugs.python.org) and [faster-cpython/ideas](https://github.com/faster-cpython/ideas).
+- **YJIT Ruby 3.5 improvements**: Shopify's YJIT team is adding lazy compilation for blocks/procs, improved type-profiling for splats and keyword arguments, and ARM64 backend enhancements. The 3.5 development branch (tracked at [github.com/ruby/ruby](https://github.com/ruby/ruby)) targets a 5–10% throughput improvement over YJIT 3.4.
+- **CPython free-threaded (PEP 703) GC**: The GIL-free CPython 3.13+ branch requires a thread-safe GC; the biased reference counting scheme (`_Py_INCREF_SPECIALIZED`) and per-thread arenas are being hardened; generational GC in free-threaded mode is tracked in [gh-116206](https://github.com/python/cpython/issues/116206).
+- **LLVM ORC v2 `RedirectableSymbolManager` stabilization**: The `RedirectableSymbolManager` API landed in LLVM 19 and is being used by Julia's new JIT backend; LLVM 22.x adds atomic trampoline patching on AArch64 using BTI-compatible stubs — see llvm-dev RFC "ORC: AArch64 trampoline pool for indirect stubs."
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **GraalVM Native Image + Truffle AST interpreter convergence**: Oracle's roadmap includes shipping a fully AOT-compiled Truffle AST interpreter that still performs partial-evaluation specialization at load time, collapsing the distinction between AOT native images and JIT VMs. Relevant papers: Würthinger et al., "One VM to Rule Them All" (SPLASH 2013) and the ongoing Graal CE 24.x release notes.
+- **WebAssembly GC proposal reaching broad toolchain support**: The Wasm GC proposal (MVP finalized in 2023) will be fully supported in all major browsers and V8/SpiderMonkey by 2027; LLVM will need a `wasm-gc` target backend that maps typed GC references (`anyref`, `structref`, `arrayref`) to LLVM's `gc` IR — an open RFC area as of early 2026. This will enable JVM, Dart, and Kotlin to target Wasm without a separate GC.
+- **Concurrent GC in CPython**: A concurrent, parallel mark-sweep replacing the stop-the-world cyclic GC is under investigation in the [PEP 703 long-term roadmap](https://peps.python.org/pep-0703/); the key challenge is making `ob_refcnt` atomic and introducing tri-color write barriers without overhead for single-threaded code.
+- **Generational Lua VM and LuaJIT 3.0**: LuaJIT has been effectively unmaintained since 2017; community fork efforts ([LuaJIT-remake](https://github.com/nicowillis/LuaJIT-Remake)) and Mike Pall's announced (but unreleased) LuaJIT 3.0 aim to add a generational GC with precise stack maps and a new code-gen backend targeting LLVM; the timeline is uncertain but the technical design documents are circulating.
+- **Safepoint-free GC for latency-sensitive VMs**: Research into "ragnarok"-style GC (Pizlo, "Scalable Garbage Collection with Guaranteed MMU," ACM ISMM 2010 and follow-on work) that eliminates safepoint STW pauses is being evaluated for WebKit JSC and SpiderMonkey; achieving sub-100µs max pause without safepoints requires probabilistic handshake protocols and colored stacks.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Verified GC implementations**: Formal verification of GC correctness using Iris/Coq (cf. Sammler et al., "RefinedC," PLDI 2021 and the ongoing "Diaframe" work) is expected to produce production-grade verified collectors for languages that demand safety guarantees; integration with LLVM's `RewriteStatepointsForGC` stackmap generation would require a formally verified stackmap emitter.
+- **Hardware-assisted GC tagging**: ARM's Memory Tagging Extension (MTE) and RISC-V pointer masking proposals will let VM runtime libraries tag heap objects at the hardware level, enabling zero-overhead write barriers and precise liveness tracking without compiler instrumentation; LLVM's address sanitizer infrastructure (`llvm/lib/Transforms/Instrumentation/`) will need corresponding MTE-aware stackmap and barrier passes.
+- **Unified bytecode IR across VM tiers**: Research projects (cf. BOLT, Graal IR) suggest a single IR that serves as both an interpreter bytecode and an input to the optimizing compiler, eliminating the IR translation step that currently adds latency when a function crosses the interpretation/JIT threshold; LLVM's MLIR Bytecode dialect work (`mlir/lib/Bytecode/`) may provide the foundation for such a unified format.
+
+---
+
 ## Chapter Summary
 
 - Stack VMs (JVM, CPython, Wasm) use implicit operand stack; register VMs (Lua 5.4, Dalvik, YARV) encode operand registers explicitly — register VMs need fewer instructions but wider encoding

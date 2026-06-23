@@ -406,6 +406,32 @@ The ideas underlying Alive2 are applicable to MLIR transformations. MLIR's diale
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **llvm-mc-alive x86-64 coverage expansion**: The experimental `llvm-mc-alive` tool (machine-code-level translation validation) is actively expanding from a subset of SSE/AVX instructions toward full x86-64 integer and vector coverage; tracked in the Alive2 GitHub issue tracker and discussed in the "Machine Code Verification" strand of the Alive2 developer list.
+- **Alive2 integration with LLVM's in-tree test suite**: Ongoing effort to add `alive-tv`-verified `.ll` test cases directly into `llvm/test/Transforms/InstCombine/` so that CI gates catch new regressions; several InstCombine reviewers now require `alive-tv` output in PR descriptions for non-trivial folds.
+- **LLVM 22 `poison` / `freeze` semantics alignment**: Following the LLVM RFC "Refining poison semantics for vectors" (discourse.llvm.org, 2025), Alive2's poison encoding is being updated to handle `freeze` in vector lanes consistently with the new IR semantics; expected to land with LLVM 22.x patches.
+- **Z3 4.14 / 5.x upgrade and QF_FP performance**: Alive2 is tracking the Z3 4.14 release (expected mid-2026) which improves QF_FP (floating-point) solver performance; this directly benefits Alive2 checks of `fadd`, `fmul`, and fast-math flag transformations that currently time out on large functions.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **"Alive2 for MLIR" — dialect lowering verification**: Active research at CMU/EPFL and referenced in MLIR RFCs (discourse.llvm.org "Formalizing MLIR Semantics" thread, 2024) aims to build a refinement checker for MLIR dialect lowering patterns, using IRDL-based dialect semantics as the formal spec and Z3 or Bitwuzla as the solver backend.
+- **Loop transformation validation via k-induction**: Extending Alive2 beyond single-pass function-pair checking to validate loop transformations (unrolling, vectorization, loop interchange) using bounded model checking or k-induction over loop iteration counts; this would cover LICM and LoopVectorize which are currently out of scope.
+- **Interprocedural translation validation**: Research prototype integrating function summaries (computed via LLVM's AttributeInferer and interprocedural alias analyses) into Alive2's refinement checker, enabling validation of LTO-time transformations such as function merging (MergeFunctions pass) and indirect-call devirtualization.
+- **Bitwuzla as a second SMT backend**: Bitwuzla (the successor to Boolector) has demonstrated 2–5× speedups over Z3 for QF_BV benchmarks relevant to Alive2's integer arithmetic workloads; integrating it as a selectable backend (replacing or supplementing Z3) is on the Alive2 roadmap and tracked in the repository's `issues/bitwuzla-backend` thread.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Continuous translation validation in LLVM CI**: A scalable, incremental Alive2 deployment that runs on every LLVM monorepo commit — not just nightly — using distributed Z3 worker pools and a per-function result cache to amortize query cost; this would transform Alive2 from a developer tool into a hard CI gate like ASan/UBSan.
+- **Formal LLVM IR semantics as a machine-checkable spec**: The Vellvm (Coq) and K-LLVM projects are converging toward a specification that is both machine-checkable and used as Alive2's ground truth for refinement; by 2031 this could enable automatically generating Alive2's SMT encoding from the Coq/K semantics rather than maintaining it hand-coded in `ir/`.
+- **ClangIR-to-LLVM-IR translation validation**: As ClangIR (Part VIII of this book) matures into the default Clang backend, the ClangIR→LLVM IR lowering will need its own Alive2-style checker operating at the ClangIR dialect level; an RFC for this was sketched in the ClangIR design document (2024) and is likely to be a research focus once ClangIR reaches production status.
+
+---
+
 ## Chapter Summary
 
 - **Translation validation** checks correctness of a specific compilation rather than the compiler algorithm; it requires a formal IR semantics and an automated verifier.

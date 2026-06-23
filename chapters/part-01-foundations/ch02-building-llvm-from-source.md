@@ -1078,6 +1078,32 @@ The `-j` flag to `llvm-lit` controls test parallelism independently of the build
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **llvm-cas upstream integration**: Apple's Content-Addressable Storage infrastructure (`llvm/lib/CAS/`, `llvm/include/llvm/CAS/`) is being upstreamed to the LLVM monorepo. The `llvm-cas-server` binary and shared-team CAS backends, currently only in Apple's fork, are expected to land in main by mid-2026. Track the `[RFC] Upstreaming llvm-cas` thread on discourse.llvm.org and the `llvm-cas` GitHub project milestone.
+- **`LLVM_ENABLE_RUNTIMES` multi-target builds**: Work is underway to support per-target runtime configuration via the `RUNTIMES_<triple>_` prefix for all targets simultaneously in a single CMake invocation. The `PerTargetRuntimeDirectories` mechanism introduced in LLVM 20–21 is being extended to support toolchain distribution workflows where a single CMake run produces `compiler-rt` builtins for a dozen embedded targets. See [llvm-project #72124](https://github.com/llvm/llvm-project/issues/72124) and related CMake RFC.
+- **Clang scan-deps and C++20 module builds via CMake**: CMake 3.28+ added native C++20 module dependency scanning using `clang-scan-deps`. LLVM's own build system is expected to transition to C++ modules for a subset of its headers in 2026. The `LLVM_ENABLE_CXX_MODULES` CMake variable is under active prototyping; track [D154658](https://reviews.llvm.org/D154658) and the `libcxx` modules work.
+- **Mold linker support**: The `mold` linker (a drop-in LLD replacement with faster incremental linking) is gaining traction in LLVM developer builds. CMake variable `CMAKE_EXE_LINKER_FLAGS="-fuse-ld=mold"` is expected to be officially tested and documented in `AdvancedBuilds.rst` by H2 2026 as mold 2.x reaches feature parity with LLD for LLVM's link profile.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Hermetic build system via LLVM CAS + Remote Execution API**: The combination of llvm-cas for content-addressed compilation caching and the Bazel/BuildBuddy Remote Execution API is expected to become the standard large-team build infrastructure. Google and Apple are converging on a model where all LLVM CI runs produce zero-byte re-executions on cache hits. The `llvm/utils/hermetic-build/` directory (currently nascent) will expand to document and script this deployment.
+- **CMake → Bazel build system migration (partial)**: The LLVM project has experimented with Bazel build rules (`utils/bazel/`) since 2021. By 2028, Bazel is expected to be a first-class, CI-tested build system for at least the LLVM core libraries and Clang, giving teams using Google's build infrastructure a supported path. The `bazel/BUILD.bazel` files in the monorepo are updated per-release by contributors at Google.
+- **Bootstrapping via profile-optimized stage builds in CI**: LLVM's official Linux release builds already use 3-stage PGO + ThinLTO. By 2028, the expected default for LLVM's official CI is a 3-stage build with CSIR (context-sensitive IR) PGO profiles collected across multiple workloads (Chrome, FFmpeg, SQLite), yielding 15–25% throughput improvements over IR-only PGO. The `LLVM_BUILD_INSTRUMENTED=CSIR` flag enables this.
+- **Incremental compilation and Clang persistent daemon**: The `clangd`-style persistent compilation model (reusing ASTs and IR across invocations) is being explored for `clang` itself via a compilation server protocol. By 2028, a `clang --persistent` mode or equivalent is expected to be prototyped, which would reduce incremental compile times for large C++20 module-based projects from seconds to milliseconds.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Content-addressed global build cache as LLVM default**: The long-term vision for LLVM's build infrastructure is a globally shared, content-addressed cache where any publicly reproducible compilation artifact is universally deduplicatable. The prerequisite — fully reproducible LLVM builds — requires eliminating all remaining non-determinism (embedded timestamps, PGO counter ordering, host-path leakage). Reproducible Builds tooling (`diffoscope`, `strip-nondeterminism`) is expected to be integrated into LLVM's CI pipeline by 2031, and a public CAS mirror of official LLVM build artifacts may be operated by the LLVM Foundation.
+- **MLIR-based build system representation**: There is long-term academic and industrial interest in representing build graphs as MLIR programs — enabling analysis, optimization, and transformation of build systems using MLIR's infrastructure. If this materializes, the LLVM build system itself could be bootstrapped through an MLIR compilation pipeline that eliminates redundant translation units, performs global dead-code elimination on the build graph, and applies scheduling theory to minimize critical-path build time.
+- **Formally verified build reproducibility**: Projects like `rebuilderd` and academic work on build-system verification (e.g., Mokhov et al. "Build Systems à la Carte", ICFP 2018) are moving toward formal proofs that a given build recipe is deterministic. By 2031, LLVM may have machine-verified reproducibility proofs for its core release artifacts, grounded in formal models of the CMake/Ninja build semantics.
+
+---
+
 ## 10. Chapter Summary
 
 - **CMake is the only supported build system generator for LLVM.** Always use `-G Ninja`; Ninja's superior dependency tracking and parallel scheduling make a measurable difference on LLVM's large build graph.

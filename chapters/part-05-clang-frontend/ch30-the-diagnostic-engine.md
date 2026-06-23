@@ -978,6 +978,32 @@ Sema checks `DiagnosticIDs::getDiagnosticSFINAEResponse(DiagID)` before emitting
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Diagnostic suppression mapping file stabilization**: The `DiagnosticOptions::DiagnosticSuppressionMappingsFile` feature introduced in Clang 22 is gaining adoption; near-term work focuses on extending the glob syntax to support negative patterns and per-diagnostic-ID entries alongside group names, tracked in [llvm/llvm-project#82539](https://github.com/llvm/llvm-project/issues/82539) and related discourse threads.
+- **`CustomDiagDesc` migration of legacy `getCustomDiagID(Level, StringRef)` callers**: The LLVM community is actively migrating all remaining callers of the deprecated `Level`-based API to `CustomDiagDesc` with explicit `diag::Group` associations; the migration is tracked as a series of clang-tidy check improvements and patches to libclang plugin authors.
+- **SARIF 2.2 standard compliance for `SARIFDiagnosticPrinter`**: SARIF 2.2 (ISO/IEC 5055-3) adds `threadFlowLocation` and enriched `fix` objects; upstream patches are in review to align `SARIFDiagnosticPrinter`'s output with the updated standard, particularly for fix-it hints involving multi-file replacements.
+- **`-fdiagnostics-show-note-include-stack` default enablement**: Community discussion (discourse.llvm.org, April 2026) proposes enabling include-stack notes by default for all diagnostic levels to aid users working with heavily macro-driven codebases; a feature flag and corresponding `DiagnosticOptions` field are under review.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Structured diagnostic exchange format (replacing `.dia` bitstream)**: The LLVM community has ongoing RFC discussions about replacing the aging LLVM bitstream-based `.dia` format with a JSON-based or protobuf-based format that IDEs can consume without linking against `libclangFrontend`; this would directly affect `SerializedDiagnosticPrinter` and `SerializedDiagnosticReader`.
+- **ML-assisted fix-it suggestion ranking**: Research efforts (notably from compiler teams at Google and Meta) are exploring integrating LLM-based or ML-based ranking of multiple competing `FixItHint` alternatives, surfaced through a new `RankedFixItHint` abstraction in `DiagnosticStorage`; early prototypes emit ranked suggestions via an extended parseable fix-its format.
+- **`DiagnosticIDs` TableGen migration to MLIR-style ODS**: Proposals circulate on discourse.llvm.org to express diagnostic definitions in an ODS-adjacent format that permits richer type constraints on format arguments, replacing the current untyped `%0`–`%9` positional scheme and enabling static validation of argument kind mismatches at compile time.
+- **LSP `DiagnosticRelatedInformation` round-trip via clangd**: Mid-term clangd roadmap (clangd.llvm.org, 2026) targets full bidirectional mapping between Clang's `DiagnosticConsumer` note chains and LSP `DiagnosticRelatedInformation`, including source-range fidelity for fix-its surfaced as `CodeAction` items, removing the current lossy `StoredDiagnostic`-to-LSP conversion.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Contract-aware diagnostic suppression**: As C++26/C++29 contracts (`[[pre:]]`, `[[post:]]`, `[[assert:]]`) mature in Clang, the diagnostic engine will need a new suppression tier for contract violation diagnostics that are distinct from both SFINAE substitution failures and standard warnings; long-term design calls for a `CONTRACT_VIOLATION` `SFINAEResponse` variant and a dedicated `DiagnosticConsumer` hook for contract-violation reporting to runtime handlers.
+- **Cross-translation-unit diagnostic correlation**: Long-horizon LLVM LTO and whole-program analysis tooling requires the diagnostic engine to emit diagnostics whose `SourceLocation` spans TU boundaries (e.g., inlined-away definition sites); this demands extending `StoredDiagnostic` and the SARIF consumer with cross-TU location resolution, likely building on the existing `CrossTranslationUnitContext` infrastructure in the static analyzer.
+- **Formal diagnostic taxonomy and stable ABI for `CXDiagnostic`**: The `CXDiagnostic` libclang API is effectively a stable ABI surface shared by Xcode, CLion, and VS Code extensions; a long-term goal is defining a versioned C ABI for structured diagnostics (mirroring what the Language Server Protocol provides at the JSON layer) so IDE vendors can consume diagnostics without rebuilding against each Clang release.
+
+---
+
 ## Chapter Summary
 
 - `DiagnosticsEngine` is the central hub decoupled from definition (`DiagnosticIDs`), options (`DiagnosticOptions`), and rendering (`DiagnosticConsumer`).

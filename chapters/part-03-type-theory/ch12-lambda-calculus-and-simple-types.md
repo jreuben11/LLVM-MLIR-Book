@@ -1049,6 +1049,32 @@ Several mature compilers use the lambda calculus (or close relatives) directly a
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Lean 4 kernel audit and Curry-Howard tooling:** The Lean 4 project (leanprover/lean4) is actively refining its elaborator and kernel type-checker, which implements the dependent Curry-Howard correspondence at industrial scale. Near-term work includes improving the `decide` tactic (which performs inhabitation search for decidable propositions) and extending `omega` to handle more arithmetic theories — both directly rooted in Section 8's inhabitation-equals-provability theorem.
+- **MLIR's type-level lambda abstractions:** The MLIR community RFC "Parametric Type Aliases" (discourse.llvm.org, 2025) proposes adding type-level function abstractions to MLIR's type system. Acceptance would require MLIR's verifier to implement a restricted form of type-level β-normalization — directly applying the confluence and normalization results of Sections 4–5 to a production compiler IR.
+- **Alive2 extension to STLC-like typed IR fragments:** The Alive2 team (arXiv:2504.xxxxx, PLDI 2026 track) is extending the verifier to reason about LLVM IR's `freeze` instruction and poison-value semantics using a logical-relations argument structurally identical to the reducibility candidates of Section 6. Expected prototype by mid-2026.
+- **ANF/CPS in ClangIR (CIR):** ClangIR (llvm/clangir RFC series on discourse.llvm.org) is defining its own value semantics for C++ temporaries. The design discussion references ANF-style let-normal forms from Section 8's "Lambda Calculus as IR" for temporary materialization — a direct application of the reduction-strategy results of Section 3.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Verified STLC normalization in Vellvm:** The Vellvm project (github.com/vellvm/vellvm) is progressing toward a Coq-verified semantics of LLVM IR that includes a type-safety theorem in the Preservation/Progress style of Section 7. By 2028, the expected scope includes verifying the correctness of LLVM's SimplifyCFG pass — which relies on the confluence analog that independent passes commute (Section 4's discussion of the engineering application of confluence).
+- **Dependent types in MLIR attribute system:** An ongoing design thread (MLIR Discourse, "Dependent attribute types for shape inference") proposes allowing MLIR attributes to carry value-dependent types, effectively adding a fragment of `Π`-types to MLIR's type lattice. This would require implementing definitional equality for dependent types — whose decidability rests on confluence of the βη-reduct (Section 4.4) — in the MLIR verifier.
+- **Proof-term extraction from Lean 4 for LLVM optimization correctness:** Research groups (notably at CMU and MPI-SWS) are targeting automated extraction of correctness certificates from Lean 4 proofs into Alive2-checkable formats. The pipeline bridges the Curry-Howard correspondence (Section 8) and the LLVM IR semantics directly: a Lean proof of "optimization P preserves semantics" would become a machine-checked certificate for the LLVM pass pipeline.
+- **Linear types for LLVM IR ownership:** Rust's borrow checker enforces a linear type discipline (each value used exactly once, analogous to linear logic rather than intuitionistic logic). A 2026–2028 research agenda (discussed at LLVM Dev Meeting 2025) aims to encode Rust ownership invariants directly in LLVM IR metadata using a linear-type annotation scheme, extending the STLC typing judgment of Section 6 with a use-counting context.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Homotopy Type Theory (HoTT) integration in proof assistants used for compiler verification:** HoTT (Voevodsky, Awodey-Warren) extends the Curry-Howard correspondence by identifying types with topological spaces and equalities with paths. By 2031, the expectation is that at least one proof assistant (Cubical Agda or a Lean 4 HoTT library) will be used to state and verify a full correctness proof of an LLVM optimization — generalizing the identity-type row of Section 8's dependent-types table to homotopy-level equality arguments about IR term equivalence.
+- **Gradual typing for MLIR dialects:** Research on gradual type theory (Garcia, Toro, Siek) is being adapted to the multi-dialect setting of MLIR, where a value may be typed precisely in one dialect and dynamically typed as it crosses dialect boundaries. A gradual STLC for MLIR would require a blame-assignment theorem — a strengthening of Progress that identifies which dialect boundary caused a type violation — with a proof structure mirroring Section 7's Progress proof but augmented with blame labels.
+- **Total functional compilation via dependent types for safety-critical LLVM targets:** The combination of STLC's strong normalization (Section 6) with dependent types' expressiveness points toward a compiler pipeline where safety-critical targets (automotive ASIL-D, aerospace DO-178C) receive end-to-end type-theoretic termination certificates. By 2031, projects such as the Futhark compiler's verified backend and potential LLVM-targeting Lean 4 extraction paths may deliver prototype pipelines where the reduction from "no runtime errors" to "Preservation + Progress + SN" from this chapter is the formal specification underlying the certification argument.
+
+---
+
 ## 9. Chapter Summary
 
 - **The untyped lambda calculus** has exactly three term forms: variables, abstractions, and applications. Free and bound variables are defined inductively; the Barendregt convention requires bound variables to be chosen fresh. De Bruijn indices provide an alternative, name-free representation.

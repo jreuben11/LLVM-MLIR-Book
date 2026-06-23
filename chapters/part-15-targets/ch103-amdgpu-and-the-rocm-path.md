@@ -1035,6 +1035,32 @@ The `GCNRegPressureAnalyzer` estimates VGPR and SGPR pressure during scheduling 
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **CDNA4 (MI400) backend support**: AMD's next-generation data-center GPU (gfx942 successor) is expected to extend MFMA with FP4/FP6 sparse-matrix variants. Upstream LLVM patches adding `HasMFMAMixFP4` and new `v_mfma_*` TableGen entries are anticipated in LLVM 23.x; tracking issue on discourse.llvm.org/t/amdgpu-cdna4-rfc.
+- **GFX12 (RDNA4) WMMA expansion**: gfx1200 WMMA intrinsics for FP8 and INT8 sub-byte precision are actively being merged (see llvm-project PRs in the `amdgpu-wmma-fp8` branch); `llvm.amdgcn.wmma.f32.16x16x16.fp8` variants plus TableGen `HasWMMAFP8` predicate.
+- **`s_wait_loadcnt_dscnt` unification**: GFX11 split `s_waitcnt` into per-counter instructions; GFX12 is further refining the wait encoding model. `SIInsertWaitcnts` is being refactored to a counter-tracking abstract domain that emits the correct form per ISA generation without per-generation special cases.
+- **ROCm 7.x profiling integration**: `rocprof` v3 (based on `librocprofiler-sdk`) changes the counter collection API; the LLVM AMDGPU backend metadata format (NT_AMD_HSA_METADATA code-object v4) is being extended with shader-stage occupancy hints to feed the new profiler's guided optimization suggestions.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **AMDGPU GlobalISel promotion to default**: The current `AMDGPUISelDAGToDAG` SelectionDAG path is being superseded by GlobalISel (`AMDGPUInstructionSelector`, `AMDGPURegisterBankInfo`). GlobalISel is already the default for gfx12; the plan is to make it universal across all amdgcn subtargets once register-bank coverage for AGPR and NSA image instructions reaches parity — tracked in the AMDGPU GlobalISel meta-RFC on discourse.llvm.org.
+- **Unified divergence + occupancy scheduling**: The `GCNSchedStrategy` and `GCNRegPressureAnalyzer` are being redesigned to co-optimize VGPR pressure, wavefront occupancy, and MFMA latency hiding in a single pass; early RFC ("GCN Unified Scheduler") aims to replace the two-phase pre-RA / post-RA scheduling split.
+- **MLIR AMDGPU dialect → production GEMM path**: The `amdgpu` MLIR dialect (currently covering MFMA/WMMA wrapper ops) is being extended with tiling, LDS layout, and double-buffering primitives so that IREE and Triton can lower full GEMM kernels through MLIR rather than hand-written assembly, directly benefiting from LLVM backend improvements.
+- **SPIR-V ↔ AMDGPU round-trip via MLIR**: AMD's ROCm OpenCL stack currently compiles SPIR-V through a clang-based SPIR-V reader; a planned MLIR SPIR-V → AMDGPU lowering path would allow better optimization across the dialect boundary, driven by the `mlir-amdgpu` working group in the MLIR community.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Next-generation wavefront coherence model**: Future CDNA architectures may abandon the EXEC-mask divergence model in favor of a lane-predicate register file (analogous to SVE's predicate registers), requiring fundamental restructuring of `SIAnnotateControlFlow` and the divergence analysis infrastructure to support both models simultaneously.
+- **Formal verification of `SIInsertWaitcnts`**: The memory-ordering correctness of `s_waitcnt` insertion is a known proof obligation; efforts modeled on Alive2's LLVM IR refinement checking (see Lopes/Lee 2021) are likely to extend to the AMDGPU machine-IR domain, possibly using a formalized GCN memory model in Lean 4 or Isabelle/HOL.
+- **Heterogeneous unified address space compilation**: HSA's Heterogeneous Unified Memory (HUM) is pushing toward a future where CPU and GPU share a single flat address space without `addrspacecast`; this would collapse AMDGPU's eight-address-space model and require the `AMDGPUInferAddressSpaces` pass to be replaced by a capability-based pointer analysis that tracks coherence domain rather than address space number.
+
+---
+
 ## Chapter Summary
 
 - The AMDGPU backend covers GCN (wave64, MFMA) and RDNA (wave32, WMMA) architectures via `GCNTargetMachine` and `GCNSubtarget` parameterized by feature bits for ISA generation.

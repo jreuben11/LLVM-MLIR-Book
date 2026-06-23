@@ -1229,6 +1229,32 @@ NSan is **experimental** in LLVM 22. Performance overhead is typically **5–20�
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **TSan v3 AArch64 MTE integration**: Active LLVM patches ([D154989](https://reviews.llvm.org/D154989) series) extend TSan v3 to use ARM Memory Tagging Extension hardware for tag-based UAF detection, reducing TSan's ~10–15× slowdown by offloading tag checking to hardware on Armv8.5+ cores.
+- **NumericalStabilitySanitizer (NSan) stabilization**: NSan (shipped as experimental in LLVM 22) has open RFC discussions on discourse.llvm.org for graduating to non-experimental status, adding `__float128` shadow support, and ARM NEON vector shadow propagation; expected to stabilize in LLVM 23.
+- **alloc-token sanitizer upstreaming completion**: The `sanitize_alloc_token` attribute and `__builtin_infer_alloc_token` builtin (landed Clang 20–21) have pending patches to integrate token checking into the sanitizer common allocator so that pool allocator UAF shows up in combined ASan+alloc-token builds without requiring custom interceptors.
+- **UBSan `implicit-integer-sign-change` and `implicit-integer-truncation` in `-fsanitize=undefined`**: These checks have been opt-in since Clang 10; the LLVM 23 tracking issue proposes including them in the default `-fsanitize=undefined` group after confirming false-positive rates, which would improve coverage for implicit C integer conversion bugs in Linux kernel builds.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **HWASan on x86_64 via LAM (Linear Address Masking)**: Intel's Linear Address Masking (available from Sapphire Rapids, enabled via `CR4.LAM_U57`) provides a hardware-assisted equivalent of ARM TBI for pointer tagging. LLVM patches ([discourse.llvm.org/t/hwasan-lam](https://discourse.llvm.org/t/hwasan-x86-64-linear-address-masking)) aim to bring HWASan's ~15% overhead to x86_64 workloads, compared to ASan's 2–3× overhead, enabling always-on sanitization in data-center deployments.
+- **DFSan scalable label sets beyond fast16**: Replacing DFSan's 16-bit flat labels with a hash-consed trie of label sets (research direction from the "Neutaint" and "FlowDroid" literature) would allow tracking thousands of distinct taint sources simultaneously, enabling full-program GDPR compliance audits where each PII field is a distinct label rather than sharing a coarse "sensitive" bucket.
+- **MSan SIMD coverage completeness**: The `MemorySanitizer.cpp` shadow propagation for LLVM SIMD intrinsics (AVX-512, SVE, RISC-V V extension) is a persistent maintenance burden; ongoing work to auto-generate shadow rules from LLVM's `IntrinsicsX86.td` / `IntrinsicsSVE.td` rather than hand-coding them would reduce false negatives from uninstrumented vector paths.
+- **Sanitizer-aware LTO inlining**: A known limitation is that sanitizer instrumentation is inserted before LTO inlining, meaning cross-module inlining can expose uninstrumented code paths in the sanitized binary. LLVM RFC discussions propose a post-LTO re-instrumentation pass that re-applies sanitizer checks after the global inliner has run, closing this coverage gap.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Always-on production ASan via Arm MTE full-system integration**: Arm's Memory Tagging Extension is already deployed in Android (MTE on Pixel 8+); long-term roadmap (described in the Arm "Memory Safety" white paper and LLVM compiler-rt MTE tracking issue) targets zero-overhead UAF/OOB detection in all production Arm server deployments via hardware tag checking with 16-byte granularity, replacing the software shadow model entirely.
+- **Sanitizer-integrated fuzzing with structured taint flow (SanTaint/SanFuzz)**: Academic proposals combining DFSan-style taint tracking with structure-aware fuzzing (as in "SoFi" ASPLOS 2022 and "StructFuzz") aim to guide fuzzers using full data-flow graphs rather than per-byte label heuristics; LLVM integration would likely surface as a `compiler-rt` library with a libFuzzer-compatible callback interface.
+- **Formally-verified sanitizer runtime**: Following the CompCert approach (Chapter 212), research projects targeting verified correctness of the ASan shadow check algorithm (i.e., proving that the shadow memory invariant is maintained by the allocator and instrumentation) could yield a certified sanitizer runtime usable in safety-critical embedded contexts where finding memory bugs must be provably sound.
+
+---
+
 ## Chapter 110 Summary
 
 - Sanitizers combine compile-time LLVM pass instrumentation with a `compiler-rt` runtime library; shared infrastructure in `sanitizer_common/` provides stack unwinding, symbolization, and environment-variable flag parsing.

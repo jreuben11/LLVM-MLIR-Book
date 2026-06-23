@@ -510,6 +510,32 @@ ld.lld a_opt.o b_opt.o ... -o program
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **ThinLTO summary versioning protocol**: active LLVM discourse RFC ([discourse.llvm.org, 2025](https://discourse.llvm.org/)) proposes a stable versioning scheme for the `ModuleSummaryIndex` bitcode format to allow mixed-version ThinLTO pipelines (e.g., distributed builds where compile workers run a different LLVM version than the link coordinator). Patches targeting LLVM 23 are in review.
+- **Unified LTO default in Clang**: follow-on work to LLVM 22's Unified LTO stabilization — proposals to make `-funified-lto` the default when `-fuse-ld=lld` is specified, eliminating the need for explicit user opt-in. Tracked in `clang/lib/Driver/ToolChain.cpp` driver changes.
+- **ThinLTO cache invalidation improvements**: the current `--thinlto-cache-dir` policy uses a coarse IR-hash; an RFC proposes finer-grained per-function hashing so that local changes within a large module only invalidate cached objects for callers that actually changed their import set, reducing wasted recompilation in large monorepos.
+- **`llvm-lto2` summary dump tooling**: extensions to `llvm-lto` and `llvm-dis` to emit structured JSON representations of the `ModuleSummaryIndex` for integration with build-system dashboards (e.g., Bazel's analysis layer); prototyped in `llvm/tools/llvm-lto2/`.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Cross-language LTO (C++/Swift/Rust interop)**: ongoing collaboration between the LLVM, Swift compiler, and Rust/rustc communities to define a stable bitcode ABI and summary protocol so that ThinLTO import decisions can cross language boundaries (e.g., Rust crates exporting hot functions that Clang can import and inline). Requires stabilizing the `ModuleSummaryIndex` wire format as a public API.
+- **GPU-offload LTO via LLVM Offload**: the nascent `llvm/Offload` runtime (targeting LLVM 23–24) is designed to support LTO across CPU and GPU translation units so that host-side call sites can inline into GPU kernels if they share the same LLVM IR pipeline; preliminary RFC on offload LTO semantics posted to llvm-dev in late 2025.
+- **Speculative devirtualization in ThinLTO without full WPD**: extending the ThinLTO summary to carry richer vtable layout information (building on the existing `TypeTest`/`TypeCheckedLoad` infrastructure in `llvm/Analysis/TypeMetadata.h`) to enable speculative devirtualization guarded by inline type checks, matching full-LTO WPD quality in ThinLTO mode.
+- **Distributed ThinLTO integration in open-source build systems**: upstream Bazel and CMake support for the two-phase Distributed ThinLTO workflow (currently only available in Google's internal Blaze and Meta's Buck2), including first-class `--thinlto-emit-imports-files` support in CMake's `target_link_options` and Bazel's `cc_binary` rule.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Profile-guided import budgets in ThinLTO**: replacing the current heuristic-based import eligibility check (function size thresholds in `llvm/Transforms/IPO/FunctionImport.cpp`) with a learned model trained on production PGO traces, where import decisions are made by an inline neural policy that balances code size, cache pressure, and expected speedup — analogous to ML inlining advisors but operating at the cross-module summary level.
+- **Incremental LTO with fine-grained dependency tracking**: moving beyond the current module-granularity cache to function-granularity incremental LTO, where only functions whose transitive import sets or inline decisions have changed are re-optimized; requires a persistent inter-module dependency graph maintained across build invocations, analogous to compiler incremental compilation databases (e.g., `compile_commands.json` extended with LTO import edges).
+- **LTO-aware linker script optimization**: extending the linker (LLD) to use ThinLTO call-graph information to drive section layout decisions (hot/cold function splitting, BOLT-style profile-based reordering) directly within the LTO pipeline, eliminating the need for a separate post-link BOLT or propeller pass for LTO builds; preliminary design discussed in the LLD mailing list in 2024.
+
+---
+
 ## Chapter Summary
 
 - **Monolithic LTO** merges all LLVM IR bitcode into one module at link time, runs the full optimization pipeline, and produces a single native object; it enables all cross-module optimizations but is impractical for large programs due to memory and time requirements.

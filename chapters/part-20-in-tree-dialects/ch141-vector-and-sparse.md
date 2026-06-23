@@ -467,6 +467,32 @@ The key design choice is that sparse encoding is an attribute on the tensor type
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Structured sparsity support in `sparse_tensor`**: Ongoing work to represent 2:4 structured sparsity (NVIDIA Ampere/Hopper hardware) natively in `SparseTensorEncodingAttr`, enabling direct lowering to NVIDIA's `mma.sp` instructions via the NVGPU dialect. Tracked under [LLVM Discourse: Structured Sparsity in MLIR](https://discourse.llvm.org/t/structured-sparsity).
+- **`vector.contract` to AMX/SME lowering**: Addition of direct lowering paths from `vector.contract` to Intel AMX (`amxtile`, `amxdp`) and Arm SME (`FMOPA`, `SMOPA`) matrix-accumulate instructions, bypassing the generic `--lower-vector-to-llvm` route. Requires new `amx` and `arm_sme` dialect integration in `VectorToLLVM` conversion passes.
+- **Scalable vector 2-D support for SVE**: The `vector<[4]x[4]xf32>` two-dimensional scalable type exposed gaps in transfer-op lowering; patches on `mlir/lib/Conversion/VectorToLLVM` are in review to support 2-D scalable tiles corresponding to Arm SME ZA array storage.
+- **`--sparsification` phase-ordering with `linalg` fusion**: Merging sparsification and linalg named-op fusion into a unified pipeline stage to eliminate redundant bufferization passes; tracked by the MLIR sparse team (Aart Bik et al.) as part of reducing the pipeline from 6 to 3 mandatory passes.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Sparse tensor autodiff via `enzyme` dialect integration**: Automatic differentiation of `linalg.generic` over sparse tensors, producing sparse Jacobians and Hessians. Requires `enzyme` (LLVM Enzyme project) to understand `SparseTensorEncodingAttr` and emit gradient code that preserves sparsity structure rather than materializing dense gradients.
+- **Dynamic sparsity and adaptive format selection**: Runtime switching between CSR, ELL, and SELL-C-σ formats based on observed fill-ratio, using MLIR's `transform` dialect to trigger re-sparsification passes at JIT boundaries. Relevant to the MLCompute / IREE sparse execution engine roadmap.
+- **RISC-V RVV 1.0 full coverage in the `vector` dialect**: Complete mapping of all `vector<[N]xT>` ops (including `vector.gather`/`scatter`, `vector.compress`/`expand`) to RVV 1.0 intrinsics through `--lower-vector-to-llvm`, closing the gap between SVE coverage and the RISC-V backend. Follows ratification of the RVV 1.0 spec and LLVM's RVV backend maturation.
+- **Hierarchical tiling via `vector` sub-tile ops**: New ops (`vector.tile_extract`, `vector.tile_insert`) representing register-file tiles that compose with AMX / SME / MFMA hardware tiles, enabling a principled lowering hierarchy: `linalg` → `vector` (logical tiles) → `arm_sme`/`amx` (physical tiles) → LLVM IR.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Unified dense-sparse compiler: automatic sparsification from dense specs**: Extending `--sparsification` to automatically infer optimal sparse formats from access pattern analysis of `linalg.generic` bodies, eliminating the need for manual `SparseTensorEncodingAttr` annotations — analogous to what Halide's autoscheduler does for loop ordering.
+- **Cross-dialect sparse IR for quantum and stochastic computing**: Sparse tensor representations for quantum state vectors (exponentially sparse in the computational basis) and probabilistic graphical models, integrating `sparse_tensor` with emerging `quantum` and `stochastic` dialects to handle probability-amplitude and belief-propagation workloads.
+- **Hardware-neutral scalable vector ISA convergence**: As Arm SME, RISC-V RVV 2.0, Intel APX, and future GPU ISAs converge on scalable-vector paradigms, the `vector` dialect's `vscale`-based model may become the universal IR level for portable SIMD, with each backend lowering from a single `vector<[N]xT>` representation rather than dialect-per-target.
+
+---
+
 ## Chapter 141 Summary
 
 - The `vector` dialect provides target-independent SIMD abstraction with multi-dimensional vector types (`vector<4x4xf32>`) and scalable vectors (`vector<[4]xf32>`) for SVE/RVV.

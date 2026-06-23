@@ -395,6 +395,32 @@ Several directions are being pursued post-LLVM 22.1:
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **`-Wlifetime` production readiness**: the CIR lifetime checker (§54.4) is being hardened for standard `-Wlifetime` diagnostic integration; the LLVM discourse RFC "ClangIR: Lifetime Safety Diagnostics as a Default Pass" tracks blockers around false positives in lambda captures and range-for temporaries ([discourse.llvm.org/t/clangir-lifetime](https://discourse.llvm.org/t/clangir-lifetime-safety)).
+- **`CIRFlattenCFGPass` coroutine support**: `co_await`/`co_yield` constructs that span `cir.scope` boundaries are not yet handled by `GotoSolverPass`; the D158489 patch series adds `cir.await`/`cir.suspend` ops and extends `CIRFlattenCFGPass` to lower them to LLVM `coro.*` intrinsics.
+- **`LoweringPreparePass` ARM AAPCS-SVE ABI classification**: aggregate arguments containing scalable vector types (`svfloat32_t`) require ABI lowering using `AArch64ABIInfo::classifyArgumentType`; patches in review extend `LoweringPreparePass` to emit correct `sret`/`byval` annotations for SVE-containing structs.
+- **Through-MLIR path: `cir.for` → `affine.for` coverage expansion**: as of LLVM 22.1 only loops with statically affine bounds lower through the affine path; the `clang/lib/CIR/Lowering/ThroughMLIR` refactor in progress extends this to loops whose bounds are symbolic in `AffineMap` terms, unlocking polyhedral tiling for the majority of numerical kernels.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Incremental CIR precompiled headers**: the proposed `cir.pch` module format serializes post-`CXXABILoweringPass` CIR as a binary MLIR bytecode file, replacing the current AST-level `.gch`/`.pch` path; this enables re-use of ABI-lowered CIR across TUs without re-running `CXXABILoweringPass`, cutting large header-heavy build times.
+- **`CXXABILoweringPass` Microsoft ABI completeness**: as of 2026 the Itanium path is feature-complete but the MSVC path lacks support for multiple-inheritance thunks, `__declspec(novtable)`, and SEH exception tables; full MSVC ABI parity is a tracked milestone in the ClangIR project roadmap (LLVM GitHub issue #ClangIR-MSABI).
+- **CIR → `gpu.launch` offload path**: structured CIR `cir.for`/`cir.parallel` ops annotated with `[[clang::gpu_offload]]` will lower directly to MLIR's `gpu.launch` without a CPU-side pass, enabling a single-TU compilation path from standard C++ to NVPTX/AMDGPU via the MLIR GPU dialect; this depends on the GPU offload dialect unification RFC (P2022-MLIR-GPU).
+- **Borrow-checker profile for C++ Contracts**: a CIR pass implementing the C++ Contracts memory-safety profile (P2680/P3038) will consume provenance edges emitted by the lifetime checker to reject programs that violate pointer validity contracts, providing Rust-borrow-checker-equivalent diagnostics for an annotated subset of C++.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **CIR as a stable, versioned ABI for language interop**: if CIR stabilizes as a published MLIR dialect (versioned schema, textual round-trip guarantees), it could serve as a language-neutral interchange for C/C++/Fortran/Objective-C modules, replacing the current per-language bitcode ABI; this requires CIR op versioning infrastructure and a stability policy analogous to LLVM IR's.
+- **Full polyhedral optimization pipeline over CIR**: once the through-MLIR path covers all CIR loop forms, the `CIRCanonicalizePass` + `affine`-dialect pipeline could subsume Polly's `Scop` extraction step, providing polyhedral tiling, loop fusion, and data-layout transformation directly on C++ source structure without the fragility of Polly's `ScopDetection`.
+- **Whole-program lifetime and ownership inference**: combining `HoistAllocasPass` provenance edges with interprocedural analysis (call-graph aware dataflow over CIR modules) could enable a whole-program ownership inference pass similar to Rust's lifetime elision — automatically inferring borrow constraints across function boundaries and flagging unsafe aliasing patterns in large C++ codebases without requiring source annotation.
+
+---
+
 ## Chapter Summary
 
 - Pre-lowering CIR-to-CIR passes run in order: canonicalize → simplify → CXXABILowering → hoist-allocas → lowering-prepare → goto-solver → flatten-cfg.

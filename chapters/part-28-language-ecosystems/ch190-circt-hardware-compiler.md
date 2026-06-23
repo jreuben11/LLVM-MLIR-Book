@@ -805,6 +805,32 @@ End-to-end integration tests use a `lit` configuration that invokes `firtool` on
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **FIRRTL 3.x spec alignment**: The ChipsAlliance FIRRTL specification continues evolving toward FIRRTL 3.x semantics (eliminating the fixed-point `UInt`/`SInt` vs. `Integer` distinction), and CIRCT's `firrtl` dialect is actively tracking these changes — see the ongoing discourse threads at [discourse.llvm.org/c/projects-that-want-to-use-llvm/CIRCT](https://discourse.llvm.org/c/projects-that-want-to-use-llvm/) and the FIRRTL spec repository PRs at `github.com/chipsalliance/firrtl-spec`.
+- **Chisel 7 / firtool integration**: Chisel 7 targets tight firtool embedding (replacing the separate Chisel elaborator + firtool invocation with a unified JVM/MLIR compilation flow via the `chisel-mlir` project); near-term work focuses on direct Chisel-to-MLIR serialization without an intermediate `.fir` file, tracked in `github.com/chipsalliance/chisel`.
+- **`circt-bmc` SMT backend for unbounded checking**: Expansion of `circt-bmc` to support k-induction (sufficient for unbounded property verification) by encoding the base case and inductive step as two separate SMT queries; PRs adding k-induction support to CIRCT's `Verif` pipeline are in active review as of early 2026.
+- **Arc dialect simulation performance**: The ESSENT simulator integration is receiving scheduled loop-parallelism improvements — partitioning arc functions by SCC (strongly connected component) structure for multi-threaded simulation evaluation — with benchmarks targeting RISC-V core designs from the Chipyard framework.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **CIRCT as an LLVM sub-project**: CIRCT community discussions (discourse.llvm.org, 2024–2025) have repeatedly revisited formal LLVM sub-project status; if adopted, CIRCT would be included in the LLVM monorepo, sharing the LLVM release cadence directly rather than pinning individual commits, significantly reducing the CIRCT API breakage burden.
+- **Calyx static scheduling via polyhedral methods**: Integration of the Polly-style polyhedral scheduler (cf. Chapter 112) into the Calyx compilation path, enabling automatic II (initiation interval) computation for nested loops with affine dependences — replacing the current manually-annotated `@bound` hints with analysis-driven static scheduling.
+- **SPIR-V and MLIR GPU dialect roundtrip via CIRCT**: As GPU hardware description (shader compilation, spatial architectures) increasingly uses MLIR SPIR-V and `gpu` dialects, CIRCT is positioned as the structural lowering layer; mid-term work targets a verified roundtrip from `gpu.func` through HW/Comb to synthesizable RTL for spatial GPU architectures (e.g., AMD CDNA3-derived reconfigurable fabric tiles).
+- **Formal equivalence checking between FIRRTL refinements**: Extending the SMT dialect's miter circuit encoding to support whole-module equivalence checking between FIRRTL refinement levels (e.g., verifying that a hand-optimized HW/Comb lowering is observationally equivalent to the original FIRRTL specification), analogous to the Alive2 translation validation approach for LLVM IR.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Open synthesis backend via CIRCT**: A fully open-source technology-mapping and place-and-route flow driven by CIRCT IRs — replacing Yosys + nextpnr with MLIR-native passes that lower HW/Comb/Seq through a technology-library dialect to a gate-level netlist IR, enabling end-to-end open EDA from Chisel source to FPGA bitstream within the LLVM ecosystem.
+- **Temporal logic and liveness in `verif` dialect**: Extension of the `verif` dialect beyond safety properties (assertions that must hold in every reachable state) to full LTL/CTL liveness properties (assertions that something *eventually* happens), backed by new symbolic model-checking passes that integrate with IC3/PDR algorithms rather than pure BMC unrolling.
+- **CIRCT for analog-mixed-signal (AMS) design**: A new MLIR dialect for continuous-time behavior (differential equations, Laplace-domain transfer functions) alongside the existing discrete-time RTL dialects, enabling co-simulation of analog and digital sub-circuits within a single CIRCT pipeline — analogous to the role of Verilog-AMS in the proprietary EDA world, but with open IR and formal semantics.
+
+---
+
 ## Chapter Summary
 
 - **CIRCT** applies LLVM/MLIR methodology to open-source EDA: composable passes, formal semantics, open IR, and a shared optimization infrastructure across hardware design tools.

@@ -782,6 +782,32 @@ The full debug info pipeline, including how `AssignmentTrackingAnalysis` feeds i
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **RemoveDIs full migration completion**: The LLVM community's "RemoveDIs migration" tracking issue targets complete removal of the old `llvm.dbg.*` intrinsic form from all in-tree passes by LLVM 23. The final holdouts — certain SelectionDAG paths and GlobalISel debug-value sinking — are being ported to `DbgRecord` APIs. Follow [`llvm/docs/RemoveDIsDebugInfo.html`](https://llvm.org/docs/RemoveDIsDebugInfo.html) and the associated GitHub issue.
+- **Assignment tracking (`-fexperimental-assignment-tracking`) promotion to stable**: The `AssignmentTrackingAnalysis` pass has been experimental since LLVM 14; community consensus (RFC posted on discourse.llvm.org, March 2026) is to make it the default `-g` codegen path in Clang 23, eliminating the `llvm.dbg.declare`/`llvm.dbg.value` split for stack variables entirely.
+- **`!range` metadata on `getelementptr` instructions**: An RFC (discourse.llvm.org, January 2026) proposes extending the `!range` metadata kind to `getelementptr` results to encode non-null, in-bounds, and offset-bounded pointer properties that are currently lost when Clang emits `inbounds` GEPs but the verifier cannot carry them through post-legalization.
+- **CSSPGO and pseudo-probe stability across LTO**: Meta and Google are actively upstreaming patches (tracked in llvm/llvm-project PRs #79432, #81567, #84019) that make pseudo-probe GUID assignment deterministic under ThinLTO module splitting, fixing a class of profile-correlation mismatches that currently require re-profiling after LTO configuration changes.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **DWARF 6 debug info metadata extensions**: The DWARF committee's working draft for DWARF 6 (expected 2027) introduces `DW_TAG_skeleton_unit` extensions and `DW_OP_regval_type` enhancements. LLVM will need new `DISpecialType`, `DIAddrSpace`, and `DIGenericSubrange` metadata nodes mirroring the new DWARF tags; the `DWARFv6` codepath in `DwarfDebug.cpp` is already being scaffolded.
+- **Typed pointer TBAA with `!tbaa_v2`**: The current TBAA scheme requires type nodes to encode a linear inheritance tree, which poorly models C++ multiple-inheritance hierarchies and Rust's trait object pointer aliasing rules. A new struct `!tbaa_v2` format that supports DAG-structured (rather than tree-structured) type relationships is under design discussion (discourse.llvm.org thread: "TBAA for Rust and C++ multiple inheritance," December 2025), targeting the LLVM 24–25 timeframe.
+- **`!prof` metadata with confidence intervals**: Current branch-weight metadata stores only point estimates. The BOLT and AutoFDO teams have proposed extending `!prof !{!"branch_weights_with_confidence", ...}` to carry standard-error fields, enabling the inliner and code-layout pass to distinguish high-sample (reliable) from low-sample (uncertain) PGO data and apply risk-adjusted optimization decisions.
+- **Metadata compression in bitcode**: For large LTO modules the metadata section can constitute 30–50% of bitcode size. Proposals to use ZSTD-compressed metadata blobs within the bitcode container (analogous to the existing per-section ZLIB compression) are being evaluated; the blocker is streaming decompression support in the bitcode reader.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Metadata-aware IR verification as a formal correctness property**: The Vellvm and Alive2 projects (Chapter 171) currently treat metadata as semantically transparent; alias-analysis metadata soundness is not formally verified. A research direction being explored (see "Formally verifying LLVM alias analysis," PLDI 2025 workshop) is to encode TBAA and `!noalias` contracts as first-class propositions in the Alive2/SMT model, enabling automated detection of metadata-induced miscompilations.
+- **Profile metadata for heterogeneous execution (GPU/NPU offload)**: As LLVM increasingly targets SPIR-V, AMDGPU, and vendor NPU backends via offload pipelines, `!prof` branch-weight and function-entry-count metadata will need to carry device-side execution frequency semantics distinct from host-side counters. A unified "offload profile" metadata namespace (analogous to address-space namespacing in pointer types) is a likely development as OpenMP offload PGO matures.
+- **AI-driven metadata generation**: Research prototypes (Google Brain/DeepMind compiler teams, published at CGO 2025) demonstrate ML models that predict branch probabilities and vectorization profitability directly from IR structure, emitting `!prof` and `!llvm.loop` metadata without requiring instrumented profiling runs. Integration into LLVM as an optional hint-generation pass (distinct from PGO, complementary to it) is a plausible 5-year trajectory as inference costs continue to fall.
+
+---
+
 ## 22.10 Chapter Summary
 
 - **Metadata is semantically inert** (with the narrow exception of `llvm.dbg.*` intrinsics in the old format). Metadata nodes (`MDTuple`, `MDString`, `ValueAsMetadata`) are typed side-channel annotations keyed by kind IDs registered in `LLVMContext`. Optimizers may freely discard or modify metadata without affecting program correctness; they may also *exploit* metadata to enable transformations that would otherwise require conservative assumptions.

@@ -311,6 +311,32 @@ opt -passes='function(loop-versioning-licm)' -S input.ll
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **LoopFusion legality improvements**: ongoing work on Discourse ([discourse.llvm.org/t/loop-fusion-improvements](https://discourse.llvm.org/)) to tighten the DependenceAnalysis integration in `LoopFusePass`, addressing false-negative fusion blocks from imprecise direction vectors.
+- **LoopInterchange profitability model**: patches under review to plumb `TargetTransformInfo::getCacheParameters()` into `LoopInterchangePass` so interchange decisions account for L1/L2 sizes on heterogeneous targets (Arm Neoverse N3, RISC-V vector machines).
+- **IndVarSimplify with unsigned overflow semantics**: RFC tracked in LLVM bug [#88791](https://github.com/llvm/llvm-project/issues/88791) to allow `IndVarSimplifyPass` to widen IVs from `i32` to `i64` under `nuw`/`nsw` flags more aggressively, removing the sign-extension chains that currently block vectorization.
+- **LoopIdiomRecognize for `bcmp`/`memcmp`**: extension patches adding recognition of comparison loops producing a boolean result, targeting replacement with `@llvm.memcmp` and downstream lowering to `REPE CMPSB` or SIMD compare sequences.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Polyhedral-assisted loop transformations in the middle-end**: integrating lightweight polyhedral feasibility checks (based on isl's `isl_map_is_bijective`) directly into `LoopInterchangePass` and `LoopFusePass`, replacing the current dependence-vector heuristics with an exact legality oracle without requiring full Polly.
+- **ML-guided unroll-factor selection**: productionizing the MLGO (ML-guided optimization) framework — already deployed for inlining — to drive `LoopUnrollPass` unroll-factor decisions via a TensorFlow/XLA-trained policy trained on SPEC CPU and real-world workloads; see [MLGO RFC](https://discourse.llvm.org/t/rfc-ml-guided-loop-unrolling/68310).
+- **LoopVersioning for memory-bound patterns**: extending `LoopVersioningLICMPass` to generate runtime-specialization guards for alignment, trip-count divisibility (enabling full vectorization without remainder loops), and pointer distance (enabling overlap-free SIMD on RISC-V RVV).
+- **Cross-loop LICM with alias-aware MemorySSA**: replacing the per-loop MemorySSA walker with a loop-nest–scoped walker that hoists invariant loads past outer loop headers, targeting matrix-multiply and stencil kernels where inner-loop-invariant loads are currently blocked by outer-loop MemoryDefs.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Unified polyhedral loop scheduler in LLVM middle-end**: a formal integration of a stripped-down Pluto-style affine scheduler (targeting outer-loop parallelism and tiling simultaneously) as a first-class LLVM pass, eliminating the current architectural boundary between LLVM loop passes and MLIR's `affine` dialect transformations.
+- **Induction-variable synthesis for non-affine bounds**: extending `IndVarSimplifyPass` and ScalarEvolution to handle piecewise-affine and wrap-around IVs arising in GPU warp-level address computations and sparse tensor indexing, enabling downstream vectorization and predication on non-rectangular iteration spaces.
+- **Profile-guided loop transformation selection**: end-to-end feedback from hardware performance counters (via AutoFDO/BOLT) routed into the loop pipeline to select dynamically between distribution, fusion, and unroll-and-jam based on measured cache miss rates rather than static cost models.
+
+---
+
 ## Chapter Summary
 
 - Loops must be in simplify form (unique preheader, single latch, LCSSA) before most loop passes; `LoopSimplifyPass` and `LCSSAPass` ensure this.

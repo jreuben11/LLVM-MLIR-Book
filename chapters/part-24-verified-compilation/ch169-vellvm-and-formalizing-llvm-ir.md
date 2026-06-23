@@ -435,6 +435,32 @@ The gap between Vellvm and a "fully verified LLVM" is still substantial: LLVM's 
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Vellvm `freeze` and poison semantics completeness**: the Vellvm team is actively extending the Coq formalization to fully cover `freeze` semantics and the migration away from `undef` toward `poison`-only arithmetic flags (tracking the LLVM 22.x LangRef changes); expect a published Coq proof artifact for ICFP 2026 or PLDI 2027.
+- **Alive2 feedback loop into Vellvm**: ongoing integration between Alive2's Z3-encoded semantics and Vellvm's Coq model — discrepancies found by differential testing between the two formalisms are being fed back as Vellvm corrections; see [Alive2 GitHub issues](https://github.com/AliveToolkit/alive2/issues) for current mismatches.
+- **Verified GEP `inbounds` semantics**: the precise semantics of `getelementptr inbounds` — when out-of-bounds pointer arithmetic yields poison versus undefined behavior — is being finalized in both the LangRef and Vellvm's `GepM.v`; the LLVM discourse RFC "Clarify inbounds GEP poison semantics" (2025) is expected to land in LLVM 23.
+- **ITree library performance**: the `itrees` library (the Coq foundation of Vellvm) is being optimized for faster proof checking; large Vellvm proof scripts currently take tens of minutes to compile; work in progress targets 2× speedup via better `eutt` tactic automation.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Verified load forwarding and store elimination**: the current gap between Vellvm's verified transformations and real LLVM optimizations is largest for memory-dependent passes; formal proofs for load-forwarding (with alias preconditions drawn from LLVM's AA results) and redundant-store elimination are the next planned milestones, requiring the separation logic-style reasoning infrastructure currently under development in Vellvm's `Theory/` subtree.
+- **Vellvm concurrency extension**: LLVM IR's `atomic` instructions and C11 memory model are entirely absent from the current sequential Vellvm semantics; work analogous to ConcurInteractionTrees (building on the ITree framework with a concurrent composition operator) is expected to yield a mechanized model for LLVM's weak memory concurrency, potentially building on the Promising Semantics model (Kang et al., POPL 2017).
+- **Crellvm 2 / translation validation at scale**: the Crellvm validator approach (translation validation of each optimization pass independently) is being pursued for the full InstCombine pass set; the target is a Lean 4 port of Crellvm's core logic that can run as a LLVM plugin and reject miscompiling transformations at compile time.
+- **K-LLVM update to LLVM 20+ IR**: the K-Framework LLVM IR semantics has not tracked LLVM past version 6; an active project at University of Illinois aims to bring it current with LLVM 20 IR, including opaque pointers, typed pointer removal, and the new `ptrauth` intrinsics; this will enable differential testing against the current toolchain.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **End-to-end verified Clang-to-LLVM-to-assembly pipeline**: connecting the ClangIR formalization (Chapter 114), Vellvm's LLVM IR semantics, and a verified backend (e.g., a formally verified RISC-V code generator) to produce a CompCert-style proof that "the source C program's observable behavior is preserved in the binary" — the grand challenge of LLVM formal verification; feasibility demonstrated for restricted subsets by 2028 is the prerequisite.
+- **Automated optimization proof synthesis**: given a transformation expressed as an Alive2 refinement check, automatically synthesize the corresponding Coq proof in Vellvm via proof-by-reflection or SMT-to-Coq translation; research in this direction is active at MPI-SWS (building on the Alive → Coq tactic approach) and would dramatically lower the cost of adding verified optimizations.
+- **Formal LLVM IR standard**: the LLVM Foundation may publish an ISO-style normative specification of LLVM IR (analogous to the C standard), potentially machine-checkable via Lean 4 or a dedicated DSL; Vellvm's Coq formalization would serve as a reference implementation and test oracle for this standard.
+
+---
+
 ## Chapter Summary
 
 - **LLVM IR lacks a formal semantics**: the LangRef is English prose with ambiguities around UB, `undef`, `poison`, and pointer provenance — creating conditions for miscompilation bugs.

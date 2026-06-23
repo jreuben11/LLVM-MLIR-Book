@@ -389,6 +389,32 @@ Swift for TensorFlow (2018–2021) had the theoretically correct instincts: a sy
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Mojo open-source compiler release**: Modular has signalled an Apache 2.0 compiler release by end-2026; the near-term milestone (H2 2026) is the public availability of the MLIR-to-Mojo lowering pipeline, enabling community experimentation with dependent-type extensions. Track at [modular.com/blog](https://www.modular.com/blog).
+- **StableHLO v1.0 specification freeze**: The OpenXLA consortium is stabilising StableHLO semantics following the 5-year compatibility commitment (2023). By October 2026 the core opset verifiers and type-inference rules are expected to be upstream in `mlir/stablehlo`; the `tensor_named` dialect prerequisite for §205.3.1 named-dimension preservation can be prototyped as an out-of-tree dialect in the same time frame.
+- **KernelSmith/AutoKernel integration into SGLang**: Both arXiv 2603.28342 (KernelSmith) and arXiv 2603.21331 (AutoKernel) reference production PR merges into SGLang and LMDeploy; the 6-month horizon covers first-class CI integration of LLM-generated kernels in a tier-1 serving framework.
+- **Exo 2 Cursors API stabilisation**: The ASPLOS 2025 Cursors mechanism is the prerequisite for AI-agent-authored scheduling transforms; the MIT CSAIL team is actively extending Exo 2 toward GPU targets (follow [exo-lang.dev](https://exo-lang.dev/) releases). By October 2026, GPU-targeting Cursors are expected to cover GEMM and attention schedule primitives.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **`tensor_named` MLIR dialect in-tree**: Chapter 207 §207.3 Phase 1 targets an upstream MLIR dialect that preserves named dimension variables through the lowering pipeline to Linalg/StableHLO. This is the linchpin for any production AI-first transformer PL satisfying §205.3.1; a full upstream patch series (RFC → review → merge) realistically lands in 2027–2028. Monitor discourse.llvm.org for RFC "Named Tensor Dimensions in MLIR."
+- **Dex successor or production fork**: Google Research's Dex (§205.4.2) has not been productionised, but the typed-index array programming paradigm it proves is the correct theoretical foundation. By 2028, either a Dex 2.0 targeting MLIR, or a competing academic system (e.g., from the Futhark or Exo groups) implementing Dex-style dependent tensor types over an MLIR backend, is expected in the research literature.
+- **MLIR-level compiler-LLM cooperation (ACCLAIM generalisation)**: ACCLAIM (arXiv 2604.04238) demonstrated LLM-guided optimisation at LLVM IR level (1.25× geometric mean over `-O3`). The 2.5-year horizon covers extension to MLIR dialect boundaries — LLM reasoning at `linalg` → `vector` → `scf` lowering steps, which is the directly relevant level for transformer kernel optimisation.
+- **DVM-style dynamic shape VM for CUDA/MLIR targets**: arXiv 2603.24239 demonstrates the 5-orders-of-magnitude compilation speedup for NPU targets; the mid-term horizon covers generalisation to CUDA and MLIR CPU backends, eliminating the 105× compile-time penalty for dynamic-shape transformer models in the PyTorch/JAX compilation stack.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Parallelism strategies as verified type annotations**: Design consideration §205.3.3 (data, tensor, pipeline, and sequence parallelism as compiler-verified type effects) is currently an open research problem with no production candidate. By 2031, a research prototype — likely based on an effect-typed extension of Mojo or a successor to Dex — is expected to demonstrate verified collective insertion (all-reduce, all-gather, scatter) from parallelism type annotations, closing the last major gap in the §205.7 design space table.
+- **Unified AI-first transformer PL at production quality**: The synthesis identified in §205.7 — Dex's type theory + Mojo's MLIR backend + Exo 2's schedulability + first-class parallelism effects — represents a long-term convergence target. By 2031, the components (named tensor type dialect, sound AD effect system, MLIR hardware backend, AI-agentic scheduling) exist independently; a unified PL integrating all four at production quality is the 5-year goal of the research programme sketched in Chapter 207.
+- **LLM-legible DSL as an industry standard**: The SOL-guided compact DSL approach (arXiv 2603.29010) and the CuTe-targeting agentic loop (CuTeGen, arXiv 2604.01489) are empirically converging on a kernel DSL design space. By 2031, a community-standardised mid-level kernel DSL — targeting MLIR, with formal semantics, SOL oracle integration, and LLM fine-tuning datasets — is likely to emerge as the de facto language for AI-generated GPU kernels, analogous to how Triton standardised Python-embedded GPU programming for human authors.
+
+---
+
 ## Chapter 205 Summary
 
 - Transformer model development requires ten additional design considerations beyond the general AI-first PL properties: named typed tensor dimensions, AD as a language-level transform, parallelism strategies as type annotations, device and precision as types, compiler-derived kernel fusion, stochasticity as an algebraic effect, recomputation annotations, first-class einsum syntax, MLIR as the target IR, and LLM-legible compact kernel DSLs.

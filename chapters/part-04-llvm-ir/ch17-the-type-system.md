@@ -806,6 +806,32 @@ Watch the [LLVM Discourse RFC for the Byte Type](https://discourse.llvm.org/) fo
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **LLVM Byte Type RFC landing**: The proposal to add an explicit `byte` type distinct from `i8` is under active discussion on [LLVM Discourse](https://discourse.llvm.org/). The 6-month window is when a prototype patch may appear to address TBAA omnipotent-root aliasing gaps; watch `llvm/include/llvm/IR/Type.h` and `llvm/lib/IR/Type.cpp` for new `ByteTyID` additions.
+- **OCP MX FP4/FP6 IR intrinsics stabilization**: Following LLVM 20's `APFloat` support, backend teams (AMDGPU, AArch64, Intel) are landing native IR intrinsics for block-scaled MX dot products (`f4E2M1FN`, `f6E2M3FNUZ`, `f6E3M2FNUZ`) rather than routing through target extension types. Expect first-class `i4`/`i6` vector types with MX semantics in LLVM 22.x point releases.
+- **`DataLayout` address-space index type extension**: An RFC to allow per-address-space index types (separate from pointer width) is in progress to correctly model AMDGPU flat-address indexing — see `DataLayout::getIndexType` and the `p[N]:size:abi:pref:idx` specifier.
+- **Scalable vector improvements for RISC-V RVV**: Additional `<vscale x N x T>` types for `i1` predicate vectors and non-power-of-two `vscale` multiples are under review for RVV 1.1 support, with changes concentrated in `llvm/lib/Target/RISCV/`.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Typed `ptr` deprecation completion cleanup**: Although typed pointers are already removed in LLVM 17+, residual APIs (`PointerType::getElementType` stubs, compatibility shims in Clang's CodeGen) are still being cleaned from downstream consumers. By 2028, all out-of-tree frontends should have completed migration; LLVM may remove the last compat stubs.
+- **`ppc_fp128` deprecation in favor of IEEE `fp128`**: IBM and the GCC/Clang toolchain have a multi-release plan to transition PowerPC `long double` to IEEE 754 binary128. By 2028 the ABI transition on POWER11+ Linux glibc distributions should be complete, meaning `ppc_fp128` handling in LLVM becomes legacy-only code.
+- **Sub-byte integer types (`i2`, `i4`) as first-class storage types**: The proliferation of 4-bit and 2-bit weights in quantized LLM inference is driving proposals ([Discourse RFC #68823](https://discourse.llvm.org/)) to give `i4` and `i2` genuine storage semantics in `DataLayout` (abi/pref alignment, alloca support) rather than relying on packing into `i8` manually.
+- **MLIR `!llvm.ptr` and typed address space attributes convergence**: The MLIR LLVM dialect's `!llvm.ptr<addrspace>` will gain richer address-space attribute typing in line with SPIR-V and Vulkan memory-model evolution, requiring new `TargetExtType` registrations and `DataLayout` specifiers in both LLVM IR and MLIR's LLVM dialect.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Formal type-system specification**: An ongoing effort to produce a machine-checked specification of the LLVM IR type system (building on the Vellvm/Alive2 tradition) aims to make the type rules, aliasing semantics, and `DataLayout` contracts amenable to formal verification, replacing the current prose in `LangRef.md` with a TLA+/Lean4 model for at least the integer and floating-point sublanguages.
+- **Heterogeneous unified address-space model**: As CPU-GPU unified memory (e.g., AMD APUs, Intel Xe, ARM's CSS coherency fabric) matures, the ad-hoc per-target address-space numbering may give way to a standardized LLVM address-space taxonomy modelled on the SYCL/SPIR-V unified address model, reducing the per-target proliferation of `addrspacecast` lowering code.
+- **Hardware native `fp128` on mainstream CPUs**: x86 Clearwater Forest and ARM Grace successors are rumored to include hardware binary128 FPUs, which would make LLVM's current soft-float `fp128` lowering (via `compiler-rt/__float128`) obsolete and would require `DataLayout` and backend instruction selection updates for native 128-bit FP register classes.
+
+---
+
 ## 17.9 Chapter Summary
 
 - **`iN` integers** encode any bit width from 1 to 8,388,607 without built-in signedness; signedness is a property of the instruction (`sdiv` vs. `udiv`, `sext` vs. `zext`). The backend legalizes non-native widths to the hardware's native word sizes.

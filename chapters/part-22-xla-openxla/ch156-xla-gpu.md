@@ -452,6 +452,32 @@ int shared_mem_size = (TILE_DIM + 1) * TILE_DIM * sizeof(float);
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Triton 3.x GEMM backend consolidation**: OpenXLA's migration from the legacy `xla/service/gpu/triton_fusion_emitter.cc` path to the unified `codegen/transforms/` MLIR pipeline is underway; expect the split-K and sparse-dot Flash Attention paths to land in the consolidated backend by mid-2026, tracked in [openxla/xla#20xxx series PRs](https://github.com/openxla/xla/issues).
+- **FP8 (E4M3/E5M2) GEMM via cuBLAS LT and Triton on H100/Hopper**: XLA's `GemmAlgorithmPicker` is being extended to handle cuBLAS LT FP8 (GEMM using `cublasLtMatmul` with `CUBLAS_COMPUTE_32F_FAST_TF32`) and the Triton WMMA/MMA lowering for `tt.dot` on FP8 tensors; this enables 2× throughput over BF16 on Ada/Hopper.
+- **StreamExecutor removal (GPU plugin API)**: The OpenXLA community is actively replacing `StreamExecutor` with a stable plugin ABI (`xla/stream_executor/gpu/gpu_kernel.h`); framework maintainers are tracking the migration in [openxla/xla#17090](https://github.com/openxla/xla/issues/17090) with target completion in 2026 H1.
+- **AMD ROCm 7.x / GFX12 (RDNA 4) support**: LLVM's AMDGPU backend added GFX1200 target support in LLVM 19; XLA's ROCm path needs corresponding `ROCDL` intrinsic updates for new wave64/wave32 MAI instructions and the new CDNA4 memory model; patches expected in XLA 0.5.x alongside ROCm 7.0.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **XLA:GPU → MLIR codegen end-to-end**: The OpenXLA roadmap calls for replacing `GpuIrEmitter` (direct LLVM IR emission) entirely with an MLIR-based pipeline using `gpu`, `nvgpu`, and `vector` dialects, lowering through `nvvm` to PTX — eliminating the hand-rolled NVVM intrinsic injection in `GpuIrEmitter` and aligning with MLIR upstream's `nvgpu::WarpMmaOp` and `gpu::SubgroupMmaOp` for tensor-core targeting.
+- **Persistent kernel and CUDA Graph integration**: XLA's thunk-sequenced execution model requires CUDAGraph integration for latency-sensitive inference; the `GpuExecutable` runtime will be extended with graph capture (`cudaStreamBeginCapture`) and replay for static-shape workloads, removing repeated driver API overhead on each execution.
+- **Distributed collective scheduling with topology awareness**: The current `AllReduceThunk` dispatches NCCL operations at fixed schedule points; OpenXLA is developing a collective scheduler that models NVLink/PCIe bandwidth topology (via `DeviceAssignment` extensions) to overlap fine-grained ring-allreduce steps with dependent compute; this is related to [google/jax#18455](https://github.com/google/jax/issues/18455) and DeepMind's Pathways communication model.
+- **Unified XLA:GPU auto-tuner with learned cost models**: The current benchmarking auto-tuner (Section 156.5) runs expensive kernel compilations at compile time; a learned cost model (ML-based tile-size predictor trained over cubin profiling data) is under development within Google's internal TensorFlow/JAX stack and is expected to be open-sourced in XLA's `autotuning/` namespace, replacing exhaustive benchmarking with model-guided search.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Grace-Hopper NVLink-C2C unified memory model**: NVIDIA's Grace-Hopper (NVL72/GB200) exposes CPU+GPU shared memory via NVLink-C2C; XLA's buffer assignment and StreamExecutor memory model will need to be redesigned to exploit unified virtual addressing without explicit `H2D`/`D2H` `cudaMemcpy` boundaries, fundamentally changing how `GpuExecutable` allocates and addresses computation buffers.
+- **Post-PTX IR targeting: NVVM IR as stable ABI**: NVIDIA has been signalling that PTX will be supplemented by a stable NVVM IR ABI (`nvvm.annotations` + LLVM IR modules) for AOT compilation across GPU generations; XLA's NVPTX backend may shift to emitting versioned NVVM IR modules rather than PTX text, reducing `ptxas` JIT overhead at driver level.
+- **Cross-accelerator heterogeneous compilation (GPU + TPU + spatial)**: OpenXLA's long-term architecture envisions a single HLO module being partitioned across GPU, TPU, and spatial accelerators (e.g., Groq, Cerebras) using a unified `DeviceMesh` abstraction and per-device backends registered via a plugin API; this requires the `GpuExecutable` runtime to participate in heterogeneous thunk scheduling coordinated by the XLA runtime client.
+
+---
+
 ## Chapter Summary
 
 - XLA GPU targets NVIDIA (NVPTX) and AMD (AMDGPU) via LLVM; the pipeline runs GPU-specific passes before code emission.

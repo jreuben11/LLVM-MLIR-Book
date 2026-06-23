@@ -788,6 +788,32 @@ This trace shows all three major subsystems — unqualified lookup, ADL, and ove
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Sema sub-object decomposition completion**: The ongoing refactoring of `Sema` into semi-independent sub-objects (`SemaARM`, `SemaX86`, `SemaOpenMP`, etc.) is tracked via LLVM Discourse RFC "Sema decomposition" threads; remaining language extensions including `SemaOpenACC` and `SemaWASM` are expected to be extracted by late 2026, reducing `Sema.h` from ~14,000 lines and cutting incremental build times for frontend-touching patches.
+- **C++26 name lookup changes**: The C++26 standard adds new lookup rules for `using`-declarations in class templates and refines the interaction between structured bindings and ADL; Clang Sema patches implementing P2374R4 (re-specified structured bindings) and P2652R2 (disallow user specialization of `allocator_traits`) are in review on Phabricator/GitHub as of early 2026.
+- **Overload resolution diagnostics improvement (`-fdiagnostics-all-candidates`)**: A long-standing LLVM issue requests a flag to dump all overload candidates unconditionally instead of truncating; incremental patches improving `NoteCandidates` output formatting and adding structured JSON diagnostic output (`-fdiagnostics-format=json`) for IDE integration are actively landing.
+- **Typo correction ML augmentation**: An experimental branch from the Clang tooling WG explores replacing the weighted Levenshtein scorer in `TypoCorrectionConsumer` with a learned edit-distance model trained on LLVM's own codebase; a prototype was presented at the 2025 LLVM Developers Meeting and is being upstreamed incrementally.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **C++26 "contracts" and name lookup interaction**: Contracts (P2900, adopted for C++26) introduce `pre`/`post`/`assert` specifiers whose predicate expressions perform name lookup in a novel context (between function parameter scope and function body scope); Clang's Sema will need a new `ContractScope` flag in `ScopeFlags` and matching lookup-kind handling, tracked in [discourse.llvm.org/t/contracts-sema-design](https://discourse.llvm.org/t/contracts).
+- **Module-aware redeclaration and `CheckRedeclarationModuleOwnership` hardening**: C++20 modules expose subtle ownership bugs in `MergeFunctionDecl` and `MergeVarDecl` when declarations span partition boundaries; the Clang modules team is replacing the ad-hoc `CheckRedeclarationModuleOwnership` calls with a unified reachability-aware merging framework aligned with the P1815 "Translation-unit-local entities" wording.
+- **Lazy ADL and deferred overload resolution for concepts**: With C++20 concepts widely adopted, overload resolution involving constrained function templates is significantly slower because constraint satisfaction is checked eagerly inside `BestViableFunction`; a mid-term project (LLVM RFC draft circulated November 2025) proposes lazy constraint checking that batches satisfaction queries using a memoization cache in `Sema::SatisfactionCache`.
+- **Cross-TU name lookup for whole-program Sema analysis**: The `clang-tidy` and `clang-analyzer` ecosystems need cross-translation-unit lookup to find callee definitions; a persistent `GlobalIndexBuilder` (extending the existing `libIndex` infrastructure) is planned to allow `LookupQualifiedName` to transparently consult a pre-built global symbol index, enabling inter-TU `MergeFunctionDecl` for static analysis without LTO.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Sema as a reusable library (libSema)**: The long-term architectural direction discussed at LLVM Dev Meetings is to make `Sema` fully reusable outside the `clang` driver binary — as a linkable `libSema` with a stable C API — so that language servers, refactoring tools, and AI code assistants can drive semantic analysis incrementally without replicating the entire parse pipeline; this requires eliminating `Sema`'s remaining global state dependencies and the tight coupling to `Parser`.
+- **Formal verification of name lookup semantics**: Research projects (building on the PLDI 2024 work formalizing C++ name lookup in Lean 4) are exploring auto-generating conformance tests from a mechanized specification of [basic.lookup] and [over.match]; the long-term goal is a Clang test suite where every overload resolution decision is traceable to a proof term in the formal model.
+- **Reflection-aware overload resolution (P2996 static reflection)**: C++26/C++29 static reflection (P2996, P3293) introduces `std::meta::info` values and splice expressions whose types are not known until reflection evaluation; overload resolution must be extended to handle `[:R:]` splice arguments whose types are determined at constant-evaluation time, requiring new `ImplicitConversionKind` entries and ICS ranking rules for reflection-spliced expressions.
+
+---
+
 ## Chapter Summary
 
 - `Sema` is the Parser's "actions" object: instantiated once per TU, split across ~20 source files, with `CurContext` tracking the active `DeclContext` and `TUScope` anchoring the root scope. Clang 22 extracts target-specific functionality into sub-objects (`SemaARM`, `SemaX86`, etc.) without changing calling conventions.

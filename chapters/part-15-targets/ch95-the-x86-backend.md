@@ -668,6 +668,32 @@ clang -O3 -march=native -fprofile-use=profile.afdo \
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **APX full deployment in LLVM**: The APX feature set (EGPRs R16–R31, NDD 3-operand ALU, CFCMOV conditional stores, push2/pop2 paired instructions) is tracking upstream stabilization. Expect the `+apx` subtarget feature to graduate from experimental status and be enabled by default for `-march=graniterapids` and `-march=diamondrapids` on LLVM 22.x; follow upstream discourse at [discourse.llvm.org/t/rfc-apx-support](https://discourse.llvm.org/c/llvm-dev/6) and the `llvm/lib/Target/X86/X86APXInstrInfo.td` landing patches.
+- **AVX10.1 and AVX10.2 instruction selection**: Intel's AVX10 convergence ISA (uniform 512-bit availability without per-microarchitecture feature bits) requires new `X86InstrAVX10.td` pattern coverage. The near-term effort is landing `AVX10_1` and `AVX10_2` subfeature bits and ensuring that AVX-512 intrinsics lower correctly to AVX10 EVEX encoding on Arrow Lake / Lunar Lake class CPUs.
+- **AMD Zen 5 scheduling model refinement**: The `X86SchedZen5.td` model added for Zen 5's 8-wide decode and native 512-bit pipelines needs throughput measurements from `llvm-mca` comparison against hardware perf counters; follow the [llvm-mca accuracy RFC thread](https://discourse.llvm.org/c/llvm-dev/6) for upcoming patch series from AMD compiler engineers.
+- **FRED (Flexible Return and Event Delivery) support**: Intel's FRED architecture replaces legacy interrupt/exception dispatch. Clang/LLVM need `ERETU`/`ERETS` instruction definitions and new calling-convention entries for FRED event handlers; the initial TableGen stubs are expected in LLVM 23 development cycle.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Intel Diamond Rapids and Clearwater Forest backend tuning**: Diamond Rapids (2026–2027) extends APX and adds AMX-FP16/AMX-BF16 matrix tiling; expect new scheduling models in `X86SchedDiamondRapids.td` and a new `amx-fp16` subtarget feature extending `X86InstrAMX.td`, enabling wider use of the `amx_tile` type in MLIR's AMX dialect.
+- **CET user-space hardening as default**: As Linux kernel and glibc finalize shadow-stack (`WRUSS`/`RSTORSSP`) ABI contracts, Clang is expected to make `-fcf-protection=full` the default for security-sensitive build configurations; this requires `X86IndirectBranchTracking.cpp` to handle more complex CFG patterns (computed jump tables, `musttail` calls) without false negatives.
+- **LLVM regalloc improvements for APX's 32-register GPR file**: The greedy register allocator's spilling heuristics were tuned for 16 GPRs; an expanded 32-GPR register file under APX requires revisiting allocation order, live-range splitting thresholds, and callee-saved register selection in `X86RegisterInfo.cpp` to realize the ISA's register-pressure reduction benefit.
+- **Profile-guided vector width selection**: The current `-mprefer-vector-width` flag is a static knob; PGO-aware vector width selection that avoids ZMM frequency-throttling penalties on Skylake-X class CPUs based on measured hot-loop throughput is an active area of discussion on the LLVM vectorization mailing list.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **x86-64-v5 architecture baseline**: The x86-64 micro-architecture levels (v1–v4) defined in the System V psABI may gain a v5 level incorporating APX, AVX10.2, and AMX, allowing the OS and package managers to use a single high-performance ABI tier; LLVM would add `-march=x86-64-v5` as a recognized CPU value analogous to today's `-march=x86-64-v4` (AVX-512).
+- **Formal verification of x86 instruction selection patterns**: Research projects like `Alive2`-style equivalence checking (Lopes/Lee/Hur, PLDI 2021) are being extended to verify `X86ISelLowering.cpp` DAG combining rewrites against the x86 ISA formal semantics defined in the Intel XED and the x86-64 ISA semantics formalized in the K framework; integration with the LLVM test infrastructure is a long-term goal.
+- **Neural-network-guided microarchitecture scheduling model generation**: Automated throughput prediction via ML models (e.g., Ithemal, uiCA) may replace hand-authored `.td` scheduling resource tables, with LLVM's `TargetSchedModel` interface extended to accept ML-inferred latency/throughput data for new x86 microarchitectures without manual per-port annotation.
+
+---
+
 ## Chapter Summary
 
 - x86-64 has a layered register hierarchy: 16 GPRs with 8/16/32/64-bit projections, 32 ZMM/16 YMM/16 XMM vector registers (aliased), and 8 opmask registers for AVX-512 predication.

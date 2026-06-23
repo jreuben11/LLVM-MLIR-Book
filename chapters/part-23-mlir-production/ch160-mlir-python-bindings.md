@@ -638,6 +638,32 @@ module = Module.parse("...", context=ctx)
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Nanobind migration**: The LLVM community has ongoing discussion ([discourse.llvm.org RFC: migrate MLIR Python bindings to nanobind](https://discourse.llvm.org/)) to replace pybind11 with nanobind for 2–5× faster import times and lower per-call overhead; initial patches targeting `mlir/python/` are under review.
+- **Free-threaded Python 3.13 (no-GIL) compatibility**: With CPython 3.13 shipping an optional GIL-free build, the bindings need explicit `mlir::MLIRContext` locking annotations and per-thread context-handle caches; tracking issue open as of early 2026.
+- **Improved Python pass API**: The experimental `@mlir_transform_op` decorator for writing transform dialect ops in Python (bypassing C++ boilerplate) is in active prototyping in `mlir/python/mlir/dialects/_transform_ops_ext.py`; expected to stabilize in LLVM 23.
+- **StableHLO Python bindings release cadence alignment**: `openxla/stablehlo` ships its own wheel independently of `mlir-core`; work is underway to pin StableHLO Python binding versions to MLIR C API ABI versions to prevent silent incompatibilities for JAX/XLA consumers.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Zero-copy NumPy/DLPack bridge**: Current `DenseElementsAttr.get(ndarray)` copies data into MLIR-owned storage; a DLPack-backed `BufferAttr` or lazy tensor type (discussed in the MLIR design meeting series) would allow truly zero-copy lifts from PyTorch/JAX arrays into MLIR constants and operands.
+- **Async pass manager execution from Python**: The C++ `AsyncPassManager` (parallel pass execution across functions) is not yet surfaced to Python; a `PassManager.run_async(module, num_threads=N)` API is a stated goal in the MLIR Python roadmap to enable large-model compilation parallelism without dropping into C++.
+- **Dialect binding generation from IRDL (IR Definition Language)**: As IRDL matures as an alternative to ODS, Python bindings would be generated directly from IRDL specs at runtime, enabling dynamic dialect registration in Python without any C++ compilation step.
+- **Type inference integration**: Op builders currently require explicit result type arguments; integrating MLIR's `InferTypeOpInterface` into the Python `OpView` constructors would allow type-inferring constructors (e.g., `arith.AddIOp(a, b)` infers its result type automatically without caller annotation).
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Python-native dialect authoring**: A high-level Python DSL for defining entire dialects (ops, types, attributes, verifiers, canonicalizations) in pure Python — compiled to ODS/C++ via a meta-compiler — would allow rapid prototyping of new dialects without leaving the Python ecosystem, similar to what `xDSL` explores but integrated into upstream MLIR.
+- **Persistent IR serialization with Python object identity**: A bytecode-backed persistent handle system where Python `Operation` / `Value` objects survive across serialization/deserialization cycles (i.e., a saved `.mlirbc` file reloads with live Python references), enabling incremental compilation workflows and interactive debuggers that pause and resume mid-pipeline.
+- **GPU-direct execution from Python bindings**: A `ExecutionEngine.invoke_gpu()` path that lowers to the GPU dialect and dispatches kernels via the MLIR GPU runtime — wrapping CUDA/ROCm/SYCL without requiring users to call `ctypes` or write a C++ harness — would make the Python bindings a complete end-to-end ML compilation stack.
+
+---
+
 ## Chapter Summary
 
 - MLIR Python bindings are pybind11 wrappers over the MLIR C API; they provide a stable, language-idiomatic interface to the full MLIR IR model.

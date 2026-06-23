@@ -583,6 +583,32 @@ This enables applying MLIR transformations to legacy LLVM IR, then translating b
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Typed-pointer removal cleanup**: With LLVM 22 completing the opaque-pointer migration, remaining `!llvm.ptr<T>` compatibility shims in `LLVMDialect.td` and `TypeConverter` are being removed. Patches on the LLVM Phabricator and Discourse thread ["Typed pointer removal follow-ups"](https://discourse.llvm.org/c/mlir/) finalize dialect-level enforcement of opaque-only pointer semantics.
+- **`llvm.intr.*` coverage expansion**: The auto-generated intrinsic wrapper tablegen (`mlir/include/mlir/Dialect/LLVMIR/LLVMIntrinsicOps.td`) is gaining new entries as LLVM 22 adds intrinsics for RISC-V vector crypto (`vlseg`, `vsuxei`) and AArch64 SME2 streaming-mode ops — tracked in MLIR bi-weekly meeting notes (April 2026).
+- **Overflow-flag attributes on arithmetic ops**: The `overflow<nsw, nuw>` attribute set is being extended to match LLVM 22's new `nusw` (no unsigned-signed wrap) and `disjoint` flags on `or`, aligning `llvm.add`/`llvm.or` with the upstream IR flags introduced in LLVM 19–22.
+- **`llvm.mlir.global` thread-local support**: Active patches add `TLSModel` attribute to `llvm.mlir.global` to cover LLVM's `thread_local (initialexec)` / `localexec` storage classes, needed for lowering `std::thread_local` via ClangIR (Part VIII).
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **LLVM dialect as ClangIR interchange**: As ClangIR matures (Part VIII), the `llvm` dialect will serve as the common interchange between ClangIR's `!cir.*` types and LLVM backend. This requires the `LLVMTypeConverter` to handle C-level aggregate layout attributes (bit-fields, `__attribute__((packed))`) that do not appear in pure MLIR-generated code.
+- **MLIR-level coroutine lowering**: The `llvm.coro.*` intrinsic family (used by C++20 coroutines and async Rust) is underrepresented in the dialect. A proposed MLIR Coroutine dialect would lower to `llvm.intr.coro.*` ops, replacing the current workaround of raw `llvm.call @llvm.coro.id` strings; RFC discussion tracked on discourse.llvm.org under "Coroutine dialect".
+- **LLVM dialect ↔ SPIR-V round-trip**: Efforts in the GPU codegen community (Intel, Khronos) are formalising a complete round-trip: LLVM dialect → `spirv` dialect → SPIR-V binary → `spirv` dialect → LLVM dialect. This requires extending `LLVMTypeConverter` to handle `!spirv.ptr` address-space mapping and coalesce it with `!llvm.ptr<N>` semantics.
+- **Debug-info op elevation**: Currently debug metadata is attached as raw attributes (`#llvm.di_location`). Proposals in review would promote key debug constructs (`llvm.dbg.declare`, `llvm.dbg.value`) to first-class ops with verifier support, enabling MLIR-level debug-info transformations ahead of `mlir-translate`.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Bidirectional verified equivalence with `llvm::Module`**: Long-term research goal to formally prove that the `llir-to-llvmir` / `import-llvm` round-trip is semantics-preserving for a large fragment of the dialect, building on the Vellvm (Zhao et al.) and Alive2 (Lopes/Lee/Hur) formalizations of LLVM IR semantics.
+- **LLVM dialect as primary LLVM IR editor**: If MLIR's pattern rewriting and analysis infrastructure proves sufficiently powerful, the community may migrate routine LLVM-level transformations (instcombine, loop unroll) from the `llvm::PassManager` to MLIR passes operating on the `llvm` dialect, eliminating the IR translation step for common pipelines.
+- **Heterogeneous memory semantics in the type system**: As hardware adopts non-uniform memory models (CXL-attached memory, HBM, persistent NVRAM), the `!llvm.ptr<addrspace>` model — today just a numeric tag — may need formal semantic annotations (coherence domain, persistence level) to enable correct memory-order lowering for heterogeneous targets.
+
+---
+
 ## Chapter 145 Summary
 
 - The `llvm` dialect represents LLVM IR as MLIR operations, enabling MLIR infrastructure (passes, pattern rewriting, analysis) to be applied at LLVM-IR level. Every LLVM instruction is one op; every LLVM type is an MLIR type; the translation to `llvm::Module` is mechanical.

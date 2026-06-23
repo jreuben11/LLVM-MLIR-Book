@@ -785,6 +785,32 @@ The device ASan runtime instruments load/store instructions with shadow memory l
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Unified offload driver stabilisation**: The LLVM new offload driver (`-foffload-new-driver`) that replaces the legacy `clang-offload-bundler`-based flow is landing across CUDA/HIP/OpenMP simultaneously. HIP-specific work tracked in [llvm/llvm-project#77665](https://github.com/llvm/llvm-project/issues/77665) and related Phabricator revisions aims to make `clang-linker-wrapper` the canonical fat-binary entry point, deprecating `hipcc`'s Perl wrapper entirely in ROCm 7.x.
+- **rocprofiler-sdk v2 full integration**: ROCm 6.2–6.3 completes the migration from legacy `roctracer`/`rocprofiler` to `rocprofiler-sdk`, which exposes a stable C API for runtime API interception, hardware counter collection, and PC sampling. Clang's HIP toolchain is expected to emit `rocprofiler-sdk` annotations automatically for `roctx` range calls compiled with `-fprofile-instrument=rocprofiler`.
+- **GFX12 / RDNA4 codegen hardening**: AMD's RDNA4 (`gfx1201`) shipped in Radeon RX 9070 XT (early 2026). Clang/LLVM 22 added initial codegen; ongoing work covers `GCNCreateVOPD` dual-issue expansion, the new 32-wide `s_ballot_b32` instruction replacing the RDNA3 emulation path, and the MI300X-to-MI350 (`gfx942` → `gfx950`) ISA delta for FP8/FP6 matrix intrinsics.
+- **`hipMemcpyBatchAsync` and stream-ordered multi-copy**: HIP 6.3 is introducing batched async copy APIs aligned with CUDA 12.5's `cudaMemcpyBatchAsync`. The Clang driver wrapper needs to ensure the ROCm 7.x `libamdhip64.so` entry points are resolved correctly under both monolithic and RDC compilation models.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **HIP C++ 26 device-side standard library**: AMD's HIPSTDPAR project (HIP execution policy for `std::for_each`) will expand to cover `std::ranges`, `std::execution::par_unseq`, and `std::linalg` (P1673) on device. This requires Clang's `__device__` propagation through standard library template instantiations — analogous to CUDA's ongoing `libcu++` work — and coordination with the C++26 `std::simd` specification for wavefront-level SIMD types.
+- **Chiplet-aware compilation for MI350X / MI400 (CDNA4)**: AMD's next CDNA generation is expected to use multi-chiplet (XCD) packaging with NUMA-aware memory domains. LLVM's `AMDGPUDivergenceAnalysis` and the HSA metadata format will need extensions to express cross-XCD memory placement hints; the `hipMemAdvise` API will gain XCD-granularity location predicates mirroring NUMA `mbind` semantics.
+- **Persistent kernel and device-side enqueue**: AMD is tracking upstream support for device-side `hipLaunchKernel` (kernel launching a child kernel without host involvement), enabling persistent thread patterns and dynamic parallelism competitive with CUDA dynamic parallelism. The LLVM AMDGPU backend changes required involve a new `amdgcn.dispatch_ptr` use pattern and HSA AQL packet construction intrinsics.
+- **`-fgpu-rdc` LTO with ThinLTO**: Current RDC device-side LTO is a monolithic full-LTO pass. Integrating ThinLTO for device code (analogous to Clang's host `--lto=thin`) would enable parallel per-TU summary generation and distributed device codegen, critical for large ML framework builds (PyTorch ROCm, JAX via XLA) that compile hundreds of HIP TUs.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **MLIR-based HIP compilation pipeline**: The trajectory initiated by ClangIR (Chapter 8 and Chapter 196) and MLIR GPU dialects points toward replacing the Clang→LLVM IR→AMDGPU-backend pipeline with a Clang→ClangIR→`gpu` dialect→`amdgpu` dialect→AMDGPU backend chain. This would allow MLIR's structured control flow to preserve loop and wavefront structure through to ISA selection, enabling polyhedral-style wavefront scheduling not possible in the current SelectionDAG model.
+- **Portable GPU programming via C++ `std::execution` + SYCL convergence**: The ISO C++ SG14 and Khronos SYCL 2025+ standardisation efforts may produce a single `execution_policy` that subsumes HIP, SYCL, and CUDA under a unified host/device model. Clang's unified offload architecture (begun with the new offload driver) is the enabling infrastructure; the 5-year outcome may be a `--offload-model=standard-cxx` flag that targets AMD, NVIDIA, and Intel GPUs from a single source tree without HIP/SYCL/CUDA-specific annotations.
+- **Hardware-accelerated divergence handling**: Future CDNA/RDNA ISAs may expose variable-width wavefronts (e.g., 32/64 selectable per dispatch, or lane-masked sub-wavefronts) as a hardware mechanism to reduce divergence overhead. The LLVM `AMDGPUDivergenceAnalysis` pass would need to model partial EXEC-mask activation statically, and the `SIInsertSkips` pass would target sub-wavefront skip instructions. This work depends on AMD ISA disclosures not yet public as of April 2026.
+
+---
+
 ## 49.8 Summary
 
 - HIP provides near-complete CUDA source compatibility on AMD GPUs. Clang implements HIP by reusing the CUDA semantic analysis infrastructure in `SemaCUDA.cpp` and `SemaType.cpp`, with the `CUDAFunctionTarget` enum and `HIPAttr` handling both CUDA and HIP annotated functions.

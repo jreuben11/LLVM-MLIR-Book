@@ -551,6 +551,32 @@ int main() {
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **NVGPU TMA integration stabilization**: The `nvgpu.tma.*` ops for Tensor Memory Accelerator (H100/Hopper) — `nvgpu.tma.async.load` and `nvgpu.tma.async.store` — are being hardened in upstream MLIR (tracked on [discourse.llvm.org](https://discourse.llvm.org)); expect full lowering to `nvvm.cp.async.bulk.*` intrinsics and integration with the `--nvgpu-optimize-shared-memory` pipeline by mid-2026.
+- **WGMMA (Warpgroup MMA) full pipeline support**: Hopper's `nvvm.wgmma.mma_async` warpgroup matrix instructions require register file layout changes; the `ConvertVectorToGPU` pass is being extended to emit WGMMA when `mcpu=sm_90a` is detected, replacing the per-warp MMA path for large tiles.
+- **AMD CDNA3 / GFX942 matrix instruction coverage**: The `rocdl` dialect is gaining `rocdl.wmma.f32.16x16x16.f16` and `rocdl.mfma.*` ops for MI300X; `ConvertVectorToGPU` for ROCm targets is tracking parity with the NVPTX path (see LLVM RFC "Extend ROCDL for MFMA matrix instructions").
+- **`gpu.async` / `gpu.wait` dependency chain lowering**: MLIR's `gpu.async` ops are being wired to CUDA stream events (`cudaEventRecord`/`cudaStreamWaitEvent`) via the `gpu-async-region` pass, enabling correct multi-stream kernel scheduling from MLIR.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Unified GPU target dialect**: The current split between `nvvm`, `rocdl`, and future Intel `spirv`/`genx` backends is expected to converge toward a single `gpu.target` attribute with per-target lowering hooks; this eliminates the need for separate `ConvertGpuOpsToNVVMOps` vs. `ConvertGpuOpsToROCDLOps` pass invocations in user pipelines.
+- **Autotuning integration via MLIR tuning specs**: The iree-turbine and OpenXLA projects are developing `transform.tuning_spec` operations that attach tiling/vectorization parameters to `linalg` ops; by 2028 these specs are expected to integrate with upstream MLIR to drive occupancy-aware autotuning directly from the compiler IR rather than external scripts.
+- **Persistent kernel and cooperative grid launch support**: NVIDIA's cooperative groups (`nvvm.cp.async.mbarrier.*`, persistent CTA launch via `cudaLaunchKernelEx`) and AMD's cooperative groups are expected to get first-class MLIR `gpu` dialect representations, enabling MLIR to generate kernel designs that span the entire device rather than per-SM-isolated blocks.
+- **Intel GPU (Xe / Arc) production support via `spirv` + `genx`**: Intel's oneAPI DPC++ compiler team is upstreaming MLIR-to-SPIR-V and MLIR-to-GenX paths; by 2028 the `gpu` dialect's `ConvertGpuOpsToSPIRVOps` path is expected to reach parity with the NVPTX path for compute workloads on Intel Arc and Xe-HPC GPUs.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Cross-vendor portable GPU IR**: As PTX, GCN, and SPIR-V each expose different abstractions for async copy, warp collectives, and tensor instructions, the compiler community is exploring a portable "GPU ISA" layer in MLIR (analogous to LLVM IR for CPUs) that can target all vendors through vendor-specific lowering backends; MLIR's `gpu` + `vector` dialect combination is the leading candidate for this role.
+- **Hardware-accelerated sparse GPU computation**: Structured sparsity (NVIDIA 2:4 sparse format, AMD structured pruning) is expected to gain `linalg.sparse_contract` and `vector.masked_contract` representations that lower to `nvvm.sp.mma.*` sparse MMA instructions, enabling MLIR to compile pruned transformer models with native hardware acceleration.
+- **Post-PTX NVIDIA compilation path**: NVIDIA's Blackwell and future architectures may expose higher-level APIs (analogous to how Apple's Metal shader language works) that bypass PTX; MLIR's GPU pipeline would adapt by targeting these higher-level binary interfaces directly, removing the `llc -march=nvptx64` + `ptxas` steps in favor of vendor-supplied MLIR-to-binary lowering.
+
+---
+
 ## Chapter Summary
 
 - MLIR's GPU compilation path: linalg → tiled linalg → vectorized vector.contract → gpu.launch + thread indexing → nvvm/rocdl → LLVM IR → PTX/GFX → cubin/hsaco.

@@ -612,6 +612,32 @@ This pattern — header block with accumulator arguments, body block that update
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **`arith` poison semantics formalization**: The MLIR community RFC ([discourse.llvm.org/t/rfc-modeling-poison-in-mlir-arith](https://discourse.llvm.org/)) proposes first-class `poison` and `undef` values in `arith` to align with LLVM IR's semantics and enable Alive2-style verification for MLIR rewrites; initial patches landing in 2026 target `arith.addi` overflow ops.
+- **`math` approximation accuracy improvements**: Ongoing work ([llvm-project #78580](https://github.com/llvm/llvm-project/issues/78580)) to improve the polynomial approximation pass (`--convert-math-to-approximations`) to guarantee ≤1 ULP error for `math.tanh`, `math.erf`, and `math.exp` on AVX-512 and NEON, replacing current ~2 ULP heuristic approximations.
+- **`func` dialect closure/lambda ops**: A community proposal to add `func.closure` (capturing environment values as a struct) and `func.partial_apply` to enable functional-style ML frameworks such as JAX to lower their higher-order ops directly into `func` rather than requiring a custom dialect.
+- **`index` dialect integration with `affine.map`**: Patches in review to allow `affine.apply` to produce `index`-typed results directly without going through `i64` cast, eliminating spurious `index.casts` in Linalg-on-tensors pipelines.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **`builtin` dialect data layout extension**: The `dlti.dl_spec` attribute on `builtin.module` is slated for a generalization to support non-uniform memory spaces (heterogeneous SoC address spaces, CXL memory tiers), with new `dlti.memspace_spec` allowing per-address-space ABI alignment and size overrides tracked in [MLIR RFC: Extended Data Layout](https://discourse.llvm.org/).
+- **`arith` saturation arithmetic**: Following the adoption of saturating add/sub in LLVM IR (`llvm.sadd.sat`), an RFC proposes `arith.addsi_saturating` / `arith.addui_saturating` ops to allow explicit saturation semantics without UB, targeting DSP and fixed-point ML quantization pipelines without the current `arith.select`-based workaround.
+- **`math` dialect type generalization**: Extending `math` ops to support `bf16` scalars and `vector<Nxbf16>` natively (currently requires manual widening to `f32`) to match hardware support on AMX and upcoming NVIDIA Blackwell-class devices; tracked as a prerequisite for Flang's math lowering to GPU.
+- **`cf` dialect switch table optimization**: Lowering `cf.switch` to jump tables through LLVM's `switch` instruction rather than a chain of `cond_br` ops, enabling the LLVM backend to apply `SimplifyCFG`'s jump-table heuristics; requires new region-based annotation on `cf.switch` to carry branch weight metadata.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Verified core dialect semantics in Lean 4**: Completion of a formal mechanized specification of the `arith`, `func`, and `cf` dialects in Lean 4 (building on the [MLIR Lean semantics project](https://github.com/opencompl/lean-mlir) by OpenCompl/EPFL), enabling proof-carrying rewrites and certified peephole optimizers that replace the current unchecked `DRR`/`PDLL` rewrite rules.
+- **`builtin` module parallelism and concurrency model**: As MLIR pipelines scale to thousands of parallel threads on datacenter accelerators, `builtin.module` is expected to gain a formal concurrency contract — defining which attributes/symbol-table operations are safe under concurrent pass execution — replacing the current coarse `ThreadSafeContext` lock with fine-grained op-level annotations.
+- **`math` dialect targeting exotic numerics**: Full support for `math` ops on OCP MX (microscaling) formats (`f4e2m1`, `f6e2m3`, `f8e4m3`), `f8e5m2` (FP8), and future 4-bit float types proposed by IEEE P3109, enabling the core `math` dialect to serve as the lingua franca for post-FP32 ML numerics without requiring per-accelerator custom dialects.
+
+---
+
 ## Chapter 137 Summary
 
 - The `builtin` dialect is always loaded and provides `ModuleOp`, all built-in types (`IntegerType`, `FloatType`, `VectorType`, `TensorType`, `MemRefType`), and standard attributes including `DenseElementsAttr`. `UnrealizedConversionCastOp` is the bridge op emitted during partial type conversion, removed by `--reconcile-unrealized-casts`.

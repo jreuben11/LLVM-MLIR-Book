@@ -325,6 +325,32 @@ llc -filetype=obj -o hello.o
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **MLIR Properties system completion**: The migration from the legacy attribute-dictionary model to op-owned `Properties` (introduced in LLVM 17, expanded in LLVM 19–22) is nearing completion; expect the final in-tree dialect migrations and updated ODS/C++ API documentation by mid-2026 ([LLVM Discourse: "Completing Properties migration"](https://discourse.llvm.org/t/properties-and-pass-pipeline)).
+- **Dialect versioning and upgrade infrastructure**: The MLIR bytecode versioning story for stable serialization of out-of-tree dialects is under active RFC; by October 2026 expect a finalized dialect-version negotiation protocol that lets out-of-tree projects ship `.mlirbc` files with guaranteed forward compatibility.
+- **Improved `mlir-lsp-server` for ODS-generated ops**: Ongoing work to surface op constraints, interface requirements, and attribute documentation directly in IDE hover info; several Discourse threads in 2025 propose hooking ODS TableGen output into the LSP symbol provider.
+- **Sparse tensor dialect stabilization**: `sparse_tensor` codegen has been in active flux; the push toward a stable codegen interface (replacing the current `SparseCompiler` pipeline flag soup) is tracked in the LLVM 22 milestone and expected to land in LLVM 23 (Oct 2026).
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Unified progressive-lowering contract for ML dialects**: The MLIR community is converging on a formal "lowering contract" between StableHLO → Linalg → Vector → LLVM that specifies legality, completeness, and performance semantics at each step; formalization work is expected to mature alongside IREE 3.x and XLA open-source stabilization by 2027–2028.
+- **Type inference and shape inference as first-class IR features**: Current shape inference is pass-based and dialect-specific; a long-running RFC thread proposes a first-class `ShapeType` with constraint propagation built into the verifier and type inference engine, potentially replacing the ad-hoc `InferTypeOpInterface` patchwork.
+- **MLIR-native debugging (DWARF-level)**: `mlir-translate` currently emits LLVM IR debug info; a mid-term goal is to retain MLIR-level location info all the way through to DWARF, enabling debuggers to show users `linalg.generic` source positions rather than exploded loop code — tracked in the LLVM foundation roadmap items circa 2025–2027.
+- **Formal dialect interface contracts via property-based testing**: Integration of fuzz-based and property-based verification (using MLIR's existing `mlir-reduce` infrastructure plus Hypothesis/libFuzzer) to validate that dialect lowering passes preserve semantic equivalence; early prototypes appeared in 2024 academic work by groups at ETH Zürich and MIT.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **MLIR as the universal compiler IR across HPC, ML, and hardware synthesis**: The convergence of CIRCT (hardware), Flang (HPC Fortran), IREE (ML inference), and MLIR-based quantum computing frameworks (QSSA, QIR) into a single shared infrastructure could position MLIR as the lingua franca across all domain-specific compilation — a role analogous to what LLVM IR became for general-purpose compilers in the 2010s.
+- **Verified lowering paths for safety-critical domains**: Inspired by CompCert and Alive2, research groups are working toward mechanically verified MLIR-to-LLVM lowering passes for safety-critical embedded and automotive domains; a 5-year timeline aligns with toolchain certification cycles (ISO 26262, DO-178C).
+- **AI-assisted dialect design and op set optimization**: As LLM-assisted compiler tooling matures, automated tools for suggesting optimal op granularity, identifying redundant dialect boundaries, and synthesizing lowering passes from semantic specs may reshape how new dialects are designed — building on 2025–2026 work on LLM-guided compiler pass selection and autotuning.
+
+---
+
 ## Chapter Summary
 
 - MLIR was created to end compiler infrastructure fragmentation in the ML ecosystem by providing a shared, extensible IR that operates at any level of abstraction

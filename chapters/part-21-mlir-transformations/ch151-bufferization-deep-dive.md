@@ -453,6 +453,32 @@ Partial bufferization is useful when:
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Bufferization state refactor**: The ongoing effort to separate `AnalysisState` and `BufferizationState` cleanly (tracked in LLVM Phabricator/GitHub PRs under `[mlir][bufferization]`) aims to allow bufferization passes to be composed more flexibly without global state leakage between phases.
+- **`BufferizableOpInterface` coverage for `transform` dialect ops**: Several `transform.structured.*` ops lack full `BufferizableOpInterface` implementations, causing fallback to copy-insertion; patches to add complete implementations are under review on discourse.llvm.org (see MLIR Working Group meeting notes, Q1 2026).
+- **GPU region bufferization**: Extension of `OpFilter`-based partial bufferization so that `gpu.launch` body regions can be independently bufferized from the host, with explicit ownership-transfer at the host/device boundary — active RFC on LLVM Discourse.
+- **Improved alias-set diagnostics**: `--dump-alias-sets` output is being redesigned to emit structured MLIR attribute annotations rather than raw stderr text, enabling tooling (e.g., IDE plugins) to visualize the alias propagation graph without grep-based post-processing.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Region-escape alias analysis**: Current One-Shot analysis treats tensors flowing into `scf.while`/`scf.forall` conservatively. A planned region-aware alias extension (discussed at the 2025 MLIR developer meeting) would model aliasing across loop-carried values for `scf.forall` parallel regions, enabling in-place parallelism without barriers.
+- **Ownership inference for deallocation**: The ownership-based buffer deallocation pass today requires manual `BufferDeallocationOpInterface` implementations for custom region ops. A forthcoming inference engine (analogous to LLVM's lifetime intrinsics lowering) would derive ownership automatically from dataflow, reducing interface boilerplate by an estimated ~60% for typical custom dialects.
+- **Sparse tensor bufferization integration**: The `sparse_tensor` dialect has its own bufferization path that bypasses One-Shot analysis. Unifying these paths (proposal from the sparse compiler group in 2025 roadmap discussions) would allow mixed dense/sparse programs to bufferize in a single, globally optimal pass.
+- **Cross-module bufferization**: Current `bufferize-function-boundaries=true` operates within a single MLIR module. An inter-module variant would propagate layout map decisions across separately compiled modules linked at bitcode level, enabling LTO-style buffer-layout optimization for MLIR-based toolchains.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Formally verified bufferization correctness**: Vellvm-style mechanized proofs (Coq/Lean 4) for the copy-elision decision predicate — specifically `wouldCreateReadAfterWriteHazard` — would provide a machine-checked guarantee that One-Shot Bufferization preserves tensor-to-buffer program semantics under all alias configurations.
+- **Automatic layout selection via cost models**: Rather than the user selecting `InferLayoutMap` vs. `FullyDynamicLayoutMap`, a profile-guided or analytical cost model would choose per-function boundary layouts by modeling downstream vectorization, cache behavior, and memory bandwidth — integrating with MLIR's forthcoming performance model infrastructure.
+- **Deallocation-free bufferization via region-scoped arenas**: For embedded and HPC targets where `malloc`/`free` are undesirable, a research direction (inspired by Fortran array-temporary semantics) would map all bufferization allocations into stack or arena regions with static lifetime bounds proven by the alias analysis, eliminating the deallocation pipeline entirely for bounded programs.
+
+---
+
 ## Chapter Summary
 
 - **One-Shot Bufferization** converts tensor-semantic IR to memref-semantic IR with minimal copies, using a two-phase (analysis + rewrite) algorithm.

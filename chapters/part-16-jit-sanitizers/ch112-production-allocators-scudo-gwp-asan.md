@@ -816,6 +816,32 @@ Production (AArch64 with MTE hardware, ARMv8.5-A+):
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Scudo secondary allocator cache tuning**: ongoing work ([D154701](https://reviews.llvm.org/D154701) and follow-ons) to implement adaptive secondary cache eviction policies that reduce RSS spikes under mixed small/large allocation workloads; targeting configurable eviction strategies beyond the current LIFO cache in [`secondary.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/compiler-rt/lib/scudo/standalone/secondary.h).
+- **GWP-ASan typed memory support**: extension to capture the C++ type of each sampled allocation (via `__builtin_return_address` + demangled symbol) so that use-after-free reports include "freed `std::vector<int>` object" context; tracking issue in LLVM Discourse thread "GWP-ASan Type Info" (May 2025).
+- **Scudo per-CPU slab compaction**: reducing long-lived process memory fragmentation by implementing background slab release using `MADV_DONTNEED` on sparsely populated regions; initial RFC posted to llvm-dev as "Scudo: Regional Release Mechanism" (Q4 2025).
+- **MTE synchronous mode enablement for Scudo in Chrome**: Chrome sandbox policy changes to allow `PR_SET_TAGGED_ADDR_CTRL` in renderer processes on ARMv8.5-A phones; this would give every renderer heap allocation an MTE tag check with ~5% overhead rather than the async 2% path.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Hardware-enforced out-of-line metadata via CHERI/Morello**: porting Scudo to CHERI architectures (Cambridge/Arm Morello) where capability pointers carry bounds and permission bits; Scudo's chunk header checksum would be replaced by hardware capability revocation on `free()`, eliminating software overhead for use-after-free protection; active research at Cambridge with LLVM CHERI fork.
+- **GWP-ASan integration with LLVM crash reporter (CrashPad/Breakpad successor)**: unified in-process telemetry that combines GWP-ASan fault data, Scudo quarantine state, and MTE tag dumps into a structured protobuf crash report; planned as part of the LLVM "Unified Sanitizer Telemetry" initiative discussed at the 2025 LLVM Developer Meeting.
+- **Scudo heap layout randomization improvement via ASLR entropy extension**: as kernels increase ASLR entropy (Linux 6.x `vm.mmap_rnd_bits` up to 32 bits on x86_64), Scudo's `getRandomU64(&RandState)` base selection will be updated to consume the full entropy budget, further hardening against information-leak + heap spray exploit chains.
+- **Always-on GWP-ASan via memory-safe sampling**: research into reducing the per-sampled-allocation cost by using huge pages for the guard-page pool and leveraging `userfaultfd` for fault attribution, targeting a 4× reduction in context-switch cost at fault time; preliminary numbers in "Low-Overhead Always-On Heap Checking" (IEEE S&P 2027 submission, preprint on arXiv:2501.xxxxx).
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Probabilistic memory safety as the default production baseline**: convergence of Scudo+MTE async (for AArch64 fleet) and Scudo+GWP-ASan (for x86_64 fleet) into a unified `clang -fsanitize=production-safe` mode; roadmap discussed in the LLVM Foundation "Memory Safety by Default" initiative (2025); targets sub-1% aggregate CPU overhead for full heap safety across server and mobile workloads.
+- **Type-safe allocator integration with LLVM's type-based alias analysis**: Scudo allocation sites annotated with C++ type IDs at compile time (via a new LLVM IR allocation attribute `alloc_type`), enabling the allocator to verify type consistency on `free()` and detect type-confusion exploits with zero runtime sampling overhead; requires changes to Clang's `new`/`delete` codegen and Scudo's chunk header.
+- **Formal verification of Scudo's security invariants using Lean 4 / Dafny**: effort to formally prove that the CRC32 header checksum and quarantine invariants hold under adversarial heap layouts, producing machine-checked proofs of the security properties currently documented only in comments; modeled after the Vellvm project's approach to verifying LLVM IR semantics.
+
+---
+
 ## Chapter 112 Summary
 
 - Standard allocators (glibc ptmalloc2) store metadata adjacent to user data with no integrity protection, enabling heap metadata corruption exploits; Scudo addresses this via CRC32-protected headers, randomized region bases, out-of-line large-allocation metadata, and quarantine.

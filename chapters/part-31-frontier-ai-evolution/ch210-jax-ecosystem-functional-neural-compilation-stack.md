@@ -1251,6 +1251,32 @@ These are engineering frontier problems, not fundamental limitations. The compil
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **JAX dynamic shapes via `abstracted_axes`**: The experimental `jax.jit(abstracted_axes=...)` API and MLIR's `DynamicShapedType` infrastructure are converging; near-term JAX releases are expected to stabilise shape-polymorphic JIT compilation, eliminating the need to pad variable-length sequences to fixed shapes. Tracked in [JAX issue #17875](https://github.com/google/jax/issues/17875) and the upstream StableHLO dynamic shape RFC.
+- **Flax NNX stabilisation and Linen deprecation path**: The Flax team has signalled that NNX will become the sole recommended API by mid-2026, with `flax.linen` entering a maintenance-only mode. The `nnx.Optimizer` and `nnx.Rngs` APIs are receiving additional ergonomic polish to reduce split/merge boilerplate for pmap and shard-parallel training.
+- **Orbax GDA integration and multi-host restore**: Orbax's `CheckpointManager` is being extended to support `GlobalDeviceArray` (GDA) sharded checkpoints, enabling checkpoint save and restore across hundreds of TPU hosts without routing through a single coordinator. This closes the gap with Megatron-LM-style checkpointing at JAX scale.
+- **Optax `contrib` promotion cycle**: Several `optax.contrib` optimizers (Mechanic, DoG, Prodigy — parameter-free learning-rate-free methods) are scheduled for promotion to `optax` core; the algebraic GradientTransformation interface is being extended with optional `extra_args` to support loss-scale-aware updates for bf16 training.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **JAX native compilation cache and persistent XLA artifact format**: The `JAX_COMPILATION_CACHE_DIR` mechanism, currently backed by serialised MLIR bytecode, is being extended toward a versioned artifact store compatible with deployment without a Python runtime — essentially `jax.export` producing self-contained StableHLO bundles deployable via IREE or the OpenXLA runtime. This trajectory is visible in the [JAX/XLA portability RFC](https://github.com/google/jax/discussions/20329).
+- **Equinox and Flax NNX convergence on shared PyTree conventions**: The JAX ML ecosystem is fragmenting around incompatible PyTree node registration conventions (Equinox `eqx.Module`, NNX `nnx.Variable`, Haiku nested dicts). An MLIR-level shared weight serialisation standard — likely extending SafeTensors with PyTree path metadata — is under informal discussion among ecosystem maintainers, motivated by cross-framework fine-tuning workflows.
+- **Probabilistic programming compilation via MLIR dialects**: NumPyro's effect handler interpretation is currently realised at the Python level. Academic work (building on the Pyro/NumPyro architecture) is exploring lifting `numpyro.sample` sites into an MLIR probabilistic dialect — analogous to how `torch.compile` lifted PyTorch operations into `torch` MLIR dialect — to enable effect-handler dispatch to be compiled rather than interpreted, with direct implications for nested inference (inference over inference algorithms).
+- **BlackJAX SGMCMC at LLM scale**: BlackJAX's stochastic gradient MCMC methods (SGLD, SGHMC, SGNHT) are currently limited to models of tens of millions of parameters. Research into preconditioning via diagonal Fisher estimates and low-rank Kronecker factorisation (K-FAC SGMCMC) is advancing; integration with JAX's sharded-array model (`jax.sharding`) is on the BlackJAX roadmap for multi-host posterior sampling over billion-parameter models.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Functional neural compilation as a first-class MLIR target**: The jaxpr-to-StableHLO-to-MLIR pipeline currently traverses multiple IR levels with semantic loss at each boundary (e.g., `vmap` semantics are erased before XLA). A longer-term direction is a `jax` MLIR dialect that preserves transform composition metadata (which axes are vmapped, which computations are scanned) through the full compilation stack, enabling backend-specific optimisation of batching and sequential execution without re-deriving these facts from the flattened HLO.
+- **Differentiable physics at continuum mechanics scale**: Brax's rigid-body solver will likely be superseded by differentiable finite-element and smooth particle hydrodynamics solvers (cf. PhiFlow, Warp, and JAX-based FEM libraries) that enable gradient-based optimisation of continuous material properties, fluid dynamics, and deformable body simulation — extending the cognitive self-improvement loop to embodied agents in physically accurate environments.
+- **Bayesian neural scaling laws via functional inference**: As LLM training budgets plateau, the question of optimal compute allocation (model size vs. data vs. training steps) is becoming a Bayesian inference problem over a high-dimensional posterior. BlackJAX and NumPyro tooling running on exascale JAX deployments may yield tractable posteriors over architecture hyperparameters at the billion-parameter frontier, closing the loop between probabilistic programming and neural architecture search.
+
+---
+
 ## Chapter Summary
 
 - **JAX's transforms** (`jit`, `grad`, `vmap`, `pmap`, `scan`) are composable higher-order functions that act as compiler passes; their composition model is the foundation of the entire ecosystem. The `jaxpr` — JAX's internal functional SSA IR — is produced by tracing Python functions with abstract `ShapedArray` values and lowered to StableHLO → MLIR → native backends.

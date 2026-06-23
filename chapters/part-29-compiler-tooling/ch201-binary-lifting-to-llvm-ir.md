@@ -526,6 +526,33 @@ Binary lifting to LLVM IR is one point in a design space populated by several ot
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Remill AArch64 lifting completeness**: The Remill project has ongoing work to complete AArch64 SVE (Scalable Vector Extension) and SME (Scalable Matrix Extension) semantics. Several instruction families remain stub-only; the lifting-bits/remill issue tracker shows open PRs for SVE predicate register handling and SME ZA tile state modeling, both targeting the 5.x release series.
+- **LLVM `llvm-mctoll` upstream stabilization**: `llvm-mctoll` (AMD's binary lifter in the LLVM monorepo under `llvm/tools/llvm-mctoll`) has seen renewed patch activity in early 2026 targeting improved x86-64 calling convention inference, cleaner `mem2reg` output, and AArch64 support parity. Watch discourse.llvm.org for the "Binary Lifting" category RFCs proposing a stabilized public API.
+- **Ghidra P-Code → LLVM IR bridge**: NSA Ghidra's `CodeBrowser` plugin infrastructure has a community-developed P-Code-to-LLVM-IR exporter in active development on GitHub (`jobermayr/ghidra-sleigh`). A near-term milestone targets exporting P-Code SSA form directly as LLVM IR without going through text serialization.
+- **Alive2 ISA model integration for per-instruction validation**: The Alive2 team (Nuno Lopes et al.) has discussed extending the `alive-tv` tool to accept Sail-generated x86/AArch64 formal models as reference, automating the per-instruction lifting validation described in Section 8. A prototype was demonstrated at LLVM Dev Meeting 2025.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **RISC-V lifting maturity in Remill and `llvm-mctoll`**: RISC-V V (vector) extension semantics are missing from all current open-source lifters. As RISC-V server silicon matures (SiFive P870, Ventana Veyron V2), demand for RISC-V binary lifting for security auditing and retargeting will drive complete RVV semantics libraries in Remill, analogous to the existing AVX-512 semantics.
+- **Pointer provenance-aware lifted IR**: LLVM's ongoing Pointer Provenance / typed pointers work (the `llvm-project` `ptr` type migration completed in LLVM 17, but semantic provenance annotations via `llvm.ptrmask` and `@llvm.provenance.noalias` are still evolving) will eventually allow lifted IR to carry ABI-derived provenance annotations that unlock alias analysis. Research papers from CMU (Kang et al.) and the LLVM RFC "noalias and provenance for lifted code" on discourse.llvm.org outline the expected model.
+- **ML-guided calling convention inference**: Academic work on using transformer models fine-tuned on compiler output to predict function signatures from stripped binaries (e.g., OSPREY, DIRTY from CMU, and Meta's SYMBEx project) is converging toward production-quality tools. By 2028 these are likely to be integrated as optional inference backends in RetDec and McSema, replacing the current heuristic constraint propagation.
+- **Exception handler reconstruction**: The gap in lifted IR exception handling (Section 6.5) is being addressed by research into reconstructing `.eh_frame` CFI entries from lifted LLVM IR. The key insight — that RSP-relative frame slots visible in the lifted IR's stack frame model encode the same information as DWARF CFA rules — is documented in the `revng` project's 2025 blog post. Expect mainline Remill and `mcsema-lift` to add `--emit-eh-frame` flags by late 2027.
+- **Binary-to-MLIR lifting via `revng`**: The `revng` (reverse engineering via LLVM) project is actively developing a pipeline that targets MLIR's `func` and `llvm` dialects rather than LLVM IR directly, enabling type system recovery that MLIR's richer type lattice supports but LLVM IR does not. A prototype targeting x86-64 ELF was presented at the LLVM Dev Meeting 2025 EU track.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Formally verified instruction semantics libraries**: The Sail x86 model (developed at Cambridge by Armstrong et al.) and the Arm Morello/Sail-AArch64 model are approaching full ISA coverage. A long-term goal is to generate Remill-compatible LLVM IR semantics functions automatically from Sail specifications, giving the lifting infrastructure a machine-checked correctness guarantee. This would transform lifting validation from per-instruction bounded model checking to a proof-carrying code claim.
+- **Self-modifying code and JIT lifting via speculative lifting**: Dynamic binary translators (QEMU TCG, DynamoRIO) combined with LLVM ORC JIT infrastructure may converge into a speculative-lifting framework that lifts JIT-compiled code at the point of emission, with invalidation hooks when the JIT modifies previously lifted regions. This would close the self-modifying code gap (Section 6.2) for JIT runtimes, which are increasingly the dominant execution environment for JavaScript, Java, and Python workloads.
+- **C++ class hierarchy recovery from stripped binaries**: Current vtable heuristics (Section 6.6) are fragile under LTO and LTCG optimizations that devirtualize calls and inline vtable slots. By 2031, whole-program type recovery using a combination of lifted IR shape analysis, `llvm.type.test` / `llvm.type.checked.load` metadata emitted by CFI-enabled compilations, and ML-guided layout inference may produce reliable C++ class hierarchies from stripped production binaries, closing the most significant remaining semantic gap in binary lifting.
+
+---
+
 ## Chapter Summary
 
 - **Binary lifting** translates compiled machine code to LLVM IR, enabling the full LLVM optimization and analysis infrastructure to operate on binaries without source access. Use cases include decompilation, vulnerability discovery via symbolic execution, binary hardening with sanitizers, architecture retargeting, and license compliance.

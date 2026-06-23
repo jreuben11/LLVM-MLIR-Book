@@ -1325,6 +1325,34 @@ The central insight connecting this chapter to the rest of the book: **type syst
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Lean 4 Mathlib integration into compiler verification pipelines**: Lean 4's Mathlib library is approaching comprehensive coverage of undergraduate algebra and analysis; ongoing LLVM-adjacent work (e.g., the Alive2 successor using Lean) is expected to surface concrete SMT-backed refinement type queries within LLVM passes by late 2026. Track `discourse.llvm.org` thread "Formal verification with Lean" and `leanprover-community/mathlib4`.
+- **OCaml 5.x typed effects RFC finalization**: The OCaml team's typed-effects proposal (effect rows, handler types) is under active RFC discussion following the untyped effects released in OCaml 5.0. A typed-effects extension that assigns row types `<yield:int→unit | e>` to effectful functions is expected to reach proposal-RFC status by mid-2026. See `github.com/ocaml/RFCs`.
+- **Rust Polonius borrow checker stabilization**: Polonius, the next-generation NLL borrow checker based on Datalog inference (replacing the region-constraint solver), is tracking stabilization in 2026. It accepts programs that NLL rejects (e.g., two-phase borrow patterns involving early returns in match arms). Track `github.com/rust-lang/rust/issues/52663`.
+- **LiquidHaskell GHC 9.x compatibility and `liquidhaskell-boot`**: LiquidHaskell is undergoing a major refactoring (the `liquidhaskell-boot` project) to decouple from GHC internals and support GHC 9.8/9.10 via a plugin API rather than patching Core. Refinement types for `Data.Vector.Unboxed` and `ByteString` primitives are being specified; SMT backend switching (CVC5 in addition to Z3) is targeted.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Dependent types in mainstream Haskell (GHC `DependentHaskell` proposal)**: The GHC Dependent Haskell proposal (Eisenberg, Weirich, et al.) is progressing through stages; `RequiredTypeArguments` landed in GHC 9.10, and `Π`-types with full type-indexed return types are on the roadmap for GHC 10.x. By 2028, Haskell programmers are expected to be able to write `data Vec (n :: Nat) a` with full dependent elimination in term-level code. See `ghc.gitlab.haskell.org/ghc/issues/12962`.
+- **Multiparty session types in distributed systems runtimes**: Scribble (a global-type specification language for multiparty session types) and its integrations into Rust (`sesh` crate), Python (`mpst-python`), and Go (`godel`) are converging toward production tooling. By 2028, session-typed RPC generation from Scribble global types into Protobuf/gRPC stubs is expected to reach usable form for safety-critical distributed systems. See `github.com/scribble-lang`.
+- **F*/Low* WASM target via Wasm-KreMLin**: Microsoft Research's KreMLin is adding a WebAssembly target path (Wasm-KreMLin) that would allow HACL* cryptographic code to be verified in F* and compiled to WASM with formal bounds guarantees intact through the WASM linear memory model, eliminating the C intermediary. EverCrypt's WASM deployment is a key driver. See `github.com/FStarLang/karamel`.
+- **Gradual typing with space efficiency guarantees**: The academic program initiated by Greenman, Felleisen, and Siek on "Shallow" and "Transient" gradual type semantics is maturing into language design: Python's `beartype` and a new Typed Racket semantics (`Natural+`) are converging on a model that satisfies the gradual guarantee with bounded space overhead (no wrapper accumulation). A joint PLDI/OOPSLA paper summarizing the design space is expected by 2027-2028.
+- **Effect systems in MLIR dialects**: MLIR's `func` dialect currently has no effect typing. An RFC to add `side-effect-free`, `has-memory-effects`, and `has-divergence` attributes that compose as an effect row (analogous to Koka's `<div, alloc | e>`) is expected to emerge from the LLVM Incubator following the `MemoryEffects` interface stabilization. This would allow MLIR passes to be statically verified for effect preservation. Track `discourse.llvm.org/c/mlir`.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Cubical type theory in production proof assistants**: Cubical Agda and the `1lab` project have demonstrated that Homotopy Type Theory with computational univalence is feasible. By 2031, a Lean 5 or Coq 9.x successor incorporating cubical primitives (interval variables, transport, Glue types) with efficient kernel reduction is plausible, enabling proofs by computation over type equivalences — directly applicable to MLIR dialect lowering verification where tensor type isomorphisms are central.
+- **Verified compilation pipelines from F*/Lean to MLIR**: The stratification described in Section 13 (F* → C → LLVM IR) currently loses all refinement type information at the C boundary. A direct F*-to-MLIR lowering (analogous to KreMLin but targeting MLIR's `affine`/`linalg` dialects) would preserve shaped memref types and refinement bounds into mid-level IR, enabling verified kernel fusion. This requires encoding F* memory effects as MLIR `MemoryEffects` and is a 5-year research programme.
+- **Linear and affine type systems as first-class LLVM IR attributes**: LLVM IR's type system is deliberately flat, but LLVM's attribute system (`noundef`, `noalias`, `dereferenceable`) encodes many of the invariants that linear and region type systems guarantee. A coherent "ownership attribute" framework — encoding affine consumption, aliasing XOR mutability, and region disjointness as IR attributes with pass-level verification — would allow LLVM's optimizer to exploit Rust-style aliasing guarantees without inspecting TBAA or noalias metadata heuristically. An RFC-level proposal is a plausible 2029–2031 outcome once the `noalias` inference improvements land.
+- **Session-typed concurrent IR for GPU kernels**: GPU execution models (CUDA, ROCm, SPIR-V) are inherently concurrent with structured communication patterns (shared memory, warp shuffles, barriers). Encoding these as session types in an MLIR GPU dialect — where a warp's communication protocol is a multiparty session type projected onto each lane — would allow static deadlock freedom and barrier-matching proofs. This maps the multiparty session type formalism of Section 12 directly onto the MLIR GPU target infrastructure.
+
+---
+
 ## 14. Chapter Summary
 
 This chapter surveyed the principal advanced type systems that compiler engineers encounter when designing compilers for modern languages or analyzing the guarantees that source-level type systems provide.

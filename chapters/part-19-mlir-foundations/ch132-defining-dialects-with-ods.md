@@ -777,6 +777,32 @@ The `toy.add` op is recognized and its operand/result type constraints are verif
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **ODS properties migration completion**: The migration from op attributes to typed `Properties` structs (introduced in MLIR 17, tracked via [discourse.llvm.org RFC "Properties"](https://discourse.llvm.org/t/rfc-properties/67699)) is near-complete; remaining in-tree dialects (e.g., remaining LLVM dialect ops) are being converted, and ODS tooling for `let propertiesType` and `getProperties()` accessors will stabilize as the canonical pattern for per-op state.
+- **Assembly format DSL extensions — `custom<>` directive improvements**: Active patches are extending the `custom<Name>(...)` directive in `assemblyFormat` to accept ODS-named variables directly, removing the need to write `parse`/`print` helper pairs for common parametric sub-formats; see ongoing work in `mlir/lib/TableGen/Format.cpp`.
+- **IRDL constraint expressiveness**: New constraint ops are being upstreamed to the `irdl` dialect — in particular `irdl.eq` (equality constraints on parametric types) and `irdl.dynbase` (dynamic base-type matching) — expanding what can be expressed in a runtime dialect definition without falling back to C++ lambdas.
+- **`mlir-tblgen` diagnostic improvements**: Work is underway to emit precise source locations in generated `.inc` files and to surface ODS-level errors (e.g., unreachable optional groups in `assemblyFormat`) as TableGen errors rather than C++ compile errors, tracked in LLVM issue [#66566](https://github.com/llvm/llvm-project/issues/66566) and related.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **ODS Python bindings for dialect authoring**: The MLIR Python bindings infrastructure (`mlir/python/`) currently exposes ops for use, but ODS-level dialect *definition* from Python is not yet supported. An RFC-stage proposal aims to allow defining a dialect entirely in Python (with `@mlir_dialect`, `@mlir_op` decorators backed by the C API), enabling rapid prototyping without TableGen; this would supersede the IRDL workflow for Python-native frameworks such as JAX/XLA extensions.
+- **Declarative pass infrastructure integration with ODS**: Extending ODS so that each op can declare its pass-pipeline interactions (e.g., `let bufferizationStrategy`, `let fusionStrategy`) directly in the `.td` file, allowing the One-Stop Declarative compiler workflow where the full transformation contract is encoded statically; ties into the Linalg structured-op extensions tracked on discourse.llvm.org.
+- **IRDL interoperability with PDLL pattern rewriting**: Current PDLL (Pattern Definition Language, Ch. 145) patterns cannot match dynamically-registered IRDL ops. A mid-term goal is closing this gap so that IRDL-defined ops participate fully in declarative rewrite rules, enabling dynamic-dialect plugins to ship rewrite patterns in the same `.irdl` file.
+- **ODS-based ABI stability annotations**: A proposal to add `let abiVersion` and `let apiStability` fields to ODS dialect and op definitions, used by the MLIR C API generator to automatically produce versioned C wrappers, reducing the manual burden of maintaining stable APIs for downstream consumers (e.g., IREE, TensorFlow, PyTorch/Torch-MLIR).
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Unified declarative IR specification across LLVM and MLIR**: Long-term convergence is anticipated between LLVM TableGen (used for `InstrInfo`, `RegisterInfo`, `SelectionDAG` patterns) and MLIR ODS, so that a single specification language expresses both the machine description and the dialect definition; early design discussion threads appear periodically on the LLVM Dev list and MLIR discourse, but no concrete RFC exists yet.
+- **Formal verification of ODS-generated verifiers**: Research directions, informed by the Vellvm and Alive2 projects (see Part XXIV), aim to automatically generate Coq/Lean 4 correctness proofs for verifiers synthesized from ODS constraint definitions, ensuring that the generated `verify()` methods are sound with respect to the declared type-theoretic constraints.
+- **Dynamic dialect versioning and migration**: As IRDL matures, a versioning layer is envisioned where `.irdl` files carry a version schema, and the runtime can automatically apply migration rewrite rules when loading old IR into a newer dialect definition — analogous to protobuf schema evolution, enabling long-lived serialized MLIR corpora to be upgraded transparently.
+
+---
+
 ## Chapter Summary
 
 - ODS is a TableGen-based system that generates C++ op classes, verifiers, builders, parsers, and printers from concise declarative descriptions; it eliminates boilerplate and makes dialect contracts self-documenting

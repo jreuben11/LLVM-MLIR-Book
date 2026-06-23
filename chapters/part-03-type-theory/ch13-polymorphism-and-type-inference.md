@@ -1112,6 +1112,32 @@ LLVM IR occupies the bottom of this stack: it always receives monomorphic code. 
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **GHC Proposal #281 — Impredicative Types stabilization**: GHC's `QuickLook` impredicativity algorithm (Serrano et al., ICFP 2020) is on track for promotion from experimental to stable in GHC 9.12–9.14. This eliminates the need for `runST`-style wrappers by allowing higher-rank instantiation to be inferred bidirectionally, collapsing the gap between `RankNTypes` and full System F for common patterns. Tracked in the GHC issue tracker at [#18186](https://gitlab.haskell.org/ghc/ghc/-/issues/18186).
+- **Rust trait solver rewrite (next-gen solver / "Chalk successor")**: The `rustc` team's new trait solver (`rustc_next_solver`, stabilizing incrementally through 2026) replaces the Prolog-style Chalk engine with a more principled fixed-point solver that handles complex associated-type constraints and GATs without divergence. The new solver tightens the implementation to the theoretical model of coinductive trait resolution described in [RFC 3040](https://github.com/rust-lang/rfcs/pull/3040).
+- **OCaml 5.x modular implicits RFC revival**: The long-standing OCaml [Modular Implicits](https://arxiv.org/abs/1512.01778) proposal (White-Bour-Yallop 2015) is being revisited in the context of OCaml 5's effects system. Near-term discussion focuses on a restricted "local implicits" subset that avoids Scala-style coherence problems while enabling type-class-like programming without functor boilerplate.
+- **LLVM/MLIR interface type in ClangIR**: The ClangIR project (`clang/lib/CIR/`) is adding a first-class `CIR_InterfaceType` for `impl Trait` / `dyn Trait` boundaries, so Rust and Swift codepaths can preserve existential type information through to mid-level IR before erasure. This is tracked in the ClangIR RFC on [discourse.llvm.org](https://discourse.llvm.org/c/clir/36).
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Dependent Haskell (GHC Proposal #281 successors)**: The Dependent Haskell roadmap (led by Richard Eisenberg's line of work, post-Tweag) targets a System F_C with dependent kinds in GHC by ~2027–2028. Key milestone: merging `Type :: Type` (lifting the stratification between types and kinds) while preserving decidable type inference via a bidirectional elaboration algorithm that delegates undecidable parts to a constraint solver. The core theory is described in [Eisenberg's dissertation (2016)](https://richarde.dev/papers/2016/thesis/eisenberg-thesis.pdf) and updated GHC proposals.
+- **Wildcard-free Java generics (Project Valhalla / value types)**: Project Valhalla's "Universal Generics" goal is to eliminate the boxing overhead in Java generics (the reason `List<int>` is illegal today) by allowing primitive type arguments via specialization, essentially adding controlled monomorphization to the JVM. This directly addresses the type-erasure vs. monomorphization tradeoff described in Section 11. JEP drafts under [openjdk.org/jeps](https://openjdk.org/jeps/) target JDK 24–26.
+- **Type-class coherence in Scala 3 / direct-style**: Scala 3's `given`/`using` system relaxes Haskell-style coherence, but ongoing [SIP (Scala Improvement Proposals)](https://docs.scala-lang.org/sips/) are investigating optional coherence enforcement ("coherence mode") to enable library authors to opt in to Haskell-like referential transparency. This maps directly to the formal coherence discussion in Section 10.
+- **Row-polymorphism in mainstream languages**: TypeScript's [TC39 type annotations proposal](https://github.com/nicolo-ribaudo/tc39-proposal-type-annotations) and [TypeScript's `NoInfer<T>` utility type (TS 5.4)](https://devblogs.microsoft.com/typescript/announcing-typescript-5-4/) are incremental steps; a full row-polymorphic record type system (à la PureScript) is under academic prototyping for TypeScript-class languages targeting [row-based effect systems](https://koka-lang.github.io/koka/doc/book.html#sec-effect-types) (Koka, Links).
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Verified type inference in Lean 4 / Rocq (Coq)**: The Vellvm project (Zhao et al.) and CompCert tradition are inspiring efforts to formally verify Algorithm W and its extensions in Lean 4. A machine-checked proof of the principal types theorem (including the value restriction and relaxed value restriction) would provide a gold standard for next-generation ML-family front-ends. Early work appears in [Gauthier-Pottier 2004] (certified HM in Coq); scaling to full bidirectional DK and System F_C remains open.
+- **Quantum type systems and MLIR dialects**: Quantum computing languages (Silq, Quipper, QASM 3.0) require linear types intersected with parametric polymorphism to express no-cloning constraints. MLIR's `quir` and `quantum` dialects (IBM Quantum, LLVM QCI initiative) will need a type-theoretic foundation — likely System F extended with linear and affine quantification — that maps to MLIR's region and type interface infrastructure.
+- **Full impredicative inference without annotations**: The long-term theoretical goal — decidable type inference for a large fragment of System F without rank annotations — remains open. "Guarded impredicativity" (Dijkstra-Serrano-Xie, ESOP 2023) and "boxy types" (Peyton Jones et al. 2007) represent partial answers; a practical algorithm achieving the expressiveness of `RankNTypes` without the annotation burden at rank ≥ 2 would fundamentally change the ergonomics of Haskell-family languages and their LLVM code generation paths.
+
+---
+
 ## 12. Chapter Summary
 
 - **Parametric polymorphism** lets a single term have type `∀α. τ`, working uniformly over all instantiations of `α`. Reynolds's parametricity theorem derives **free theorems** — equations that every implementation of a polymorphic type must satisfy — from the type alone, without examining the code.

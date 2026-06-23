@@ -320,6 +320,32 @@ Passes declare which properties they require and which they preserve/invalidate,
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **GlobalISel completion for x86-64 at `-O2`**: The LLVM community is actively tracking the remaining gaps that cause GlobalISel to fall back to SelectionDAG on x86-64 at optimizing levels; patches removing fallback triggers for complex calling conventions (varargs, MSABI, SEH) are in review on LLVM Phabricator/GitHub PRs.
+- **MachineIR (MIR) serialization improvements**: Enhanced round-trip fidelity for MIR-level testing (used in `-run-pass` workflows), including richer `MachineMemOperand` and `MachineFrameInfo` serialization, targeted for LLVM 23 development cycle.
+- **New pass-pipeline API for backends**: The ongoing `llvm::PassManager` / NPM migration is extending `MachineFunctionPassManager` and `ModuleToMachineFunctionPassAdaptor` to replace the legacy `PassManagerBase`-based `TargetPassConfig`; first targets (AArch64, RISC-V) are experimenting with NPM-based backend pipelines.
+- **RegBankSelect performance on large functions**: Profiling has shown `RegBankSelect` to be a compile-time bottleneck on very large IR functions; RFC on discourse.llvm.org (early 2026) proposes a tiered heuristic that skips full bank inference when GlobalISel falls back to fast-select.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **SelectionDAG deprecation path**: With GlobalISel reaching feature parity across AArch64, x86-64, and RISC-V, the community anticipates an RFC to declare SelectionDAG "maintenance mode" — no new feature development, security fixes only — opening the path for eventual removal in targets that have fully migrated.
+- **Unified combiner framework (MachineIR combiner)**: The `CombinerHelper` / `GICombiner` TableGen-driven combiner in GlobalISel is expected to absorb the majority of `DAGCombiner` patterns, giving a single canonicalization point across both isel frameworks and simplifying target-specific backend combiners.
+- **Register allocation overhaul — PBQP resurrection or replacement**: The Partitioned Boolean Quadratic Programming (PBQP) allocator has been effectively abandoned for compile-time reasons; a new constraint-based allocator informed by learned cost models (see the ML-guided RA work in LLVM's `--regalloc-eviction-advisor=ml` flag) is expected to extend from AArch64 to all production targets.
+- **LLT-based MachineInstr throughout post-isel passes**: Several post-regalloc passes (e.g., `MachineLICM`, `PostRAScheduler`) still query `MVT` via register classes; a project is underway to propagate `LLT` metadata through the full `MachineInstr` stream, enabling richer type-driven post-RA optimizations.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Single instruction selection framework**: If GlobalISel achieves complete parity with SelectionDAG across all in-tree targets (including legacy targets like MIPS, SPARC, and SystemZ), the community may converge on GlobalISel as the sole framework, dramatically simplifying the backend codebase and reducing the duplicated type-legalization logic in `SelectionDAGLegalize` vs `LegalizerHelper`.
+- **Machine IR as a stable external IR**: Research proposals (cf. the "MIR as ABI" discussion at LLVM Dev Meetings 2024–2025) envision MachineIR becoming a stable, versioned interchange format between LTO, link-time optimization passes, and binary rewriting tools — analogous to LLVM IR at the source level but at the machine-instruction level.
+- **Hardware-aware backend pipeline reconfiguration via ML**: Long-term research explores replacing static `TargetPassConfig` hook ordering with a learned pipeline configurator that selects and orders backend passes based on function characteristics and hardware performance counters, building on the infrastructure of LLVM's existing ML-driven inliner and RA advisor.
+
+---
+
 ## Chapter Summary
 
 - The LLVM backend pipeline transforms LLVM IR through instruction selection, pre-regalloc passes, register allocation, post-regalloc passes, and MC layer emission; each stage is a `MachineFunctionPass`.

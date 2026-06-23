@@ -695,6 +695,32 @@ ctx.getDiagEngine().registerHandler([](mlir::Diagnostic &diag) {
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **`OpBuilder` API stabilization for out-of-tree dialects**: Ongoing LLVM RFC discussions ([discourse.llvm.org/t/opbuilder-api-contract](https://discourse.llvm.org/)) on formalizing the public API surface and ABI guarantees for `OpBuilder` and `PatternRewriter` to reduce churn for downstream dialect authors; tracked in LLVM issue #84631.
+- **`applyPatternsGreedily` performance with large pattern sets**: Active work (started in LLVM 21) to cache pattern applicability and reduce redundant match attempts; benchmarked against Linalg lowering pipelines where `RewritePatternSet` hits thousands of patterns per op.
+- **Improved pass manager crash diagnostics**: RFC for adding structured JSON pass-crash dumps (`--mlir-crash-reproducer`) that capture the IR at failure along with the exact pass pipeline string, making it trivially reproducible without manual bisection.
+- **`DialectRegistry` deferred dialect loading**: Patches landing to defer `loadAllAvailableDialects()` until a dialect's op is first encountered, reducing `MLIRContext` initialization time for tools that load many dialects but use few.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Versioned Op interface and attribute ABI**: MLIR roadmap item (tracked via the "dialect versioning" RFC thread) to allow op interfaces and attributes to carry version metadata, enabling binary-stable `.mlirbc` bytecode files to be processed by newer MLIR libraries without recompilation of producer tools.
+- **Typed `PatternRewriter` ergonomics via structured bindings**: Proposal to add `matchAndRewriteTyped<SrcOp, DstOp>` variants that automatically unpack result types and operand adapters, eliminating boilerplate `cast<>` chains in conversion patterns — following the model adopted for `ConversionPattern` adapters.
+- **Concurrent `PassManager` with finer-grained IR locking**: Extending the existing function-level parallelism (`func::FuncOp` passes running in parallel) to arbitrary nested op types using the upcoming structured concurrency primitives, with the `MLIRContext` write lock replaced by per-op-type lock domains.
+- **`OpBuilder` integration with the Python bindings parity initiative**: Ensuring that every `OpBuilder` method accessible in C++ has an exact Python counterpart in `mlir.ir`, supporting projects (StableHLO, IREE, Triton) that author IR generation pipelines in Python and lower to C++ compilation.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Formally specified `PatternRewriter` semantics**: Academic work (building on Alive2 and Vellvm) to produce a mechanized model of `matchAndRewrite` + `applyPatternsGreedily` convergence, providing soundness proofs analogous to what Alive2 provides for LLVM IR peephole rewrites — enabling verified pattern libraries that cannot introduce UB.
+- **First-class progressive lowering API**: A high-level `ConversionOrchestrator` API that declaratively describes multi-step dialect conversion graphs (replacing hand-written `addLegalDialect` / `addIllegalOp` sequences), auto-generates intermediate conversion passes, and ensures no op type is left unconverted at any pipeline stage.
+- **`mlir-opt` replacement by a structured MLIR language server**: Superseding `mlir-opt + FileCheck` testing with a Language Server Protocol (LSP)-aware test runner that introspects IR structure, checks type constraints, and reports pass-level diffs in IDE-integrated test output — extending the existing `mlir-lsp-server` ([`mlir/tools/mlir-lsp-server`](https://github.com/llvm/llvm-project/tree/llvmorg-22.1.0/mlir/tools/mlir-lsp-server)) into a full test harness.
+
+---
+
 ## Chapter Summary
 
 - `MLIRContext` owns all MLIR state; dialects are loaded via `ctx.loadDialect<D>()` or `DialectRegistry`; each context has a unique type storage pool

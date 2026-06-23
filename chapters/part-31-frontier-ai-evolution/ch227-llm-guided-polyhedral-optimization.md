@@ -440,6 +440,32 @@ Closing this gap requires going beyond the affine schedule parameter selection t
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **LOOPer upstream integration into MLIR**: The LOOPer cost model (arXiv 2403.11522) is being evaluated for inclusion in MLIR's `affine` dialect transformation pipeline as an optional ML-guided tile-size selection pass; tracking discussion on discourse.llvm.org under the "ML-guided transformations" thread. Upstreaming requires resolving the training-data provenance and hardware-specificity problems noted in Section 227.7.
+- **Polly `--cost-model=ml` flag**: A patch series is under development to add a pluggable cost model interface to Polly's scheduling pipeline (`polly/lib/Transform/ScheduleOptimizer.cpp`) that would allow LOOPer or a successor to be loaded as a shared library at optimization time, without requiring full LLVM recompilation.
+- **LLM schedule proposal caching**: The agentic loop (Section 227.3) currently re-queries the LLM for every benchmark and every hardware target. Near-term work focuses on caching LLM proposals in a vector database indexed by polyhedral fingerprint, so that similar loop nests on the same hardware reuse prior proposals — reducing mean iterations from 8.3 to an estimated 3–4.
+- **Ansor–MLIR bridge**: The OpenXLA/XLA team is prototyping a bridge that routes `linalg.matmul` and `linalg.conv_2d` operations through a retrained Ansor-style sketch+ML search driven by MLIR's transform dialect rather than TVM's `te.compute` IR, bringing Ansor's search strategy to bear on MLIR's polyhedral loop nests.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Transfer learning across hardware targets**: LOOPer currently requires full retraining per hardware target (Section 227.7). Mid-term research will adapt domain-adaptation techniques — fine-tuning a base model trained on x86-64 data with a small number of ARM Neoverse or AMD EPYC measurements — reducing per-target retraining cost from ~8 minutes to under 60 seconds on a representative Polybench subset.
+- **LLM reasoning over multi-level tile hierarchies**: Current agentic auto-scheduling (arXiv 2511.00592) proposes a single pair of tile sizes (tile_i, tile_j). Extending the agent to reason about three-level tiling (L1/L2/L3 separately, as hand-tuned BLAS libraries do) requires extending the prompt representation and the feature vector to encode nested tile factors; this closes part of the 40% gap vs MKL identified in Section 227.7.
+- **Legality-aware LLM fine-tuning**: A fine-tuned LLM that has internalized the isl polyhedral legality constraints (dependence satisfaction, no time-reversal of carried dependences) would reduce illegal schedule proposals — currently requiring round-trips through `isl_check_legality` — and could validate legality symbolically in its forward pass, eliminating the validation step from the agentic loop.
+- **Integration with MLIR's transform dialect**: MLIR's `transform` dialect (RFC: "Structured and Retargetable Code Generation", discourse.llvm.org 2021) provides a programmable schedule representation. Mid-term work will represent agentic schedule proposals as `transform.sequence` operations, enabling the LLM to propose compound transformations (tile, then vectorize, then parallelize) as a single structured IR fragment rather than a sequence of command-line flags.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Closing the BLAS gap with learned micro-kernels**: The last-mile gap (54 vs 93 GFLOPs in Section 227.7) comes from hand-vectorized micro-kernels that polyhedral scheduling cannot express. Long-term research aims to couple the polyhedral agentic scheduler with a code-generation LLM that proposes AVX-512 intrinsic sequences for the innermost kernel, evaluated empirically; combining schedule search at the affine level with micro-kernel synthesis at the intrinsic level could close the gap to within 10–15% of MKL.
+- **Polyhedral auto-scheduling in production ML compilers**: XLA (Chapter 192), IREE, and TensorRT all perform kernel selection today via hand-crafted heuristics or template libraries. The long-term trajectory is full replacement of these heuristics by learned cost models fine-tuned per hardware target, with agentic search as a backstop for novel operations not in the training distribution.
+- **Formal verification of LLM-proposed schedules**: LLMs can propose schedules that pass isl's legality check but violate semantic correctness in the presence of floating-point non-associativity or aliased memory accesses. Long-term work will integrate Alive2-style (Chapter 174) semantic validation of proposed transformations — verifying that the transformed program is equivalent to the original modulo floating-point reassociation — before accepting an LLM-proposed schedule.
+
+---
+
 ## Chapter Summary
 
 - Polyhedral compilation guarantees transformation correctness; the performance bottleneck is parameter selection (tile sizes, loop ordering, fusion decisions) — the exponential search space that analytical cost models cannot navigate

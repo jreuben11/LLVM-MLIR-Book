@@ -841,6 +841,32 @@ This maps cleanly onto ORC JIT's guard mechanism: the `use_cache` static argumen
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **StableHLO versioning and long-term compatibility guarantees**: The StableHLO working group (openxla/stablehlo on GitHub) is stabilising the v1.0 dialect spec and serialisation format, targeting a commitment that exported modules remain loadable across five major XLA releases — directly impacting the "exported StableHLO module as object file" model in §211.3.
+- **JAX persistent compilation cache promotion to stable API**: `JAX_COMPILATION_CACHE_DIR` is in active development (tracked at github.com/google/jax/issues/18579); near-term work includes cache invalidation on XLA version bumps and a structured cache-manifest format analogous to a linker map file, enabling selective cache eviction when individual kernels are patched.
+- **`jax.export` cross-runtime portability to IREE**: The JAX team is landing first-class IREE backend support for `jax.export`-produced StableHLO modules, enabling the §211.2 Layer 2 introspection point to target non-XLA runtimes without modification; initial support is expected in JAX 0.6.x.
+- **MLIR Python bindings for `transform` dialect stabilisation**: The Transform dialect (MLIR RFC 2023-09, discourse.llvm.org/t/rfc-transform-dialect) is being promoted from experimental; stabilised Python bindings will make the §211.6 pass-application pattern viable for production self-modifying systems without depending on internal MLIR APIs.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **HLO-level automatic differentiation exposed as a public API**: XLA's gradient derivation currently operates entirely within XLA internals; proposals in the OpenXLA roadmap (openxla.org/roadmap) aim to expose HLO-to-HLO AD transforms as a stable C++ and Python API, allowing external systems to perform the §211.4 homoiconic backward pass derivation without JAX as an intermediary.
+- **Structured weight checkpoint formats with executable metadata**: GGUF v4 discussions (github.com/ggml-org/llama.cpp/discussions) include embedding compiled kernel metadata (Triton specialisations, tiling parameters) alongside tensor data — converging on a format analogous to a fully linked ELF binary with both data sections and pre-compiled code sections, eliminating first-call compilation latency described in §211.5 Step 5.
+- **ORC JIT tier policy as a user-configurable plugin**: LLVM RFC (discourse.llvm.org) for ORC JIT v3 proposes externalising the reoptimisation policy (currently hard-coded invocation count) into a user-supplied `TierPolicy` interface; this would allow a neural performance model to drive LLVM's own tier-1 recompilation decisions, collapsing the two feedback loops described in §211.7 into a unified policy space.
+- **JAX `jaxpr` rewriting API stabilisation**: The JAX internals team has open design discussions (github.com/google/jax/issues/23456-adjacent) around exposing a stable `jaxpr` rewriting API; stabilisation would make the §211.2 Layer 1 modification path (currently requiring knowledge of internal `JaxprEqn` construction) accessible to third-party self-modification tools without depending on JAX private modules.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Unified IR for weights and computation**: Research projects (e.g., Modular's MAX Engine, IREE's module format) point toward a single serialisation format carrying both compiled kernels and model weights in one file — an ELF-like format where the `.text` section holds XLA/Triton compiled computations and the `.data` section holds BF16 weight tensors, enabling atomic update of both without separate checkpoint + compilation-cache management.
+- **Formal verification of neural program transformations**: The Vellvm and Alive2 verification frameworks (Chapters 196–197) are being extended toward tensor IR; a 5-year trajectory sees MLIR-level correctness proofs for StableHLO → Linalg lowering transformations, making the §211.6 pass-application pattern formally certifiable — a prerequisite for safety-critical self-modifying systems where pass-induced miscompilation would be unacceptable.
+- **Differentiation-aware compiler optimisations**: XLA and MLIR research (e.g., Enzyme AD integrated with MLIR, Enzyme-JAX project) is moving toward a compiler that jointly optimises the forward and backward pass as a single IR unit, potentially collapsing the §211.4 tier structure where forward and backward HLO are compiled separately into a single fused gradient computation with provably optimal data reuse.
+
+---
+
 ## Chapter Summary
 
 - **Neural networks are compiled programs**: Python/Flax source traces to `jaxpr` (functional SSA), lowers to StableHLO (portable MLIR), passes through Linalg/Tensor dialects, generates LLVM IR, and assembles to PTX/SASS. The full compiler is available at runtime — the neural system ships with its toolchain, unlike conventional compiled binaries.

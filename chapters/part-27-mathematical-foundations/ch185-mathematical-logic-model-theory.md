@@ -861,6 +861,32 @@ From the model theory side: the *Lindenbaum-Tarski algebra* of a propositional l
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **SMT-LIB 3.0 standardization**: The SMT-LIB working group is drafting version 3.0 with support for parameterized theories and improved model serialization; see [smtlib.cs.uiowa.edu](https://smtlib.cs.uiowa.edu/) and GitHub discussions for the evolving draft. Alive2 and Dafny will need to update their SMT-LIB 2 emitters once the standard stabilizes.
+- **Bitwuzla as production BV solver**: Bitwuzla 0.6+ (the successor to Boolector) now ships dedicated finite-field arithmetic (`QF_FF`) and floating-point theories beyond Z3's T_FP bitblasting approach, targeting the QF_BV workloads that dominate Alive2 queries; LLVM's Alive2 CI already experiments with Bitwuzla as a back-end via the `--smt-backend=bitwuzla` flag.
+- **CVC5 1.x quantifier handling improvements**: CVC5's E-matching engine for `QF_UF` + quantifier fragments (used by Dafny and Verus) is receiving major rewrites in the 1.1–1.3 release cycle; the new *conflict-driven E-matching* avoids the known incompleteness of pattern-based instantiation for certain Hoare-logic VC shapes.
+- **Lean 4 / Mathlib 4 automation via DPLL(T)**: The `omega` tactic in Lean 4 Mathlib (Presburger arithmetic decision procedure, merged 2024) is being extended with a full Nelson-Oppen combiner to handle mixed `QF_LIA + QF_UF` goals natively, reducing the round-trips through external SMT calls from within Lean proof scripts.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Quantifier-instantiation completeness for heap-reasoning VCs**: Current Z3/CVC5 E-matching for separation-logic-style heap axioms (used in Verus and Dafny's `reads`/`modifies` clauses) is heuristically incomplete; active research (ongoing from the MSR Verified Software group) targets *complete quantifier instantiation for guarded linear-arithmetic patterns*, which would eliminate the `unknown` return that currently afflicts Dafny VCs for unbounded containers.
+- **Algebraic decision diagrams (ADDs) for nonlinear real arithmetic**: Cylindrical Algebraic Decomposition (CAD) for `QF_NRA`, the decision procedure underlying Z3's T_NIA, is doubly exponential in the number of variables. The *Lasserre SOS hierarchy* (sum-of-squares relaxations) combined with Gröbner-basis pre-processing is approaching practical runtime for the 4–8 variable polynomial constraint systems arising in floating-point range analysis, with prototype implementations in Maple and Sage being ported to MLIR analysis pipelines.
+- **Proof-producing DPLL(T)**: Current SMT solvers return `unsat` without a checkable proof; DRAT-style proof logging (already standard in SAT solvers via `kissat --proof`) is being extended to the DPLL(T) setting as *SMT proofs* in the [Alethe proof format](https://verit.gitlabpages.uliege.be/alethe/specification.pdf), enabling independent kernel-level verification of Z3/CVC5 results — critical for integrating SMT into the trusted base of Lean 4/Coq proof assistants.
+- **Model-theoretic semantics for LLVM undef/poison in Alive2**: The current Alive2 encoding of `undef` and `poison` uses multi-valued QF_BV with explicit poison-bit tracking, producing queries that are 2–5× larger than clean bitvector queries. Research at EPFL (Nuno Lopes group) targets a cleaner model-theoretic encoding via *angelic non-determinism* in KVec — a quantifier-free extension of bitvectors — that would shrink VC sizes and improve Alive2's throughput on vectorized loop rewrites.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Decidable first-order theories for pointer arithmetic**: LLVM's pointer semantics (flat or CHERI-tagged addresses, provenance, sub-object bounds) is currently inexpressible in pure `QF_BV`; a first-order theory of *pointer capability arithmetic* — capturing provenance monotonicity and sub-object bounds as decidable linear constraints — is an open problem whose solution would make CHERI-LLVM correctness proofs fully SMT-checkable rather than requiring Coq/Isabelle for the provenance arguments.
+- **Effective cut-elimination in classical logic via proof-term extraction**: Gentzen's Hauptsatz for classical LK produces super-exponentially large cut-free proofs; practical proof assistants for classical mathematics (Isabelle/HOL, HOL4) avoid this by keeping cuts (lemmas). Long-term research on *bounded cut-elimination* — extracting computationally-meaningful proof terms from classical proofs by controlling proof size — could enable proof-carrying code for system software compiled by LLVM with Isabelle-verified correctness certificates.
+- **Homotopy type theory (HoTT) as a foundation for compiler IR equivalence**: The `∞-groupoid` interpretation of type theory (HoTT/Univalence) provides a model-theoretic framework in which *isomorphic types are equal*; applied to LLVM IR, this would make loop transformations that produce structurally isomorphic control-flow graphs automatically provably equivalent without per-transformation proofs, offering a long-term alternative to the current Alive2 per-rewrite model. Active research is ongoing in the Agda/Cubical and Lean 4 HoTT communities.
+
+---
+
 ## 185.8 Summary
 
 The landscape of mathematical logic, as seen from the compiler-engineering vantage, divides cleanly into three tiers:

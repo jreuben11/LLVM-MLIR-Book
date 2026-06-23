@@ -498,6 +498,32 @@ Inductor generates Triton kernels with `@triton.jit` decorators for:
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Triton 3.x Descriptor-Based Memory (TMA)**: Hopper and Blackwell hardware expose Tensor Memory Accelerator (TMA) descriptors for async shared-memory copies. The `triton-lang/triton` upstream is actively landing `tt.descriptor_load`/`tt.descriptor_store` ops and the corresponding `triton_gpu.tma_descriptor` encoding to replace `cp.async` for sm_90+ targets; track [`python/triton/experimental/descriptor.py`](https://github.com/triton-lang/triton/blob/main/python/triton/experimental/descriptor.py) and associated passes.
+- **TritonGPU Persistent Kernel Support**: Inductor and XLA are extending the Triton runtime to express persistent CUDA graphs and cooperative kernel launches (`cudaLaunchCooperativeKernel`), enabling cross-block barrier synchronization for fused attention+LayerNorm kernels.
+- **AMD CDNA3 / RDNA4 Backend Maturation**: The `triton-lang/triton` AMD fork continues landing `gfx940`/`gfx1200` matrix instruction encodings (`mfma`, `wmma`) in TritonGPU; the ROCDL lowering path (replacing ROCm-specific forks) is being upstreamed to the LLVM monorepo.
+- **`triton-shared` Dialect for CPU/TPU Targets**: The `microsoft/triton-shared` project is formalizing a `triton_shared` structured-data dialect that maps Triton semantics to `memref` + `linalg` for CPU and TPU targets; integration into the main Triton compiler pass pipeline is under active RFC discussion.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Blackwell (sm_100) WGMMA and Distributed Shared Memory**: NVIDIA's Blackwell architecture introduces distributed shared memory (DSMEM) and 2nd-generation WGMMA (warp-group matrix multiply-accumulate); Triton will need new TritonGPU encodings for multi-SM-cluster tensors (`triton_gpu.cluster_layout`) and lowerings to NVPTX `mbarrier` + `tensormap` intrinsics.
+- **Structured Autotuning via Bayesian/ML Search**: Current `triton.autotune` exhaustively searches a hand-specified config list. Ongoing research (e.g., Meta's "Autofocus" and Google's "Vizier"-based Triton tuning) is integrating Bayesian optimization and learned cost models into the autotuner, reducing tuning time from O(minutes) to O(seconds) for cold-start kernels.
+- **Triton-to-MLIR Upstream Integration**: The `triton` and `triton_gpu` dialects remain out-of-tree. There is community interest (tracked in MLIR discourse threads on `mlir.llvm.org`) in upstreaming key abstractions — the `tt.ptr` type, blocked encoding attributes, and the software-pipeline transform — into MLIR's in-tree `gpu` and `vector` dialects to reduce the maintenance surface.
+- **Sparse and Quantized Kernel Generation**: NVIDIA's sparsity support (2:4 structured sparsity in Ampere/Hopper via `ldmatrix` + `mma.sp`) is being expressed in Triton via new `tt.sparse_dot` ops and corresponding MMA encodings; this will generalize to FP8/INT4 mixed-precision pipelines for LLM inference kernels.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Triton as a Unified Kernel IR Across Accelerator Vendors**: As Intel Xe, Apple GPU, and custom NPU vendors adopt MLIR, Triton's block-level programming model may serve as a portable kernel IR — analogous to what SPIR-V is for graphics — with vendor-specific TritonGPU dialects providing target encoding. This would require standardizing the `tt.*` op set and formalizing the ABI between Triton and host runtimes beyond CUDA/ROCm.
+- **Verified Correctness for Triton Kernels**: Research projects such as Vellvm (Chapter 193) and Alive2 approaches are being extended toward GPU memory models; a long-term goal is a formal semantics for the Triton dialect (pointer aliasing, warp-level memory ordering, async copies) enabling automated correctness proofs for generated PTX against the CUDA memory consistency model.
+- **Whole-Program Kernel Fusion Beyond Single-Op Boundaries**: Current Triton kernels map one fused operator to one GPU launch. Future Triton infrastructure may support persistent thread scheduling and producer-consumer streaming between fused regions (e.g., fused GEMM + attention + normalization across multiple blocks), eliminating HBM round-trips for entire transformer layers.
+
+---
+
 ## Chapter Summary
 
 - Triton's programming model is block-level: programs operate on tiles, not individual threads; `tl.program_id()` identifies which tile a block computes.

@@ -920,6 +920,32 @@ int compileFile(llvm::StringRef SourceFile) {
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Multilib YAML v2 specification**: The LLVM community RFC ([discourse.llvm.org/t/rfc-multilib-yaml-v2](https://discourse.llvm.org/t/rfc-multilib-yaml-v2)) proposes extending `MultilibSet::parseYaml` with conditional include-path expressions and ABI-capability tagging, enabling embedded-toolchain vendors to ship richer multilib descriptors without source patches to `clang/lib/Driver/ToolChains/`.
+- **Unified offload driver as default**: The `--offload-new-driver` flag that enables `clang-linker-wrapper`-based GPU offloading became default in Clang 22 for CUDA; follow-on patches are landing to make it unconditional for HIP and OpenMP target, removing the legacy `clang-offload-bundler` path from the default build in Clang 23 (tracked in llvm/llvm-project#86982).
+- **Driver configuration file search path XDG compliance**: An in-progress patch ([D156782 equivalent in GitHub PRs](https://github.com/llvm/llvm-project/issues/64758)) updates `Driver::loadConfigFiles` to honour `$XDG_CONFIG_HOME/clang/<triple>.cfg` in addition to `~/.config/clang/`, bringing Clang into alignment with XDG Base Directory Specification and simplifying per-user hardening setups on Linux.
+- **`--offload-via-llvm` stabilisation for SPIR-V**: The `-foffload-via-llvm` pipeline that routes host code through unoptimised bitcode is being extended to SPIR-V targets (Intel's oneAPI DPC++ backend), so that OpenCL and SYCL targets can share the same `clang-linker-wrapper` extraction flow currently used for NVPTX and AMDGPU (llvm/llvm-project#84265).
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Structured driver configuration (TOML/JSON replacing response-file `.cfg`)**: The current `.cfg` response-file format is difficult to query programmatically. An RFC-in-discussion proposes a TOML-based configuration schema that supports per-flag conditions (`[target.aarch64]`), inheritance from a system config, and JSON Schema validation, enabling tools like `clangd` and CMake to query driver intent without reparsing raw argument strings.
+- **C++20 named module dependency protocol integration**: The driver's handling of `TY_CXXModule` (`.cppm`) files currently issues a separate `--precompile` cc1 invocation for each module unit. The in-progress P2507 / clang-scan-deps2 effort aims to let the driver participate in a two-phase dependency protocol: a lightweight scan pass emits a JSON dependency graph, and a second pass sequences `--precompile` jobs in the correct topological order without re-scanning, directly in `Driver::BuildCompilation`.
+- **MSVC toolchain detection via COM / vswhere integration on Linux**: The `MSVC` toolchain subclass currently relies on `%VSINSTALLDIR%` and hard-coded registry-query heuristics. A planned enhancement would let `clang-cl` call `vswhere.exe` via Wine or a native port on Linux cross-compilation hosts, automatically locating MSVC headers and CRT libraries without manual `--sysroot` specification — mirroring what Visual Studio CMake already does on Windows.
+- **Reproduced-build support via hermetic driver configuration export**: The `Driver::generateCompilationDiagnostics` crash-reproducer currently captures only the preprocessed source. A proposed extension (`--gen-build-reproducer`) would capture the full driver configuration file hierarchy, toolchain multilib selection, sysroot state, and response files into a self-contained tar archive, enabling exact reproduction of build failures on different machines — useful for CI triage and security audits.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Driver-level C++ module graph orchestration**: As C++20 named modules become pervasive, the driver is expected to evolve into a module-aware scheduler that directly understands the DAG of BMI dependencies across translation units in a single invocation — analogous to how Rust's `rustc` and Swift's compiler handle module dependency graphs natively, rather than delegating graph construction to CMake or Ninja.
+- **RISC-V vendor extension toolchain discovery protocol**: The fragmented RISC-V ecosystem (SiFive, StarFive, Andes, Alibaba T-Head) ships incompatible `--sysroot` layouts and extension enablement flags. A proposed RISC-V Toolchain Discovery Protocol (RVTDP) would let the driver call a sidecar binary (like `rvtdp-query`) to enumerate installed extension sets, multilib variants, and linker scripts, replacing the current hardcoded cases in `clang/lib/Driver/ToolChains/RISCVToolchain.cpp`.
+- **Unified heterogeneous IR driver (LLVM/Offload portable runtime)**: The `-foffload-via-llvm` pipeline combined with the `liboffload` portable runtime (tracked at llvm/llvm-project#88753) points toward a future where the driver emits a single polyglot LLVM IR module annotated with target-specific metadata, and a single `clang-linker-wrapper` invocation handles partition, optimisation, and binary generation for all heterogeneous targets simultaneously — eliminating the per-target cc1 subprocess fan-out currently required for multi-GPU builds.
+
+---
+
 ## Chapter Summary
 
 - The `clang` binary is a driver that orchestrates subprocesses; `clang -cc1` bypasses the driver and invokes the frontend directly.

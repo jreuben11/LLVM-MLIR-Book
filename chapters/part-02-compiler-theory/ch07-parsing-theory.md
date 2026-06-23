@@ -1017,6 +1017,32 @@ yacc and bison remain in use for hundreds of language tools. The GNU make gramma
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Tree-sitter 0.24+ incremental error recovery improvements:** The tree-sitter project is actively improving error-node propagation and subtree invalidation during incremental re-parse. Ongoing work in the `tree-sitter/tree-sitter` repository targets more precise ERROR-node boundaries and faster recovery on syntactically malformed files, directly impacting the IDE latency discussed in §7.9.
+- **ANTLR 4 ALL(*) runtime performance work:** The ANTLR 4 runtime continues targeted optimization of the adaptive LL(*) DFA cache hit rate and GSS allocation patterns. The ANTLR project tracker (github.com/antlr/antlr4) includes open issues for reducing cache thrashing on large input files with many grammar alternatives.
+- **Clang `ParseTentative.cpp` C++26 disambiguation refinements:** As C++26 finalizes (expected ratification 2026), Clang's tentative parser (§7.10) will require additions for new declaration syntax (`static_assert` with no message, `consteval if`, `= delete("reason")`). Tracked in the LLVM Phabricator and Discourse under "Clang C++26 Status."
+- **Left-recursion support in tree-sitter grammars:** A long-standing tree-sitter limitation (§7.6, §7.7) is that left-recursive grammar rules require manual transformation. There is active community discussion (github.com/tree-sitter/tree-sitter/issues/1) on incorporating the Warth-Douglass-Millstein packrat left-recursion technique directly into the tree-sitter grammar compiler.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Clang incremental parsing API stabilization for clangd and ClangIR:** The `clang-repl` and `clangd` teams are working toward a stable incremental-parse API (tracked in LLVM RFC "Incremental Clang" on discourse.llvm.org) that would allow external tools to subscribe to fine-grained AST diff events rather than receiving full re-parsed ASTs, narrowing the gap with tree-sitter's microsecond-level updates while retaining Clang's semantic accuracy.
+- **Probabilistic / neural-assisted error recovery:** Academic work (e.g., "Syntax Error Recovery Using a Grammar-Aware Language Model," ECOOP 2023 and follow-ons) proposes using small language models fine-tuned on token-level grammar signals to suggest recovery insertions and deletions, replacing the heuristic phrase-level and panic-mode strategies of §7.8. Expect prototype integration into language workbenches and potential LSP-layer adoption by 2028.
+- **Formal grammar extraction from Clang's hand-written parser:** Researchers at ETH Zürich and CMU have periodically attempted to reverse-engineer a formal CFG from Clang's recursive-descent C++ parser for use in formal-verification tools and grammar-based fuzzing (e.g., the "C-Reduced" and `grammarinator` projects). A fully validated CFG for C++26 that mechanically matches Clang's parsing decisions would be a significant artifact; ongoing effort is needed through 2028.
+- **GLR parsing in production language servers:** Several language server protocol implementations for Haskell (HLS), Scala (Metals), and OCaml (ocaml-lsp) are investigating GLR-based partial parsing to handle incomplete expressions during typing. The O(n³) concern (§7.3) is mitigated by applying GLR only to small locally-changed regions, not the whole file — an architectural approach traceable to the Incremental Packrat Parsing paper (Ryo Sato et al., PEPM 2023).
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Verified parser generators from formal grammar specifications:** The CompCert and Vellvm projects (Chapter 95) show the feasibility of verified compilers; a verified LR table generator — one that produces a machine-checked proof that the generated LALR(1) automaton correctly implements the input grammar — would eliminate entire classes of parser generator bugs. The Menhir parser generator already has a partial Coq mechanization; completing this proof and extending it to cover LALR-to-LR(1) equivalence is a plausible 5-year research target.
+- **Context-free-core parsers for context-sensitive languages:** C++'s context-sensitive parsing (§7.10) forces Clang to interleave name lookup with syntax analysis. A clean separation — a context-free core parser that produces a forest of ambiguous trees, followed by a semantic filter that prunes the forest — would enable formal grammar specifications and better error isolation. Research prototypes exist (Erdweg et al., "SugarJ," OOPSLA 2011; layout-sensitive parsing in Rascal MPL); production adoption for a C-family language remains open.
+- **ALL(*)-style adaptive parsing for MLIR's tablegen-generated parsers:** MLIR's op/dialect parsers are currently hand-written or tablegen-generated LL(1) parsers with fixed lookahead. As the MLIR dialect ecosystem grows (currently 80+ in-tree dialects), conflicts between dialect syntax extensions will increase. An adaptive ALL(*)-style engine that resolves dialect grammar conflicts at parse time — similar to how ANTLR 4 handles grammar plug-ins — is a long-term architectural need for MLIR's extensible parser (tracked informally in MLIR Discourse under "Dialect syntax conflicts").
+
+---
+
 ## 7.11 Chapter Summary
 
 - **Context-free grammars** G = (V, T, P, S) generate exactly the context-free languages, the appropriate formalism for the syntactic level of programming languages. Leftmost and rightmost derivations yield the same parse trees; the tree is the semantic object, the derivation the construction method.

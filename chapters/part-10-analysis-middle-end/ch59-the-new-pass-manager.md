@@ -444,6 +444,32 @@ LLVM provides `createModuleToFunctionPassAdaptor(createLegacyPMPass<LegacyPassT>
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **MachineFunction pass manager migration**: The ongoing effort to port all backend SelectionDAG and register-allocation passes from the legacy `MachineFunctionPass` infrastructure to `MachineFunctionPassManager` (NPM-style). Tracked in LLVM Discourse RFC "New PM for CodeGen" and multiple in-flight patches — e.g., `BranchFolding`, `PEI`, and `VirtRegMap` ports — expected to reach feature-complete status.
+- **`-enable-new-pm=0` removal**: The legacy `opt` flag `--enable-new-pm=0` and underlying `PassManagerBuilder` infrastructure are targeted for removal once the final `CodeGenPassBuilder` MachineFunction ports land; the deprecation warnings already present in LLVM 22 will escalate to hard errors in a near-term release.
+- **`PipelineTuningOptions` expansion**: New tuning knobs being proposed on LLVM Discourse include per-pass iteration budgets and a `EarlyCSERemat` option for the EarlyCSE pass, driven by observed compile-time regressions at Google and Meta with certain large TU inputs.
+- **`PassPlugin` ABI stabilization**: Completing the stable-ABI `PassPlugin` interface (initiated with `llvmGetPassPluginInfo`) so that out-of-tree plugins loaded via `-fpass-plugin=` survive LLVM minor-version bumps without recompilation; prototype patches are under review for LLVM 23.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Concurrent analysis computation**: Extending `AnalysisManager` to allow parallel evaluation of independent analyses within a single IR unit (e.g., computing `DominatorTree` and `PostDominatorTree` in parallel threads). This requires extending the invalidation protocol with a reader-writer lock on the results cache; early design discussion started on llvm-dev in 2025.
+- **Demand-driven pipeline scheduling**: Moving from the current sequential pass ordering (fixed by `PassBuilder`) toward a demand-driven model where the manager schedules passes on-the-fly as analyses are requested, similar to query-based compiler architectures (Rust `rustc_query_system`, Salsa). A proof-of-concept IR was prototyped in "Incremental LLVM" (LLVM GSoC 2024).
+- **Typed IR units for MLIR/LLVM interop**: Generalizing the NPM `PassManager<IRUnitT>` abstraction to work uniformly over MLIR `Operation*` as an IR unit, enabling a single pass-manager registration infrastructure shared between LLVM and MLIR pipelines. Discussed in the MLIR+LLVM convergence track at the 2025 LLVM Dev Meeting.
+- **Profile-guided pipeline selection**: Integrating PGO summary data into `PassBuilder::buildPerModuleDefaultPipeline` so that hot/cold partitioning influences which passes run and with what parameters (e.g., skipping loop unroll for cold loops even in `-O3`), eliminating the need for manual `[[likely]]`/`__builtin_expect` hints to affect pass behavior.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Persistent incremental compilation cache**: A fully persistent `AnalysisManager` backed by a content-addressed on-disk store, allowing analysis results (dominator trees, alias analysis summaries, loop nests) to survive across separate `clang` invocations for the same TU. This makes fine-grained incremental rebuilds possible at the LLVM IR level, complementing module-level caching in `ccache`/`sccache`.
+- **Formal specification of the `PreservedAnalyses` protocol**: Machine-checked proofs (in Lean 4 or Coq) that a pass declaring `PA.preserveSet<CFGAnalyses>()` cannot have modified the CFG, enabling an optimizer verifier to statically enforce invalidation soundness rather than relying on `llvm::VerifyEach` dynamic checking at `-O0`.
+- **AI-guided pass ordering**: Reinforcement-learning agents (building on the MLGO / ML-guided inliner work already in LLVM 22) extended to full pipeline ordering decisions — learning which pass sequence minimizes final binary size or execution time for a given workload class, with the NPM's textual pipeline format serving as the action space.
+
+---
+
 ## Chapter Summary
 
 - The new pass manager (NPM) uses concept-based polymorphism: passes are value types with `run(IRUnit&, AnalysisManager&)` methods; no virtual base class required.

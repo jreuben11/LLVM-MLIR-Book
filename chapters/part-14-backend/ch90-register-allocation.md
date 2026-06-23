@@ -256,6 +256,32 @@ MRI.setRegBank(VReg, *RB);
 MCRegister PhysReg = tryAssignWithinBank(VReg, RB, ...);
 ```
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **GlobalISel register allocator parity with SelectionDAG**: Ongoing LLVM community effort to bring the GlobalISel `RAGreedy` path to full feature parity with the SelectionDAG greedy allocator, including region splitting and the complete eviction cascade logic; tracked in the GlobalISel meta-bug on LLVM GitHub and multiple in-flight patches targeting `llvm/lib/CodeGen/GlobalISel/RegBankSelect.cpp`.
+- **Improved spill weight heuristics for SIMD/vector registers**: Patches under review to adjust `VirtRegAuxInfo::weightCalcHelper` for wide vector registers (SVE, AVX-512, RISC-V V extension), where type cost multipliers do not reflect actual reload latency; coordinated with the AArch64 and RISC-V backend maintainers.
+- **Register allocation hints for copy-propagation coalescing**: RFC on discourse.llvm.org for extending `TargetRegisterInfo::getRegAllocationHints()` to accept multi-hop copy chains, reducing the number of mandatory `COPY` instructions produced by `SplitKit` after region splitting.
+- **`RAFast` two-pass block scan**: Patch series adding a second backward scan to `RAFast` (`llvm/lib/CodeGen/RegAllocFast.cpp`) to improve hint satisfaction at `-O0`, reducing the number of redundant reloads in debug builds without violating the O(n)-per-block complexity guarantee.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **ML-guided eviction and splitting decisions in RAGreedy**: Following the LLVM ML-guided inliner (`MLInlineAdvisor`) and regalloc score model introduced in LLVM 17–19, the community is extending `MLRegallocPriorityAdvisor` to also control eviction thresholds and region-split boundary selection; training data from competitive benchmarks (SPEC CPU 2017, Geekbench) expected to reduce spill counts 5–10% on x86-64 and AArch64.
+- **PBQP allocator replacement with ILP-based solver**: Research prototypes (e.g., Braun & Hack 2009 lineage, revived in the context of RISC-V heterogeneous register files) propose replacing the graph-reduction PBQP solver with a modern ILP solver (GLPK or HiGHS) for targets with more than ~32 constrained register pairs, where the current reduction order degrades solution quality.
+- **Two-address coalescing integrated into greedy allocation**: Proposal to merge register coalescing more tightly into the greedy allocation loop — currently `RegisterCoalescer` runs as a separate pre-allocation pass — so that coalescing decisions update spill weights and interference information in the same priority queue used by `RAGreedy`, eliminating the need for post-allocation copy cleanup.
+- **Improved `SpillPlacementAnalysis` for irreducible CFGs**: The current min-cut model in `SpillPlacement.cpp` assumes a reducible CFG (loop nesting structure); a planned extension using Lengauer-Tarjan dominator decomposition will handle irreducible CFGs arising from computed-`goto` lowering (Fortran `ASSIGNED GOTO`, C `__builtin_expect` chains) and coroutine frame dispatch tables.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Dataflow-based live range splitting with SSA reconstruction**: A long-term research direction (building on Braun et al. "Simple and Efficient Construction of Static Single Assignment Form", CC 2013) aims to redesign `SplitKit` so that split intervals are reconstructed in SSA form without the current "open/select/close" interval sequence, enabling tighter interaction with the combiner and allowing splitting to be re-triggered after late-machine-CSE and post-RA scheduling.
+- **Heterogeneous ISA register allocation (RISC-V P-extension, Arm CCA)**: As RISC-V embedded profiles (RVP, Zve32x) and Arm Confidential Compute Architecture introduce privilege-stratified register files requiring runtime-visibility checks, the allocator will need to model availability constraints that are not statically known at compile time; likely requires a new `DynamicRegisterClass` abstraction in `TargetRegisterInfo`.
+- **Verified register allocator via proof-carrying code**: Building on Vellvm (Zhao et al.) and the CompCert verified backend lineage, research groups are exploring mechanically verified register allocators for LLVM IR → MachineIR transformations using Rocq (formerly Coq) or Lean 4, with spill correctness and liveness preservation as the primary proof obligations; expected to target security-critical embedded targets (automotive ASIL-D, avionics DO-178C).
+
+---
+
 ## Chapter Summary
 
 - Register allocation maps virtual registers to physical registers, inserting spill/restore code when physical registers are exhausted; the problem is NP-hard (graph colouring) but tractable with good heuristics.

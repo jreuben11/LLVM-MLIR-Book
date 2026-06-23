@@ -550,6 +550,32 @@ Tests are organized by the standard's chapter structure: `test/std/algorithms/`,
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **ABI version 3 stabilization**: The `LIBCXX_ABI_UNSTABLE` / `__3` inline-namespace track is expected to graduate to stable in LLVM 23, incorporating C++23/26 layout changes to `std::string`, `std::optional`, and `std::variant`; tracked via the libc++ ABI changelog at [ABIStability.rst](https://github.com/llvm/llvm-project/blob/main/libcxx/docs/ABIStability.rst) and active Phabricator reviews.
+- **C++26 `std::execution` (P2300R10) integration**: The Senders/Receivers async execution framework, finalized in the C++26 IS, will land in libc++ as `<execution>` alongside the existing PSTL; early patches are tracked under the LLVM libc++ C++26 status page at [Cxx2cStatus.rst](https://github.com/llvm/llvm-project/blob/main/libcxx/docs/Status/Cxx2cStatus.rst).
+- **Hardening framework expansion**: Plans to extend `_LIBCPP_HARDENING_MODE_FAST` checks to `std::span`, `std::string_view`, and `std::mdspan` boundary operations without measurable overhead, following [D157104](https://reviews.llvm.org/D157104)-style microarchitecture benchmarking.
+- **`std::simd` (P1928) prototype**: An initial implementation of `<simd>` (the C++26 portable SIMD types) is being upstreamed with x86 AVX-512 and AArch64 NEON backends, tracked under the libc++ C++26 status matrix.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Complete C++26 IS coverage**: Full implementation of all C++26 features including `std::execution`, `std::contracts` library-side helpers, `std::inplace_vector`, and reflection-based standard library introspection (P2996), bringing libc++ to the same standard-completeness level it achieved for C++20 by LLVM 16.
+- **PSTL GPU backend via SYCL/OpenCL**: A third-party-contributed PSTL backend targeting GPU offload via LLVM's SYCL toolchain (Intel oneAPI and Clang's SYCL mode), enabling `std::for_each(std::execution::par_unseq, ...)` to dispatch to GPU kernels transparently; design discussions ongoing on the libc++ mailing list.
+- **Modules-first header redesign**: Replacing the `include/__algorithm/sort.h` split-header tree with a module-partition-native layout where each `__`-prefixed header maps to a C++23 module partition, eliminating the dual-maintenance burden and improving incremental build performance of `import std;` by an estimated 30–40%.
+- **`std::hazard_pointer` and `std::rcu` (C++26 concurrency)**: Implementation of the hazard-pointer and Read-Copy-Update memory reclamation APIs (P2530, P2545), which require integration with the LLVM ThreadSanitizer instrumentation infrastructure so that TSAN can reason about deferred destruction.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Post-C++26 reflection and `std::meta`**: If the static reflection TS (P2996/P3294) advances to a C++29 IS, libc++ will need to expose compile-time `std::meta::info` objects for all standard-library types, requiring deep integration with Clang's AST reflection hooks and a new category of `consteval` standard-library APIs.
+- **Memory-safe subset and formal ABI contracts**: Motivated by government mandates (US NIST SP 800-218A, EU Cyber Resilience Act) requiring memory-safe language components, libc++ may ship an officially blessed "safe profile" — a subset with lifetimebound and hardening annotations covering all APIs — analogous to the C++ Core Guidelines profile enforcement but with formal ABI-level guarantees.
+- **WebAssembly Component Model integration**: As the WASM Component Model (WASI 0.3) matures, libc++ will need a componentized ABI where `std::filesystem`, `std::chrono::time_zone`, and `std::thread` map to WASI capability imports rather than POSIX syscalls, enabling `import std;` to work in sandboxed Wasm environments without a host OS.
+
+---
+
 ## Chapter Summary
 
 - libc++ is LLVM's C++ standard library, targeting C++03 through C++26, serving as the default on Apple/Android and in hermetic toolchains.

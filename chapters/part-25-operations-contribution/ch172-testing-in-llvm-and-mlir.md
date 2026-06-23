@@ -560,6 +560,32 @@ cvise ./interesting.sh large_crashing.c
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **`update_test_checks.py` unification across sub-projects**: The LLVM community is consolidating the multiple per-project update scripts (`update_test_checks.py`, `update_mlir_test_checks.py`, `update_cc_test_checks.py`) into a single canonical tool. Tracked in ongoing discourse.llvm.org threads on test infrastructure modernization; patches are under review to share the common AST-scanning backend.
+- **lit protocol v2 for structured test results**: Work is underway to extend lit's inter-process protocol (used by IDE integrations and CI dashboards) to emit structured JSON result objects per test, enabling richer failure attribution. Relevant to the `llvm-lit` Python package consumed by CMake's `check-*` targets.
+- **`mlir-reduce` strategy plugins**: Patches in review add a plugin interface to `mlir-reduce` so dialect authors can register domain-specific reduction passes (e.g., linalg-aware reduction that preserves indexing-map structure), improving reduction quality for MLIR-specific crashes over the current generic delta strategies.
+- **OSS-Fuzz coverage expansion to new MLIR dialects**: The LLVM OSS-Fuzz integration (`llvm/utils/oss-fuzz/`) is being extended to cover the `transform` dialect fuzzer and the new `mesh` and `irdl` dialects that landed in LLVM 22. RFC posted on discourse.llvm.org/c/infrastructure.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Property-based testing (PBT) for LLVM IR**: Following the success of `Hypothesis`-style PBT in other compiler communities (e.g., GHC's `QuickCheck` harness), there is community interest in a PBT framework for LLVM IR that generates semantically well-formed IR satisfying user-specified invariants (type safety, dominance, loop-closed SSA), rather than the syntactically random IR of `llvm-stress`. Early prototypes based on `libFuzzer`'s structured input mode have been discussed.
+- **Mutation testing of LLVM passes**: Academic work (cf. "Compiler Testing via a Theory of Sound Optimisations", PLDI 2023) proposes applying mutation testing — deliberately injecting faults into pass implementations and verifying test suites detect them — to LLVM's `InstCombine` and `VectorCombine`. Integration with LLVM's CI would give quantitative test-suite adequacy metrics.
+- **Differential testing against GCC and the verified reference**: Automated differential comparison between LLVM-compiled binaries and GCC/Alive2-verified reference outputs is being explored in the context of Alive2's online verifier infrastructure, with the goal of nightly automated miscompilation hunting across a large benchmark corpus (SPEC CPU, AnghaBench).
+- **`mlir-cpu-runner` replacement with `mlir-runner-ng`**: The current `mlir-cpu-runner` is constrained to single-threaded, CPU-only execution. A replacement (`mlir-runner-ng`) that supports GPU offload via the `gpu` dialect's CUDA/HIP runtime and multi-threaded async execution is in early design; this would unify integration testing for the full lowering stack including `spirv` and `nvvm` dialects.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Formal verification of FileCheck semantics**: FileCheck's matching semantics (especially `CHECK-DAG` interaction with `CHECK-NOT` across regions) has historically had subtle bugs. Research into a formally specified model of FileCheck semantics — potentially verified in Lean 4 or Coq — would allow mechanically checking that the implementation matches the specification and that test patterns mean what authors intend.
+- **LLM-assisted test generation integrated into the LLVM workflow**: Following academic work on LLM-based test generation for compiler passes (e.g., FuzzGPT, CovRL-Fuzz), LLVM may adopt an AI-assisted workflow where a fine-tuned model suggests FileCheck patterns, generates unit test stubs for new passes, and flags under-tested code paths detected via coverage feedback from OSS-Fuzz corpus data.
+- **Universal compiler differential oracle**: A community-maintained, continuously running differential oracle that cross-checks LLVM output against multiple reference backends (LLVM AArch64 vs. x86-64, LLVM vs. GCC, MLIR vs. TensorFlow XLA) across the full test corpus, providing structured miscompilation reports tagged by responsible pass — analogous to how browser compatibility test suites (WPT) serve the web ecosystem.
+
+---
+
 ## Chapter Summary
 
 - **lit** (LLVM Integrated Tester) runs test files containing embedded `RUN:` shell commands; `FileCheck` verifies the output against embedded patterns.

@@ -511,6 +511,32 @@ bool Failed = Verifier.verify(*MF);
 
 Pass implementers should call `MF->verify(this, "after my pass")` at the end of any pass that modifies MIR to catch regressions early. The verifier prints the first failing invariant together with the offending MachineInstr, making it a first-line debugging tool.
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **MIR serialization versioning**: The LLVM community has discussed adding an explicit schema version to `.mir` files (discourse.llvm.org RFC: "MIR format stability") so that out-of-tree downstream users can detect breaking changes in the YAML structure without silently misinterpreting fields after upstream rewrites.
+- **`MachineFunctionProperties` expansion for GlobalISel convergence**: Ongoing patches (e.g., D-series reviews merging GlobalISel `RegBankSelected` and `Selected` properties into a unified pipeline property set) aim to allow `MachineVerifier` to apply the correct invariant set regardless of whether SelectionDAG or GlobalISel populated the MIR.
+- **`MachineMemOperand` LLT migration**: Several in-flight patches replace the legacy `MachineValueType`-based size field in `MachineMemOperand` with `LowLevelType (LLT)` for byte-granular and non-power-of-two access sizes required by RISC-V Zvbb/Zvbc vector extensions and AArch64 SVE2 scatter/gather.
+- **`--run-pass` pipeline improvements for `llc`**: Work to allow composing multiple `-run-pass=A,B,C` sequences without rebuilding the full target machine is underway, improving MIR-based unit test ergonomics for multi-pass studies.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **MIR as a stable IR contract between LLVM and commercial backends**: As more proprietary hardware vendors integrate with LLVM via out-of-tree backends (e.g., AI accelerator vendors), there is growing pressure (discussed at LLVM Developers' Meeting 2024–2025) to stabilise the MIR format and the `MachineFunction` C++ ABI so that backends can be shipped as versioned shared libraries rather than requiring in-tree builds.
+- **Fine-grained `MachineInstr` cost modelling integrated into MIR**: Current `TargetInstrInfo::getInstrLatency` and `getOperandLatency` data live in TableGen outside MIR. A proposed redesign would embed per-`MachineInstr` resource annotations directly in the MIR representation, enabling post-isel passes to make scheduling decisions without re-querying the `ScheduleDAG` infrastructure.
+- **MIR-level debug info completeness**: The "Assignment Tracking" project (landed incrementally from LLVM 16 onward) continues to extend `DBG_INSTR_REF` and `DBG_VALUE` coverage at the MIR level, targeting 100% variable-location coverage through the RA pipeline; remaining gaps include spill tracking across inlining boundaries and SIMD lane-split variables.
+- **Probabilistic branch weight migration from `BranchProbability` to floating-point**: Current `BranchProbability` 32-bit fixed-point encoding (denominator 2^32−1) loses precision for deeply nested loops; an RFC has proposed migrating to IEEE-754 `float` weights stored in `MachineBasicBlock`, with serialisation in `.mir` as decimal values.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **MachineIR as the compilation target for MLIR backend dialects**: The MLIR `llvm` dialect currently lowers to LLVM IR and then re-enters the SelectionDAG pipeline; a proposed "MIR dialect" for MLIR would allow hardware-specific MLIR passes to emit Machine IR directly, eliminating the SSA→DAG→SSA round-trip and enabling MLIR-native scheduling and register allocation research to feed directly into production LLVM backends.
+- **Formal semantics and mechanised verification of MIR invariants**: Following the success of Alive2 for LLVM IR, researchers (inspired by the Vellvm project for LLVM IR in Coq) have proposed a Lean 4 or Rocq (Coq) mechanisation of `MachineVerifier` invariants, enabling machine-checked proofs that backend passes preserve MIR well-formedness — a prerequisite for certified compilation through the backend.
+- **Concurrent `MachineFunction` modification for parallel codegen**: Current LLVM codegen serialises all passes over a single `MachineFunction` on one thread. Long-term research (building on the `--enable-parallel-regionalization` experiments from LLVM 19) envisions thread-safe `MachineRegisterInfo` and `MachineFrameInfo` modifications so that independent basic-block regions within a large function can be processed in parallel, targeting latency reductions for very large generated functions (LLM-generated code, HPC kernels).
+
+---
+
 ## Chapter Summary
 
 - `MachineFunction` is the root container, aggregating `MachineRegisterInfo`, `MachineFrameInfo`, `MachineConstantPool`, and the `MachineBasicBlock` list.

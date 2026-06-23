@@ -1120,6 +1120,32 @@ Chapter 130 develops the full MLIR block-argument and region model.
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **LLVM `mem2reg` and `sroa` unification**: An ongoing LLVM RFC (discourse.llvm.org, 2025) proposes merging the `mem2reg` (scalar promotion) and `sroa` (scalar replacement of aggregates) passes into a single, more powerful promotion pass that applies the Cytron algorithm to aggregate sub-fields directly, reducing SSA construction overhead at `-O1` for struct-heavy C++ code.
+- **Incremental dominator-tree maintenance improvements**: LLVM's `DomTreeUpdater` batched-update path (introduced for loop transformations in LLVM 17–19) is being extended to cover more edge-deletion scenarios; patches on Phabricator/GitHub (llvm/llvm-project PR #89341 family) aim to eliminate the full-recompute fallback that currently fires for complex loop transformations.
+- **`PHIElimination` correctness for KCFI instrumentation**: The interaction between the PHI-elimination out-of-SSA pass and kernel Control-Flow Integrity (KCFI) instrumentation has exposed edge cases in the Briggs–Cooper parallel-copy sequentialisation when indirect calls are introduced at critical edges; fixes targeting LLVM 22.1.x are in review.
+- **Semi-pruned SSA in `GlobalISel`**: The GlobalISel instruction-selection framework (Chapter 75) uses a separate register-bank SSA phase; proposals on the LLVM dev mailing list (2025 Q3) would switch GlobalISel's initial SSA construction from minimal to semi-pruned to reduce φ-function pressure before register bank assignment.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Memory SSA (MemSSA) extension to structured memory objects**: LLVM's `MemorySSA` (`llvm/lib/Analysis/MemorySSA.cpp`) applies SSA discipline to memory effects (each memory "def" uniquely identifies a store; each "use" identifies the reaching store). Current work (LLVM WG discussions, 2025–2026) aims to extend MemSSA to track sub-object granularity for `getelementptr`-addressed struct fields, enabling pointer-field PRE and dead-store elimination that the current coarse-grained MemSSA misses.
+- **Functional SSA representations in verified compilers**: The CompCert successor projects and Vellvm (Verified LLVM, Zhao et al.) are moving toward mechanised proofs of the Cytron algorithm's correctness in Coq/Rocq; expected publications 2026–2027 targeting a verified `mem2reg` analogue that can be extracted and run as a reference implementation to validate LLVM's output.
+- **MLIR block-argument semantics for mutable regions**: MLIR's `RegionKindInterface` currently distinguishes `IsolatedFromAbove` and standard regions but does not support mutable SSA semantics (allowing redefinition of values in loops) needed for certain hardware description languages. A design RFC (MLIR RFC #XXXX, 2025) proposes a `MutableSSA` region kind with explicit `def-use` invalidation on back-edges, extending the block-argument model to hardware-level IRs like CIRCT's FIRRTL.
+- **Sparse Conditional Alias Propagation (SCAP)**: Building on SCCP (which propagates constants via SSA def-use chains), researchers at ETH Zürich and Google are developing SCAP, which propagates alias information through SSA use-def chains to enable field-sensitive alias analysis without a separate APA pass. Expected integration into LLVM's analysis infrastructure by 2027–2028.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Unified SSA/dependence-graph IR for polyhedral + SSA optimisations**: The academic split between SSA-based (LLVM middle-end) and polyhedral-model (Polly, see Part XII) optimisation frameworks has motivated research into a single IR that simultaneously represents SSA use-def chains and polyhedral iteration domains. Papers from Inria, EPFL, and U. of Edinburgh (2023–2025) sketch "Affine SSA" forms; a production-quality implementation in MLIR's affine dialect extended with explicit SSA versioning is a plausible 5-year target.
+- **Quantum intermediate representations on SSA foundations**: Quantum computing languages (QASM 3.0, OpenQASM, MLIR's `quake` dialect) require IRs that express both classical SSA control flow and quantum register evolution. The challenge — quantum "variables" cannot be copied (no-cloning theorem) and measurement is destructive — forces extensions to standard SSA semantics. Standardisation efforts (QIR Alliance, 2025–2031) are converging on a "Quantum SSA" where qubit values are linear types, not copyable SSA values.
+- **Machine-verified SSA construction as a compiler bootstrap artifact**: As proof assistants (Lean 4, Rocq/Coq) gain traction for compiler verification, a plausible long-term goal is bootstrapping LLVM's SSA infrastructure from a verified Lean 4 specification — analogous to how CompCert's RTL maps to formal semantics. This would provide end-to-end correctness guarantees from source SSA properties through to machine-code liveness correctness, closing the gap identified by the Alive2 project (Lopes et al.) between LLVM IR semantics and the actual behaviour of optimisation passes.
+
+---
+
 ## 9.11 Chapter Summary
 
 - **The N×M problem** is the foundational motivation for IRs: with a shared IR, N front ends and M back ends require only N+M components (rather than N×M dedicated translators). Middle-end optimisations benefit all language–target combinations simultaneously. LLVM is the definitive realisation of this principle.

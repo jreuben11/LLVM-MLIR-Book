@@ -753,6 +753,32 @@ For native constraint failures, adding a temporary `llvm::errs()` call in the co
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **PDL generic type constraints in PDLL**: An ongoing effort ([discourse.llvm.org RFC "PDLL generic constraints"](https://discourse.llvm.org/c/mlir/31)) to allow PDLL `Constraint` declarations to be parameterized over MLIR types, reducing the need for one constraint per concrete element type (e.g., `IsZeroI32`, `IsZeroI64`, etc.) into a single generic.
+- **`mlir-pdll-lsp-server` completion for native blocks**: The `mlir-pdll-lsp-server` currently lacks autocomplete inside `[{ ... }]` C++ native blocks; work is in progress to delegate those spans to `clangd`, mirroring how TableGen's LSP server handles `let` C++ expressions.
+- **PDL `pdl.range<operation>` matching**: Extending the PDL type system with `!pdl.range<operation>` to enable patterns that match variable-length op sequences (e.g., matching a chain of consecutive `linalg.generic` ops), tracked in the MLIR issue tracker as a prerequisite for declarative fusion patterns.
+- **PDL bytecode serialization stability**: Stabilizing the `pdl_interp` bytecode format as part of the broader MLIR bytecode stabilization effort so that precompiled `.mlirbc` pattern files remain forward-compatible across minor LLVM releases.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Declarative multi-root pattern matching**: Extending PDLL to support patterns rooted at multiple operations simultaneously — essential for declarative expression of producer-consumer fusion without falling back to C++ — building on the `pdl.range` work and taking inspiration from the IRDL (IR Definition Language) dialect's structural matching approach.
+- **PDL-based graph-rewrite engine**: Replacing the greedy `applyPatternsGreedily` driver with a PDL-native graph rewrite engine that can enumerate all matches before committing to replacements, enabling globally-optimal rewrite strategies (analogous to equality saturation) while keeping patterns in declarative form.
+- **Formal verification of PDL correctness**: Integration of PDL patterns with the Alive2-style SMT-based verification infrastructure, so that PDLL canonicalization patterns can be automatically verified as semantics-preserving transformations before being merged into the monorepo.
+- **PDLL pattern libraries as shared dialect packages**: A packaging convention for distributing PDLL pattern files alongside dialect `.so` plugins, enabling dynamic pattern loading (`PDLPatternModule`) without requiring source access to the dialect, supporting the MLIR plugin ecosystem.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Unified declarative/imperative pattern IR**: A next-generation unified pattern representation that subsumes PDL, PDLL, `Pat<>`, and DRR (Declarative Rewrite Rules), with a single front-end language that supports both the structural-match declarative cases and the multi-step, state-accumulating imperative cases — eliminating the hard split between `RewritePattern` C++ and PDLL.
+- **Machine-learned pattern generation from PDL corpora**: Using large corpora of existing PDLL and `Pat<>` patterns across MLIR dialects as training data to suggest or synthesize new canonicalization patterns for newly authored ops, with the PDL IR as the structured output representation for LLM-generated patterns.
+- **PDL as the interchange format for heterogeneous compiler pass plugins**: Establishing PDL bytecode as the stable ABI-independent format for exchanging optimization patterns between independently developed compiler toolchains (e.g., LLVM, GCC, Cranelift) through a shared pattern repository, analogous to how LLVM IR serves as an interchange for frontends.
+
+---
+
 ## Chapter Summary
 
 - **PDL (Pattern Description Language)** is an MLIR dialect that represents patterns as MLIR IR (`pdl.pattern`, `pdl.operation`, `pdl.value`, `pdl.rewrite`), enabling patterns to be processed, serialized, and interpreted like any other MLIR module.

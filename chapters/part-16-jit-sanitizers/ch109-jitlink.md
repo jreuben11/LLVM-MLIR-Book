@@ -752,6 +752,32 @@ for i in $(seq 100); do llvm-jitlink -noexec foo.o; done | time cat
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **COFF/PE completion and ARM64EC support**: The COFF backend in JITLink (tracking LLVM discourse RFC "JITLink COFF improvements") is gaining full coverage for `IMAGE_REL_ARM64_*` relocations and ARM64EC (x64 emulation ABI on Windows on ARM), enabling native JIT compilation on Windows ARM64 hosts without falling back to RuntimeDyld.
+- **LinkGraph serialization for caching**: Ongoing LLVM work to serialize `LinkGraph` state to disk (similar to LTO bitcode caching) so that repeated JIT loads of the same object skip the parse and post-prune phases; tracked in the ORC lazy-compilation caching design thread on discourse.llvm.org.
+- **LoongArch64 ELF backend**: The LoongArch port added to LLVM mainline (see `ELF_loongarch.cpp` landing in 2024) is being extended with full GOT/PLT synthesis and range-extension thunk support to reach feature parity with the AArch64 backend, required by the Chinese domestic JIT runtime ecosystem.
+- **`llvm-jitlink` multi-file benchmark harness**: A structured benchmark suite (`llvm-jitlink-bench`) targeting link-time performance regressions for the 9-phase pipeline, planned to run in LLVM's CI alongside existing JITLink unit tests.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Out-of-process JITLink hardening for sandboxed runtimes**: `MapperJITLinkMemoryManager` + `SimpleRemoteEPC` are being evolved to support capability-based sandbox models (e.g., WebAssembly component model, Fuchsia Zircon handles) where the executor process holds no writable+executable mapping capability; requires protocol changes to the EPC RPC surface.
+- **Speculative and tiered compilation integration**: JITLink is expected to gain a "hot-patch" code replacement API, allowing ORC's tiered compilation layers (baseline interpreter → JIT tier 1 → JIT tier 2) to atomically swap in a higher-tier function pointer after finalization, replacing the current stop-the-world approach used by tools like Julia's LLVM JIT.
+- **LinkGraph-level profile-guided optimization (PGO) in JIT**: Feeding runtime branch-frequency counters back into JITLink's dead-stripping and GOT-relaxation passes, enabling the linker to eliminate cold stubs and collapse indirect calls to direct calls based on observed monomorphic callsites — an effort tied to the ORC speculative compilation research track.
+- **Improved RISC-V relaxation coverage**: Full support for the `R_RISCV_RELAX` + `R_RISCV_ALIGN` pair (linker-relaxation of `CALL` to compressed `C.JAL`, and `NOP` padding removal) requires JITLink to model instruction-length rewriting in the `Block` abstraction; this is under active discussion in the RISC-V psABI working group and LLVM backend community.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Heterogeneous device JITLink**: Extension of the `LinkGraph` + `JITLinkMemoryManager` model to manage code objects targeting GPU compute (AMDGPU HSA, NVPTX PTX → cubin) and FPGA bitstreams, unifying the object-loading pipeline across CPU and accelerator targets under a single ORC session with device-specific `JITLinkPlugin` implementations.
+- **Formally verified relocation fixup correctness**: Drawing from the Vellvm and Alive2 research traditions, formal specification of the JITLink relocation semantics (edge-kind fixup formulas, range-check conditions, W^X invariant) in a proof assistant (Lean 4 or Coq), enabling machine-checked proofs that the fixup engine cannot produce memory-unsafe writes; aligned with the broader verified-compilation research agenda (Chapter 144).
+- **Persistent in-process code cache with ASLR re-relocation**: A production-grade JIT code cache that survives process restart by persisting finalized `LinkGraph` allocations to a shared memory segment, with a re-relocation pass that patches absolute addresses after ASLR repositioning on reload — analogous to system shared library prelinking but for JIT-compiled functions.
+
+---
+
 ## Chapter 109 Summary
 
 - JITLink replaces RuntimeDyld as ORC's in-process linker, addressing W^X compliance, concurrency, plugin extensibility, and incomplete platform support.

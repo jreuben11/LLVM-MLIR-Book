@@ -525,6 +525,32 @@ Chrome DevTools can step through the original C/C++ source if it can fetch the s
 | Closure JS minification | `--closure 1` | 50–70% of JS glue |
 | Wasm binary compression (gzip/brotli) | Server-side | 60–80% transfer |
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **JSPI standardization and broad adoption**: The WebAssembly JavaScript Promise Integration proposal is advancing through W3C standardization after its Chrome Origin Trial; Emscripten's `-sJSPI=1` flag is expected to stabilize and `-sASYNCIFY` will be positioned as the legacy fallback. Track [WebAssembly/js-promise-integration](https://github.com/WebAssembly/js-promise-integration) for spec finalization.
+- **MEMORY64 (wasm64) production readiness**: The wasm64 (`-sMEMORY64=1`) path is nearing stable status in Emscripten as browser engines (V8, SpiderMonkey) complete their MEMORY64 implementations; expect production-ready wasm64 support enabling >4 GB heaps for large scientific and media workloads by late 2026.
+- **Binaryen stack-switching integration**: Binaryen's stack-switching transform (the WebAssembly [stack-switching proposal](https://github.com/WebAssembly/stack-switching)) is being prototyped as a lower-overhead alternative to Asyncify's unwind/rewind model; early Emscripten integration (`--stack-switching`) targets experimental use in 2026.
+- **Embind ES module output and tree-shaking**: Emscripten's `--bind` output is being refactored to emit native ES modules with named exports, enabling bundlers (Vite, Webpack, Rollup) to tree-shake unused Embind bindings; the [emscripten#21xxx RFC thread](https://github.com/emscripten-core/emscripten/issues) tracks this effort.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **WebAssembly GC interop from C++**: As the [Wasm GC proposal](https://github.com/WebAssembly/gc) (now at Phase 4) reaches full browser support, Emscripten will need to integrate Clang's C++ object model with the Wasm GC type system to avoid double-heap overhead when interoperating with JavaScript GC objects—expect new Embind APIs targeting `externref` and `anyref` types.
+- **Component Model adoption replacing JS glue**: The WebAssembly [Component Model](https://github.com/WebAssembly/component-model) and its WIT (Wasm Interface Types) IDL aim to replace hand-written JS glue code (EM_JS, ccall/cwrap) with a standardized ABI; Emscripten will gain a `--component` output mode as the toolchain (`wasm-tools`, `wit-bindgen`) matures.
+- **SIMD 128 + Relaxed SIMD optimization integration**: Clang's autovectorizer already targets Wasm SIMD 128; with Relaxed SIMD (Phase 4) widely deployed, Emscripten and wasm-opt will gain backend passes that exploit `relaxed_madd`, `i8x16.swizzle`, and related instructions for DSP, ML inference, and image processing code.
+- **WASI Preview 2 / WASI P3 and Emscripten WASI mode**: WASI Preview 2 (socket, HTTP, filesystem components) standardizes APIs that Emscripten currently implements with browser-specific shims; a unified `emcc --target wasi` mode that supports both browser and server runtimes (Wasmtime, WasmEdge) is on the roadmap, collapsing the wasm32-unknown-emscripten / wasm32-wasi split.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Wasm native debugging without extensions**: The DWARF-in-Wasm format and the Chrome DevTools extension (`wasm-debugging-extension`) are expected to be fully integrated into all major browser DevTools natively, eliminating the need for the separate extension and making C/C++ source-level debugging in the browser as seamless as JavaScript debugging.
+- **Multi-memory and shared-everything threads**: The [WebAssembly multi-memory](https://github.com/WebAssembly/multi-memory) and [shared-everything threads](https://github.com/WebAssembly/shared-everything-threads) proposals, if adopted, will allow Emscripten to map separate C heaps, stack segments, and TLS regions onto distinct Wasm memories, eliminating the single-linear-memory constraint and enabling safer isolation between components in the same module.
+- **C++ modules and binary interface standardization**: LLVM's work on C++20/C++ modules (BMI files) combined with the Wasm Component Model could yield a stable binary interface for C++ libraries distributed as `.wasm` components—analogous to shared libraries—shareable across applications without recompilation, ending the "recompile everything from source" requirement of the current Emscripten port system.
+
+---
+
 ## Chapter Summary
 
 - Emscripten compiles C/C++ to WebAssembly via `clang --target=wasm32-unknown-emscripten`, `wasm-ld`, and Binaryen post-processing; the sysroot includes musl libc, libc++, and browser-compatible ports of SDL2/OpenGL

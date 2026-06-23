@@ -872,6 +872,32 @@ clangd's `HeaderSearch` integration uses `FileManager::getOptionalFileRef` with 
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **64-bit `SourceLocation` migration**: The LLVM community has long discussed upgrading `SourceLocation` from 32-bit to 64-bit to remove the 2 GiB virtual address-space ceiling. An RFC on discourse.llvm.org (tracked under the `clang:source-location` tag) outlines a phased migration: first widening `SourceLocation::UIntTy` to `uint64_t`, then adjusting `SLocEntry` offsets and `FileID` encoding. Near-term work focuses on identifying all 32-bit-assuming cast sites and adding overflow diagnostics to CI.
+- **`FileEntryRef` completion**: The migration from raw `FileEntry*` to `FileEntryRef` across all Clang subsystems (begun in LLVM 16) is ongoing. The remaining holdouts — several `HeaderSearch` and `Module` APIs — are being converted. The migration enables correct name-tracking through VFS redirections, which is prerequisite for deterministic build systems like Bazel's `remap_path` support.
+- **`OverlayFileSystem` snapshot API**: clangd contributors are prototyping a `takeSnapshot()` method on `llvm::vfs::OverlayFileSystem` that produces an immutable view of the VFS state at a given timestamp, allowing multiple background parse threads to share a consistent file-system snapshot without mutex contention on the `InMemoryFileSystem` map.
+- **Improved `noteSLocAddressSpaceUsage` tooling**: A patch under review adds a `-Wsource-location-overflow` warning that fires before exhaustion (at 90% capacity), listing the top contributing files and macro expansions by consumed offset range, enabling developers to diagnose issues in CI before they become hard build failures.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Persistent `SourceManager` serialization for incremental compilation**: Research into truly incremental Clang builds (beyond PCH/modules) requires the ability to serialize and restore a `SourceManager` state across compiler invocations that touch only a subset of TUs. This entails a stable on-disk format for `LocalSLocEntryTable`, `LineTableInfo`, and `ContentCache` modification-time fingerprints, with partial-invalidation semantics when individual files change.
+- **`FileManager` inode-free uniquing for content-addressed storage**: Distributed build systems (Bazel, Nix, remote execution) store source files by content hash rather than inode. A `ContentAddressedFileSystem` VFS layer is being prototyped that uniques `FileEntry` objects by SHA-256 digest rather than `UniqueID`, allowing the same physical bytes served from two different paths (e.g., local cache vs. CAS server) to share a single `ContentCache`, reducing re-parsing overhead in distributed environments.
+- **`SourceLocation` integration with LLVM's new `DebugInfo` compression scheme**: LLVM 22+ is adopting DWARF 5's `DW_FORM_line_strp` and the new compressed `.debug_line` format. Mapping `SourceLocation` → `DILocation` currently re-encodes file paths stored in `FileEntry`. Work is underway to share the `FileManager` string table with `DICompileUnit` to eliminate redundant string storage.
+- **Macro expansion tree as a first-class IR node**: A design document proposes adding a `MacroExpansionRecord` node to the Clang AST (or a parallel macro-expansion forest structure) so that tools like `clang-tidy` and `clang-refactor` can operate on macro structure without reconstructing expansion chains from `SourceManager` queries. This would replace ad-hoc `isMacroArgExpansion()` / `isMacroBodyExpansion()` pattern matching with typed tree traversal.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Unified cross-TU source identity**: Large-scale refactoring tools (cross-TU rename, semantic search) need to correlate `FileEntry` identities across independently compiled TUs. The long-term vision is a compiler-daemon model where a single `FileManager` / `SourceManager` forest is shared across all TUs in a compilation database, with fine-grained invalidation when files change — analogous to how IDEs like IntelliJ maintain a persistent project index.
+- **Probabilistic source-location compression for LTO**: Link-time optimization and whole-program analysis operate on merged IR where debug locations from thousands of TUs must coexist. A research direction is replacing 32-bit (or future 64-bit) absolute `SourceLocation` values with a relative delta-encoded representation in bitcode, reducing `.bc` file size and improving cache locality during LTO passes.
+- **Formal specification of the `SourceManager` address-space invariants**: As Clang is increasingly used in verified-compilation pipelines (CompCert-style or via Lean 4 mechanizations), there is interest in machine-checked proofs of the key `SourceManager` invariants: that `LocalSLocEntryTable` offsets are strictly increasing, that the loaded/local halves never overlap, and that `getFileID` returns the unique correct entry. This work would follow the pattern established by the Vellvm project for LLVM IR semantics.
+
+---
+
 ## Chapter Summary
 
 - `SourceLocation` is a 32-bit integer encoding an offset into a virtual address space. Bit 31 distinguishes file locations (0) from macro expansion locations (1). Zero is the invalid sentinel. `getRawEncoding()`/`getFromRawEncoding()` provide the serialization interface.

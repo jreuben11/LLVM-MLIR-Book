@@ -637,6 +637,32 @@ Mechanistic interpretability does not repair capability gaps — that is Chapter
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Gemma-scope and open-SAE standardisation**: Google's Gemma Scope project (released 2024) made SAEs for all Gemma 2 layers publicly available; expect similar releases for Gemma 3 and LLaMA 3.3 models, with the `sae_lens` hub absorbing these under a unified SAE config schema. Track progress at [github.com/jbloomAus/SAELens](https://github.com/jbloomAus/SAELens) and Neuronpedia API v2 discussions.
+- **TopK-SAE training as default**: The `k`-sparse autoencoder variant (Gao et al. 2024, arXiv 2406.04093), which enforces exactly k active features per activation via a top-k hard threshold rather than L1 penalty, is being adopted as the preferred training objective in the `sae_lens` and EleutherAI `eleuther-sae` libraries, eliminating the dead-feature problem without ghost grading. Expect `sae_lens >= 4.0` to ship TopK as the default.
+- **NDIF public access and nnsight 0.4 API**: The National Deep Inference Fabric (ndif.us), providing shared access to LLaMA 3 70B and Mixtral 8×22B for remote nnsight interventions, is expanding capacity through NSF funding. The nnsight 0.4 API (in development at [github.com/ndif-team/nnsight](https://github.com/ndif-team/nnsight)) adds batched path patching and a native `AttributionGraph` builder that wraps the existing `.save()` / `.act_patch()` primitives.
+- **Automated circuit discovery via activation-patching sweeps**: Tools such as `auto_circuit` ([github.com/UFO-101/auto-circuit](https://github.com/UFO-101/auto-circuit)) and Baulab's `dq` library are being integrated with TransformerLens to automate the full IOI-style circuit discovery pipeline — running all pairwise path patches, pruning edges by causal effect threshold, and returning a circuit as a `networkx` graph object — removing the need for manual head selection.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Scalable SAE training for 100B+ parameter models**: The memory and compute cost of caching activations for a 100B-parameter model at every layer is prohibitive with current approaches. Expect streaming-activation SAE training (training on activations generated on-the-fly without caching, analogous to online RL) and hierarchical SAE designs (shallow SAEs per cluster of layers feeding into a deep SAE) to become production-scale solutions, driven by Anthropic's continued scaling of Claude interpretability infrastructure.
+- **Universality verification across model families**: The "universal features" hypothesis — that certain SAE features (base64 encoding, Python syntax, arithmetic operations) recur across GPT-2, LLaMA, Gemma, and Mistral families — will be tested systematically by cross-model feature alignment studies, building on the cross-model SAE comparison framework in Kissane et al. (2024, arXiv 2410.08869). If universality holds at the circuit level (not just the feature level), mechanistic interpretability findings will become transferable across model checkpoints and architectures without re-running full circuit analyses.
+- **Interpretability-informed RLHF and DPO**: Rather than treating mechanistic interpretability as a post-hoc analysis tool, training pipelines will incorporate SAE feature activations as auxiliary reward signals. A model trained with an "honesty feature activation" term in its reward function (using the Zou et al. RepE directions as measurable proxies) is a concrete near-term target for safety-critical applications; Anthropic's Constitutional AI v3 work is expected to incorporate feature-level rewards.
+- **Automated attribution graph generation at inference time**: The Anthropic 2025 attribution graph methodology (computing feature-to-feature causal scores via the residual stream Jacobian) requires significant compute per input. Distilling the attribution computation into a lightweight side network — trained to predict attribution scores from activations without running the full Jacobian — would make attribution graphs available at inference time for production systems, enabling real-time capability monitoring.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Complete mechanistic understanding of a production model capability**: The IOI circuit provided a complete mechanistic account of one capability in GPT-2 medium (345M parameters). By 2031, the field will likely have produced a complete account of one non-trivial capability (multi-step mathematical reasoning, or code synthesis for a restricted language) in a model at the 7B–70B scale, using a combination of automated circuit discovery, SAE feature attribution, and formal verification of the identified algorithm against the weight-space implementation.
+- **Interpretability as a compiler pass for LLM fine-tuning**: Fine-tuning pipelines will incorporate mechanistic interpretability as a structured intermediate representation — analogous to LLVM IR between source language and machine code — where fine-tuning decisions (which layers to update, which features to reinforce) are informed by circuit analysis of the base model. This will enable surgical fine-tuning that preserves base capabilities while precisely adding new ones, replacing the current practice of updating all parameters uniformly.
+- **Formal specification and verification of SAE feature semantics**: SAE features are currently characterised informally by their maximum-activating examples. By 2031, the field is expected to develop formal semantics for feature specifications — machine-readable descriptions of what activates a feature, what it suppresses in the output distribution, and what its upstream/downstream dependencies are — enabling automated regression testing of model capabilities across training runs and serving as the basis for certified safety properties (e.g., "feature 8741 does not activate on inputs from distribution D", provably).
+
+---
+
 ## Chapter Summary
 
 - **Mechanistic interpretability is decompilation**: trained weights are machine code; sparse autoencoder features are the recovered assembly language; circuits are the identified functions; attribution graphs are the call graph. Every tool in this chapter has a direct compiler-analysis analogue.

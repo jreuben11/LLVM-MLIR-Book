@@ -451,6 +451,32 @@ Semantic error tests use `%flang_fc1 -fsyntax-only` with `! CHECK-ERROR:` marker
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Rename `flang-new` to `flang`**: the alias rename has been a recurring Flang community milestone; with SPEC CPU 2017 passing and IFS compiling, the upstream rename RFC (tracked at [discourse.llvm.org](https://discourse.llvm.org/c/flang/)) is expected to land once Windows and macOS toolchain integration testing clears.
+- **Fortran 2023 `RANK` intrinsic and assumed-rank procedure arguments**: PRs implementing `RANK()` and `IS_CONTIGUOUS()` for assumed-rank dummy arguments (`TYPE(*), DIMENSION(..)`) are actively landing; full Fortran 2023 assumed-rank coverage is the near-term target.
+- **Coarray teams (Fortran 2018 §11.6)**: the `FORM TEAM` / `CHANGE TEAM` / `END TEAM` block infrastructure is being plumbed through the semantic checker and lowering bridge; basic single-image coarray correctness is already in, and multi-image OpenCoarrays integration is the next step.
+- **IEEE exception intrinsics completion**: `IEEE_SET_HALTING_MODE`, `IEEE_GET_FLAG`, and `IEEE_SET_FLAG` lowering to `fenv.h` calls via the runtime (`flang-rt`) is being finalized; this unblocks several SPEC benchmarks that rely on IEEE exception trapping.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **HLFIR as the stable Flang IR**: the current dual FIR/HLFIR pipeline will consolidate so that HLFIR is the canonical representation entering the optimization pipeline, with FIR retained only as a lowered assembly-level dialect; this stabilizes the pass API that external tools (e.g., OpenFortranProject consumers) rely on.
+- **Flang plugin API**: a Clang-style `FrontendPluginRegistry` for Flang to allow third-party semantic analysis passes (e.g., MPI usage checkers, polyhedral dependency extractors) without patching the monorepo; the mechanism mirrors `clang/include/clang/Frontend/FrontendPluginRegistry.h`.
+- **Full Fortran 2023 language coverage**: including `DO CONCURRENT` locality specs, `REDUCE` clause semantics, generics (`TEMPLATE`/`REQUIRE`/`INSTANTIATE`), and parameterized-derived-type coarrays; Fortran 2023 was published in November 2023 and the standards committee has already begun work on Fortran 202Y.
+- **Whole-program interprocedural analysis in Flang**: leveraging LLVM's LTO/ThinLTO pipeline for Fortran-specific optimizations (array aliasing via `INTENT` attributes, `PURE`/`ELEMENTAL` procedure devirtualization); this requires integrating Flang's `Symbol` aliasing model into LLVM's alias analysis infrastructure.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Fortran 202Y standard front-end support**: the next Fortran standard (currently in ISO/IEC JTC1/SC22/WG5 committee development) will include generics-by-constraint, enhanced `DO CONCURRENT` semantics, and interoperability extensions; Flang will need to track these changes through the prescanner, parser (new `parse-tree.h` node types), and `ResolveNames` scope logic.
+- **Parallel semantic analysis**: Flang's `ResolveNames` pass is currently single-threaded and its ~8,000-line scope is a compile-time bottleneck for large Fortran codes; a future redesign may parallelize module-level scoping using LLVM's task parallel infrastructure, similar to how Clang's PCH/module system enables parallel frontend work.
+- **Source-to-source transformation and refactoring tools**: a `flang-tidy` / `flang-format` toolchain analogous to `clang-tidy` and `clang-format`, using Flang's ParseTree and `Unparse()` round-trip as the transformation substrate; this is particularly valuable for automated Fortran modernization (Fortran 77 → 2018 migration).
+
+---
+
 ## Chapter Summary
 
 - Flang is LLVM's in-tree Fortran compiler, descended from the f18 clean-room rewrite; the `flang/` subtree covers the full compilation pipeline

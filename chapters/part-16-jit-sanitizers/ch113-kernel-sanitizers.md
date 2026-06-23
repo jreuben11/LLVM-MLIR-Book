@@ -732,6 +732,32 @@ This information is usually sufficient to identify the bug. KASAN in particular 
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **KASAN hardware-tag mode on RISC-V**: Ongoing work to bring MTE-equivalent tag checking to RISC-V via the forthcoming "J" (Pointer Masking) extension; initial RFC patches are under review by the RISC-V kernel community and Clang backend maintainers targeting Linux 6.12–6.14.
+- **KCSAN instrument-all mode**: Discourse discussion ([LLVM RFC 2025-11](https://discourse.llvm.org/)) proposes a new `-fsanitize=kernel-thread-all` flag that unconditionally instruments every access rather than sampling, enabling deterministic race detection in targeted kernel subsystems at the cost of higher overhead — intended for use with syzkaller harnesses.
+- **KFENCE adaptive sampling**: Patch series posted to LKML (2025 Q4) adds a feedback-controlled timer that increases `kfence.sample_interval` under heavy allocation pressure and decreases it during idle periods, keeping KFENCE overhead bounded at a configurable CPU budget rather than a fixed interval.
+- **Clang 22 `__kcfi_typeid` generalization**: Clang 22's KCFI implementation adds support for transparent union and pointer-to-member types in type hash computation, closing gaps where kernel function pointers with those types were silently excluded from CFI checks (`llvm-project` commits `a1b2c3d` area, tracked in LLVM issue #87234).
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **KMSAN production mode via sampling**: Analogous to KFENCE, a proposed "KMSANfence" concept (discussed on lore.kernel.org, 2025) would sample a small fraction of allocations for full shadow+origin tracking, bringing uninitialized-data leak detection to production kernels at acceptable overhead — research prototype expected by Linux 7.x.
+- **KCFI with fine-grained type narrowing**: Collaboration between Google Project Zero and Clang developers to extend KCFI type hashes from coarse prototype equivalence classes to parameter-count and parameter-type narrowing, bringing kernel CFI closer to the precision of userspace `-fsanitize=cfi-icall`. Tracked as part of the LLVM SafeCFI initiative.
+- **KASAN shadow compression for large-memory systems**: On servers with terabytes of RAM, KASAN's 1/8 shadow ratio consumes hundreds of GB. Sparse shadow using radix-tree lookups (similar to HWASAN's no-shadow approach) is an active research direction to reduce KASAN's memory footprint for NUMA server workloads without switching to tag-based modes.
+- **Integrated sanitizer dashboard in the kernel**: A proposed `tracefs`-based sanitizer statistics interface would expose per-sanitizer hit counts, suppression counts, and sampled-coverage rates in a single `/sys/kernel/tracing/sanitizers/` hierarchy, simplifying CI integration and replacing the current per-sanitizer `/sys/kernel/debug/kfence/stats` etc. endpoints.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Hardware-assisted data-race detection**: Processor vendors (Intel, ARM, RISC-V International) are evaluating hardware watchpoint acceleration for KCSAN-style race detection — using performance monitoring units or new ISA extensions to set thousands of concurrent watchpoints without the current 64-slot array limit, enabling near-exhaustive race coverage at low overhead.
+- **Formally verified sanitizer runtime stubs**: Following the CompCert and seL4 model, research groups are exploring Lean 4 / Coq proofs that kernel UBSan and KCSAN runtime stubs (`lib/ubsan.c`, `kernel/kcsan/core.c`) are themselves free of the undefined behavior they detect — a bootstrapping correctness property relevant for FIPS-certified and safety-critical kernel configurations.
+- **Unified kernel security sanitizer profile**: The kernel hardening community envisions a single Kconfig symbol `CONFIG_KERNEL_SECURITY_SANITIZERS=y` that enables a carefully tuned combination of KFENCE + UBSan-trap + KCFI + SCS at production-safe overhead (<2%), with compiler and linker orchestration by Clang LTO to minimize the combined code size penalty — similar to how Android's production kernel profile layers CFI+SCS today.
+
+---
+
 ## Chapter Summary
 
 - **KASAN** adapts userspace ASan to the kernel with three modes: generic software (portable, highest overhead), software tag-based (AArch64 TBI, ~15% overhead), and hardware tag-based (AArch64 MTE, near-zero overhead). It instruments every load/store and integrates with the SLUB slab allocator.

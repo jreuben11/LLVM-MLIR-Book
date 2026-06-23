@@ -824,6 +824,32 @@ Chapter 217's self-reflective inference architecture closes the loop: by reading
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **MEMIT scaling to LLM-scale edits:** The MEMIT authors and follow-on work (WISE, MALMEN) are actively pushing mass-editing capacity toward millions of facts per edit session; expect production-grade model-editing libraries (EasyEdit, memit-hf) to stabilise around a unified `ModelEditor` API supporting ROME/MEMIT/GRACE backends with automatic layer-selection heuristics based on causal tracing, landing in Hugging Face `transformers` as an official utility in H2 2026.
+- **TTT layer integration into production architectures:** Following the TTT Hidden State paper (Sun et al. 2024, arXiv 2407.04620), multiple groups are prototyping TTT-layer drop-in replacements for linear attention layers in Mamba-2 and RWKV-7 architectures; expect publicly benchmarked TTT-hybrid models on the LMSYS Chatbot Arena by October 2026.
+- **SDFT productionisation for instruction-following:** On-policy self-distillation (SDFT, arXiv 2601.19897) is being integrated into post-training pipelines at several labs as a forgetting-resistant alternative to SFT; concrete open-source implementations compatible with TRL (Hugging Face RLHF library) are expected to appear on GitHub within six months following the paper's release.
+- **JAX/Optax continual-learning primitives:** The Optax library (Google DeepMind) has open issues for `ewc_regulariser` and `gem_project` transform wrappers; expect official inclusion in Optax ≥0.2.5, lowering the implementation barrier for EWC and A-GEM from ~100 lines of custom code to a single line combinator.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Differentiable ROME with uncertainty quantification:** Current ROME uses a fixed covariance estimate `C = KK^T` over a static reference corpus; future work will maintain an online Bayesian estimate of the key covariance, enabling ROME updates that include calibrated uncertainty over whether the edited fact is correctly placed, integrating with mechanistic uncertainty frameworks (BayesLLM, arXiv 2312.XXXXX series).
+- **MAML at trillion-parameter scale via implicit differentiation:** Second-order MAML is intractable beyond ~7B parameters due to Hessian-vector product memory; iMAML-style implicit differentiation combined with tensor-parallel CG solvers (running across model-parallel GPU meshes) will extend MAML-class meta-learning to frontier-scale models, with FLOP cost comparable to standard fine-tuning by 2028.
+- **Lifelong weight editing infrastructure in MLIR:** A proposed MLIR dialect for neural weight provenance (tracking which weight tensor originated from which training run, edit batch, or continual-learning task) would make GRACE-style codebook lookups a first-class compiler-visible annotation, enabling backends to cache-specialize inference paths for frequently-used codebook entries — analogous to PGO for model-editing.
+- **Gradient surgery for safety-capability trade-offs:** PCGrad/CAGrad are being extended to RLHF settings where safety reward gradients conflict with capability reward gradients; the multi-objective RL community (Safe RLHF, BeaverTails) expects Pareto-optimal gradient surgery solutions to replace ad-hoc KL penalties in constitutional AI pipelines by 2028.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Model editing as a first-class deployment primitive:** Rather than storing a single monolithic checkpoint, production model serving systems (vLLM, TensorRT-LLM) will maintain a versioned weight-diff store where each ROME/MEMIT edit batch is a signed patch applied on read; the runtime will apply edit patches at model-load time using SIMD-accelerated rank-one matrix updates, enabling per-user or per-organisation model customisation without full checkpoint duplication.
+- **Architecture-aware continual learning via compiler analysis:** LLVM/MLIR-based auto-differentiation tools (Enzyme-AD, MLIR `linalg.generic` reverse mode) will expose loop-structure and aliasing metadata that enables architecturally-aware EWC — computing Fisher information not over all parameters uniformly but prioritising weights in bottleneck layers identified by static liveness analysis of the computation graph, reducing Fisher computation cost by an order of magnitude.
+- **On-device TTT for edge-deployment adaptive inference:** As on-device ML accelerators (Qualcomm Hexagon, Apple Neural Engine) gain JTAG-accessible gradient engines, TTT will move from cloud-only to on-device: smartphones will run a single TTT gradient step on user-specific context before each LLM call, providing personalisation without sending activations to the cloud. The inference runtime (CoreML, NNAPI) will expose a `ttt_adapt_step` API analogous to the existing `predict` API.
+
+---
+
 ## Chapter Summary
 
 - **Model editing operationalises mechanistic interpretability**: ROME (arXiv 2202.05262) uses the causal tracing result from Chapter 213 — that factual associations localise to specific FFN layers — to compute a closed-form rank-one update `W_out ← W_out + (v* - W k*)k*^T C^{-1} / (k*^T C^{-1} k*)`. Interpretability is the prerequisite; editing is the consequence.

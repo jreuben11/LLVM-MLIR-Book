@@ -765,6 +765,32 @@ When a completion candidate requires including a header not yet present in the c
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **clangd remote-index stabilization**: The `RemoteIndex` gRPC-based protocol (tracked in [`clang-tools-extra/clangd/index/remote/`](https://github.com/llvm/llvm-project/tree/main/clang-tools-extra/clangd/index/remote/)) is gaining production hardening; ongoing LLVM discourse threads discuss moving from opt-in to default for large-scale monorepo deployments, including authentication hooks and streaming `refs()` responses.
+- **C++26 structured bindings in completion context**: As Clang gains support for C++26 structured-binding extensions (P1061, binding to non-tuple types), `SemaCodeCompletion` entry points such as `CodeCompleteDesignator()` and `CodeCompleteInitializer()` must be extended to offer structured-binding names and pattern suggestions; patches are in review following the C++26 feature branch merges.
+- **`textDocument/inlayHints` for `auto` deductions**: clangd already provides inlay hints, but full support for C++23 `auto(x)` decay-copy deductions and explicit `this` parameter types (P0847) requires extending `HoverInfo` and the inlay-hint infrastructure in `InlayHints.cpp`; this work is targeted at the LLVM 23 development window.
+- **`PreambleThrottler` API promotion**: The `PreambleThrottler` virtual interface for controlling concurrent preamble builds was added experimentally; LLVM RFC discussions in early 2026 propose formalizing its contract and exposing it via the public `ClangdServer::Options` structure so IDE integrations can enforce per-project memory caps.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **C++20 named-modules preamble support via `ModulesBuilder`**: The `ScanningProjectModules` / `ModulesBuilder` integration (tracked in `clang-tools-extra/clangd/Modules.h`) needs to graduate from experimental to production status. This requires deterministic module dependency ordering under `TUScheduler`, persistent module PCM caching analogous to preamble PCH caching, and integration with the `BackgroundIndex` shard format to index exported module symbols.
+- **Machine-learned completion reranking with per-project training**: The existing `DecisionForest` in `quality/CompletionModel.cpp` uses a single globally-trained model. Research prototypes (e.g., the work described in "Learning to Rank for Code Completion", ICSE 2024) demonstrate that fine-tuning on per-repository call-site frequency data significantly improves ranking; the clangd community is evaluating a two-stage architecture where the global model is supplemented by a lightweight per-project gradient-boosted reranker updated incrementally as files are indexed.
+- **LSP 3.18 protocol extensions in clangd**: The Language Server Protocol 3.18 specification (published late 2025) introduces `workspace/textDocumentContent`, `textDocument/foldingRange` enhancements, and `notebookDocument` support. clangd will need to implement these to maintain editor compatibility, particularly `workspace/textDocumentContent` for virtual-file schemes used in CMake module builds and Bazel remote execution environments.
+- **`DexIndex` trigram index generalization for Unicode identifiers**: The current trigram construction in `DexIndex` assumes ASCII identifiers. As C++23 mandates broader Unicode support in identifiers (P2528), `DexIndex::generateIdentifierTrigrams()` must handle multi-byte UTF-8 sequences and Unicode normalization for correct fuzzy matching; this is a non-trivial change to the index internals requiring updates to the shard serialization format.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **LLM-augmented completion ranking integrated into clangd**: Industry direction (e.g., GitHub Copilot integration into LSP servers) suggests that clangd will eventually offer an optional embedding-based reranker that runs a small on-device transformer (quantized to fit in < 500 MB RAM) to rank candidates using semantic similarity to the surrounding code context; the `CodeCompleteOptions` struct would grow a `UseSemanticRanking` flag and clangd would maintain a lightweight inference runtime alongside the `DecisionForest`.
+- **Full incremental semantic token diffing with token-level AST invalidation**: The current `diffTokens()` approach recomputes all semantic tokens on every AST rebuild. Research into persistent partial-AST invalidation (analogous to tree-sitter's incremental parsing) would allow clangd to maintain a token tree that is surgically updated when only a function body changes, reducing `textDocument/semanticTokens/delta` payload sizes from O(file size) to O(edit size) for large files.
+- **Cross-language LSP federation for mixed C++/Python/Rust workspaces**: Large systems projects increasingly mix C++ (compiled via clangd), Python (via pylsp), and Rust (via rust-analyzer). A federated index layer — where `SymbolIndex::fuzzyFind()` transparently aggregates results from language-server peers via a shared intermediate representation — would enable go-to-definition and find-references across language boundaries; early RFC discussions on the LSP mailing list describe a `multiLanguageWorkspace` capability for this purpose.
+
+---
+
 ## Chapter Summary
 
 - Clang code completion is driven by the `tok::code_completion` synthetic token injected by the lexer at the `-code-completion-at` position; the parser dispatches to over 80 `SemaCodeCompletion` methods based on grammar context.

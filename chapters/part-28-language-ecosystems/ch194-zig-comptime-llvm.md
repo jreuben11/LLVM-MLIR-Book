@@ -1116,6 +1116,34 @@ The `--backend` flag selects the backend explicitly; in production builds (`Rele
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Zig 0.14 stable release and LLVM 20 integration**: The Zig project targets LLVM 20 for Zig 0.14.0 stable; the `src/codegen/llvm.zig` C API bindings are updated each LLVM release cycle, with particular focus on the opaque pointer model stabilized in LLVM 15 and ongoing adoption of LLVM 17+ TBAA and alias analysis improvements that benefit the `ReleaseFast` O3 pipeline.
+- **Incremental compilation via in-process Zig compiler daemon**: The Zig core team is actively developing a long-running compiler daemon mode (tracked in ziglang/zig issues under "incremental compilation") that keeps the ZIR-to-AIR Sema state in memory between edits, reducing cold-start overhead from seconds to milliseconds for large projects like TigerBeetle's `tigerbeetle.zig` monolith.
+- **x86_64 and AArch64 native backends reaching feature parity**: The direct-to-machine-code backends (`src/arch/x86_64/CodeGen.zig`, `src/arch/aarch64/CodeGen.zig`) are converging toward supporting the full AIR instruction set in `Debug` mode, reducing dependency on LLVM for development-cycle builds; the AArch64 backend's handling of SVE (Scalable Vector Extension) instructions via `@Vector` types is an active area of work.
+- **`build.zig.zon` package index stabilization**: The Zig package manager's manifest format (`build.zig.zon`) and the official package index at `pkg.ziglang.org` are expected to reach a stable, versioned API in the 0.14 cycle, enabling `b.dependency(...)` calls to resolve packages without manual hash pinning.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Zig self-hosted compiler fully eliminating the stage1 C++ bootstrap**: The remaining use of `zig1.wasm` as a bootstrap snapshot is targeted for replacement by a minimally-compiled Zig binary in the repository, removing the WebAssembly dependency from the build bootstrap chain; this aligns with the broader LLVM project effort to standardize reproducible bootstrap sequences across compiler toolchains (see LLVM RFC "Bootstrappable Builds" discourse thread).
+- **Comptime heap allocation stability guarantees**: Currently, comptime allocators (`std.heap.page_allocator` in comptime context) are restricted to specific patterns; mid-term work targets allowing arbitrary `std.mem.Allocator` usage at comptime including comptime-initialized hash maps backed by persistent arena allocators, enabling richer compile-time data structure construction for protocol buffers and code generation use cases.
+- **LLVM SPIR-V and WGSL backends for GPU compute via Zig**: The Zig community (particularly the Mach engine project, `machengine.org`) is driving integration with LLVM's SPIR-V backend and the emerging WGSL target to compile `@Vector`-heavy Zig kernel code directly to GPU compute shaders, analogous to how the Rust `wgpu` ecosystem uses `naga` for GPU shader compilation.
+- **Zig as a first-class language in the LLVM monorepo test suite**: The LLVM project's CI infrastructure currently tests Zig's LLVM bindings through `llvm-zig` community projects; formal inclusion of Zig-based tests in `llvm-project/llvm/test/` (specifically for the C API surface consumed by `src/codegen/llvm.zig`) is a medium-term goal discussed on the LLVM Discourse "Zig and LLVM C API stability" thread.
+- **Async/await rewrite**: Zig 0.11 removed the original `async`/`await` implementation pending a redesign that works correctly with the native backends and does not rely on LLVM coroutine intrinsics (`llvm.coro.*`); the redesigned async model is expected to land in the 0.15–0.16 cycle, introducing first-class stackless coroutines via explicit frame-pointer AIR instructions rather than LLVM's coroutine split-frame passes.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Formal verification of Zig's comptime evaluator (Sema)**: Academic interest in formally specifying Zig's `comptime` semantics has grown following publication of "Comptime Semantics for a C-replacement Language" (PLDI workshop track, 2025); long-term, the Zig project may adopt a lightweight Lean 4 or Rocq (Coq) model of the ZIR-to-AIR reduction rules for Sema's comptime namespace, enabling proof-checked correctness of the monomorphization engine analogous to CompCert's certified semantics.
+- **LLVM C API replacement with a stable Zig-native IR library**: The current `src/codegen/llvm.zig` depends on the LLVM C API (`llvm-c/Core.h`), which is a subset of the C++ LLVM IR API; long-term, the Zig project has discussed implementing a native Zig library for emitting LLVM bitcode directly (bypassing the C API), which would decouple Zig compiler releases from LLVM release cycles and allow the Zig compiler to be cross-compiled to targets where the full LLVM shared library is unavailable.
+- **WebAssembly GC and component model as first-class targets**: The WASM Component Model (WebAssembly/component-model spec, v2.0 milestone) and WASM GC proposal (WebAssembly/gc, Phase 4 in 2024) introduce reference types, typed function tables, and garbage-collected heap objects; Zig's `wasm32-wasi` target is expected to evolve to a `wasm32-wasip2` target supporting WASI Preview 2 component interfaces, requiring new AIR instructions for interface-typed values and reference-counted handles in `src/arch/wasm/CodeGen.zig`.
+- **Zig as a compiler intermediate language for MLIR dialects**: Given that Zig's AIR is a well-typed SSA IR at a similar abstraction level to MLIR's `func` dialect, there is active community interest (Mach engine, Zig MLIR bindings project) in using Zig as a front-end language for MLIR-based compilation pipelines, where `zig ast-check` produces ZIR that is lowered to an MLIR `zig` dialect rather than LLVM IR, enabling polyhedral optimization and hardware-accelerator targeting via the existing MLIR infrastructure described in [Chapter 131 — MLIR Architecture and Design Principles](../part-19-mlir-foundations/ch131-mlir-architecture.md).
+
+---
+
 ## Chapter Summary
 
 - **Three-stage pipeline**: Zig compiles source through ZIR (syntactic, content-addressed) → AIR (typed, monomorphized, comptime-resolved) → LLVM IR (or native backends). Comptime evaluation is complete by the end of Sema; LLVM IR generation is straightforward lowering.

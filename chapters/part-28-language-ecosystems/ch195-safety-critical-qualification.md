@@ -649,6 +649,32 @@ No single layer eliminates all risk. The value of the combined stack is that eac
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Ferrocene DO-178C DAL A qualification completion**: Ferrous Systems and AdaCore have targeted 2026 for the first Rust compiler qualified for avionics at the highest software level. The DO-330 TQL-1 qualification package under review by a DER (Designated Engineering Representative) is expected to close mid-2026, enabling Rust in Level A avionics software for the first time ([Ferrocene roadmap](https://ferrocene.dev/en/blog/)).
+- **LLVM Alive2 integration into upstream CI at `-O2`**: the LLVM community is expanding Alive2 translation-validation coverage from nightly spot checks to per-patch verification of `instcombine` and `SimplifyCFG` rewrites, directly reducing the catalog of optimizer transformations that require case-by-case justification in a Tool Operational Requirements document ([discourse.llvm.org — Alive2 CI thread](https://discourse.llvm.org/)).
+- **Clang `-fsafe-codemodel` RFC**: an active LLVM RFC proposes a new Clang flag that bundles all UB-disabling flags (`-fwrapv -fno-strict-aliasing -fno-delete-null-pointer-checks`) with a hardened optimizer pipeline that verifies each enabled pass is Alive2-certified, providing a single qualified-build invocation for ISO 26262 projects.
+- **MISRA C++:2023 clang-tidy checker expansion**: the LLVM community has merged a `misra-cpp-2023` check category into `clang-tidy` targeting the 60 most commonly violated Required rules; an RFC to cover all 228 rules with checker mappings is under review on discourse.llvm.org, reducing dependence on proprietary MISRA tools for initial screening.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Rust `no_std` core library qualification under Ferrocene**: the current FerreQual qualification scope covers the Rust compiler but not `core` (the `no_std` standard library primitives). Ferrous Systems has announced intent to extend the FLS and FerreQual test suite to cover `core::slice`, `core::mem`, `core::sync::atomic`, and `core::ptr` — allowing qualified embedded projects to use these libraries without treating them as unqualified COTS software.
+- **ISO 26262:2026 edition tool qualification updates**: ISO 26262 is on a revision cycle targeting 2026–2028. The revision is expected to add explicit provisions for AI-assisted code generation tools (LLM code completions) and formally codify the "qualified configuration" concept for CI/CD pipelines, affecting how compiler version pinning and flag audit trails must be documented in a Safety Plan.
+- **LLVM `poison`-aware qualification test methodology**: the LLVM community and safety-tool vendors (LDRA, Parasoft) are developing a formal methodology for constructing compiler qualification test suites that specifically exercise `poison`/`undef` propagation boundaries — ensuring that the FerreQual and DO-330 test suites cover all LLVM passes that materialize poison into undefined branch behavior, informed by the `llvm-project` issue tracker items tracking `undef` → `poison` migration.
+- **CHERI-LLVM integration qualification for embedded**: as CHERI-enabled RISC-V cores reach automotive-grade silicon (targeted by Capabilities Limited and RISC-V International for 2027–2028), the CHERI-LLVM backend will require ISO 26262 tool qualification. Arm Morello's CHERI-LLVM qualification effort under DARPA SSITH is the precursor project; qualification packages for RISC-V CHERI targets are expected to follow.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Formally verified LLVM optimization passes replacing qualification test suites**: the long-term vision articulated in the Alive2 and Vellvm research programs is to replace sampling-based qualification test suites with machine-checked proofs for individual LLVM passes. If the `instcombine` pass is formally verified in Lean 4 or Coq (building on the `llvm-ir-semantics` project), certification authorities may accept the proof in lieu of a TQL-1 qualification test suite for that pass, dramatically reducing the qualification effort for new compiler versions.
+- **IEC 61508 Edition 3 revision incorporating Rust and functional-language software**: IEC 61508 Edition 3 (currently in NP ballot) is expected to add normative guidance for memory-safe languages including Rust and the qualified-language-specification approach pioneered by Ferrocene, potentially codifying FLS-style specifications as an accepted qualification methodology across all IEC 61508-derived standards (EN 50128, IEC 62304, IEC 61511).
+- **Continuous qualification pipelines with cryptographic provenance**: SBOM (Software Bill of Materials) mandates from US EO 14028 and EU CRA are converging with compiler qualification requirements. By 2031, qualified compiler deployments are expected to require cryptographically signed SBOMs from `criticalup`-style distribution managers linked to ASIL/SIL certificate identifiers, allowing automotive OEMs and aerospace primes to automate compliance audits via machine-readable qualification evidence rather than PDF Tool Accomplishment Summaries.
+
+---
+
 ## Chapter Summary
 
 - **Toolchain qualification** is the regulatory/industrial path to trusting a commercial compiler; it is complementary to formal verification (CompCert, Alive2) rather than a substitute.

@@ -372,6 +372,32 @@ The scheduling decision is made at much finer granularity than inlining — hund
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **MLGO extension to loop vectorization decisions**: active work in `llvm/lib/Transforms/Vectorize/LoopVectorize.cpp` to add an `MLVectorizationAdvisor` analogous to `MLInlineAdvisor`; tracking LLVM Discourse RFC "ML-Guided Vectorization" (2025 Q4), targeting LLVM 23 inclusion.
+- **BC-Max multi-heuristic consolidation**: Google's MLGO team is working to unify the inliner and eviction advisor training pipelines into a single BC-Max harness that shares feature extraction infrastructure across `MLInlineAdvisor.cpp` and `MLRegAllocEvictAdvisor.cpp`, reducing maintenance overhead.
+- **TFLite → ONNX Runtime migration**: ongoing LLVM community discussion (discourse.llvm.org) to replace the TFLite inference backend with ONNX Runtime to eliminate the TensorFlow dependency and support a wider range of hardware accelerators (NPUs, Apple Neural Engine) at inference time.
+- **Automated quarterly retraining infrastructure**: Google's internal MLGO pipeline for quarterly DAgger-style retraining is being documented as an open-source reference implementation; expected public release in the MLGO GitHub repository by mid-2026.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Graph neural networks over the call graph for inlining**: replacing the per-call-site MLP with a GNN that reasons over the entire call graph simultaneously; early results (Meta, "Graph-Based Inlining", CGO 2026) show 1–2% additional binary size benefit over per-site MLPs by capturing cross-call-site interactions that the current 24-feature vector misses.
+- **BC-Max for instruction scheduling at scale**: instruction scheduling presents the hardest IL challenge (hundreds of decisions per function, high compounding error); expected practical deployment of scheduling advisors using BC-Max with sequence models (Transformers over the ready-list state) once compounding error under DAgger is demonstrated to be manageable on SPEC CPU 2017.
+- **Generalization across targets via multi-task IL**: training a single IL model that adapts to x86, AArch64, and RISC-V targets by conditioning on target ISA features; avoids maintaining separate training corpora per target, enabling ML heuristics for less-common targets (RISC-V Vector, LoongArch) where per-target training data is scarce.
+- **Dataset shift detection and model refresh triggering**: automated monitoring of the distribution of LLVM IR features seen in production versus training distribution; triggers retraining when KL divergence exceeds a threshold, moving beyond fixed-cadence quarterly retraining toward event-driven model updates.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Hybrid IL+RL with verification gating**: combining BC-Max initialization (stable, safe) with constrained RL fine-tuning gated by Alive2-verified correctness (cf. Chapter 223); the IL policy provides a safe starting point that prevents the RL agent from exploring semantics-breaking optimization sequences, enabling RL to exceed BC-Max's best-baseline ceiling without correctness regressions.
+- **Compiler-as-environment standardization (CompilerGym successor)**: a successor to Facebook AI Research's CompilerGym providing standardized Gymnasium-compatible environments for all major LLVM heuristic decisions (inlining, regalloc, vectorization, scheduling) with BC-Max baseline datasets; enabling reproducible IL/RL research without per-lab training infrastructure.
+- **Cross-compilation unit IL with whole-program IR context**: current MLGO models are limited to per-function or per-call-site features; long-term trajectory is toward LTO-stage models that receive whole-program call graph and data flow summaries as context, enabling IL decisions that account for cross-module optimization opportunities not visible at per-TU compilation time.
+
+---
+
 ## Chapter Summary
 
 - RL for compiler heuristics is hard: sparse reward, non-stationary state, high variance, and reward hacking risk; imitation learning avoids all four at the cost of being bounded by demonstrator performance

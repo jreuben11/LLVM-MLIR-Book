@@ -469,6 +469,32 @@ The `--xla_cpu_enable_thunk_trace` flag logs each thunk execution with wall-cloc
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **MLIR-based IrEmitter migration**: The ongoing effort to replace the legacy `IrEmitter` with an MLIR Linalg-based lowering path (tracking issue in openxla/xla on GitHub) is expected to land for element-wise and reduction ops; this would allow XLA CPU to share optimizations with the MLIR ecosystem and retire hand-written LLVM IR emission for those ops.
+- **AMX BF16/FP8 expansion via OneDNN**: Intel's AMX-FP8 support (available in Granite Rapids/Diamond Rapids server CPUs shipping in 2026) is being integrated into OneDNN 3.x; XLA's `OneDNNGemmThunk` and convolution paths will gain FP8 dispatch for quantized inference without user code changes.
+- **SVE2 vectorization for AArch64**: Patches in review on the LLVM/XLA side to annotate loops with scalable vector metadata (`llvm.loop.vectorize.scalable.enable`) so that Apple M-series and Ampere Altra targets benefit from SVE2 auto-vectorization rather than fixed-width NEON, following LLVM RFC ["Scalable Vector Loop Vectorization on AArch64"](https://discourse.llvm.org/t/rfc-scalable-vector-loop-vectorization).
+- **`BufferAssignment` memory-pool reuse across calls**: Work in progress to retain the execution arena across repeated `CpuExecutable::ExecuteComputeFunction` invocations, eliminating `malloc`/`free` overhead for inference serving use cases where the same model runs thousands of times per second.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Full MLIR lowering pipeline for CPU**: The IrEmitter is expected to be fully replaced by a Linalg → Affine → SCF → LLVM IR lowering chain, giving XLA CPU first-class access to MLIR's polyhedral scheduling, `transform` dialect auto-tuning, and structured op vectorization — substantially closing the performance gap with hand-tuned Triton CPU kernels.
+- **OneDNN Graph as primary fusion layer**: Rather than XLA's `CpuFusionPass` driving fusion decisions, OneDNN Graph partitioning (which understands convolution + normalization + activation fusion patterns not visible to XLA's HLO-level analysis) is expected to become the primary path, with XLA supplying the graph and delegating compilation to OneDNN's JIT.
+- **Heterogeneous CPU+NPU thunk dispatch**: As x86-64 and AArch64 SoCs ship with on-die NPU tiles (Intel Meteor Lake AI Boost, Qualcomm Hexagon), the thunk model is expected to gain NPU-dispatch thunk variants (`NpuKernelThunk`) that offload suitable ops while the CPU thunk sequence handles unsupported ops, with XLA managing cross-tile buffer transfers.
+- **Persistent JIT code cache across processes**: `OrcJIT`-based `CpuExecutable` currently recompiles on each process start. A persistent object-file cache keyed on HLO module hash (similar to XLA's AOT ahead-of-time path but JIT-triggered) is planned to amortize compilation latency for long-running inference services.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Auto-scheduled CPU kernels via MLIR transform dialect**: Following the GPU path where Triton/Mosaic generate tile schedules automatically, a CPU counterpart using MLIR's `transform.tile_using_for`, `transform.vectorize`, and `transform.parallelize_loops` operations is expected to replace both `ParallelTaskAssigner` and manual Eigen/OneDNN selection, producing portable near-peak-performance code across x86-64, AArch64, and RISC-V Vector.
+- **RISC-V Vector (RVV) first-class support**: As RISC-V server-class cores mature (SiFive P870, Milk-V Pioneer), XLA CPU's target feature selection and the LLVM RISC-V Vector backend are expected to reach feature parity with x86-64 AVX-512 support, including GEMM dispatch through a portable backend library analogous to OneDNN for RISC-V.
+- **Speculative/latency-hiding thunk execution**: The current sequential thunk dispatch model will likely evolve toward a DAG-based async scheduler (along lines of the TFRT async value model already used in parts of the runtime) that can overlap CPU GEMM execution with data transfers, NPU dispatch, and I/O — transforming the thunk sequence from a static schedule into a dynamic task graph with dependency tracking.
+
+---
+
 ## Chapter Summary
 
 - XLA CPU backend emits LLVM IR directly from HLO via the `IrEmitter` visitor; there is no MLIR intermediate step for current production code.

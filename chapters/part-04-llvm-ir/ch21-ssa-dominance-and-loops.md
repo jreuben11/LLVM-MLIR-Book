@@ -739,6 +739,32 @@ The verifier runs implicitly at every stage in debug builds (`LLVM_ENABLE_ASSERT
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **MemorySSA-integrated LICM improvements**: Ongoing work on LLVM's `MemorySSA`-aware LICM (`llvm/lib/Transforms/Scalar/LICM.cpp`) to improve alias-analysis precision when hoisting stores, tracked in multiple Phabricator revisions and discourse.llvm.org threads on reducing `MemorySSA` invalidation overhead during loop transforms.
+- **Incremental `DominatorTree` update correctness fixes**: Several correctness edge cases in `DominatorTree::insertEdge` / `deleteEdge` incremental updates have been identified through fuzzing (`llvm/unittests/IR/DominatorTreeTest.cpp`); active patches address split-critical-edge interactions with the incremental update API.
+- **`CycleInfo` adoption in GPU divergence analysis**: AMD and NVIDIA backend teams are migrating `AMDGPUDivergenceAnalysis` and NVPTX `LegacyDivergenceAnalysis` from `LoopInfo`-based reducibility assumptions to `CycleInfo` to correctly handle irreducible CFGs from GPU compute shaders and coroutine lowering.
+- **`LoopNest` tiling in the transform dialect bridge**: Work to expose `LoopNest::getPerfectLoops` results to the MLIR `transform.loop.tile` op so that LLVM-backend tiling can reuse the same legality analysis as MLIR's polyhedral tile transforms.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Structured SSA construction for ClangIR (CIR)**: The ClangIR project ([Chapter 48 — ClangIR](../part-08-clangir/ch48-clangir-architecture.md)) is building a structured-IR dialect where loops are represented as `cir.for`/`cir.while` ops rather than back-edge CFGs. The SSA construction for CIR bypasses the alloca-first strategy — variables declared in a `cir.for` init are directly in SSA form — requiring a new dominance model for structured regions that mirrors MLIR's block argument semantics rather than `DominatorTree` over a flat CFG.
+- **Demand-driven, on-the-fly SSA verification**: Current SSA verification in `opt --passes=verify` requires a full `DominatorTree` pass over the entire function. Research into demand-driven dominance checking (triggered lazily per use rather than per function) aims to make SSA verification cheap enough to run after every individual transform in debug builds without the O(|V| log |V|) full-tree overhead.
+- **Irreducible loop handling in auto-vectorization**: Intel's and ARM's vectorization teams are pursuing RFC-level work to allow the `LoopVectorizePass` to handle irreducible regions by first applying a structurization transform (collapsing multi-entry SCCs into a single-entry loop with a dispatch variable), similar to AMD's GPU structurization pass, then applying standard vectorization on the reduced CFG.
+- **Unified loop representation for tiered JIT pipelines**: LLVM's MCJIT and ORC JIT pipelines re-run loop analyses on recompilation. Proposals on discourse.llvm.org discuss caching serialized `LoopInfo` trees (as part of a persistent analysis cache) between JIT tiers so that the T0→T1 recompile does not re-discover loop structure from scratch on hot functions.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Algebraic characterization of SSA via category theory**: Academic work (building on the Bauer–Appel–Chakaravarty line) is formalizing SSA as a free co-completion in a category of partial maps, providing a compositional semantics for φ-nodes that enables machine-checked proofs of SSA-based optimization correctness (Alive2-style) without resorting to operational simulation; expected to influence LLVM's verified compilation infrastructure (see [Chapter 100 — Vellvm and Alive2](../part-24-verified-compilation/ch100-vellvm-alive2.md)).
+- **Region-based dominance for heterogeneous offload IR**: As LLVM's offload stack (OpenMP, SYCL, HIP) matures, a region-based dominance model is anticipated that tracks dominance across host/device code boundaries encoded in `llvm.offload.target` regions, enabling cross-boundary dead-code elimination and loop-invariant code motion that today terminates at device-kernel launch boundaries.
+- **Machine-learning guided loop-simplification ordering**: Long-term research into ML-assisted compiler heuristics (active in the LLVM ML-Guided Optimizations working group) includes predicting the optimal ordering of `loop-simplify`, `loop-rotate`, `loop-unroll`, and `loop-vectorize` per-loop based on structural features extracted from `LoopInfo` and `LoopNest`; the goal is to replace fixed pipeline ordering with per-function adaptive sequencing guided by a learned policy trained on large corpora of real-world binaries.
+
+---
+
 ## 21.10 Chapter Summary
 
 - **Clang uses the alloca-first strategy**: every local variable starts as an `alloca`; `mem2reg` runs early in the optimization pipeline and promotes allocas to φ-nodes using the Cytron IDF algorithm. This cleanly separates correct-code generation from efficient SSA construction.

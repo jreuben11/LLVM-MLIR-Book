@@ -973,6 +973,32 @@ The two languages are converging on the same insight from different directions. 
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **C++23 baseline RFC for LLVM**: The ongoing LLVM discourse RFC for bumping the minimum C++ standard from C++17 to C++20 (and then C++23) is expected to reach a decision once GCC 12+ and Clang 15+ have sufficient CI distribution coverage. Tracked at [discourse.llvm.org/t/rfc-update-llvms-minimum-required-c-standard-to-c-20](https://discourse.llvm.org/t/rfc-update-llvms-minimum-required-c-standard-to-c-20). A C++20 baseline would unguard concepts, `std::span`, `consteval`, and `std::bit_cast` across the monorepo without feature-test macros.
+- **Clang `-fcontracts` stabilisation**: Clang 22 ships with `-fcontracts` as an experimental flag implementing P2900 Rev. 10. The next six months are expected to resolve the remaining `post` clause with structured bindings, `contract_assert` inside `constexpr` functions, and interaction with coroutines. Follow [llvm-project#75956](https://github.com/llvm/llvm-project/issues/75956) and related Clang frontend patches for progress on making `-fcontracts` production-ready.
+- **`ArrayRef` → `std::span` migration patches**: Individual patches converting older `ArrayRef<T>` parameters in `llvm::orc`, `llvm::lto`, and `llvm::object` APIs to `std::span<const T>` are landing in the LLVM 22 / 23 timeframe. Contributors should expect a phased migration that retains `ArrayRef` overloads for source compatibility while new code standardises on `std::span`.
+- **P2996 EDG / Clang branch progress**: The EDG reference implementation of P2996 static reflection is targeting Compiler Explorer availability with Clang experimental mode. Upstream patches porting the reflection prototype into Clang's Sema and CodeGen are expected to land incrementally. The upcoming WG21 Wrocław plenary (November 2026) is the key milestone for P2996 receiving a C++26 ship vote.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **TableGen partial replacement by C++26 reflection**: If P2996 ships in C++26 (November 2026 standard publication), MLIR ODS and LLVM's `include/llvm/IR/Intrinsics*.td` boilerplate become candidates for `consteval`-based generation. An RFC proposing a parallel path — `.td` files remain for complex constraint specifications, but straightforward op definitions migrate to annotated C++ structs — is a plausible 2027–2028 initiative. This would eliminate the `llvm-tblgen` dependency from incremental builds of simple op-only changes.
+- **C++26 pattern matching (`inspect`) in Clang**: P2688 and P1371 are C++29 candidates; if a final design is agreed in WG21 by 2027, Clang would implement it in 2027–2028. Early adopters in LLVM would replace `llvm::TypeSwitch` chains and cascaded `dyn_cast` chains in MLIR canonicalisers and Clang AST matchers, gaining the exhaustiveness-checking property that `TypeSwitch::Default` currently silences.
+- **CRTP elimination via deducing-`this` + concepts**: `PassWrapper<PassT, BaseT>`, `RecursiveASTVisitor<Derived>`, and MLIR's `Op<ConcreteOp, Trait...>` class are the three largest CRTP sites in the monorepo. A systematic audit and migration to C++23 deducing-`this` would reduce symbol count (fewer template instantiations), shorten compile times, and produce cleaner error diagnostics for downstream pass authors. This work requires C++23 baseline adoption first, then a multi-quarter refactoring.
+- **`std::mdspan` integration with MLIR MemRef lowering**: As C++23 becomes the LLVM baseline, `std::mdspan` becomes a natural C++ representation for the MLIR MemRef ABI descriptor (`{T*, T*, offset, sizes[], strides[]}`). Research prototypes using `std::mdspan<T, std::dextents<size_t, N>, std::layout_stride>` as the C++ runtime type for lowered MemRef buffers could replace hand-written descriptor structs in the MLIR execution engine and MLIR C runner utils.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **C++29 pattern matching in production LLVM**: Assuming C++29 ships with `inspect`, the five-year horizon would see `llvm::TypeSwitch` deprecated in favour of `inspect` across MLIR's 400+ op canonicalisers and Clang's AST visitor dispatch. The exhaustiveness guarantees would catch missing cases that currently fall through to `Default(failure())` silently, eliminating an entire class of correctness bugs in dialect lowering pipelines.
+- **Static reflection replacing the full TableGen tool chain**: A full P2996-based replacement for LLVM's TableGen DSL — covering instruction definitions, DAG patterns, calling conventions, and register class descriptions — would require `define_class` (P2996 §9) and compile-time introspection of annotation hierarchies. This is a multi-year project that mirrors GCC's abandonment of machine description files in favour of generated RTL; the C++ path via reflection is cleaner because the reflection operates within the same compilation unit rather than requiring a separate front-end tool.
+- **C++ contracts as the universal API safety layer**: With contracts shipping in C++26 and Clang's `-fcontracts` mode stabilised, a five-year effort would annotate the ~500 major LLVM/MLIR API boundaries (`IRBuilder`, `PassManager`, `PatternRewriter`, `AnalysisManager`, `TargetMachine`) with `pre`/`post` conditions. Combined with Clang Static Analyzer contract-aware checkers and fuzzing harnesses that generate contract-violating inputs, this would constitute a defence-in-depth safety layer for LLVM's API surface — comparable in coverage to the Alive2 misoptimisation checker but covering API-level rather than semantic-level invariants.
+
+---
+
 ## Chapter Summary
 
 - LLVM compiles with `-fno-exceptions -fno-rtti` across all library code. The vocabulary types that replace STL — `SmallVector`, `StringRef`, `ArrayRef`, `DenseMap`, `llvm::isa<>`/`cast<>`/`dyn_cast<>` — are required knowledge for any LLVM contributor. The canonical reference is the [LLVM Coding Standards](https://llvm.org/docs/CodingStandards.html).

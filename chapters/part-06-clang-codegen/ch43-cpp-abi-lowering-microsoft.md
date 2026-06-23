@@ -1144,6 +1144,32 @@ The `MicrosoftCXXABI` implements `GetAddrOfUUID()` to emit a global constant `{i
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **ARM64EC thunk generation improvements**: Active work on `ARM64ECCXXABIInfo` to reduce thunk overhead at the x64↔AArch64 boundary; patches under review on LLVM Discourse to unify the EC entry-thunk and exit-thunk emission paths in `MicrosoftCXXABI` and `TargetInfo.cpp` ([llvm-dev thread, March 2026](https://discourse.llvm.org/)).
+- **`__CxxFrameHandler4` personality adoption**: MSVC shipped `__CxxFrameHandler4` (a compressed `.xdata` format) in VS 2019 16.x; clang-cl currently defaults to `__CxxFrameHandler3` for compatibility. Active Discourse discussion on when clang-cl should switch defaults, contingent on `vcruntime140_1.dll` availability checks in CMake and `-fms-compatibility-version` gating.
+- **`UOP_PACSignLR` test coverage and CI hardening**: Follow-on patches to the LLVM 22 `UOP_PACSignLR` implementation are closing gaps in the Windows-on-AArch64 EH test matrix; the `llvm/test/CodeGen/AArch64/wineh-*.ll` suite is being expanded to cover mixed PAC-RET + SEH filter scenarios.
+- **`_Init_thread_header` fast-path elimination**: Work in progress to switch thread-safe static-local initialization from `_Init_thread_header`/`_Init_thread_footer` to the faster `std::once`-style futex path available in newer Windows CRT builds, gated behind a new `-fms-compatibility-version` threshold.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **`MicrosoftMangle.cpp` C++26 conformance**: C++26 contracts, reflection (`std::meta`), and deducing `this` introduce new mangling requirements that MSVC is specifying in its C++ ABI extension documents; `MicrosoftCXXNameMangler` will need new encoding rules for `auto this`, explicit object parameters, and splice expressions — a significant extension to `mangleTemplateArgs()` and the back-reference table logic.
+- **Windows CHPE (Compiled Hybrid Portable Executable) full codegen support**: CHPE binaries contain both x64 and ARM64 code sections with metadata tables directing the OS loader; `ARM64ECCXXABIInfo` currently generates one code flavor per compilation. Full CHPE codegen — emitting both flavors in one compilation unit with the required `HYBRID_PE_METADATA` section — is on the LLVM roadmap, requiring new linker plugin hooks and `lld-link` CHPE layout passes.
+- **Refined `__unspecified_inheritance` member pointer narrowing**: When a forward-declared class later gains a definition revealing a narrower inheritance model, clang-cl emits suboptimal conversion thunks at every use site. Planned work (tracked in LLVM GitHub issue #65412 area) aims to narrow already-emitted member pointer uses via LTO-time specialization of the 16-byte catch-all representation to the exact width demanded by the resolved inheritance model.
+- **`__CxxFrameHandler3` personality elision under LLVM 22 middle-end**: Ongoing collaboration between the WinEH and middle-end teams to let `SimplifyCFG` and `EarlyCSE` fold trivially-empty `cleanuppad` funclets (those containing only a single destructor call on a trivially-destructible type), replacing them with `nounwind` attribute propagation and reducing `.xdata` table size in release builds.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **MSVC ABI stabilization for C++ modules (named module interface units)**: With C++20 modules now shipping in MSVC and clang-cl, the binary module interface (BMI) format still uses MSVC-proprietary serialization. Long-term, an interoperable BMI format negotiated between Clang, MSVC, and ICC may require extending `MicrosoftMangle.cpp` with module-unit scoping encodings and a new template-argument deduplication scheme across BMI boundaries.
+- **Verified ABI compatibility via formal specification**: Research efforts (e.g., building on the Alive2 / CompCert methodology applied to ABI lowering) aim to formally verify that `MicrosoftCXXABI`'s member pointer arithmetic, vtable pointer stores, and EH table generation are observationally equivalent to MSVC output across all supported inheritance models; this would provide a mechanized proof target for the `EmitMemberPointerConversion()` and `EmitVBPtrInit()` code paths.
+- **Hardware-enforced stack isolation under Windows CET + PAC**: Intel CET (`ENDBR64`) is already handled by LLVM's x86 backend; combining CET with ARM64 PAC-RET and BTI under Windows' Hardware-Enforced Stack Protection (`/CETCOMPAT`) will require coordinated changes in `MicrosoftCXXABI` (for `cleanuppad` funclet return-address handling), the WinEH preparation pass, and the AArch64 prologue emitter to ensure authenticated return addresses remain valid across funclet boundaries without disabling PAC on the funclet entry paths.
+
+---
+
 ## Summary
 
 - The `MicrosoftCXXABI` class in `clang/lib/CodeGen/MicrosoftCXXABI.cpp` implements all Windows-specific C++ ABI lowering; name mangling is handled separately by `MicrosoftCXXNameMangler` in `clang/lib/AST/MicrosoftMangle.cpp`.

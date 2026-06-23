@@ -708,6 +708,32 @@ attributes #0 = { "target-features"="-xcustom" }
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Zbkb/Zbkc/Zbkx ratification follow-up in LLVM**: The scalar cryptography bit-manipulation extensions (Zbkb for bitwise operations in crypto, Zbkc for carry-less multiply, Zbkx for crossbar permutations) are ratified but LLVM pattern coverage for Barrett-reduction CRC and AES-GCM GHASH via CLMUL chains is still being completed — track `llvm/lib/Target/RISCV/RISCVInstrInfoZk.td` patches on LLVM Discourse.
+- **Zvbb/Zvbc vector bit-manipulation extensions**: The vector bit-manipulation extensions (Zvbb — vector byte-reverse, bitcount, rotate; Zvbc — vector carry-less multiply for GHASH) are ratified as part of the RVV crypto profile; LLVM 22 partially supports them but full CodeGen lowering of `vclmul.vv` and `vbrev8.v` intrinsics is in active review (cf. LLVM PR #89547 and related patches).
+- **Zicfilp labeled landing pads in Clang's `-fcf-protection`**: The labeled-landing-pad variant of Zicfilp (where a caller specifies an expected label ID before `JALR`) is specified in the privileged spec 1.13 but Clang's `-fcf-protection=branch` currently only emits `LPAD 0` (any-label); support for type-based label IDs matching C++ virtual dispatch is expected in the LLVM 22.x series.
+- **Zcmt: Jump Table Extension for embedded**: The Zcmt extension (table-jump instructions using a jump table in memory) is ratified for RV32/RV64 embedded cores (Nuclei, IAR) — LLVM support for emitting `CM.JALT` from switch/jump-table lowering is under active development and expected to land in the 22.x series.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **RISC-V RVA23/RVA25 profile enforcement in LLVM**: The RVA23 and RVA25 application processor profiles (which mandate Zba, Zbb, Zbs, Zicfilp, Zicfiss, Zfh, and Zvfh as required extensions) will drive a profile-based compilation model in LLVM where `-march=rva23u64` selects the exact extension set, replacing manual `-march=rv64gc_zba_zbb_zbs...` strings; LLVM's profile infrastructure is being designed (cf. RISC-V ISA Specification profiles chapter).
+- **Post-quantum crypto extensions (Zks-pq)**: The NIST PQC standards (ML-KEM/CRYSTALS-Kyber, ML-DSA/Dilithium, SLH-DSA/SPHINCS+) require NTT (Number Theoretic Transform) and polynomial arithmetic; RISC-V International is studying dedicated NTT extension instructions analogous to Zkn/Zksh; any ratified extension will require new TableGen patterns and intrinsics in LLVM's Zk infrastructure.
+- **Vendor extension standardization via RISC-V non-ISA spec**: As XTHeadVector (T-Head) and XSiFiveF14 (SiFive) mature, RISC-V International is developing a non-ISA vendor extension registry; LLVM will need to evolve its `X*`-prefix parsing in `RISCVISAUtils.cpp` to handle versioned vendor extension namespaces without conflicts.
+- **Zfa FLI constant pool elimination in loop vectorization**: The LLVM vectorizer currently spills FP constants to the stack even when `+zfa` is available; a dedicated DAGCombine pass to replace constant-pool loads with `FLI.S`/`FLI.D` for Zfa's 32 predefined values is planned, particularly benefiting ML inference kernels that use 1.0, 0.5, and powers of two.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Matrix extension (Zma/RVMatrix) integration**: RISC-V International's Matrix Extension Task Group is designing a 2D register-tile architecture (analogous to Intel AMX and Arm SME) for dense GEMM acceleration; when ratified, LLVM will need new register classes, a matrix tile lowering pipeline in `RISCVISelLowering.cpp`, and integration with MLIR's `linalg.matmul` lowering path — significantly more complex than any current Zb*/Zk extension.
+- **Custom extension ecosystem via RISC-V extension overlay**: The RISC-V "overlay" concept (runtime-switchable custom instruction sets sharing opcode space) being explored by the RISC-V Composable Extensions TG will require LLVM to support function-attribute-gated code regions with per-function `SubtargetFeature` switching — extending the current `target("xcustom")` attribute model to full overlay management.
+- **Formally verified bit-manipulation lowering**: The Alive2 and Vellvm communities are working toward verifying LLVM's RISC-V bit-manipulation DAG patterns (Zba `SH*ADD`, Zbb `ORC.B`, Zbs `BEXT`) against their ISA semantics; a long-term goal is a verified pattern database that rules out miscompilations of cryptographic code where bit-manipulation correctness is security-critical.
+
+---
+
 ## Chapter Summary
 
 - Zba adds `SH1ADD`/`SH2ADD`/`SH3ADD` for scaled pointer arithmetic (stride 2/4/8), directly matched from `base + idx << {1,2,3}` DAG patterns, collapsing two instructions into one for array indexing.

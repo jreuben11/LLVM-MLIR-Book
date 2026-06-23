@@ -325,6 +325,32 @@ The key advantage of Polly over standalone Pluto is seamless LLVM integration: P
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **NewPassManager full migration**: Polly's remaining RegionPass infrastructure is being ported to the LLVM New Pass Manager (NPM); tracking issue on llvm-project GitHub and Polly ML threads; expect all legacy `addRequired<>` pass dependencies replaced by explicit analysis requests via `AM.getResult<>`.
+- **ISL 0.27 upgrade**: Polly bundles ISL; the upstream ISL project regularly releases fixes to `isl_schedule_constraints_compute_schedule` for edge cases in Feautrier/Pluto scheduling—Polly's vendored copy lags; a periodic sync effort (tracked under `polly/lib/External/isl`) is in progress.
+- **Delinearization robustness improvements**: PRs fixing false-negative SCoP detection due to delinearization failures on multi-dimensional arrays with parametric inner dimensions (`isl_pw_aff` cannot represent them); patches under review on Phabricator/GitHub CI.
+- **`-polly-use-runtime-alias-checks` stabilization**: Runtime alias checks allow Polly to optimize loops where pointer aliasing cannot be disproven statically; known miscompiles in the presence of restrict-qualified pointers under active fixup (see llvm-dev thread "Polly alias check soundness", March 2026).
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Polly-ACC (GPU offload) revival**: The `polly/lib/CodeGen/PPCGCodeGeneration.cpp` GPU backend has been dormant since ~2020; community interest in reviving it as an alternative/complement to OpenMP target offload; requires integrating with LLVM's new `TargetTransformInfo`-aware offload decision logic and the `OpenMPIRBuilder`.
+- **Affine dialect round-trip**: MLIR's `affine` dialect (Chapter 93) represents the same mathematical objects as Polly's ISL-based IR; an RFC has been floated to allow Polly to lower its `Scop` representation to MLIR affine dialect for joint optimization with MLIR passes, then lower back to LLVM IR—enabling MLIR's `affine-loop-fusion` and `affine-parallelize` to complement Polly's Pluto scheduler.
+- **Auto-tuning tile size selection**: Polly's default tile sizes (32×32 or parameter-derived) are known to be suboptimal on modern cache hierarchies; integration with an ML-guided tile-size auto-tuner (similar to TVM's AutoScheduler/Ansor) has been proposed; requires adding a profiling feedback loop into Polly's `ScheduleOptimizerPass`.
+- **Pattern-based GEMM/CONV detection expansion**: Current pattern matcher in `ScheduleOptimizer.cpp` recognizes only matrix multiplication; plans to extend to convolution (NHWC/NCHW) and batched-GEMM patterns, particularly for workloads emitted by `torch-mlir` or `stablehlo` lowering paths that reach the LLVM backend.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Full Polly/MLIR convergence**: Long-term trajectory is for Polly's polyhedral analysis to be expressed natively in MLIR, replacing the ISL C API with MLIR's integer set library (`mlir/include/mlir/Analysis/Presburger/`); this would unify Polly's `isl_set`/`isl_map` world with MLIR's `FlatAffineConstraints` and allow a single polyhedra-aware optimizer shared across the LLVM/MLIR toolchain.
+- **Sparse polyhedral scheduling**: Extension of Polly's dense-array SCoP model to handle sparse tensor formats (CSR, COO, ELLPACK); requires integrating sparse iteration space representations (as in TACO/Finch) into the ISL schedule, potentially via `sparse_tensor` dialect lowering meeting Polly's code generator.
+- **Verified polyhedral transformations**: Applying Alive2-style semantic equivalence checking (Chapter 165) to verify that Polly's schedule transformations and code generation produce semantically identical IR; requires encoding the polyhedral dependence validity proof into a form checkable by SMT solvers (Z3/Bitwuzla), building on ongoing work in formal verification of loop transformations.
+
+---
+
 ## Chapter Summary
 
 - Polly integrates into the LLVM pass pipeline as a sequence of passes: `ScopDetection`, `ScopInfo`, `Dependences`, `ScheduleOptimizer`, and `CodeGeneration`.

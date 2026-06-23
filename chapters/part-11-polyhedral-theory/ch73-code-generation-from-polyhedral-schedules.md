@@ -489,6 +489,32 @@ Unroll-and-jam is legal if and only if no dependence is violated by bringing i%U
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **ISL AST generator integration with MLIR's new polynomial arithmetic dialect**: ongoing work to let `isl_ast_build` emit directly into MLIR's `polynomial` and `arith` dialects rather than routing through C textual output, tracked in the Polly community RFC "Direct ISL→MLIR lowering path" (discourse.llvm.org, 2025). This will eliminate the textual C round-trip in Polly's codegen pipeline.
+- **MLIR affine loop tiling pass generalization for non-rectangular tiles**: MLIR's `affine-loop-tile` pass currently only supports hyperrectangular tiles; a patch series in review (llvm-project #93447) extends `mlirAffineLoopTile` to accept skewed tile shapes derived from polyhedral schedules, enabling parallelogram and diamond tiling within the affine pipeline.
+- **Improved floor/ceiling lowering in MLIR's `arith` dialect**: the current lowering of ISL floor-division expressions to C's truncation-division with conditional correction (x ≥ 0 ? x/T : (x−T+1)/T) will be replaced with direct `arith.floordivsi` / `arith.ceildivsi` operations, whose LLVM lowering uses `sdiv` with explicit rounding adjustment — reducing code size for tiled bounds.
+- **OpenMP 6.0 `taskloop simd` emission from polyhedral schedules**: the OpenMP 6.0 standard (finalized June 2025) adds `taskloop simd` for concurrent SIMD execution within tasks; Polly's OpenMP code generator is being extended to emit this combined pragma when a schedule dimension is both tiled and vectorizable.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **MLIR polyhedral code generation via the `presburger` library replacing ISL**: LLVM's in-tree `mlir::presburger` library (introduced in MLIR for affine analysis) is being extended to handle full schedule-tree-to-AST conversion, motivated by the desire to remove the external ISL dependency from MLIR codegen; the roadmap targets feature parity with `isl_ast_build` for the affine dialect's iteration space class by late 2027.
+- **Tensor dialect polyhedral tiling via `transform` dialect scripts**: the MLIR Transform dialect allows user-controlled scheduling strategies; by 2028 the community expects to be able to express diamond tiling, parallelogram tiling, and shared-memory tiling for GPU as composable `transform` operations (e.g., `transform.loop.tile`, `transform.loop.skew`), replacing ad hoc Polly flag combinations.
+- **Automatic shared-memory allocation from polyhedral reuse analysis in MLIR GPU codegen**: Polly-ACC currently inserts `__shared__` arrays via a pattern-matching heuristic; a research direction (Zinenko et al., CGO 2024 follow-up) formalizes this as deriving the shared-memory tile from the polyhedral reuse vector, enabling automatic shared-memory promotion for arbitrary loop nests in MLIR's GPU pipeline.
+- **Code generation for sparse polyhedral schedules**: extending ISL's AST generator to handle sparse iteration domains (domains with explicit zero-value guards from sparse formats like CSR/BCSR) is an active research topic; work from the TACO/SparseTIR community targets integrating sparse codegen with ISL's existing parametric bound infrastructure by 2027–2028.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Verified polyhedral code generation via Lean 4 / Vellvm proofs**: building on the Vellvm and Alive2 traditions, a long-term research direction seeks a formally verified AST generator that produces LLVM IR with a machine-checked proof of semantic equivalence to the polyhedral schedule; early work (e.g., Bagnara et al. PPoPP 2025 workshop) defines the specification language for ISL AST semantics in Lean 4.
+- **ML-guided tiling strategy selection at codegen time**: replacing the hand-tuned tile-size heuristics (fixed T values) with a learned cost model that, given a polyhedral schedule and a hardware target description, predicts optimal tile shapes (including diamond vs. parallelogram) and unroll factors; this requires integrating a lightweight inference runtime into LLVM's pass pipeline, a direction being explored in the MLGO (ML-guided LLVM optimizations) project.
+- **Polyhedral code generation for emerging memory hierarchies (HBM, CXL-attached DRAM, processing-in-memory)**: as memory hierarchy depth increases beyond L1/L2/L3/DRAM, the tiling strategy must account for CXL memory latency and PIM (Processing-in-Memory) datapaths; extending PPCG/Polly's shared-memory tiling model to a multi-level hierarchy with heterogeneous access costs is an open problem expected to see significant work by 2030–2031.
+
+---
+
 ## Chapter Summary
 
 - **Loop bound generation** uses Fourier-Motzkin elimination to project the schedule image onto each loop variable dimension; the result is a sequence of max/min expressions (potentially involving floor/ceiling for tiled loops) that form the loop bounds in the generated code.

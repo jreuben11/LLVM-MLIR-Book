@@ -1237,6 +1237,32 @@ The benefit: a load `ld.flat` (flat/generic, requires segment detection at runti
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Blackwell (sm_100) and PTX 8.6+ full coverage**: NVIDIA's Blackwell GPU generation (sm_100/sm_101) introduced new `tcgen05.*` tensor core MMA instructions and 5th-generation TMA descriptors. The NVPTX backend is actively gaining support for these instructions; PTX 8.6 intrinsics for the new `.b8x16` block-scaled floating-point matrix formats (`e4m3`, `e2m1`, `mx4`) are being upstreamed in patches tracked on LLVM Discourse under the "NVPTX Blackwell support" umbrella thread.
+- **TMA (Tensor Memory Accelerator) IR intrinsics for Hopper/Blackwell**: PTX TMA (`cp.async.bulk.*`) enables descriptor-driven, multi-dimensional async copies between global and shared memory. LLVM RFC discussions are ongoing to define `@llvm.nvvm.cp.async.bulk.*` intrinsics that front-end compilers (e.g., Triton, MLIR GPU dialect) can emit directly instead of relying on inline PTX assembly.
+- **`NVPTXInferAddressSpaces` extension for opaque pointers**: The migration from typed LLVM pointers to opaque pointers (`ptr`) required `NVPTXInferAddressSpaces` to be rewritten to track address space provenance through attributes rather than pointer types. Follow-up work to handle `ptr addrspace(N)` through `@llvm.experimental.noalias.scope.decl` and `llvm.ptrtoint`/`llvm.inttoptr` chains is in review on Phabricator.
+- **SM-specific cache hint intrinsics (`ld.global.L2::256B`, `evict_first`)**: PTX 8.x introduced per-instruction cache policy annotations. LLVM patches are adding `@llvm.nvvm.ld.global.nc.b32.L2_256B` and related intrinsics so front-ends can express cache-streaming patterns (write-evict, bypass) without resorting to inline assembly.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **MLIR GPU-to-NVPTX lowering via the `nvgpu` and `nvvm` dialects replacing the Clang NVPTX path**: The MLIR ecosystem (Triton, JAX, XLA) is converging on a path where `gpu.launch_func` → `nvgpu.*` (cluster, TMA, wgmma) → `nvvm.*` (PTX intrinsics dialect) → `llvm.nvvm.*` replaces the traditional `clang -x cuda` → NVPTX path for high-performance kernels. This requires the NVVM MLIR dialect to achieve parity with every LLVM NVVM intrinsic category, including the full `wgmma.mma_async` family for sm_90+.
+- **Structured SASS-level feedback to LLVM**: NVIDIA's `ptxas` currently is a black box from LLVM's perspective. Research prototypes (e.g., NVBench + Nsight profiler API integration) aim to feed SASS register allocation and occupancy data back to the LLVM NVPTX backend as profile-guided optimization hints, enabling better `.reqntid` / `.maxntid` annotation inference without user annotation.
+- **Formal divergence analysis via `UniformityAnalysis` for convergence regions**: The `DivergenceAnalysis` in LLVM is being superseded by `UniformityAnalysis` (added in LLVM 15+), which reasons about uniformity in reducible control-flow graphs. Full integration with NVPTX's synchronization lowering — ensuring `bar.sync` placement is provably safe under the new analysis — is an active research item with contributions expected from the GPU divergence analysis community.
+- **NVPTX GlobalISel instruction selection path**: The NVPTX backend currently uses the legacy SelectionDAG path. An effort to add a GlobalISel (Global Instruction Selection) path for NVPTX has been discussed on LLVM Discourse; this would enable cleaner handling of structured aggregates and reduce the roundtrip through DAG legalization for common patterns like structured GEMM tiles.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Post-PTX open GPU ISA standardization**: Industry pressure from ROCm/HIP, oneAPI, and open-source GPU driver efforts (Mesa NVK for Vulkan on NVIDIA hardware) may drive NVIDIA to publish SASS or a successor virtual ISA with formal specifications accessible to LLVM. A fully open LLVM backend targeting SASS would eliminate the `ptxas` black-box compilation step and enable LLVM's full scheduling and register allocation stack to target GPU hardware directly — analogous to what the AMDGPU backend achieves for GCN/RDNA.
+- **Unified GPU backend architecture across NVPTX and AMDGPU**: Long-term, the NVPTX and AMDGPU backends share many structural concerns (divergence, address spaces, barrier lowering, tensor core intrinsics). Research directions in the compiler community (e.g., the `gpu` MLIR dialect, SPIR-V cross-compilation) aim toward a single structured IR that can target both backends with target-specific lowering only at the last mile, reducing the duplication currently maintained separately in `llvm/lib/Target/NVPTX/` and `llvm/lib/Target/AMDGPU/`.
+- **Compiler-driven kernel fusion and inter-kernel optimization across NVPTX module boundaries**: Current LLVM LTO stops at NVPTX module boundaries because device-code bitcode and host-code bitcode are linked separately. Future work on full-program device-code LTO — merging multiple GPU kernels into a single PTX module and applying IPO across kernel boundaries — is needed for workloads that launch small cooperative kernels in sequence (e.g., transformer attention + softmax + projection as fused single SM-resident computation).
+
+---
+
 ## Chapter Summary
 
 - PTX is a stable virtual ISA that LLVM generates; NVIDIA's `ptxas` compiles it to device-specific SASS machine code.

@@ -681,6 +681,32 @@ clang -O2 -g my_server.c -o my_server
 # -g emits DWARF; uprobe argument capture uses it to locate registers/offsets
 ```
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **GCC-13 minimum removal and Clang parity enforcement**: The ClangBuiltLinux community is tracking the removal of GCC 12 and older from the minimum-version table in `Documentation/process/changes.rst`, clearing the path to deprecate kernel workarounds (e.g., `-Wno-gnu` attribute quirks, `zero-length-array` compatibility) that exist only to tolerate GCC behavior. Clang 18+ is expected to become the effective floor in Android GKI.
+- **kCFI for RISC-V**: kCFI landed on arm64 in Linux 6.2; the upstream effort to enable `CONFIG_CFI_CLANG` on RISC-V (tracking LLVM RISC-V backend support for the four-byte preamble typeid and `ebreak`-based trap) is active on the ClangBuiltLinux mailing list and in LLVM's RISC-V backend work.
+- **`objtool` instruction-set extensions for Clang 22 prologues**: Clang 22 introduces new prologue patterns under `-fomit-frame-pointer` and ShadowCallStack on arm64. The kernel's `tools/objtool/arch/` decoder tables must be updated; patches are expected before Linux 6.12 merges LLVM 22 as a tested compiler version.
+- **BPF token and unprivileged BPF hardening**: The upstream BPF token patchset (RFC on netdev/bpf list, 2025) enables fine-grained delegation of BPF program loading rights without `CAP_BPF`. Clang's BPF backend will need to emit new relocation types to allow the kernel verifier to enforce token-scoped CO-RE relocations at load time.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Clang-only kernel builds as the upstream default for arm64**: Based on current trajectory (Android GKI already mandates Clang; ChromeOS and AWS follow), mainline Linux arm64 `defconfig` may drop the fallback `CC=gcc` path for new architectures. This requires resolving remaining inline-assembly dialect gaps in LLVM's integrated assembler and completing the `LLVM_IAS=1` coverage for all `arch/arm64` `.S` files.
+- **Full LTO (monolithic) kernel builds via the distributed cache model**: ThinLTO is the practical LTO mode today; full LTO (`CONFIG_LTO_CLANG_FULL`) is feasible only for small kernels due to link-time memory consumption. Distributed LTO caching via `llvmcache` (similar to ccache for bitcode units) is a research area that would make full LTO viable for production kernel CI, enabling stronger whole-program CFI and dead-code elimination than ThinLTO provides.
+- **MTE v2 + KASAN hardware-tag integration on ARMv9.4**: ARM MTE version 2 (part of ARMv9.4-A) extends tag storage from 4 bits to 8 bits per granule and adds asynchronous-mode improvements. KASAN hw-tags in the kernel will need updates to `mm/kasan/hw_tags.c` and Clang's `-march=armv9.4-a+memtag2` target flag. Academic research (ARM Ltd. white papers, 2024) suggests MTE v2 can provide quarantine-free temporal safety at <2% overhead.
+- **Livepatch + kCFI compatibility on arm64**: The current livepatch `klp_ftrace_handler` redirects execution by rewriting the return address in `ftrace_regs`. With kCFI, the replacement function's `__kcfi_typeid` must match the callee type at the original call site; the livepatch subsystem currently bypasses this check via `__nocfi`. A proposed upstream design integrates kCFI typeid patching into the livepatch enable/disable path, tracked in the Linux livepatch mailing list.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Formal verification of objtool CFG analysis using Lean 4 or Coq**: objtool's forward-propagation of stack-pointer adjustments across arbitrary x86_64 control-flow graphs is safety-critical: an incorrect ORC table causes silent unwind failures in production oops handlers. The CompCert and Vellvm communities are exploring formal models of x86_64 stack frames; a verified objtool CFG pass connected to a Coq model of x86_64 semantics would eliminate this class of silent correctness bugs.
+- **Compiler-assisted kernel ABI stability via MLIR type export**: The Android GKI ABI monitor today relies on `pahole` + XML diffing, which misses semantic changes (e.g., changed enum values, behavior-changing default arguments). A prospective design would have Clang emit MLIR-based type descriptors into a dedicated ELF section at compile time, making struct layout, function signature, and semantic annotations machine-verifiable across kernel versions without a separate pahole pass.
+- **BPF program synthesis and compiler-verifier co-design**: The BPF verifier's constraint set (512-byte stack, no unbounded loops, no indirect calls) limits expressibility for complex BPF programs. A research direction being explored in the USENIX papers (e.g., "Safe and Efficient eBPF", 2024) involves a co-designed Clang BPF backend that emits programs already in a verifier-normal form, eliminating the retry-and-reformulate loop developers currently face; this would require a new Clang BPF dialect in MLIR and a verifier-feedback IR pass.
+
+---
+
 ## 11. Chapter Summary
 
 - **`LLVM=1`** replaces the entire GNU binutils toolchain with LLVM equivalents in a single make variable; `LLVM_IAS=1` adds the integrated assembler and is now default for most architectures.

@@ -905,6 +905,32 @@ This one-to-one correspondence between AST nodes and IR instructions is exactly 
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **`CodeGenFunction` coroutine refactor**: The ongoing effort to move coroutine lowering out of `CodeGenFunction` and into a dedicated `CGCoroutine` class (tracked in [D153096](https://reviews.llvm.org/D153096) and subsequent patches) is expected to land in LLVM 23. This decouples `EHStack` cleanup scope handling from coroutine suspend-point insertion and eliminates the current workaround where `CodeGenFunction::CurCEANIndex` stores coroutine state inline.
+- **`CGBuilderTy` typed-GEP enforcement**: Following the opaque-pointer migration completed in LLVM 17, Clang 22 retains the `Address::ElementType` field to drive GEP emission. An active RFC on discourse.llvm.org proposes removing `ElementType` in favor of encoding element types directly in `CGRecordLayout` field descriptors, eliminating the last "typed pointer shadow" in codegen.
+- **RemoveDIs debug-info stabilization**: LLVM 22's `DbgVariableRecord` / `#dbg_declare` format is default-on but the legacy intrinsic path remains for downstream consumers. By LLVM 23 the legacy `llvm.dbg.declare`/`llvm.dbg.value` intrinsics are slated for removal; any out-of-tree codegen backends must migrate to `IRBuilderBase::insertDbgVariableRecord()` APIs.
+- **Deferred-emission queue scalability**: Large Unity builds and precompiled-header scenarios expose quadratic behavior in `EmitDeferred()` when inline function bodies transitively reference many templates. A proposal to replace the `SmallVector<GlobalDecl>` queue with a priority-ordered `DenseSet` is under discussion on the `cfe-dev` mailing list as of Q1 2026.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **ClangIR (`CIR`) as an intermediate representation layer**: The ClangIR project (Part VIII of this book; upstream RFC accepted in 2024) inserts a `CIRGenModule` / `CIRGenFunction` layer between the Clang AST and LLVM IR. By 2028 the expectation is that `CodeGenModule` and `CodeGenFunction` will either be generated from CIR lowering passes or significantly slimmed down as CIR takes over expression/statement lowering. The `CIRGenModule` class in `clang/lib/CIR/CodeGen/CIRGenModule.h` already mirrors the `CodeGenModule` API surface.
+- **Opaque-pointer-native `Address` redesign**: With opaque pointers now universal in LLVM IR, the `Address` struct's `ElementType` field is pure codegen metadata. A planned refactor (discussed at the 2025 LLVM Developer Meeting) would make `Address` a value-semantic type with compile-time-typed variants (`ScalarAddress<T>`, `StructAddress`, `VectorAddress`), enabling better static guarantees on GEP validity within codegen without runtime assertions.
+- **`CodeGenModule` modularization for parallel compilation**: The Clang Modules and BMI (Binary Module Interface) work under C++20/C++23 modules requires `CodeGenModule` instances to share type-conversion state across module boundaries. The `CodeGenTypes` cache (`FunctionInfos`, `RecordDeclTypes`) is not currently thread-safe; a lock-free read-mostly design or per-thread type caches are being prototyped to enable parallel TU compilation within a single `LLVMContext`.
+- **Sanitizer metadata unification**: `SanitizerMetadata`, `SanitizerBL`, and the per-global sanitizer attributes are currently spread across `CodeGenModule`, `CGDebugInfo`, and backend passes. An LLVM RFC from 2025 proposes a unified `!sanitizer` metadata scheme attached at the `GlobalVariable` level, allowing the sanitizer runtime to introspect globals without separate symbol-table queries.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Full CIR-based codegen path replacing `CodeGenModule`**: If ClangIR reaches production maturity, `CodeGenModule::EmitGlobal()` and `CodeGenFunction::GenerateCode()` may be replaced entirely by CIR-to-LLVM-IR lowering pipelines, with the Clang AST → CIR → LLVM IR path becoming canonical. This would restructure all of Part VI around CIR dialects rather than the current `CodeGenModule`/`CodeGenFunction` C++ class hierarchy.
+- **LLVM IR typed-alloca revival for memory safety**: Research into provenance-aware IR (building on LLVM's `llvm.ptrmask` / `llvm.ptr.annotation` work and the ongoing WG14 C memory object model revision) may introduce a typed-alloca IR representation that re-encodes pointee types at the SSA layer, giving alias analysis precise object-boundary information. If adopted, `CreateTempAlloca()` and `EmitAutoVarAlloca()` would need to emit typed allocas with provenance tokens rather than opaque `ptr` alloca instructions.
+- **Profile-guided `DeferredDecls` policy**: As profile-guided optimization (PGO) data becomes richer with IRPGO / AutoFDO / binary correlation, the heuristic in `EmitTopLevelDecl()` that decides between immediate and deferred emission could be replaced by a PGO-informed policy: functions whose profile data shows zero calls across a fleet of production builds are never emitted in the codegen pass and instead left as declarations for the LTO linker to discard, further reducing IR module size for large TUs.
+
+---
+
 ## Chapter Summary
 
 - `BackendConsumer::HandleTranslationUnit()` drives IR generation and then invokes `emitBackendOutput()` to run the LLVM pass pipeline; `CodeGenAction` concrete subclasses control the output format.

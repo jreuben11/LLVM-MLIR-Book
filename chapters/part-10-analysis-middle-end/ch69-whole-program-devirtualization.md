@@ -439,6 +439,32 @@ The two virtual calls are now two branches, each with inlined implementations an
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Improved ThinLTO WPD summary granularity**: ongoing work (tracked in [llvm/llvm-project#87114](https://github.com/llvm/llvm-project/issues/87114) and related patches) to propagate finer-grained vcall_visibility information in ThinLTO summaries, enabling WPD to devirtualize across more module boundaries that currently require public visibility.
+- **Branch funnel threshold tuning**: experimentation via LLVM RFC discussions to raise the branch-funnel implementation-count limit beyond two/three, using profile-guided counts to bound code-size expansion while capturing more devirtualization opportunities on medium-sized class hierarchies.
+- **WPD + PGO interplay improvements**: patches under review to feed PGO indirect-call profiles back into WPD's branch-funnel ordering, so the hot implementation is placed in the likely-taken branch and becomes the primary inlining candidate for the post-devirtualization inliner.
+- **ClangIR vtable lowering for WPD**: as ClangIR (`-fclangir`) matures in LLVM 22.x, active work to ensure it emits `@llvm.type.checked.load` and `!vcall_visibility` metadata at parity with the classical Clang CodeGen path, so WPD applies equally under both frontends.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Cross-DSO WPD with sealed shared libraries**: proposed extension (inspired by Swift's sealed class semantics) to support devirtualization across DSO boundaries when the shared library is built with a `sealed` annotation guaranteeing no external subclassing; requires linker protocol extensions beyond current `-fvisibility=hidden` model.
+- **Speculative devirtualization with deoptimization stubs**: adapting the JIT-style speculative inlining model (as in V8's IC-based inlining) to the AOT pipeline — WPD emits a direct call guarded by a vtable pointer comparison, with a deoptimization stub for the mismatch case, enabling devirtualization on public-visibility vtables when profile data shows high monomorphism.
+- **MLIR-dialect-level devirtualization for ODS-defined interfaces**: as more compiler pipelines represent virtual dispatch through MLIR `Interface` call sites rather than C++ vtables, extending WPD concepts into the MLIR transform pipeline (likely as a new `mlir-opt` pass consuming MLIR type metadata rather than LLVM `@llvm.type.test` intrinsics).
+- **Whole-program devirtualization for Rust trait objects**: Rust `dyn Trait` dispatch uses a vtable layout compatible with LLVM's type metadata model; active research (see MCP for Rust fat-pointer ABI improvements) into emitting `!vcall_visibility` from rustc's LLVM codegen to enable WPD on Rust programs compiled with LTO.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Closed-world type analysis integrated with abstract interpretation**: combining WPD's vtable enumeration with a Steensgaard-style or Andersen-style points-to analysis to devirtualize calls even on public vtables when the points-to set is provably bounded within a compilation unit, eliminating the strict `-fvisibility=hidden` requirement.
+- **Hardware-assisted devirtualization using pointer authentication**: on AArch64 targets with PAC (Pointer Authentication Codes), leveraging PA-signed vtable pointers to allow the branch funnel to authenticate and branch in a single instruction, replacing the current `icmp eq ptr %vtable_ptr, @_ZTVXXX` comparison pattern with a hardware-verified dispatch sequence that is both faster and control-flow safe.
+- **Formal verification of WPD correctness via Alive2/Vellvm extensions**: extending the Alive2 IR transformation verifier ([Alive2 project](https://github.com/AliveToolkit/alive2)) to reason about type metadata semantics and verify that WPD transformations preserve the semantics of `@llvm.type.checked.load` under all vtable layouts, providing machine-checked proofs of WPD's five devirtualization strategies.
+
+---
+
 ## Chapter Summary
 
 - **Whole-Program Devirtualization** eliminates virtual call overhead at LTO time by replacing `@llvm.type.checked.load` intrinsics with direct calls or optimized alternatives when all vtable implementations are visible.

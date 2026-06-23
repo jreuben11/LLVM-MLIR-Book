@@ -636,6 +636,32 @@ Similarly, `-z relro` applies to the `.data.rel.ro` section, which contains cons
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **x86-64 TLSDESC adoption in glibc and LLD**: The x86-64 TLSDESC ABI (analogous to AArch64's mechanism) has been standardised in the x86-64 psABI addendum and is being enabled by default in glibc 2.41 and LLD 22; tracking work includes LLVM Discourse RFC "Enable TLSDESC for x86-64 by default" and the corresponding `--tls-dialect=desc` Clang flag reaching stable status.
+- **`R_X86_64_CODE_4_GOTPCRELX` and Code Model 4 relaxation**: LLVM/LLD patches are landing to support the new large-code-model GOT relaxation relocations (`R_X86_64_CODE_4_*`) introduced in the x86-64 psABI v0.99.3, enabling GOT elimination for 64-bit displacement instructions not covered by the original `REX_GOTPCRELX` set.
+- **AArch64 FEAT_TLBI_RANGE-aware TLS invalidation**: patches are in review to exploit the ARMv8.4-A `TLBI RRANGE` instruction in the glibc TLS runtime to amortise TLS descriptor flush cost when many threads load a DSO simultaneously, improving `dlopen` latency on high-core-count Neoverse servers.
+- **LLD RISC-V relaxation convergence improvements**: an ongoing series of LLD patches (post-LLVM 22) aims to reduce the number of relaxation fixpoint iterations for large RISC-V binaries by precomputing dominance relationships between dependent relocations, cutting link time for binaries with dense near-threshold call graphs.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **ELF `R_*_GOT_RELATIVE` class and compressed GOT**: a proposal under discussion on the generic-abi list would compress the GOT by using position-relative entries (one word per slot instead of two for pointer-authentication-capable targets), halving GOT size on AArch64 with Pointer Authentication Code (PAC) enabled — relevant to Apple Silicon and ARMv8.3-A Linux deployments.
+- **BOLT and LLD cooperative PLT compaction**: Meta's BOLT binary optimiser already reorders hot PLT stubs, but a tighter LLD–BOLT pipeline (proposed in "Integrated BOLT passes in LLD", LLVM Developers' Meeting 2025) would allow LLD to pre-sort PLT stubs by call frequency data derived from AutoFDO profiles, eliminating the need for a post-link BOLT PLT pass.
+- **Cross-DSO CFI and shadow-call-stack integration with PLT**: LLVM's cross-DSO CFI (`-fsanitize=cfi-icall -fsanitize-cfi-cross-dso`) currently requires every PLT-routed indirect call to pass through a CFI trampoline; an in-progress ABI extension would embed a type-hash slot in each PLT stub, removing the trampoline indirection and making cross-DSO CFI zero-overhead on non-violating paths.
+- **RISC-V Zicfilp / Zicfiss landing-pad enforcement through PLT**: the RISC-V Control Flow Integrity extensions (ratified in 2024, arriving in hardware 2026–2027) require PLT stubs to begin with a `lpad` instruction; LLD's RISC-V backend will need to emit `lpad`-prefixed PLT stubs and veneer thunks, with TLS accessor stubs also updated for `Zicfiss` shadow-stack compatibility.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Capability-aware GOT/PLT for CHERI/Morello successors**: CHERI-RISC-V and future Morello-class ISAs replace raw pointers with hardware capabilities; the GOT will store capability-tagged entries rather than plain addresses, requiring a new ELF relocation class (`R_RISCV_CAPABILITY_*`) and a capability-aware `ld.so` initialisation protocol — LLD groundwork is being laid in the CHERI LLVM fork with plans to upstream.
+- **Eliminating the GOT as a separate section through compiler–linker co-design**: research prototypes (notably the "Direct Addressing" work from University of Cambridge and ARM Research) show that with whole-program visibility, GOT entries for non-preemptible symbols can be replaced with PC-relative materialisations baked into `.text`, removing the GOT data section entirely for position-independent executables; this requires ABI changes and LTO-aware linker support.
+- **Generalised linker relaxation framework in LLD for new ISAs (RISC-V 128-bit, LoongArch future extensions)**: as new ISAs extend address spaces beyond 64 bits, the current shrink-only relaxation model may need a limited grow-or-shrink variant (for encoding transitions across address-range thresholds); theoretical groundwork on non-monotone relaxation fixpoints is an active research area, with implications for how LLD's `relaxOnce()` loop is structured.
+
+---
+
 ## Chapter Summary
 
 - The **GOT** (Global Offset Table) in `.got` and `.got.plt` stores absolute addresses that are filled at load time by `ld.so`, allowing PIC code in `.text` to remain read-only and sharable; `GOTPCREL` relocations encode load offsets relative to the current PC.

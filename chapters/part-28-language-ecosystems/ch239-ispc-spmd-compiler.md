@@ -427,6 +427,32 @@ The `-O2` flag passes through to LLVM's optimization pipeline via ISPC's `runOpt
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **ISPC 1.25.x release with LLVM 18/19 upgrade**: The ISPC project tracks LLVM releases closely; the in-progress LLVM 19 integration (tracked on [github.com/ispc/ispc](https://github.com/ispc/ispc)) brings updated cost models for AVX10 and ARM SVE2, and enables new LLVM loop vectorization hints for `foreach` tail handling.
+- **AVX10.1 and AVX10.2 target support**: Intel's converged AVX-512/AVX2 ISA (AVX10) is being integrated into ISPC's `ISPCTarget` enum; new entries `avx10_2_512_x8`, `avx10_2_512_x16` are expected to supersede the fragmented `avx512skx` / `avx512spr` targets on Panther Lake and Diamond Rapids CPUs.
+- **ARM SVE/SVE2 scalable-vector targets**: Ongoing work in ISPC's `src/target_enums.h` to support scalable-width `<vscale x N x T>` LLVM vector types for AArch64 SVE; the `programCount` abstraction must become a runtime value rather than a compile-time constant, requiring changes to the `FunctionEmitContext` mask infrastructure.
+- **RISC-V RVV (V extension) target**: An experimental `riscv_rvv_i32x4` target is under development upstream, mapping ISPC's gang model to RVV's runtime VLEN; this requires ISPC's gather/scatter builtins to emit RISC-V vector load/store intrinsics (`@llvm.riscv.vluxei`/`@llvm.riscv.vsuxei`).
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Intel GPU (Xe/Battlemage) via ISPC for GEN**: Intel's `ispc-for-gen` branch (merging upstream into main ISPC) extends the SPMD model to Intel Xe GPU targets via LLVM's SPIR-V backend, allowing the same `.ispc` source to compile for both CPU SIMD and Xe EU SIMD without OpenCL or SYCL wrappers — directly relevant to Embree's GPU path tracing backend.
+- **Whole-program interprocedural uniformity analysis**: Current ISPC performs variability inference per-function; an interprocedural pass that propagates `uniform` across call boundaries would enable more scalar code for functions always called with uniform arguments, reducing unnecessary vector broadcasts identified as a performance gap in production Embree kernels.
+- **MLIR-based ISPC middle-end**: Exploratory work (discussed in Intel Labs publications) on lowering ISPC's AST to an MLIR dialect (`ispc.varying`, `ispc.foreach`, `ispc.mask`) before targeting LLVM IR; this would enable MLIR's structured data-flow analyses and polyhedral-style transformations on SPMD loops that ISPC currently cannot optimize (e.g., `foreach` over 2D tiles).
+- **Improved SOA auto-transposition with `memref` layout maps**: Leveraging MLIR's `memref` strided-layout attribute to express SOA transformations declaratively, replacing ISPC's current `soa<N>` emit of explicit `insertelement`/`shufflevector` sequences with MLIR-generated `linalg.transpose` that lowers to optimized LLVM IR.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Unified SPMD/SIMT compilation via LLVM NVPTX convergence**: As GPU and CPU SIMD models converge (CUDA's warp = ISPC gang; both predicated on `<N x i1>` masks in IR), a common LLVM "SPMD dialect" could allow ISPC source to target NVIDIA PTX, AMD AMDGPU, and Intel Xe with a shared frontend and target-specific lowering — extending ISPC's zero-runtime-API model to heterogeneous compute.
+- **Formal verification of ISPC's masking semantics**: With growing interest in verified compilation (CompCert for vectorizing compilers, Alive2 extensions for vector instructions), ISPC's `FunctionEmitContext` mask-threading logic is a candidate for formal proof that predicated execution is semantics-preserving; this would require extending Vellvm or Alive2's `<N x T>` support to cover `@llvm.masked.gather`/`@llvm.masked.scatter`.
+- **ISPC integration into compiler construction curricula and open benchmarking suites**: As ISPC matures, standardized SPMD benchmarks (analogous to SPEC CPU for scalar code) tracking ISPC performance across AVX2/AVX-512/SVE/RVV targets could guide compiler optimization priorities and serve as regression harnesses for the LLVM vectorization cost model.
+
+---
+
 ## Summary
 
 - ISPC implements SPMD execution on CPUs: the programmer writes code for one instance; the compiler emits LLVM IR with explicit `<N x T>` vector types at the target SIMD width.

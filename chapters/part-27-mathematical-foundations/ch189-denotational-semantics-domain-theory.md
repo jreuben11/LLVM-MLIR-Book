@@ -948,6 +948,32 @@ In `System`, the `in` events synchronize Producer with Buffer, `out` synchronize
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Interaction trees in LLVM verification**: The Vellvm project (Penn/Yale) is actively extending its Coq formalization of LLVM IR semantics using interaction trees — a coinductive domain-theoretic structure that models the denotational fixpoint of LLVM's operational semantics. Ongoing work targets LLVM 18–22 semantics parity, including `poison` and `undef` value propagation modeled as partial elements in the CPO; follow the Vellvm GitHub repository (`DeepSpec/vellvm`) for patch integration with mainline LLVM verification toolchains.
+- **Algebraic effects in MLIR dialects**: The MLIR community is prototyping an `effects` dialect to model computational effects (state, I/O, nondeterminism) as first-class operations with algebraic handler semantics — directly instantiating the free-monad / algebraic-effects model of delimited continuations (`shift`/`reset`). RFC discussion active on discourse.llvm.org under "Effects Dialect for MLIR."
+- **Game-semantic tooling for higher-order program equivalence**: The Trustworthy Systems group (UNSW/MPI) is integrating game-semantic full abstraction results into automated higher-order program equivalence checkers; near-term deliverables include a tool for verifying that LLVM inlining and partial-evaluation transformations preserve game-semantic denotations.
+- **Lean 4 formalization of domain theory**: The `Mathlib4` library is adding a `DomainTheory` module covering CPOs, Scott-continuous functions, the Kleene fixpoint theorem, and initial fixpoints of locally continuous functors (Smyth-Plotkin). Expected merge by Q3 2026, enabling machine-checked proofs of compiler correctness arguments that depend on domain-theoretic fixpoints.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Denotational semantics for LLVM's memory model with concurrency**: The ongoing LLVM memory model reform (C++26 hazard pointers, sequentially-consistent fences, RCSC semantics) requires a concurrent denotational model that extends the powerdomain/trace semantics of §189.9–189.10 to weak memory. Academic groups (Cambridge, MPI-SWS) are building denotational models of Promising Semantics and CMRA (Concurrent Monoid of Resource Algebras) that are compatible with LLVM's IR-level concurrency annotations; integration with LLVM's `clang -fmemory-model=...` pipeline is on the 3-year roadmap.
+- **Session-typed channel protocols in Rust and LLVM**: Following the Rust `std::sync::mpsc` redesign and the RFC for affine/linear session types in the Rust type system (tracked at rust-lang/rfcs#3398-adjacent proposals), a denotational semantics for session-typed concurrent programs based on π-calculus bisimulation and linear continuation semantics is expected to reach practical toolchain integration; the underlying theory (Honda-Yoshida session types, §189.10.3) will be formalized in Lean 4 as part of the Rust formal methods initiative.
+- **Powerdomain-based semantics for GPU nondeterminism in MLIR**: The GPU dialects in MLIR (`gpu`, `nvgpu`, `amdgpu`) expose nondeterministic scheduling at the warp and threadblock level. The NVIDIA formal methods group and academic collaborators are developing a Smyth-powerdomain model of GPU program behavior that soundly over-approximates all possible thread schedules, enabling static race detection and alias analysis for GPU IR; prototype expected by 2027.
+- **wp/sp calculi integrated into MLIR's `transform` dialect**: The MLIR transformation infrastructure is evolving toward a verified transformation dialect where each pass declares its precondition (wp) and postcondition (sp) as attributes on MLIR operations. The predicate-transformer framework of §189.8 provides the formal backbone; ongoing RFC on discourse.llvm.org ("Verified Transformations via Predicate Transformer Annotations") targets LLVM 26–28 releases.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Full abstraction for CPS-based intermediate representations**: The CPS–SSA correspondence (§189.7.3) is well-understood, but a fully abstract denotational model for LLVM IR — one that identifies exactly the programs that are contextually equivalent under all legal optimizations — does not yet exist. Research directions include extending the Hyland-Ong game-semantic framework to account for pointer aliasing, undefined behavior, and backend-specific lowering choices. A fully abstract model would enable formally verified superoptimization: replacing any LLVM IR fragment with any contextually equivalent one, with a machine-checked proof.
+- **Constructive domain theory in dependent type theory for certified compilers**: Current proof assistants (Lean 4, Coq/Rocq) treat domain-theoretic fixpoints non-constructively (using classical axioms via `WellFounded.fix` or `Fix`). Escardó's synthetic domain theory and Taylor's Abstract Stone Duality provide constructive formulations. By 2031, certified compilers (CompCert-style or beyond) may employ these constructive domain theories to eliminate all uses of non-constructive axioms in compiler correctness proofs, making the proofs extractable as certified compilation algorithms.
+- **Unified denotational framework for heterogeneous compilation (CPU + GPU + neural accelerator)**: As MLIR's multi-target compilation for heterogeneous hardware matures (OpenXLA, IREE, Triton), a unified denotational semantics that spans CPU sequential semantics (CPO model), GPU nondeterminism (powerdomain), and neural accelerator dataflow (traced monoidal category semantics) will be needed to reason about cross-target transformations. The categorical framework (§189.11, category theory for compiler engineers) provides the scaffolding; domain-theoretic models for each execution model need unification under a common categorical structure such as a fibered denotational model over a category of target platforms.
+
+---
+
 ## 189.12 Summary
 
 - **Denotational semantics** assigns programs mathematical objects (elements of domains) compositionally; ⟦P Q⟧ = ⟦P⟧(⟦Q⟧). This contrasts with operational semantics, which defines meaning via execution.

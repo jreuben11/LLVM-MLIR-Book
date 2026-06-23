@@ -704,6 +704,32 @@ define linkonce_odr void @_ZN3FooD1Ev(ptr %this) comdat($\_ZN3FooD1Ev) {
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Complete removal of remaining arithmetic `ConstantExpr` opcodes.** The LLVM community RFC ([discourse.llvm.org, "Removing remaining ConstantExprs"](https://discourse.llvm.org/t/rfc-removing-remaining-constant-expressions)) targets eliminating `add`, `sub`, `xor`, and `trunc` constant expressions so that all arithmetic is expressed as instructions. Pass authors should audit any code that constructs or matches these four surviving opcodes before the removal lands in LLVM 23.
+- **`poison` migration completion for `undef` in `ConstantExpr` GEP.** The ongoing effort to replace `undef` with `poison` in inbounds GEP operands (tracked in [llvm/llvm-project#63419](https://github.com/llvm/llvm-project/issues/63419)) is expected to close in LLVM 22–23, requiring `freeze` to be inserted by any pass that speculatively hoists GEP-derived pointers.
+- **TLS linker relaxation for RISC-V and LoongArch.** LLD gained IE/LE TLS relaxation for x86-64 and AArch64; RISC-V GD→IE and GD→LE linker relaxation patches (targeting `R_RISCV_TLS_GD_HI20`) are in active review and expected to land in LLD 19–22, reducing TLS overhead in RISC-V DSP and embedded workloads.
+- **`dso_local` propagation through LTO.** A ThinLTO refinement RFC proposes propagating `dso_local` from the summary index to imported `available_externally` copies, eliminating residual PLT stubs in `-O2 -flto=thin` builds for hidden-visibility symbols that cross module boundaries.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Structured comdat semantics for LLVM IR.** A long-standing design discussion ([RFC: structured comdats](https://discourse.llvm.org/t/rfc-structured-comdat-in-llvm-ir)) proposes elevating comdats from a linker annotation to a first-class IR concept with typed selection policies and verifier enforcement, enabling middle-end passes to reason about comdat groups without relying on metadata conventions.
+- **Opaque-pointer completion and removal of typed-pointer IR.** As the typed-pointer IR path is fully retired (targeted for LLVM 20–22 completion), all `bitcast` constant expressions become identity operations and the surviving `ConstantExpr bitcast` opcode can be removed, simplifying the IR canon and the bitcode reader.
+- **Windows ARM64EC and hybrid linkage.** Microsoft's ARM64EC ABI (entry-point compatibility for x86-64 interop) introduces new `dllimport` thunk patterns and a dual-symbol-table model. LLVM's PE/COFF backend is actively extending `dllimport`/`dllexport` handling for ARM64EC, with new `__imp_aux_` stub conventions expected to be stabilized in LLVM 22–25.
+- **Compiler-enforced ODR diagnostics via `exactmatch` comdat.** Security-focused downstream toolchains (ChromeOS, Android) are evaluating upgrading C++ `linkonce_odr` comdats from `any` to `exactmatch` selection to detect ODR violations at link time. LLD patches adding diagnostic support for `exactmatch` mismatches are in prototype stage.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Unified global value representation across LLVM and MLIR.** As ClangIR matures and MLIR-based compilation pipelines grow, there is architectural pressure to unify `GlobalVariable`/`GlobalAlias`/`GlobalIFunc` with MLIR's `memref.global` and LLVM dialect equivalents, potentially introducing a common constant/global value IR shared between the two frameworks.
+- **Hardware-assisted TLS for heterogeneous targets.** Emerging ISAs (RISC-V with the Zicfiss and Zicfilp extensions, and prospective heterogeneous thread models) require TLS ABI extensions beyond the four ELF models. The RISC-V PSABI working group is designing a RISC-V-native TLS relaxation scheme; LLVM will need new `thread_local` model qualifiers or a TLS ABI plugin interface to accommodate them.
+- **Linker-independent comdat semantics for WebAssembly and SPIR-V.** Wasm and SPIR-V lack native comdat primitives, forcing LLVM to emulate deduplication through `export`/`import` matching or linker metadata. A long-term goal is a portable comdat lowering layer that produces deterministic deduplication on all targets LLVM supports, enabling C++ templates and inline functions to be efficiently compiled for GPU and wasm frontends without per-target workarounds.
+
+---
+
 ## 9. Chapter Summary
 
 - **`ConstantExpr`** is a constant-folded expression tree with no basic block parent. In LLVM 22 the surviving opcodes are `getelementptr`, `bitcast`, `inttoptr`, `ptrtoint`, `addrspacecast`, `add`, `sub`, `xor`, and `trunc`; arithmetic, logical, comparison, and vector opcodes have been removed. New code should use instructions in initializer functions rather than removed constant expression opcodes.

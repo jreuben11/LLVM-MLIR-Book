@@ -424,6 +424,32 @@ The Pluto algorithm (Chapter 72) finds schedules that maximize the number of per
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **ISL 0.28 / Barvinok parametric counting improvements**: The Integer Set Library (isl) maintainers (Verdoolaege et al.) are actively landing patches to reduce the worst-case complexity of `isl_union_map_compute_flow` for dense SCoPs — directly affecting Polly's exact dependence analysis on large GEMM-family kernels. Track at [isl GitLab](https://repo.or.cz/isl.git).
+- **Polly re-enablement in upstream LLVM**: Following the removal of Polly from the default LLVM build in 2024, community discussion (LLVM Discourse thread "Polly maintenance status", Jan 2026) is converging toward re-adding it as an optional component gated on `-DLLVM_ENABLE_POLLY=ON`, with updated CMake integration targeting the LLVM 22 release cycle.
+- **MLIR Presburger library expansion**: `mlir/lib/Analysis/Presburger/` is receiving additions for **cylindrical algebraic decomposition (CAD)** to handle semi-affine and quasi-affine constraints that appear at SCoP boundaries (non-affine loop bounds introduced by `__builtin_expect` or profile-guided hoisting). Relevant MLIR RFC: "Extend Presburger library with semi-affine support" (discourse.llvm.org, Q1 2026).
+- **SCoP detection for irregular control flow via speculation**: LLVM's ScalarEvolution and LoopInfo passes are gaining speculative SCoP extension — speculatively hoisting data-dependent branches that fail the affine restriction and verifying at runtime. This overlaps with ongoing work on `llvm.assume` intrinsics for polyhedral hints.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Sparse polyhedral model for irregular computations**: Research prototypes (e.g., TACO compiler, SpDISTAL, ASpT) are converging toward a sparse extension of the SCoP abstraction where iteration spaces are not dense polyhedra but compressed sparse formats. Integration of sparse schedules into the MLIR `SparseTensor` dialect (which already uses affine maps) is an active design area targeting production-readiness by 2028.
+- **Auto-differentiation-aware SCoP analysis**: With the rise of ML compilers (XLA, Enzyme AD), polyhedral dependence analysis is being extended to handle differentiation programs where forward-pass and backward-pass SCoPs share arrays with reversed temporal order. Enzyme's polyhedral integration (Hueckelheim et al., SC'24) aims for full affine schedule co-optimization of primal/adjoint pairs.
+- **Affine schedule synthesis via SMT-backed enumeration**: Current Pluto-style ILP scheduling (Chapter 72) can fail to find optimal tile sizes for complex access patterns. The Halide/TVM research community (see Adams et al., PLDI 2019 beam-search extensions) is coupling Presburger feasibility with SMT solvers (Z3 / Bitwuzla) to enumerate Pareto-optimal (parallelism × locality) schedules beyond the reach of pure ILP.
+- **Parametric tiling legality for non-rectangular iteration spaces**: The existing permutability condition (Section 71.7.2) applies only to rectangular or hyperrectangular tiles. Extending the Farkas-lemma derivation for parametric non-rectangular tiles (triangular, hexagonal) — used in stencil computations and wavefront parallelism — is an active area; Grosser's group (ETH Zürich) has preprints circulating as of 2025.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Certified polyhedral transformations in Lean 4 / Coq**: The correctness of dependence analysis and schedule legality proofs rests on Presburger arithmetic decidability. Projects like **Verified MLIR** (connecting to CompCert-style verification) and the Lean 4 `Omega` tactic extension are laying groundwork for machine-checked proofs that a computed schedule satisfies all Farkas constraints — eliminating the class of transformation-correctness bugs seen historically in Polly and PolyBench.
+- **Probabilistic polyhedral model for stochastic programs**: Programs with random early-exit conditions (Monte Carlo loops, probabilistic data structures) cannot form exact SCoPs but admit probabilistic SCoP relaxations where access functions and domains are random variables with affine means. Theoretical foundations (building on Cavalcante-Carvalho et al., CGO 2024) may yield new probabilistic scheduling theories integrated into MLIR by 2031.
+- **Quantum-classical polyhedral co-scheduling**: Hybrid quantum programs interleave classical loops (state preparation, syndrome extraction) with quantum gate sequences. Emerging representations such as QMLIR and QIR are studying whether the polyhedral iteration-space model can be lifted to quantum circuit depth as a proxy for "logical time," enabling co-optimization of classical pre/post-processing SCoPs with quantum circuit compilation.
+
+---
+
 ## Chapter Summary
 
 - A **SCoP** (Static Control Part) is a maximal program region where loop bounds and array accesses are affine functions of induction variables and symbolic parameters; it is the input domain of the polyhedral model.

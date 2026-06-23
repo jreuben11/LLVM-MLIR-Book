@@ -584,6 +584,32 @@ As of LLVM 22.1, the state of LLVM-libc:
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Complete double-precision math coverage**: Finish correctly-rounded implementations of `sin`, `cos`, `tan`, `exp`, `log`, `pow` for `double` precision, closing the remaining gaps noted in LLVM 22 status. Tracked via [llvm-libc math RFC](https://discourse.llvm.org/c/runtimes/libc/28) and the ongoing CR-LIBM-based implementation work for double variants.
+- **Windows platform parity for `stdio` and `stdlib`**: Extend Windows support beyond `string.h` and `math.h` to include `printf`/`scanf`, `malloc`/`free`, and core `stdlib.h` functions, leveraging the Win32 syscall abstraction being developed in `libc/src/__support/OSUtil/windows/`.
+- **RISC-V optimized string backends**: Add RISC-V Vector extension (RVV 1.0) specializations for `memcpy`/`memset`/`strlen` analogous to existing x86_64 AVX-512 and AArch64 NEON paths; initial RISC-V support landed in LLVM 22 for scalar paths only.
+- **GPU `scanf` and formatted input via RPC**: Extend the GPU RPC protocol to support device-side `scanf` and `sscanf`, enabling GPU kernels to parse host-fed input buffers without falling back to host-side format functions.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Full POSIX.1-2024 compliance for Linux x86_64 and AArch64**: Complete `dirent.h`, `signal.h`, `sys/mman.h`, `sys/socket.h`, and the remaining `unistd.h` syscall wrappers needed for POSIX conformance, with the goal of supporting production container workloads using LLVM-libc as the sole C library.
+- **C23 standard library additions**: Implement new `<stdbit.h>` (bit-manipulation functions), `<stdckdint.h>` (checked integer arithmetic), `memset_explicit`, and `unreachable()` from ISO C23, consistent with the C23 language support already present in Clang 22 ([C23 status tracking](https://clang.llvm.org/cxx_status.html)).
+- **Hardened libc mode with CFI and bounds checking**: Integrate compile-time bounds-checking annotations (`__counted_by`, `__sized_by`) in string and memory function declarations to interoperate with Clang's `-fbounds-safety` / `-fhardened` modes, building on the work in [llvm-project#84534](https://github.com/llvm/llvm-project/issues/84534).
+- **Thread-safe `errno` on GPU via warp-local storage**: Replace the current single-threaded GPU errno design with per-lane (warp-local) `errno` storage for NVPTX/AMDGPU, using architecture-specific lane-ID intrinsics to index into per-thread-slot arrays, enabling correct concurrent error reporting from GPU kernels.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **LLVM-libc as default libc for Clang hermetic toolchains**: Establish LLVM-libc as the standard C library in official LLVM release toolchain bundles for embedded and bare-metal targets (AArch64, RISC-V, WASM), displacing reliance on newlib or picolibc, following the roadmap discussed in the LLVM Foundation toolchain strategy documents.
+- **Formally verified math functions via Alive2/Lean 4**: Extend the CR-LIBM correctness-proof methodology with machine-checkable proofs (Lean 4 or Coq) for the polynomial approximations used in `sinf`/`cosf`/`expf`, coupling Sollya-generated coefficient proofs to the LLVM-libc source to guarantee correct rounding unconditionally across all rounding modes.
+- **Heterogeneous unified libc ABI**: Define a stable ABI that allows a single LLVM-libc bitcode library to be compiled once and linked for both host CPU and attached GPU/accelerator targets, with the RPC ring-buffer layer abstracted behind a device-agnostic transport interface, enabling unified source-code portability for heterogeneous HPC workloads.
+
+---
+
 ## Chapter Summary
 
 - LLVM-libc implements the C standard library with a focus on correctness, testability, and per-function isolation rather than monolithic build.

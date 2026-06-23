@@ -839,6 +839,32 @@ These calls are emitted as ordinary `call` instructions to externally-declared f
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **RISC-V `TargetSpecific` ABI extension for RVV tuple types**: The RFC to generalise `ABIArgInfo::TargetSpecific` (introduced for RVV in LLVM 18) is ongoing; near-term work covers handling compound tuple registers across LP64/LP64F/LP64D sub-ABIs and fixing edge-cases in `RISCVABIInfo::classifyArgumentType()` for `vint32m4x2_t`-class types (tracked in LLVM Discourse "RISC-V psABI v1.0 ratification" thread, 2025–2026).
+- **AArch64 FEAT_GCS (Guarded Control Stack) builtin support**: ARMv9.4-A adds `GCSPUSHX`/`GCSPOPM` instructions; Clang needs new `__builtin_arm_gcsss*` entries in `BuiltinsAArch64.def` and corresponding lowering in `EmitAArch64BuiltinExpr()`. Draft patches were posted to Phabricator / GitHub in early 2026.
+- **`__builtin_dynamic_object_size` propagation through `inalloca` and `byval`**: The LLVM `ObjectSizeOffsetVisitor` does not currently track object size through `inalloca` blocks; an RFC proposes extending `MemoryBuiltins.cpp` to model inalloca regions so `__builtin_dynamic_object_size` can return precise sizes for Win64 C++ callee-side allocations.
+- **C23 `_BitInt` ABI standardisation**: The RISC-V and AArch64 psABIs are finalising how arbitrary-width `_BitInt(N)` types are passed in registers; `RISCVABIInfo` and `AArch64ABIInfo` will require new classification branches, with the specification currently in the riscv-elf-psabi-doc GitHub repository issue #384.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **LLVM `ptrauth` generalisation to LoongArch and RISC-V CFI schemes**: ARMv8.3 PAC's `ptrauth` operand bundle infrastructure (currently AArch64-only in `CGPointerAuthInfo`) is being evaluated for reuse on LoongArch and potential RISC-V Zicfilp/Zicfiss CFI extensions; `TargetCodeGenInfo::getPointerAuthInfo()` will need per-target specialisation matching those ISA extensions.
+- **Scalable-vector calling conventions in MLIR/Clang interop**: As MLIR-compiled code increasingly calls LLVM-compiled code via `llvm.func`, the mismatch between MLIR's `vector<[n]xf32>` and Clang's SVE/RVV `ABIArgInfo::TargetSpecific` types is unresolved; a joint Clang+MLIR RFC is expected to define a stable ABI layer for scalable vectors by 2027.
+- **Unified `__atomic_*` fallback using LLVM `AtomicExpand` rather than Clang libcalls**: Today `AtomicInfo::shouldUseLibcall()` redirects wide atomics to compiler-rt at the Clang IR level; the LLVM `AtomicExpandPass` can do this expansion post-IR, enabling better optimisation (e.g., lock elision when the entire function is visible). A multi-stage migration RFC is in discussion on llvm-dev.
+- **`musttail` support for non-C calling conventions on x86 (`ms_abi`, `vectorcall`)**: LLVM's `musttail` verifier currently rejects tail calls across incompatible ABIs; extending the verifier and `CodeGenFunction::EmitCall()` to handle `__vectorcall` tail chains would enable efficient trampolining for COM dispatch tables on Windows.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Formal ABI specification machine-checked against Clang codegen**: Projects like `certicoq-clang` and academic work extending CompCert's verified calling convention proofs (Leroy et al.) to cover x86-64 SysV and AArch64 AAPCS64 HFA rules are likely to produce Coq/Lean 4 models; integrating these as regression tests for `X86_64ABIInfo::classify()` is a plausible long-term goal.
+- **Hardware capability ABI (`CHERI`/Morello) integration in `ABIArgInfo`**: CHERI capabilities are 128-bit tagged pointers that require a new `ABIArgInfo` kind or extension of `Indirect` with capability-register semantics; Arm's Morello programme and Cambridge CHERI are the primary drivers; full Clang ABI support would require new `TargetCodeGenInfo` hooks and a revised `EmitFunctionProlog()` for capability-passing functions.
+- **Profile-guided ABI selection (PGABI)**: Research into using PGO data to re-classify struct arguments — e.g., promoting a borderline MEMORY struct to register-passing when profiling shows it is a hot call path — is an open area; this would add a feedback loop from `llvm-profdata` into `ABIInfo::computeInfo()` and require cache-invalidation logic in `CGFunctionInfo`'s folding set.
+
+---
+
 ## Summary
 
 - `ABIArgInfo` encodes how each function parameter or return value crosses the source-to-IR boundary: `Direct` (possibly with type coercion), `Extend` (with zero/sign extension), `Indirect`/`IndirectAliased` (pass-by-pointer), `Ignore`, `Expand`, `CoerceAndExpand`, or `InAlloca`.

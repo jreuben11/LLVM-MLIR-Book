@@ -469,6 +469,32 @@ opt -passes='instr-count' -verify-each -S input.ll
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Pass plugin ABI stabilisation**: The LLVM community has ongoing RFC discussion ([discourse.llvm.org](https://discourse.llvm.org)) around versioning `LLVM_PLUGIN_API_VERSION` more rigorously so that out-of-tree plugins survive minor LLVM releases without recompilation; watch for an in-tree compatibility layer targeting the 22.x → 23.x transition.
+- **`PassInstrumentation` hooks expansion**: Patches in review add pre/post-pass JSON telemetry callbacks to `PassInstrumentationCallbacks`, enabling external tools (IDEs, CI pipelines) to record per-pass timing and IR size deltas without modifying the plugin itself.
+- **`LoopNestPass` interface stabilisation**: The `LoopNestPass` concept (passes that receive an entire loop nest rather than individual `Loop` objects) is being hardened in LLVM 23; passes implementing polyhedral-style tiling will migrate from `LoopPass` to `LoopNestPass` once the `LPMUpdater` contract for nest restructuring is finalised.
+- **`CGSCCUpdateResult` devirtualisation**: An active refactor removes the virtual dispatch inside `CGSCCUpdateResult::RefinedFunctions` propagation; pass authors who call `UR.revisitCurrentSCC()` will see changed semantics when the slab-allocated SCC list is replaced with a flat `SmallVector`.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Typed analysis keys and compile-time pass graph verification**: Proposals on LLVM discourse aim to replace the `AnalysisKey` singleton-address trick with a `constexpr`-tagged type system, enabling the compiler itself to detect analysis dependency cycles and missing preservation declarations at build time rather than at run time.
+- **Sandboxed pass execution for fuzzing**: Building on the `SandboxIR` infrastructure (introduced in LLVM 19), a dedicated `SandboxPassManager` is planned that checkpoints IR state before each pass, enabling rollback and differential IR mutation testing; pass authors will be able to fuzz-test their `PreservedAnalyses` declarations automatically.
+- **`PassBuilder` pipeline serialisation / deserialisation**: An RFC proposes a machine-readable pipeline description format (extending the current text pipeline syntax) that captures not just pass names but per-pass configuration options and extension-point hooks, enabling reproducible pipeline snapshots for release engineering and A/B optimisation studies.
+- **`MemorySSA`-aware `LPMUpdater` for loop transformations**: Current loop passes that modify memory accesses must manually invalidate `MemorySSAAnalysis`; a proposed `MemorySSAUpdater`-integrated `LPMUpdater` API would allow loop passes to perform incremental MemSSA updates identically to how `SplitEdge` handles `DominatorTree`, reducing redundant recomputation in pipelines containing multiple loop transformation passes.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Declarative pass specification language**: Research prototypes (e.g., work from the Compilers for Machine Learning workshop) explore specifying pass behaviour — including analysis requirements, IR pre/postconditions, and transformation invariants — in a Datalog-like or SMT-constraint DSL, with the LLVM pass infrastructure automatically generating C++ skeleton code and verifying correctness via Alive2-style bounded model checking.
+- **Heterogeneous pass scheduling across LLVM and MLIR**: As ClangIR and the LLVM/MLIR convergence matures, a unified pass scheduling layer that can interleave LLVM `PassManager` passes with MLIR `OpPassManager` passes on the same IR unit is expected; pass authors will write a single `run()` method against a common `IRUnit` concept, with the scheduler selecting the appropriate representation at each stage.
+- **AI-guided pass ordering and configuration**: Reinforcement-learning-based pass sequence optimisers (successors of ML-driven inlining heuristics already in LLVM) are projected to offer a `PassBuilder::setMLPipelineAdvisor()` API; individual pass authors will annotate their passes with `mlir::PassEffect` metadata to allow the adviser to reason about interaction costs without needing to recompile the pass.
+
+---
+
 ## Chapter Summary
 
 - Function passes inherit `PassInfoMixin<T>` and implement `run(Function&, FunctionAnalysisManager&) -> PreservedAnalyses`.

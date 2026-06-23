@@ -1062,6 +1062,32 @@ llvm::outs() << std::string(RBuf->begin(), RBuf->end());
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **ClangIR (`CIR`) as a first-class AST consumer**: The ClangIR project ([discourse.llvm.org RFC: ClangIR upstreaming](https://discourse.llvm.org/t/rfc-upstreaming-clangir/)) is actively landing patches to make `CIRGenAction` a production-quality `ASTFrontendAction` that lowers directly from the Clang AST to CIR rather than going through the existing `CodeGenModule`. This changes how `ASTConsumer` plugs into codegen and may expose new `HandleTopLevelDecl` ordering requirements.
+- **C++26 reflection (`P2996`) AST nodes**: The reflection TS implementation under active development in the Clang tree requires new `Decl` and `Expr` node kinds — `SpliceExpr`, `ReflectionExpr`, `MetaFunctionDecl` — currently being prototyped on the `p2996` branch. Watch discourse.llvm.org for the AST RFC.
+- **Contracts (`P2900`) Sema integration**: C++26 contracts require new AST nodes for pre/post-condition expressions on `FunctionDecl` and `CXXMethodDecl`. The `ContractAttr` and associated `ContractConditionDecl` are under active Sema review and will change how `FunctionDecl` carries its attribute list.
+- **`-ast-dump=json` schema stabilization**: The JSON AST dump format (used by cross-language bridges) is being formalized with a versioned schema; ongoing discussion on the clang-dev mailing list targets a stable schema for LLVM 23. Tool authors consuming JSON dumps should track changes to `TextNodeDumper` in `clang/lib/AST/JSONNodeDumper.cpp`.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Incremental compilation and persistent AST serialization**: The LLVM Incremental Compilation initiative (led by the ROOT/Cling team's upstreaming of `IncrementalAction`) aims to make `ASTUnit` and `ASTContext` fully restartable across translation units without full re-parsing. This will add new PCH-like persistence APIs to `ASTContext` for partial-TU snapshots, enabling sub-second incremental rebuilds for large C++ codebases.
+- **Unified `TypeLoc` and structured binding improvements**: Several open issues around `BindingDecl` and `DecompositionDecl` lack full `TypeLoc` coverage, preventing refactoring tools from correctly rewriting structured binding types. A planned RFC proposes extending `TypeLocBuilder` to cover all C++17/20 decomposition forms.
+- **AST matcher performance via query compilation**: The `ASTMatcher` library currently uses a dynamic dispatch model that adds overhead for each matcher predicate. The planned "matcher compilation" work (prototyped as `ASTMatcherCompiler`) would lower matcher expressions to a compact bytecode evaluated by a tight interpreter loop, targeting a 3-5x speedup for large-scale clang-tidy runs on monorepos.
+- **Carbon language AST interoperability**: The Carbon compiler (LLVM-adjacent) is designed to interoperate with Clang ASTs for C++ interop. Work is ongoing to define a bridge between Carbon's AST nodes and `CXXRecordDecl` / `FunctionDecl` to enable bidirectional symbol resolution; this may produce shared `ASTContext` extensions to represent Carbon-specific attributes on C++ decls.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Reflection-driven AST traversal (`P2996` + `P3294` metaclasses)**: If C++26/29 reflection and metaclasses ship, the `RecursiveASTVisitor` infrastructure will need to handle reflective AST queries from within user code compiled by Clang itself — creating a self-hosting loop where the Sema/AST layer must evaluate AST-querying expressions at compile time. This fundamentally changes the demand for lazy `DeclContext` population and parent-map construction.
+- **Multi-TU AST merging for whole-program tools**: Current `ASTImporter` (used by CTU static analysis) has known correctness issues with C++ templates and ODR violations across TU boundaries. A redesigned `ASTMerger` based on a canonicalization-first approach (referencing the CompCert-style verified AST merging literature) is a long-term research goal to enable sound whole-program AST-level analysis without LTO.
+- **Formal specification of the Clang AST invariants**: Researchers at ETH Zürich and Princeton have explored machine-checked specifications of C++ semantics in Rocq/Coq (see the `cpp2v` project). A long-term goal is to produce a Rocq model of the `Decl`/`Type`/`Stmt`/`Expr` invariants maintained by `Sema`, enabling proof-carrying compilation for safety-critical embedded C++ and providing a gold standard for testing `RecursiveASTVisitor` correctness.
+
+---
+
 ## Chapter Summary
 
 - Clang's AST is source-faithful, not normalized: it preserves sugar, implicit nodes, and source locations throughout, making it suitable simultaneously for diagnostics, static analysis, refactoring, and codegen.

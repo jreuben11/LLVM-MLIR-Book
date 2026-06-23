@@ -508,6 +508,32 @@ IREE's primary advantages are portability and the MLIR foundation. TensorRT outp
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **IREE 3.x HAL abstraction unification**: ongoing work to merge the `hal.fence` and `hal.timepoint` APIs into a single semaphore-based synchronization primitive, tracked in the IREE GitHub milestone for HAL v2 cleanup; reduces VM overhead for multi-queue scheduling on CUDA and Vulkan.
+- **WebGPU / Dawn backend stabilization**: IREE's `webgpu-spirv` target (replacing the wgpu-based path) is under active review; the Dawn C API bindings in `iree/hal/drivers/webgpu/` are being hardened for production browser deployment via Emscripten, tracking [openxla/iree#18342](https://github.com/openxla/iree/issues/18342).
+- **`iree-turbine` integration for PyTorch 2.x export**: the `iree-turbine` frontend (successor to `torch-iree`) is landing direct `torch.export`→StableHLO→IREE compilation without an intermediate ONNX step; expected in the `iree-turbine` 3.x release aligned with PyTorch 2.6.
+- **Codegen tuning database (TuningSpec)**: IREE is formalizing a per-target tile-size database (`iree-codegen-tuning-spec`) stored as MLIR transform scripts alongside `.vmfb` artifacts, enabling offline autotuning results to be reused without recompilation, as described in the RFC at discourse.llvm.org/t/iree-tuning-spec-rfc.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Unified MLIR dispatch IR across OpenXLA projects**: the OpenXLA working group is converging IREE's `flow`/`stream` dialects with StableHLO's partitioning IR so that IREE can serve as the single deployment backend for both JAX (XLA) and PyTorch (torch-mlir) without dialect translation overhead; requires stabilizing the `sdy` (Shardy) mesh-sharding dialect integration.
+- **IREE for LLM attention kernels — FlashAttention via transform dialect**: integrating `iree-linalg-ext.attention` with codegen strategies matching FlashAttention-3's warp-specialization pattern on H100; involves extending the `gpu.subgroup_mma` abstraction to express TMA (Tensor Memory Accelerator) loads in the NVGPU dialect within IREE's pipeline.
+- **ROCm/HIP backend parity with CUDA**: the `rocm` HAL driver is scheduled to reach feature parity with the `cuda` driver (including ROCDL dialect support for CDNA3/RDNA4 MFMAs and stream-ordered memory allocation) tracked in the OpenXLA roadmap for AMD partnership deliverables.
+- **Ahead-of-time (AOT) weight sharding for distributed inference**: IREE is developing a multi-device collective lowering path where `flow.channel` ops lower to NCCL/RCCL calls embedded directly in the `.vmfb`, enabling single-file deployment of tensor-parallel LLM inference across device meshes without a separate orchestration layer.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **IREE as a standards-track W3C WebNN backend**: as WebNN (Web Neural Network API) matures toward CR status, IREE's WebGPU backend is a leading candidate to serve as the reference implementation, necessitating formal conformance testing infrastructure and a stable ABI between IREE's runtime VM and browser JavaScript engines.
+- **Verified compilation for safety-critical ML deployment**: convergence of IREE's lowering pipeline with Coq/Lean-based dialect semantics (building on Vellvm and Alive2 methodology) to produce end-to-end correctness proofs for quantized int8 matmul dispatch chains, targeting ISO 26262 ASIL-D certification workflows for automotive ML SoCs.
+- **Hardware-retargetable codegen via open ISA descriptors**: replacing IREE's hand-coded target backends with a declarative ISA description layer (extending LLVM's `MLIR-TableGen` backend infrastructure) so that new accelerator targets (e.g., RISC-V Vector 1.0, Arm Scalable Matrix Extension 2) can be added by providing a TableGen `.td` file rather than a full new HAL driver.
+
+---
+
 ## Chapter Summary
 
 - IREE is an end-to-end MLIR-based deployment compiler; all passes and IR are MLIR dialects from input to binary.

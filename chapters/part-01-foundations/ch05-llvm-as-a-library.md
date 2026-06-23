@@ -953,6 +953,32 @@ opt: error: '-load' is only supported with the legacy pass manager
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **C API new pass manager coverage:** The long-standing gap — the C API exposes only the legacy pass manager — is under active remediation. RFC discussions on discourse.llvm.org (tracked under "C API PassBuilder bindings") propose adding `LLVMCreatePassBuilderOptions`, `LLVMRunPasses`, and related functions so that bindings (llvmlite, llvm-sys, Julia's BinaryBuilder) can drop their C++ shim layers. Patches have landed for `LLVMRunPasses` in LLVM 17+; the remaining surface area (per-function analysis caching, loop PM exposure) is expected to close by late 2026.
+- **Stable plugin ABI versioning:** `LLVM_PLUGIN_API_VERSION` currently increments with every major release, forcing plugin rebuilds. A proposal to introduce a semantic versioning contract for the plugin entry-point ABI (`llvmGetPassPluginInfo`) — separating the API version from the LLVM release version — was discussed at the 2025 LLVM Developer Meeting and is expected to appear as an RFC on discourse.llvm.org within this window.
+- **`llvm-config` deprecation in favor of CMake-only workflows:** The LLVM project has signalled intent (issue #65792 on GitHub) to eventually deprecate `llvm-config` in favor of the CMake `find_package` path. Near-term work focuses on ensuring all information `llvm-config` exposes is reliably available via CMake variables and imported targets, closing the remaining gaps (component-level dependency queries, build-flag introspection) so downstream projects can migrate.
+- **Out-of-tree TableGen support:** A multi-part effort (tracked in llvm-project issues and discussed in the 2025 TableGen RFC thread) aims to allow backends to invoke `llvm-tblgen` without having their source directory be inside `llvm/lib/Target/`. Early patches decouple the TableGen `.inc` generation step from the LLVM source tree, making purely external backend builds feasible for the first time.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Versioned `libLLVM.so` ABI stability guarantee:** The current shared-library build (`libLLVM-22.so`) provides no ABI guarantee across minor releases. A community proposal (echoing the GCC libstdc++ model) envisions a versioned subset of the C API as a stable ABI surface with symbol versioning, allowing precompiled bindings to work across a major release series. This would make llvmlite and llvm-sys distribution packaging dramatically simpler.
+- **Module-granularity component loading:** The monolithic `libLLVM.so` trades deployment simplicity for the inability to load only a subset of passes at runtime. A proposed architecture based on LLVM's existing plugin infrastructure would allow individual components (e.g., `LLVMVectorize`, `LLVMPolly`) to be lazily loaded as dynamic modules, reducing the memory footprint of long-running tools (clangd, language servers) that only use a fraction of LLVM.
+- **Python MLIR/LLVM bindings convergence:** The MLIR Python bindings (`mlir.ir`, `mlir.passmanager`) are now first-class in-tree. An ongoing effort is to expose LLVM IR construction and optimization (currently requiring llvmlite's separate distribution) through the same Python package so that Python ML compilers (Triton, JAX) have a single binding surface. Requires C API coverage of the new pass manager (see 6-month horizon) plus MLIR-to-LLVM-IR lowering bindings.
+- **`clang-tidy` and `clangd` as installable library components:** The LSP server `clangd` and the linter `clangd-tidy` are today tightly coupled to the Clang build tree. Ongoing refactoring (tracked in the Clang code-ownership RFC series) aims to publish `libclangdSupport` and `libclangTidy` as stable API libraries so IDEs and build systems can embed them without shipping a full LLVM install.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Multi-language pass plugin support:** Today pass plugins must be written in C++. A proposal inspired by Rust's `llvm-plugin-rs` crate (which wraps the C++ plugin ABI via C bindings) envisions an official, LLVM-maintained `llvm-c/PassPlugin.h` C API for pass registration, allowing plugins to be written in any language with C FFI and loaded into a standard `opt`/`clang` binary without a C++ compiler.
+- **Distributed/remote LLVM compilation via library decomposition:** Research prototypes (notably the "LLVM-as-a-service" work at Google and the remote-execution integration in Bazel's `rules_cc`) push toward a model where individual LLVM passes run as micro-services. This requires the component model to evolve toward true process isolation, with IR serialization (bitcode or a future binary format) as the inter-component protocol — a significant architectural departure from the current in-process shared-memory model.
+- **Formal stability contract for the `llvmGetPassPluginInfo` ecosystem:** As pass plugins proliferate (sanitizers, security hardening passes, hardware-vendor intrinsic passes), the community is expected to codify a long-term-support (LTS) policy for the plugin entry-point ABI, similar to the Linux kernel's module ABI policy. This would allow compiled pass plugins to span multiple LLVM major versions without rebuilding.
+
+---
+
 ## 5.8 Chapter Summary
 
 - **`llvm-config`** is the fast integration path: `$(llvm-config --cxxflags)` for compilation, `$(llvm-config --ldflags --libs <components>)` for linking, `$(llvm-config --system-libs)` for platform dependencies. Always include `--system-libs` or you will get undefined-symbol errors for `dlopen`, `pthread_create`, and math functions.

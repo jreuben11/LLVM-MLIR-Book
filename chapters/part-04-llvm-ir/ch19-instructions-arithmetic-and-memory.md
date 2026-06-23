@@ -742,6 +742,32 @@ The `inbounds nuw` annotation on `getelementptr` asserts no unsigned overflow; `
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **`nuw`/`nsw` on GEP formalized.** LLVM RFC "Add `nuw`/`nsw` flags to `getelementptr`" (D158119 / llvm/llvm-project#74813) is nearing consensus; merging these flags into GEP will allow IndVarSimplify and LoopStrengthReduce to reason about pointer-offset overflow without round-tripping through `ptrtoint`, tightening alias analysis for loop induction variables.
+- **Deprecation of `undef` in arithmetic contexts.** The ongoing `undef`→`poison` migration (tracked in the LLVM Discourse thread "Finishing the undef-to-poison migration") is eliminating all remaining `undef` uses on arithmetic operands; by this horizon the only sanctioned use of `undef` is for padding fields in aggregates, with everything else replaced by `poison` + `freeze`.
+- **`disjoint` flag propagation in InstCombine.** Patch series adding `disjoint` to `fadd`/`fmul` IR (not just `or`) is under review; the goal is to let the vectorizer recognize disjoint-bits patterns in SIMD shuffle computations and emit tighter `vpblend`/`vpermd` sequences on x86.
+- **`-fwrapv-pointer` upstreaming into kernel builds.** The Linux kernel LLVM build is testing `-fwrapv-pointer` (introduced in Clang 18) for all pointer arithmetic in `arch/x86/kernel/`; integration patches are expected in the 6.11/6.12 kernel cycle, removing the last bespoke no-overflow-suppression hacks from the x86 Makefile.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **PNVI-ae-udi pointer provenance in LLVM's alias analysis.** The multi-year effort (LLVM RFC "Pointer provenance and alias analysis rewrite," Memarian/Sewell WG14 N3204 follow-up) aims to make `BasicAA` and `TypeBasedAA` provenance-aware, so that `inttoptr` results from address-exposed allocations correctly alias their source allocation under the PNVI-ae semantics rather than being treated as universally aliasing wild pointers.
+- **`ptrtoaddr` instruction standardization for CHERI/Morello.** The CHERI LLVM fork's `ptrtoaddr` proposal is targeting upstream inclusion once the capability-aware alias analysis (cap-AA) is sufficiently mature; this will allow the CHERI toolchain to share the main-line LLVM code-generation path for Arm Morello and RISC-V CheriBSD targets without a fork.
+- **Atomic `load`/`store` lowering for RISC-V Ztso and Zicbom extensions.** The RISC-V Ztso extension (Total Store Order) and Zicbom (cache-block management) require new memory ordering semantics that map between LLVM's acquire/release model and the TSO memory model; work is underway in the RISC-V LLVM backend to emit optimized barrier sequences for atomic memory operations when Ztso is the target ABI.
+- **`freeze` propagation analysis to remove redundant freezes.** Once the undef/poison migration is complete, a planned InstCombine/GVN enhancement will track which values are freeze-safe (produced by instructions that cannot return poison) and eliminate redundant `freeze` instructions, recovering the code-size and compile-time cost of speculative-freeze insertion.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Hardware-accelerated pointer provenance (CHERI-RISC-V in data centers).** If RISC-V CHERI deployments reach server silicon (Google, Arm Morello successors, RISC-V International roadmap), LLVM's memory model will need a stable, hardware-visible provenance encoding in the IR — extending current pointer annotations with allocation-site identifiers that survive through codegen to the hardware capability register.
+- **IEEE 754-2028 and new floating-point flags.** IEEE 754 is in its next revision cycle (targeted ~2028); proposed extensions include augmented arithmetic (AA) for certified floating-point bounds, and explicit minNum/maxNum with NaN-propagating semantics replacing the contentious `minnum`/`maxnum` semantics. LLVM will need new fast-math flags or instruction variants to match the revised standard's rounding and exception behavior.
+- **Formally verified poison semantics in a production LLVM.** Building on Alive2 and Vellvm, the long-term goal (articulated in the PLDI 2023 paper "Alive2 Everywhere") is a continuously-verified IR semantics in which every InstCombine rule carries a machine-checked proof that it preserves the poison/undef contract — making it impossible to land a mis-specified flag like the notorious `add nsw` miscompilation (PR45186-class bugs) without a failing proof obligation.
+
+---
+
 ## 19.9 Chapter Summary
 
 - **`nsw`/`nuw`** on integer arithmetic assert no signed or unsigned overflow respectively; if the assertion is violated, the result is poison. Clang emits `nsw` for every signed C integer operation, leveraging C's signed overflow UB. `nuw` appears in pointer arithmetic and unsigned loop counters.

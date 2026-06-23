@@ -515,6 +515,32 @@ NcclComm::Ptr NcclComm::Create(
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **GSPMD sharding propagation for dynamic shapes**: OpenXLA is actively landing dynamic-shape support in the SPMD partitioner (tracked in openxla/xla GitHub issues #9462 and related PRs) so models using `jax.vmap` with variable-length sequences can be partitioned without statically known tensor sizes.
+- **Auto-sharding integration with JAX cost models**: The `jax.experimental.auto_sharding` module is being promoted from experimental to stable; near-term work focuses on replacing OR-Tools GLOP with a more scalable ILP/MILP solver and improving bandwidth cost estimation for NVLink 4 (H100 SXM) vs. PCIe-Gen5 interconnects.
+- **`shard_map` promotion to stable JAX API**: `jax.experimental.shard_map` (introduced in JAX 0.4.7) is on track to graduate to `jax.shard_map` in a 2026 release, with improved `check_rep` enforcement and better error messages for sharding violations detected at trace time.
+- **Async collective pipelining in the XLA scheduler**: The `AsyncCollectiveAnnotator` and `AsyncCollectiveCreator` passes are being extended to support multi-stream pipelining so that ReduceScatter in backward pass can overlap with AllGather in the prefetch of the next micro-batch (see openxla/xla PR series starting mid-2025).
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **MLIR-native sharding dialect**: The OpenXLA community RFC (2024–2025) proposes a first-class `sharding` dialect in MLIR upstream, replacing `HloSharding` as an HLO side-channel with structured `sdy.sharding` attributes on MLIR ops; this would allow GSPMD-style propagation to work directly on StableHLO and MHLO without an HLO-to-HLO transformation stage.
+- **Learning-based auto-sharding (AlpaServe / Alpa 2.0 directions)**: Academic successors to the Alpa (OSDI 2022) and AutoSharding (MLSys 2023) papers are exploring reinforcement-learning and GNN-based cost models that replace ILP solvers for graphs with millions of nodes — enabling auto-sharding of frontier 1T+ parameter models in minutes rather than hours.
+- **Topology-aware collective scheduling for 3D torus interconnects**: As Google TPU v6/v7 and NVIDIA Blackwell clusters scale to networks with 3D torus or dragonfly+ topologies, the replica group assignment in `kAllReduce` will need topology-graph-aware solvers (similar to NCCL's tree/ring selection) integrated into XLA's collective planner.
+- **Inter-model pipeline parallelism via StableHLO**: Combining XLA's SPMD (intra-layer tensor parallelism) with pipeline stage scheduling (inter-layer) today requires manual framework intervention; mid-term work targets expressing pipeline stages as `HloComputation` module calls with `send`/`recv` collectives, enabling end-to-end auto-parallelism without user-specified stage boundaries.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Unified sparse/dense sharding**: MoE expert parallelism currently requires hand-written AllToAll routing; long-term research aims at extending `HloSharding` to represent sparse sharding (where a token dynamically selects a shard at runtime), unifying sparse expert dispatch with dense tensor parallelism under a single partitioner framework.
+- **Composable and verifiable sharding specifications**: Research inspired by the PartIR paper (PLDI 2024) and the Dex/Shake type systems explores giving `HloSharding` a formal type-theoretic foundation so that sharding composition (e.g., FSDP + tensor-parallel + sequence-parallel) is statically verified correct rather than empirically tested, enabling compiler-guaranteed communication freedom.
+- **Cross-accelerator heterogeneous SPMD**: Heterogeneous clusters mixing GPUs, TPUs, and in-memory accelerators (e.g., Wafer-Scale Engine or CXL-attached HBM) require a sharding model that treats inter-device bandwidth as a first-class resource; long-term XLA/MLIR evolution will likely incorporate heterogeneous device graphs into the ILP cost model, replacing the current homogeneous-mesh assumption in `HloSharding`'s tile assignment.
+
+---
+
 ## Chapter Summary
 
 - `HloSharding` annotates tensors as `Replicated`, `Tile` (split along one or more dims), `PartialTile` (split + replicated), or `Manual`; the tile assignment array maps logical shards to physical devices.

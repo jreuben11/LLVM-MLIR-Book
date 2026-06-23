@@ -465,6 +465,32 @@ This pass structure—`TypeConverter` + `RewritePatternSet` + `ConversionTarget`
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Removal of argument materializations**: The MLIR community has been working to eliminate the three-way materialization split (source / target / argument) in favour of a unified model. See [discourse.llvm.org discussion on materialisation redesign](https://discourse.llvm.org/t/rfc-dialect-conversion-redesign) and the ongoing refactoring in `DialectConversion.cpp` to collapse `addArgumentMaterialization` into `addSourceMaterialization`.
+- **`applyConversionPatterns` in the Transform dialect**: The `transform.apply_conversion_patterns` op (introduced experimentally in MLIR 19) is being stabilised and extended with `ConversionConfig` options to support analysis-only mode and per-op legality overrides directly from Transform IR, enabling interactive lowering exploration without recompilation.
+- **One-shot bufferisation / conversion interoperability**: Efforts are underway to make the dialect conversion framework aware of one-shot bufferisation's ownership model so that `bufferize` and `applyPartialConversion` can be composed without double-materialisation of memref descriptors.
+- **`ConversionConfig::buildMaterializations` deprecation path**: The flag is planned to default to `false` after all in-tree callers are updated, hardening the contract that materialisations are only inserted by explicit callbacks and not implicitly by the framework.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Lazy / incremental dialect conversion**: A proposed IR rewriting protocol would allow conversion patterns to register type change notifications so that only affected operations (and their transitive use-def chains) are re-checked for legality, reducing compile time for large modules that undergo many partial lowering steps.
+- **First-class multi-result type expansion in `TypeConverter`**: Current one-to-many type expansion (e.g., `memref<?xf32>` → `{ptr, i64}`) is handled implicitly through `SignatureConversion`. A forthcoming RFC proposes a dedicated `TypeConverter::addDecomposition` API that makes the decomposition explicit and allows the framework to synthesise pack/unpack ops automatically.
+- **Typed conversion targets (op interface predicates)**: Work is in progress to allow `ConversionTarget` legality predicates to be expressed as MLIR op interface constraints, enabling tools like `mlir-lsp-server` to statically report which ops are unconvertible given a target configuration, improving IDE-level diagnostics for lowering pipelines.
+- **Cross-pass conversion transaction merging**: Research into merging the undo logs of consecutive `applyPartialConversion` calls so that a failed late-stage conversion can roll back through multiple earlier passes atomically, addressing cases where multi-step lowering produces orphaned `unrealized_conversion_cast` ops.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Declarative lowering pipelines**: An envisioned successor to today's C++ `populate*` functions would let dialect authors specify lowering patterns in ODS (Op Definition Spec), allowing `mlir-tblgen` to synthesise `ConversionTarget`, `TypeConverter` callbacks, and `OpConversionPattern` skeletons automatically, drastically reducing boilerplate for new dialect authors.
+- **Verified conversion correctness via MLIR's verification infrastructure**: Integration with the Alive2-style equivalence checking research (cf. Chapter 183) to provide post-hoc verification that a dialect conversion pass preserves operational semantics for a given type mapping, catching bugs currently caught only at runtime.
+- **Heterogeneous-target conversion graphs**: As MLIR is deployed across heterogeneous SoCs (CPU + GPU + NPU + DSP), the conversion framework may evolve to support multi-target `ConversionTarget` specifications where the same module is simultaneously lowered to different target dialects for different operation clusters, with the framework managing the split and merge points.
+
+---
+
 ## Chapter Summary
 
 - **Dialect conversion** extends pattern rewriting to handle simultaneous type and op changes, which simple `RewritePattern` cannot express.

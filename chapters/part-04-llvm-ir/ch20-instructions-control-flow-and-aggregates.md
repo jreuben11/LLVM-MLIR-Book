@@ -873,6 +873,32 @@ The `SimplifyCFG` pass, which manipulates branches most aggressively (converting
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **`BranchInst` decomposition lands in LLVM 22/23.** The ongoing refactor splitting `BranchInst` into distinct unconditional and conditional subclasses (tracked on LLVM Discourse and in llvm/llvm-project issues) is expected to complete its migration of internal passes, removing the last `isConditional()` guard patterns from core transforms like `SimplifyCFG`, `LoopSimplify`, and `GVN`.
+- **`callbr` result poisoning rule clarification.** An active Discourse RFC (2025–2026) proposes tightening the semantics of `callbr` result values on indirect-successor paths from "poison by convention" to a verifier-enforced constraint, preventing miscompilations in Linux kernel `asm goto` patterns when LTO is enabled.
+- **`musttail` for coroutines.** An in-progress Clang/LLVM patch extends `musttail` support to C++20 coroutine resume/destroy function pointer dispatch, enabling guaranteed-TCO coroutine trampolines without explicit `[[clang::musttail]]`. Tracked in LLVM Phabricator D-series patches migrated to GitHub PRs.
+- **`shufflevector` mask canonicalization in VectorCombine.** The `VectorCombine` pass is being extended (LLVM 22.x) to canonicalize multi-instruction shuffle chains into minimal shuffle sequences at the IR level before ISA-specific lowering, reducing backend pressure on `DAGCombine` and improving cross-target consistency of auto-vectorized output.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **`phi` replacement by block-argument syntax in LLVM IR.** Ongoing discussions in the LLVM community (originating from MLIR design feedback) propose introducing block-argument syntax directly into textual LLVM IR as an alternative to `phi`, improving readability of loop-carried values and easing round-trip through MLIR's `llvm` dialect. A concrete RFC is expected post-LLVM 25.
+- **LLVM-level EH ABI v2 for Itanium targets.** A proposed revision of the Itanium EH ABI (discussed in the Itanium C++ ABI GitHub repository and Clang mailing list) targets replacing the personality-function call-per-frame model with a table-driven mechanism using compressed LSDA encoding, reducing `.gcc_except_table` size by 30–50% for large C++ translation units; `landingpad` IR would gain new clause variants to carry the compressed representation.
+- **`indirectbr` improvements for threaded-interpreter optimization.** Research prototypes (inspired by the Cranelift and V8 Maglev work) propose augmenting `indirectbr` with optional branch-probability annotations per listed target, enabling profile-guided ordering of interpreter dispatch tables and reducing branch misprediction in CPython and embedded VM JIT loops.
+- **Scalable-vector support for `shufflevector`.** As SVE/SVE2 (AArch64) and RISC-V Vector Extension (`vsetvli`-based) workloads become mainstream, the LLVM vector model is being extended to support `shufflevector` with `<vscale x N x T>` scalable types via new mask representations (activating on `llvm.experimental.vector.splice` and `llvm.vector.interleave2` intrinsics), allowing the vectorizer to emit scalable shuffle patterns without falling back to fixed-width code.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Convergent control flow as a first-class IR concept.** GPU and SIMT architectures require *convergence* guarantees that the current `callbr`/`br` model cannot express natively. A multi-year LLVM effort (the convergence-control token RFC, partially landed as intrinsics in LLVM 17–22) will culminate in native IR terminators (`convergent_br`, `ballot`) that express warp/wave divergence semantics directly, replacing the current intrinsic-based model and enabling divergence-aware CFG analyses for AMDGPU, NVPTX, and SPIR-V targets.
+- **Unified EH representation across Itanium and funclet models.** The dual `landingpad`/`catchswitch` representation creates ongoing maintenance burden — any EH-aware pass must handle both models separately. A long-term proposal (floated at multiple LLVM Developers' Meetings) envisions a single abstract EH terminator that Clang/LLVM lowers to the platform-specific model during ABI lowering, analogous to how MLIR uses `func.func` before lowering to `llvm.func`.
+- **Formal verification of `phi` and `select` poison semantics.** The Alive2 project (Lopes, Lee et al.) is being extended with a mechanized Coq/Lean 4 proof of the full `phi`/`select`/`freeze`/`poison` interaction rules (building on the Vellvm 2 formalization), targeting certification of the `InstCombine` and `SimplifyCFG` rules that manipulate these instructions as part of a broader verified-optimization pipeline.
+
+---
+
 ## 20.9 Chapter Summary
 
 - **`br`** provides conditional and unconditional branches. The conditional form requires an `i1` condition; the backend lowers it to a single compare-and-branch sequence.

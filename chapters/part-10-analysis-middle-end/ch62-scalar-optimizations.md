@@ -367,6 +367,32 @@ The debug output prints each constraint added to the system when entering a basi
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **NewGVN default-pipeline promotion**: The LLVM community RFC ([discourse.llvm.org/t/newgvn-replacing-gvn](https://discourse.llvm.org/)) to promote `NewGVNPass` over legacy `GVNPass` in the default `-O2`/`-O3` pipeline is ongoing; pending resolution of regressions in load PRE and cross-block forwarding that are tracked in LLVM's GitHub issue tracker.
+- **ConstraintElimPass widening to non-unit strides**: A patch series targeting LLVM 23 extends `ConstraintElimination.cpp` to handle stride-k affine expressions (`i + k < n` for compile-time-constant `k`) without full Presburger arithmetic, broadening the class of unrolled-loop bounds checks eliminated.
+- **InstCombine pattern coverage via MLIR rewrite rules**: The effort to auto-generate InstCombine patterns from `mlir-tv`/`Alive2`-verified MLIR rewrites (feeding into `llvm/lib/Transforms/InstCombine/`) is producing new canonicalizations for `freeze`/poison-aware operations that LLVM 22 handles conservatively.
+- **JumpThreading scalability cap tuning**: Profile-driven experiments on large Clang compilation units (reported in LLVM Weekly #580–#586) have renewed discussion on replacing the hard iteration cap with a budget proportional to function size, reducing compile-time spikes on template-heavy C++ TUs.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Demanded-bits interprocedural extension**: Research prototypes extending BDCE's `DemandedBitsAnalysis` across call boundaries (via summary-based abstract interpretation) are appearing in academic work building on LLVM's ModuleSummary infrastructure; integration into IPSCCP or a new IPDemandedBitsPass is expected as summary precision improves.
+- **Probabilistic CVP using profile data**: `CorrelatedValuePropagationPass` currently reasons purely symbolically; proposals are in discussion to allow it to speculatively hoist range assertions on frequently-taken hot paths using PGO branch probabilities, guarded by `llvm.assume` on cold paths — a form of value speculation.
+- **Poly-variant SCCP lattice (taint + range + const)**: Academic work (cf. Braun et al., CC 2024) on a richer three-way lattice combining constant propagation, integer range, and taint tracking in a single Wegman-Zadeck fixpoint suggests this could replace the separate SCCP + CVP passes in a unified interprocedural framework.
+- **SimplifyCFG machine-learning heuristics**: The `switch`-to-branch and tail-merging decisions in `SimplifyCFGPass` are threshold-dependent; LLVM's ongoing ML-guided inliner work (`-enable-ml-inliner`) is being evaluated as a template for a learned SimplifyCFG cost model that adapts per-target and per-workload.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Whole-program scalar optimization via LTO summary**: The current split between function-level scalar passes and LTO (thin/full) means InstCombine and GVN never see cross-module information. A future architecture where scalar passes operate on LTO summaries (analogous to IPSCCP today but covering all scalar transforms) could subsume the distinction between module and function passes for a wide class of transformations.
+- **Formal verification of InstCombine via Alive2 integration in CI**: The Alive2 project ([github.com/AliveToolkit/alive2](https://github.com/AliveToolkit/alive2)) already validates many InstCombine rewrites offline; the long-term goal is a CI gate that runs Alive2 on every InstCombine patch, catching incorrect or missing `nsw`/`nuw`/`nneg`/`poison` annotations that currently require careful human review.
+- **Constraint Elimination with Presburger arithmetic**: Extending `ConstraintElimPass` from difference constraints to full Presburger arithmetic (as in isl, used by Polly) would handle non-unit-stride multi-dimensional array access checks, closing the gap between scalar elimination and polyhedral analysis for bounds checking elimination without requiring loop transformation.
+
+---
+
 ## Chapter Summary
 
 - `DCEPass` removes instructions with no users and no side effects; `ADCEPass` uses reverse dataflow to remove dead computations including whole loops; `BDCEPass` uses demanded-bit analysis to find partially-dead instructions.

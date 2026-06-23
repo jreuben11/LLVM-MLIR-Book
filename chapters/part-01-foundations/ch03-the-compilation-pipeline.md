@@ -931,6 +931,32 @@ The richness of LLVM's observable intermediate layers is a design virtue: every 
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **ClangIR (CIR) stabilisation and upstream integration**: The `-fclangir` path is under active upstreaming; the CIR dialect and its C/C++ idiom-preserving passes are expected to reach feature-parity with the classical AST→LLVM IR path by mid-2026, tracked in [LLVM RFC: ClangIR Upstreaming](https://discourse.llvm.org/t/clangir-upstreaming/). Once complete, `-fclangir` will be the default lowering path in `clang -cc1` for C and C++, inserting CIR between the AST and LLVM IR stages for all builds.
+- **New pass manager pipeline tuning for LLVM 22/23**: The CGSCC inliner threshold calibration, the order of `LoopVectorize` vs `SLPVectorize` in the `default<O2>` pipeline, and the placement of `MemCpyOpt` relative to `LICM` continue to be refined via post-commit benchmarking on SPEC CPU 2017 and the llvm-test-suite. Expect targeted pipeline reorderings in LLVM 22.x point releases driven by Phoronix and LLVM nightly benchmark regressions.
+- **GlobalISel full adoption on AArch64 at O2**: GlobalISel is default at `-O0` on AArch64 since LLVM 13 and at `-O1` since LLVM 20. The remaining gap — SelectionDAG-dependent features at `-O2` (complex shuffle legalisation, some fp16 patterns) — is actively being closed; GlobalISel at all optimisation levels on AArch64 is targeted for LLVM 23.
+- **`clang-linker-wrapper` as the universal offload coordinator**: The new offload driver model's `clang-linker-wrapper` is gaining support for OpenMP structured offload tasks and SYCL, replacing the per-GPU `clang-offload-bundler` workflow. The `llvm-offload-binary` format is being documented as the stable ABI for embedded device images.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **MLIR as an intermediate tier within `clang -cc1`**: With ClangIR stable and lowering chains from CIR through LLVM dialect to LLVM IR proven, a long-term goal is to route all mid-level Clang passes through the MLIR pass manager rather than the LLVM new pass manager, enabling dialect-aware interprocedural analysis on C++ constructs (virtual dispatch, move semantics) before LLVM IR flattens them. An RFC for this "MLIR mid-end for Clang" has been discussed at EuroLLVM 2025.
+- **ThinLTO distributed pipeline integration into unified build systems**: Distributed ThinLTO (`dthinlto`) is presently a Google-internal workflow using custom build infrastructure. Active work (`llvm-lto2` refinements, Bazel/CMake ThinLTO cache integration) aims to make dthinlto a first-class open-source workflow, enabling sub-10-minute full LTO link for 10M-LOC codebases on distributed build clusters.
+- **ORC JIT remote-execution protocol standardisation**: The LLVM JIT Remote Executor Protocol (`llvm-jitlink-executor`) is expected to be formalised as a versioned ABI, allowing language runtimes (Swift, Julia, LLDB) to share a common out-of-process JIT substrate. Julia's LLVM ORC integration team has proposed extending `ExecutorProcessControl` with a multiplexed async channel that can service multiple language runtimes concurrently.
+- **Flang HLFIR → MLIR Linalg + Transform dialect pipeline**: The Flang team is converging on expressing Fortran array semantics through HLFIR → Linalg → vector/SCF, rather than the current ad-hoc FIR loop lowering. This would allow Fortran array optimisations to reuse MLIR's generic tiling, fusion, and vectorisation infrastructure and would produce better-vectorised LLVM IR from Fortran array syntax constructs like `A = B + C`.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Unified IR continuum from CIR to MIR**: A long-term architectural goal debated at LLVM developer meetings is to replace the sharp CIR→LLVM IR→SelectionDAG→MIR boundary sequence with a continuous, progressive lowering within the MLIR dialect ecosystem, where each lowering step is a small, verifiable dialect-to-dialect transformation. Under this model, `opt` and `llc` would be replaced by a single `mlir-opt`-style tool chain with LLVM IR as one dialect tier rather than the primary representation. The SelectionDAG layer would be expressed as an MLIR target dialect, aligning with the work on the `mlir-irdl` project.
+- **AI/ML-guided pipeline scheduling**: Research prototypes (cf. [MLGO: Machine Learning Guided Compiler Optimizations for LLVM](https://arxiv.org/abs/2101.04808), Google Brain 2021; and the LLVM Regalloc Advisor) are evolving toward full production use. By 2031, it is plausible that the order and parameterisation of passes in the `default<O3>` pipeline is dynamically chosen per-function by a lightweight LSTM or transformer policy trained on profile-guided feedback, replacing the current fixed pipeline with a search-adaptive one.
+- **WebAssembly pipeline parity with native targets**: The `wasm32-unknown-unknown` and `wasm32-wasi` targets currently lack ThinLTO, GlobalISel, and full SLP/loop vectorisation support. As the WASM Component Model and WASI Preview 2 mature (targeting standardisation by 2027), the LLVM WebAssembly backend is expected to converge on parity with x86-64 in pipeline sophistication, including wasm-specific vectorisation using the SIMD 128-bit extension and Relaxed SIMD.
+
+---
+
 ## 3.11 Chapter Summary
 
 - The LLVM compilation pipeline transforms source through eight observable layers: preprocessed source, AST, LLVM IR, (optionally) SelectionDAG or generic MIR, MachineIR, MC, object file, and linked binary.

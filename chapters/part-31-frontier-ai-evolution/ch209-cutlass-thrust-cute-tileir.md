@@ -991,6 +991,32 @@ For the self-modification vision of [Chapter 211 — Neural Programs as Compiled
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **CUTLASS 4.x stable release and CuTe DSL stabilisation**: The CUTLASS 4.x Python DSL (`@cute.kernel`, `cute.compile`) is in active preview as of April 2026; the NVIDIA CUTLASS team has signalled a stable API freeze targeting the CUDA 13.0 release window. Track progress at [github.com/NVIDIA/cutlass/milestone/9](https://github.com/NVIDIA/cutlass) and the CUTLASS 4.x design RFC on the NVIDIA developer forums.
+- **TileIR upstreaming into LLVM monorepo**: NVIDIA's TileIR prototype (residing in the `nvgpu` dialect's `warpgroup` ops as of LLVM 22) has an open MLIR RFC proposing a standalone `tile` dialect at [discourse.llvm.org — MLIR tile dialect RFC](https://discourse.llvm.org/). The 6-month target is first-draft dialect ops (`tile.func`, `tile.mma`, `tile.load`) landing upstream with the verifier infrastructure from §209.6.3.
+- **F₂ linear layout analysis tools in Triton and CUTLASS**: The unification paper [arXiv 2505.23819] is being translated into a concrete `LinearLayout::isCompatible()` API in the Triton compiler (`lib/Dialect/TritonGPU/IR/LinearLayout.cpp`); CUTLASS intends to adopt F₂ matrix encoding as the canonical layout representation in CUTLASS 5.x, enabling cross-kernel layout compatibility checks at the Python DSL level.
+- **Blackwell (SM100) support in CUTLASS and CuTe**: NVIDIA GB200 (Blackwell architecture, SM100) introduces new MMA atoms (`tcgen05.mma`) and a 5th-generation tensor core with 4:2 fine-grained sparsity; CUTLASS 3.7+ and CuTe 4.x are adding `MMA_Atom<SM100_*>` specialisations. Track at [github.com/NVIDIA/cutlass/tree/main/include/cute/atom/mma_traits_sm100.hpp](https://github.com/NVIDIA/cutlass).
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **TileIR as a fully-featured MLIR compilation target**: Once the `tile` dialect is upstream, the 2028 target is a complete lowering infrastructure — `tile.parallel` to multi-SM dispatch, `tile.sequential` to barrier-synchronised warpgroup reduction loops — with support for both NVIDIA (via `nvgpu`) and AMD (via `amdgpu`) backends; AMD's ROCm team is tracking MLIR tile dialect progress for potential RDNA 4 / CDNA 4 adoption.
+- **Categorical layout algebra formalised in Lean 4**: The categorical account of CuTe layouts ([arXiv 2601.05972]) is a candidate for mechanised proof in Lean 4, providing a formally verified correctness certificate for `composition`, `complement`, and `tiled_divide` operations; this would enable layout-correctness checking to be part of a certified compiler pass rather than a runtime assertion. Related work: the Alive2 extension to GPU memory semantics ([arXiv 2404.10728]) provides the verification infrastructure.
+- **Autotuning over F₂ layout space via ML surrogates**: Using the `enumerate_valid_gemm_layouts` approach from §209.7.2 as the candidate generator, a Bayesian optimisation or learned surrogate model (similar to the Google TPU autotuning work, [arxiv.org/abs/2301.07766]) trained on (layout config, hardware throughput) pairs is expected to achieve within 5% of hand-tuned CUTLASS kernels for arbitrary `(M, N, K)` shapes on Hopper and Blackwell by 2028; NVIDIA's internal CUTLASS autotuner (`tools/profiler`) is the most likely deployment vehicle.
+- **Thrust integration with CUDA cooperative groups and `cuda::pipeline`**: Thrust's three-reduction model (§209.2.4) currently emits three separate kernel launches; the CCCL roadmap includes a fused multi-statistic reduction primitive using `cuda::pipeline` double-buffering and `cuda::atomic_ref` for in-kernel accumulation, targeting a single-kernel path for `(mean, variance, max)` in one sweep.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **CuTe-style layout algebra for non-NVIDIA hardware**: As AMD, Intel (Xe), and Qualcomm AI accelerators all develop tile-level hardware instructions analogous to WGMMA (AMD's WMMA/MFMA, Intel's DPAS), the F₂ linear layout framework is a natural cross-vendor abstraction layer; the 5-year expectation is a vendor-neutral `cute::Layout` standard (potentially under the Khronos or SYCL umbrella) allowing tile-correct kernel code to be retargeted across vendors by swapping `MMA_Atom` specialisations, as discussed in the 2025 LLVM Developer Meeting BOF on cross-vendor GPU lowering.
+- **TileIR as the universal ML compiler IR for large-scale models**: As model complexity pushes past trillion-parameter MoE architectures, the kernel fusion and inter-kernel layout compatibility problem (§209.5.3) becomes the dominant compilation bottleneck; TileIR is positioned as the IR where fusion decisions are made — fusing an attention tile, a post-attention layer norm tile, and the first MLP tile into a single GPU kernel without reformatting copies. The 5-year target is an MLIR-based ML compiler pipeline (TileIR → `nvgpu` / `amdgpu` / `xla.gpu`) replacing hand-written XLA fusions for transformers.
+- **Formally verified tile kernel generation for safety-critical AI**: The combination of CuTe's categorical layout algebra (§209.5.4, verified in Lean 4) and TileIR's MLIR verifier infrastructure creates a path to formally verified GPU kernel generation: a tile kernel is type-correct by construction (layout types), passes IR verification (TileIR verifier), and its lowering is certified (via a CompCert-style proof of the tile-to-gpu lowering pass). This is a prerequisite for deploying AI inference kernels in automotive (ISO 26262 ASIL-D) and aerospace (DO-178C DAL-A) safety contexts.
+
+---
+
 ## Chapter Summary
 
 - **Thrust** is the GPU analogue of the C++ STL: `thrust::device_vector`, `thrust::transform_reduce`, `thrust::inclusive_scan`, and `thrust::sort_by_key` express parallel patterns without explicit thread coordination; execution policies (`thrust::cuda::par.on(stream)`) separate algorithm semantics from backend, enabling the same code to run on CUDA, TBB, or OpenMP. The hard ceiling is fused operations requiring shared memory — where CUTLASS or hand-written kernels are needed.

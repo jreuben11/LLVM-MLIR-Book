@@ -972,6 +972,32 @@ gem5 is a full-system cycle-accurate simulator supporting multiple ISAs. It mode
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Improved TableGen scheduling model coverage for Intel Arrow Lake and Lunar Lake**: community efforts (tracked on llvm-dev and in LLVM Discourse threads) are filling gaps in `X86SchedArrowLake.td` — specifically correcting incorrect `WriteRes` latencies for AMX-INT8 and LP-E-core cluster dispatch widths that produce >15% divergence from `perf stat` measurements on Arrow Lake-U silicon.
+- **`llvm-mca` JSON schema stabilization**: a proposal on Discourse (late 2025) aims to version the `--json` output schema so CI consumers are not broken by field renames; the current schema omits `BottleneckAnalysis` and `TimelineView` data from JSON, which limits automated regression detection.
+- **Zen 5 (`znver5`) scheduling model**: AMD's Zen 5 target (`-mcpu=znver5`) received an initial `X86SchedZen5.td` skeleton in LLVM 21; ongoing patches are adding the 512-bit VALU throughput tables and correcting the AGU count discrepancy for gather/scatter on the dual-pipeline front-end.
+- **`--bottleneck-analysis` for in-order targets**: current `BottleneckAnalysis` logic assumes out-of-order execution and produces misleading output for in-order back-ends (AArch64 Cortex-A55, RISC-V in-order pipelines); patches to gate or adapt the analysis based on `MCSchedModel::isOutOfOrder()` are under review.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **RISC-V Vector Extension (RVV 1.0) scheduling model depth**: as RISC-V server silicon (SiFive P870, Alibaba Yitian 2, SpacemiT X60) becomes pervasive, demand for accurate RVV `SchedMachineModel` entries covering variable-width VLEN will grow; the RISC-V LLVM backend working group has identified `llvm-exegesis` + `llvm-mca` cross-validation as the primary mechanism for certifying model accuracy per VLEN configuration.
+- **Memory hierarchy modeling extension**: the `LSUnit` currently uses fixed latency from TableGen; RFC discussions (discourse.llvm.org) propose an optional `MemoryModel` plugin API analogous to `CustomBehaviour` that allows tools like gem5-MCA or hardware simulation back-ends to inject cache-miss penalties into the `llvm-mca` pipeline, enabling hybrid static+stochastic analysis for memory-bound kernels.
+- **`llvm-mca` as an IR-level analysis pass**: a community proposal would allow `llvm-mca` to be invoked on LLVM MIR (Machine IR) regions during compilation — not just as an offline tool — enabling the instruction scheduler to consult throughput predictions before finalizing instruction order, closing the feedback loop between the scheduler and the performance model.
+- **Integrating `uiCA`-style reverse-engineered port tables into LLVM**: academic collaboration between TU Munich (uiCA) and LLVM target maintainers to systematically upstream the more-accurate x86 µop port assignments that uiCA derives from measurement, reducing the Skylake/Zen4 divergence gap that currently requires users to consult two separate tools.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Automated `SchedMachineModel` synthesis from `llvm-exegesis` data**: a fully automated pipeline that runs `llvm-exegesis --mode=latency/throughput` across all instruction classes on a new target, synthesizes a first-pass TableGen `SchedMachineModel`, validates it against `llvm-mca` simulation on representative kernels, and iterates until divergence from hardware is below 5% — replacing weeks of manual model authoring with days of automated calibration.
+- **Multi-core / SMT simulation**: current `llvm-mca` models a single logical core; future extensions could model SMT contention (port sharing across hyperthreads) and inter-core cache effects, making it useful for scheduling decisions in task-parallel runtimes (OpenMP, TBB) where co-located threads compete for shared execution resources.
+- **`llvm-mca` for heterogeneous ISA dispatch (GPGPU/NPU targets)**: as LLVM-based GPU back-ends (AMDGPU, NVPTX, Intel IGC) mature their scheduling models, extending `llvm-mca`'s `ResourceManager` to model warp-level occupancy, wavefront scheduling, and shared memory bank conflicts would provide static throughput analysis analogous to NVIDIA's Nsight Compute instruction-level throughput viewer, but within the open LLVM toolchain.
+
+---
+
 ## Chapter Summary
 
 - `llvm-mca` is LLVM's static throughput simulator. It models out-of-order execution using TableGen `SchedMachineModel` data — the same data the instruction scheduler uses during compilation — without executing code.

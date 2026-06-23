@@ -779,6 +779,32 @@ The archive output of MAP-Elites is qualitatively different from the single-poin
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **DGM open-source release and reproducibility**: The Sakana AI / Jeff Clune group (arXiv 2505.22954) has indicated plans to release the Darwin Gödel Machine codebase; expect community benchmarking of DGM against SWE-bench Verified 2.0 using open-weight models (Llama 4, DeepSeek-R2) as mutation backends, reducing per-iteration costs by 10–100x compared to frontier-API pricing.
+- **QDax 1.0 stable API and GPU-parallel batch evaluation**: The QDax library (`qdax.core.map_elites`) is targeting a 1.0 stable release with full JAX 0.5.x / XLA 2026Q2 compatibility; CUDA graph capture for archive updates is expected to reduce per-generation overhead by ~40% on H100 hardware.
+- **MLIR Transform Dialect evolutionary pass scheduling**: An RFC on discourse.llvm.org (targeted for LLVM 22 development cycle) proposes adding a `transform.search` op that wraps an evolutionary schedule search loop natively within the Transform dialect, enabling FunSearch-style lowering strategy search without a Python orchestration layer.
+- **Triton 4.x autotune with QD backend**: The Triton project (OpenAI) has open issues for replacing the exhaustive grid autotune with a MAP-Elites backend; early prototype patches (`triton-lang/triton#4231`) implement behaviour-descriptor-indexed archives over `(BLOCK_M, BLOCK_N, num_stages, num_warps)` configuration space.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Multi-objective co-design on heterogeneous accelerators**: As silicon diversity increases (Grace-Blackwell NVL, AMD MI450X, Intel Falcon Shores, custom TPU generations), evolutionary co-design fitness functions will need to span hardware targets simultaneously; expect MAP-Elites descriptor spaces indexed by `(target_arch, precision, memory_tier)` to become standard in NAS pipelines that produce architecture–kernel pairs deployable on multiple backends via MLIR target-specific lowering.
+- **NEAT-inspired topology evolution inside MLIR module structure**: Current NEAT applications search over neural network layers; a 2027-era extension will treat MLIR regions and blocks as the genome, with historical markings on MLIR ops, enabling NEAT crossover over transformation pipelines — analogous to how NEAT crosses over neural topologies, but operating on compiler IR.
+- **FunSearch integration with formal verifiers**: DeepMind's FunSearch architecture (Nature 2023) will be extended with a Lean 4 / Coq evaluator channel: programs that pass the performance evaluator will be additionally scored by a lightweight formal verifier, creating a three-component fitness function (performance, correctness proof, code complexity) compatible with the Alive2 equivalence-checking infrastructure used in LLVM middle-end validation.
+- **AURORA with learned MLIR op embeddings**: Unsupervised behaviour characterisation (AURORA, arXiv 1905.11874) applied to lowering strategy search will use MLIR op sequence embeddings (transformer-based, trained on the LLVM monorepo's in-tree test suite) as the raw behaviour vector, enabling automatic discovery of the principal axes of variation in lowering strategy space without hand-specified descriptor dimensions.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Formal safety constraints in evolutionary self-modification**: A convergence of DGM-style empirical search with the formal Gödel Machine theory (Chapter 216) is expected: evolutionary candidates will be screened by lightweight model-checking tools (based on LLVM's `clang-tidy` static analysis extended with SMT-backed invariant verification) before sandbox evaluation, adding a Pareto objective for provable safety properties alongside benchmark fitness.
+- **Population-based architecture search at foundation-model scale**: Evolutionary co-design will scale to 100B+ parameter model search via hierarchical decomposition: MAP-Elites outer loop over macro-architectural choices (layer types, attention variants), gradient-descent inner loop (DCG-MAP-Elites) over continuous architectural hyper-parameters, and a separate evolutionary kernel search running on shadow hardware — all coordinated through a distributed QD archive backed by a distributed key-value store.
+- **Self-improving compiler toolchains**: Building on DGM's demonstration that coding agents can evolve their own source code, a 2030-era compiler toolchain will include an evolutionary self-tuning daemon that runs a continuous background MAP-Elites loop over LLVM pass pipeline configurations, using profile-guided fitness evaluated on production workloads, effectively turning evolutionary search into a first-class production compiler feature rather than a research technique.
+
+---
+
 ## Chapter Summary
 
 - **Gradient descent is insufficient for discrete search**: architecture topology, kernel configuration, and agent source code are combinatorial search problems that require evolutionary or program-synthesis methods.

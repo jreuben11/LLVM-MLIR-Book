@@ -424,6 +424,32 @@ When a pass requests `BlockFrequencyAnalysis`, the `FunctionAnalysisManager` rec
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **MemorySSA scalability improvements**: Ongoing work to reduce memory overhead of MemorySSA for very large functions by adopting a lazier walker strategy; see LLVM discourse RFC "MemorySSA Walker Caching" and patches from Nikita Popov improving batch invalidation for LICM.
+- **Improved SCEV range folding**: Work on extending `ScalarEvolution::computeConstantDifference` and wrapping-aware predicates (`isKnownPredicateAt`) to eliminate more redundant range checks, advancing the proposals in LLVM Discourse thread "SCEV improvements for vectorization cost model."
+- **Alias analysis pipeline refinement**: Ongoing refactoring to retire `CFLSteensAA` and `CFLAndersAA` from the default pipeline (already disabled for -O1+ in LLVM 20+), with planned removal and replacement by enhanced `BasicAA` GEP reasoning in LLVM 23.
+- **`LazyValueInfo` integration with NewGVN**: Patches to unify LVI's `ConstantRange`-based reasoning with the lattice used in NewGVN, reducing redundant fixpoint iterations in `CorrelatedValuePropagation`; tracked in LLVM issue #87034.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Modular alias analysis via opaque pointers**: With the removal of typed pointers complete, a redesign of `BasicAA` to reason about aliasing through load/store sizes and alignment rather than `getelementptr` type paths, improving precision for languages like Rust and Swift that use opaque GEPs.
+- **Probabilistic profiling for BranchProbabilityInfo**: Integration of sample-based and instrumentation profiles into a unified Bayesian model for `BranchProbabilityInfo`, enabling hot/cold predictions to incorporate both static heuristics and partial runtime data in a principled way; inspired by the AutoFDO2 research at Google.
+- **ScalarEvolution for non-affine loops**: Extension of SCEV to represent polynomial and piecewise-linear recurrences using the `SCEVAddRecExpr` type with higher-order strides, enabling vectorization of loops with quadratic induction variables (active research in the polyhedral/MLIR communities linking SCEV to Presburger arithmetic).
+- **Demand-sensitive alias analysis**: A new analysis composing `DemandedBits` and alias analysis results to prune alias queries for bit-fields and masked stores, reducing compile-time cost for large C++ codebases with heavy struct manipulation.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Unified memory dependence lattice**: A merged successor to MemorySSA and `DependenceInfo` that expresses both may-alias and must-dependence facts in a single SSA-like form, enabling single-pass DSE and LICM without separate clobber-walk queries; research direction outlined in the ASPLOS 2024 paper "Memory Dependence Analysis Beyond SSA."
+- **Interprocedural MemorySSA**: Extending MemorySSA into the module-level analysis manager to allow IPSCCP and inlining to reuse cross-function memory def-use chains, reducing repeated full recomputes during LTO; aligns with the broader LLVM modular IPO roadmap post-LLVM 22.
+- **Learned branch probability models**: Replacing the static heuristic table in `BranchProbabilityInfo` with a small ML model (similar to LLVM ML-LICM cost model work) trained on large PGO corpora, providing better cold-path estimates for programs without profile data.
+
+---
+
 ## Chapter Summary
 
 - `DominatorTreeAnalysis` computes the classic Lengauer-Tarjan dominator tree; `dominates(A, B)` tests whether `A` dominates `B`; `isReachableFromEntry(BB)` identifies unreachable blocks.

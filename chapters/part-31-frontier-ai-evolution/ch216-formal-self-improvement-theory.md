@@ -480,6 +480,32 @@ One productive framing for future work is the **certification frontier**: the bo
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Darwin Gödel Machine scaling experiments**: Following arXiv 2505.22954, the open-source DGM codebase (github.com/jennyzzt/dgm) is expected to see community extensions evaluating QD archive diversity metrics beyond SWE-bench and Polyglot — specifically, applying the DGM loop to MLIR pass pipeline self-optimisation to empirically test whether archive-based QD search outperforms random restarts for compiler engineering tasks.
+- **Alive2 numerical tolerance mode**: The LLVM community has discussed extending Alive2 (llvm/alive2) to handle floating-point approximate equality through SMT bitvector encodings; near-term work targets LLVM 22/23 correctness-of-vectorisation proofs for fast-math rewrites, narrowing the gap between Alive2's symbolic IR refinement and the numerical tolerance specifications needed for weight-space self-modification.
+- **MC-AIXI successor benchmarks**: The reinforcement learning theory community (NeurIPS 2026 submissions) is expected to report MC-AIXI-style context-tree weighting agents on partially observable benchmarks derived from MiniHack and NetHack, comparing CTW sequence-prediction error against transformer-based predictors as approximations to the Solomonoff prior.
+- **Lean 4 Kolmogorov complexity library**: The Mathlib4 project (github.com/leanprover-community/mathlib4) has open PRs formalising prefix-free complexity K and the Kraft inequality; completion would provide mechanised proofs of the invariance theorem and Solomonoff convergence bounds, enabling the first machine-checked treatment of the foundations of Section 216.1.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Certified DGM fitness functions via Lean 4 specifications**: Connecting the `drift : Impl[T] → Spec[T] → DriftReport` framework (Ch207) to Lean 4 tactic proofs would allow DGM self-rewrites to be conditionally certified against machine-checked preservation contracts — a partial mechanisation of the Gödel Machine self-rewrite condition for the subset of rewrites that can be typed in Lean's dependent type system.
+- **Levin search with neural heuristics**: Research groups building on AIXI-tl approximations are expected to replace exhaustive Levin-search interleaving with learned proposal distributions — combining description-length-weighted program enumeration with neural amortisation (similar to AlphaCode's sampling) to achieve practical Kt-optimal policy search for medium-scale LLM fine-tuning tasks.
+- **Formalised Legg–Hutter approximability results**: Expected complexity-theoretic results will characterise how well a polynomial-time agent can approximate the Legg–Hutter measure Υ(π) for environments of complexity ≤ k; this would give concrete hardness lower bounds for practical benchmark calibration, informing what fraction of the true Legg–Hutter distribution a finite benchmark suite of size N can represent.
+- **Capability regression oracles using mechanistic interpretability circuits**: By integrating Chapter 213's mechanistic interpretability infrastructure (sparse autoencoders over MLP activations) with formal self-improvement loops, researchers expect to identify neural circuits whose preservation guarantees absence of capability regression on identified tasks — providing a circuit-level analogue of CompCert's refinement constraint rather than a loss-surface penalty such as EWC.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Computable approximation to the universal semimeasure for LLM-scale priors**: Scaling context-tree weighting or successor methods to match transformer perplexity on held-out natural-language corpora would establish the strongest empirical link yet between Solomonoff induction and pre-training, enabling quantitative comparison of large language models against the Legg–Hutter bound for natural-language environments — a metric currently lacking any principled upper bound.
+- **Proof-carrying self-rewrites for MLIR dialects**: Extending the verified compilation tradition (CompCert, Vellvm, Alive2) to MLIR's multi-level IR framework, so that self-rewriting compiler agents can attach Coq/Lean proof certificates to proposed dialect transformations — making the `F ⊢ V(t, apply(r)) > V(t, stop)` condition mechanically checkable for a practically useful class of compiler-engineering self-rewrites.
+- **Resolution of the self-referential evaluation problem**: A formal impossibility result (or constructive escape) for the self-referential evaluation problem of Section 216.7.3 — analogous to Löb's theorem — would settle whether any computable self-improving system can use an internal evaluator to certify its own capability preservation, or whether external adversarial oracles are unconditionally necessary for any sound self-improvement criterion.
+
+---
+
 ## Chapter Summary
 
 - **Kolmogorov complexity** K(x) = min |p| such that U(p) = x formalises minimum description length; the universal probability m(x) = 2^{-K(x)} is the Bayesian prior that dominates all computable probability measures.

@@ -1085,6 +1085,32 @@ The `ConstantResultStorageKind::Int64` optimization matters for performance: the
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **New constant expression interpreter (ExprInterp) stabilization**: Clang's bytecode-based constant interpreter (`clang/lib/AST/Interp/`) — gated behind `-fexperimental-new-constant-interpreter` — is actively replacing the tree-walking evaluator in `ExprConstant.cpp`. Ongoing work to handle all remaining expression kinds (virtual dispatch, placement-new, unions with active-member tracking) and enable it by default is tracked on LLVM Discourse ([RFC: Enabling the new constant interpreter by default](https://discourse.llvm.org/t/rfc-enabling-the-new-constant-interpreter-by-default/)).
+- **C++26 `static_assert` with `std::string` message**: Clang 22 has initial support but the constant evaluator path for `.data()` / `.size()` on a `constexpr std::string` requires `APValue`-level string object support; remaining edge cases (non-literal-type messages, embedded nulls) are under active patch review.
+- **`constexpr` exception handling (P3068)**: WG21 paper P3068R3 proposes permitting `try`/`catch` inside `constexpr` functions in C++26. Clang's statement visitor in `EvaluateStmt` will need new `TryStmt` and `CXXCatchStmt` handlers; a proof-of-concept patch is circulating on Phabricator.
+- **`__builtin_is_within_lifetime` (P2641)**: C++26 adopts `std::is_within_lifetime` for introspecting object lifetime in `constexpr`; the evaluator must expose a new builtin case that consults `APValue::Kind::None` (object not yet constructed) to yield a `bool` result correctly.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Full replacement of `ExprConstant.cpp` with the bytecode interpreter**: The new interpreter offers asymptotically better performance for deep `constexpr` recursion (step accounting via bytecode program counter vs. tree traversal), better support for `std::vector`-like containers with dynamic allocation, and cleaner extensibility. Completing this transition requires matching all 17,000-line behaviors of `ExprConstant.cpp` including every `__builtin_*` case, then removing the old evaluator.
+- **Reflection (`P2996`) integration**: C++26/27 static reflection exposes compiler-internal type information as compile-time values through `std::meta::info` objects. The constant evaluator will need a new `APValue` kind (or a new builtin evaluation path) to represent and propagate `std::meta::info` values through `constexpr` computations, driving `ClassOf`, `members_of`, `nonstatic_data_members_of`, etc.
+- **Expanded `constexpr` allocator support**: proposals to allow `constexpr std::vector` and `constexpr std::string` to persist across translation units (via static storage promoted from the heap) require the evaluator's `HeapAllocs` map to interact with the linker through a new constant-time allocation model; early design discussions are underway on the `std-proposals` mailing list.
+- **`constexpr` SIMD (P1928)**: `std::experimental::simd<T, Abi>` in C++26 is conditionally `constexpr`; the evaluator will require a `Vector`-kind `APValue` code path in `FloatExprEvaluator` and `IntExprEvaluator` to fold lane-wise operations at compile time without LLVM IR emission.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Proof-carrying constant expressions**: As Lean 4 / Coq / Isabelle/HOL tighter integration with C++ verified-compilation efforts matures (cf. Part XXIV of this book), the constant evaluator may become the extraction point for proof terms — carrying formal guarantees that a constant expression result was derived from a well-typed, UB-free evaluation path, enabling downstream verified static analysis tools to trust the value without re-checking.
+- **Cross-module `constexpr` caching via module ABI**: C++20 modules can already serialize `ConstantExpr` cached values, but the `APValue` serialization (`APValueSerialization.cpp`) covers only scalar and aggregate kinds. Long-term, lvalue-base references into imported modules (across TUs) will require a stable constant-value interchange format in the module file, analogous to DWARF's use of `DW_FORM_data*` for constants.
+- **`constexpr` GPU kernels**: SYCL 2025+ and HIP constant-expression evaluation for kernel launch parameters extends the evaluator into target-specific territory; device-side `__builtin_*` math functions (e.g., `__ocl_sqrt`) will need evaluator cases backed by correctly-rounded software implementations of OpenCL SPIR-V math semantics.
+
+---
+
 ## Chapter Summary
 
 - Clang's constant evaluator lives entirely in `clang/lib/AST/ExprConstant.cpp` and is exposed through methods on `Expr`: `EvaluateAsRValue`, `EvaluateAsInt`, `EvaluateAsFloat`, `EvaluateAsLValue`, `EvaluateAsInitializer`, and `EvaluateAsConstantExpr`.

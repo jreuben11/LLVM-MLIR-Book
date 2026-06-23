@@ -985,6 +985,32 @@ For Coq, the `coq-hammer` tactic provides Sledgehammer-like functionality via th
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Lean 4 LLVM backend stabilisation (PR #1837)**: The experimental LCNF-to-LLVM-IR emitter is actively being hardened; the LTO-based `lean_object*` intrinsic inlining approach is expected to reach parity with the C backend on arithmetic-heavy benchmarks by mid-2026, with the goal of landing in a Lean 4 stable release. Track progress at `leanprover/lean4#1837` and the `lean4-compiler` Zulip channel.
+- **Lean4Lean full soundness proof completion**: Mario Carneiro's Lean4Lean project (arXiv 2403.14064) aims to extend its soundness statement to cover the full universe polymorphism elaboration rules and the `Quot.sound` axiom — the two areas with outstanding proof gaps as of April 2026. Completion would close the last formal gap in Lean 4's kernel correctness argument.
+- **Rocq 9.0 release and `SProp` stabilisation**: The Coq/Rocq steering committee's roadmap targets Rocq 9.0 with a stable `SProp` universe and performance improvements to `vm_compute` via a lazy evaluation strategy; the complete binary-to-`coqc` rename is expected to land in this cycle.
+- **LeanDojo ReProver 3.x and Mathlib4 coverage**: With Mathlib4 crossing 1.5 million lines, the LeanDojo team is releasing ReProver 3.x (integrating retrieval-augmented generation with whole-proof synthesis); the target metric is closing 70% of `sorry`-holes in Mathlib4 pull requests automatically.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Verified Lean 4 code generation**: A collaboration between the Lean 4 core team and the Vellvm group aims to produce a Lean 4 theorem establishing that the LCNF-to-LLVM-IR pass preserves operational semantics — the compiler-correctness gap identified in §184.5.4. The approach would formalise a subset of LCNF semantics in Lean 4 and prove simulation against a Lean 4 embedding of Vellvm's LLVM IR semantics.
+- **Rocq verified extraction**: The partially-completed Rocq verified extraction project (proving that the extraction plugin preserves denotational semantics of extracted terms) is expected to reach the OCaml and Haskell backends, eliminating extraction from CompCert's trusted base. This is being developed in the `coq/coq` repository under `plugins/extraction/theories/`.
+- **seL4 AArch64 binary correctness closure**: The l4v team is working to close the compiler-correctness gap by verifying that the seL4 C-to-binary step (currently using GCC) produces a binary that refines the C semantics. This will either use CompCert for AArch64 or a binary-level Isabelle/HOL model derived from the HOL4 ARMv8 specification.
+- **Cubical Agda / `agda2hs` production deployment**: With `agda2hs` 2.x targeting GADTs and rank-N types (roadmap at `agda/agda2hs`), industrial users (IOG, Well-Typed) plan to deploy Agda-verified cryptographic and consensus-protocol Haskell code compiled via GHC-LLVM, bringing HoTT-level verification into LLVM-compiled production systems.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Unified kernel federation across proof assistants**: The `opentheory` exchange format (currently bridging HOL4 and HOL Light) is being extended through the Dedukti/Lambdapi project (Blanqui et al., INRIA) to support inter-system proof transfer between Lean 4, Coq/Rocq, Isabelle/HOL, and Agda — allowing, for example, a CompCert Coq proof to be imported into Lean 4 without re-proving from scratch. A 5-year goal is a community standard proof certificate format analogous to TPTP but for dependent type theory.
+- **LLM proof synthesis at scale reaching 90% Mathlib4 coverage**: Successor systems to LeanDojo ReProver trained on the cumulative Mathlib4 corpus (projected at 3–5 million lines by 2031) are expected to close 90%+ of novel proof goals in undergraduate mathematics automatically; the remaining 10% — novel research-level results requiring new mathematical ideas — define the frontier of human-machine collaboration in formal mathematics.
+- **Formally verified LLVM optimizer passes in Lean 4**: Leveraging a stable Lean 4 LLVM backend and a completed Vellvm-in-Lean4 formalisation, research groups (including those building on Alive2's SMT-based approach) aim to produce machine-checked Lean 4 proofs for a core subset of LLVM InstCombine and GVN passes — replacing Alive2's SMT oracle with kernel-verified proof terms and extending the coverage to passes beyond peephole rewrites.
+
+---
+
 ## 184.6 Chapter Summary
 
 - **Lean 4's kernel** (`Lean.Kernel.check`, ~6,000 lines C++) is the sole trusted base. It implements CIC with universe polymorphism, proof irrelevance, and quotient types. It checks β, δ, ι, ζ, η definitional equality but does not perform unification — that is the elaborator's responsibility.

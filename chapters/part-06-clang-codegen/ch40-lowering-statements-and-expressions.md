@@ -820,6 +820,32 @@ The load-modify-store sequence is at `-O0`. Optimizers can simplify this when th
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **`-fcomplex-arithmetic` flag stabilization**: The `-fcomplex-arithmetic={basic,improved,full,promoted}` family introduced in Clang 18–19 is being finalized to replace the older `-fcx-limited-range` / `-fcx-fortran-rules` flags. Near-term work includes wiring the flag through `ComplexExprEmitter` so inline multiply/divide selection respects the new enum at all optimization levels, not just `-O0`. See [discourse.llvm.org — Complex arithmetic flags RFC](https://discourse.llvm.org/t/rfc-complex-arithmetic-flags-followup/74971).
+- **`nsw`/`nuw` flag correctness under C23 two's-complement guarantees**: C23 formally mandates two's-complement integers, narrowing (but not eliminating) the set of expressions for which `nsw` is valid. Several Clang patches are landing to audit `VisitBinaryOperator` and ensure `nsw` is only set when the C/C++ language standard actually makes signed overflow undefined rather than implementation-defined. The LLVM `LangRef` poison semantics discussion ([RFC: Refining poison semantics](https://discourse.llvm.org/t/rfc-refining-poison-semantics-for-two-s-complement-integers/)) is the upstream anchor.
+- **ClangIR (`CIR`) statement lowering**: The ongoing ClangIR project (`clang/lib/CIR/`) is implementing parallel `CIRGen` counterparts to `CGStmt.cpp` and `CGExprScalar.cpp`. By October 2026 the project targets parity with Clang codegen for all statement forms (`if`, `for`, `while`, `switch`, `goto`) and the common expression visitors. Progress is tracked in [llvm/clangir on GitHub](https://github.com/llvm/clangir).
+- **Improved `[[likely]]` / `[[unlikely]]` branch-weight propagation**: `EmitIfStmt` currently emits static branch weights only when `__builtin_expect` is present. A patch series in review ([D153471 and successors](https://github.com/llvm/llvm-project/issues)) aims to propagate C++20 `[[likely]]`/`[[unlikely]]` attributes as `!prof branch_weights` metadata through `EmitBranchOnBoolExpr`, improving PGO-less performance.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Contracts-aware expression codegen (C++26)**: The C++26 contracts facility (`[[pre:]]`, `[[post:]]`, `[[assert:]]`) requires Clang to inject precondition/postcondition checks as part of function entry/exit and expression evaluation. `EmitReturnStmt` and call-site lowering will need coordination with a new `ContractCheckEmitter` analogous to the existing UBSan check emission. The Contracts SG21 progress toward a Clang implementation will drive this work over 2026–2028.
+- **`EHScopeStack` rewrite for coroutines and structured concurrency**: Current `EHScopeStack` was designed for synchronous C++ EH. Coroutine suspension points split a function across resume/destroy paths, requiring each `NormalAndEHCleanup` to be expressible in a coroutine frame. A redesign to store cleanup closures in the coroutine frame (rather than the C stack) is needed to support `std::execution::task` and C++ structured concurrency proposals. See the ongoing coroutine EH discussions in the LLVM Clang mailing list archives.
+- **Matrix type codegen integration with MLIR/Linalg**: The `llvm.matrix.*` intrinsics currently lower in `LowerMatrixIntrinsics.cpp` through scalar vector operations. A proposed path would emit matrix operations into MLIR's `linalg` dialect from `CGExprScalar.cpp` (via ClangIR's CIR matrix ops), enabling tiling, fusion, and target-specific lowering through the MLIR pipeline before reaching LLVM IR. This requires the ClangIR → MLIR bridge to be stable.
+- **Eliminating the scalar/complex/aggregate tripartition via opaque value lowering**: The current three-emitter split (`ScalarExprEmitter`, `ComplexExprEmitter`, `AggExprEmitter`) predates LLVM's opaque pointer model. A longer-term refactoring proposal would unify under a single value-semantic emitter that lowers through `AggValueSlot`-like destinations for all categories, simplifying the dispatch in `EmitAnyExpr`. This is discussed informally in the Clang codegen developer community as a follow-on to the opaque-pointer migration completed in LLVM 16.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Full ClangIR round-trip for statement/expression codegen**: By 2031, the ClangIR project aims to make the CIR representation the canonical intermediate form for all Clang code generation, with `CGStmt.cpp` and `CGExprScalar.cpp` replaced by CIR lowering passes. This would allow source-level transformations (contracts checking, lifetime analysis, sanitizer injection) to operate on a higher-level typed IR before reaching LLVM IR, enabling more precise and composable checks.
+- **Proof-carrying codegen for sanitizer elision**: Current UBSan checks are emitted conservatively and removed only by the optimizer when it can prove the undefined behavior cannot occur. A research direction (building on work like IKOS, SeaHorn, and LLVM's `ConstraintElimination` pass) would have Clang maintain lightweight proof annotations alongside `nsw`/`nuw` flags so that sanitizer intrinsic calls (`llvm.sadd.with.overflow`) are elided at codegen time for values provably within range, reducing instrumentation overhead.
+- **Reflection-driven expression codegen (C++26/C++29 static reflection)**: The `std::meta` reflection proposal (P2996 and successors) allows compile-time programs to generate expressions and statements. If adopted, `EmitStmt` and `EmitScalarExpr` must handle reflection-generated AST nodes that may be produced lazily during codegen, requiring a more dynamic dispatch architecture than the current compile-time-constant `StmtClass` switch.
+
+---
+
 ## Chapter Summary
 
 - `CodeGenFunction::EmitStmt()` is a flat switch dispatching to `EmitIfStmt`, `EmitWhileStmt`, `EmitForStmt`, `EmitSwitchStmt`, `EmitReturnStmt`, and their siblings in `CGStmt.cpp`.

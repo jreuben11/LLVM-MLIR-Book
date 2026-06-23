@@ -445,6 +445,32 @@ Key KLEE flags:
 | S2E | QEMU TCG | Selective symbolic | Full-system (OS + kernel) analysis |
 | Manticore | LLVM IR + EVM | Symbolic | Smart contract analysis |
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **KLEE 4.0 release and LLVM 17+ compatibility**: The KLEE project has been tracking LLVM mainline; the community is working to stabilize the build against LLVM 17–19 APIs (particularly `llvm::Optional` removal and `DILocation` changes). Follow [github.com/klee/klee/issues](https://github.com/klee/klee/issues) for the compatibility roadmap.
+- **Z3 4.13+ integration**: Z3's new incremental solving APIs (`z3::solver::get_consequences`) allow KLEE's `IndependentSolver` to batch independent constraint subsets in a single solver session rather than spawning separate Z3 instances, reducing per-query overhead for programs with many symbolic arrays.
+- **OSS-Fuzz KLEE engine graduation**: Google's OSS-Fuzz infrastructure completed KLEE integration as a first-class fuzzing engine in 2024; near-term work focuses on `.ktest`-to-libFuzzer corpus bridging scripts and automated triage of KLEE-found crashes alongside libFuzzer reports.
+- **`kdalloc` deterministic allocator hardening**: The `kdalloc` library (introduced to replace KLEE's previous address-space layout) is receiving guard-page support and symbolic-address disambiguation improvements to reduce false-positive alias queries under the lazy-initialization model.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Floating-point symbolic execution via LLVM FP intrinsics**: The `klee-float` fork applies Z3's IEEE 754 floating-point theory (`fp.sort`, `fp.add`, `fp.fma`) to model LLVM `fadd`/`fmul`/`sqrt` intrinsics symbolically. Mid-term goal is merging klee-float into mainline KLEE and enabling `--fp-runtime` similarly to `--posix-runtime`, targeting numerical libraries such as `libm` and ML inference kernels.
+- **Parallel state exploration with work-stealing**: KLEE's executor is fundamentally single-threaded; the `cloud9` research prototype demonstrated work-stealing across processes via shared `.ktest` seed queues. A production multi-process KLEE using POSIX shared memory for `AddressSpace` snapshots is under active design, targeting 8–32× throughput on CI clusters.
+- **KLEE for WebAssembly via LLVM IR round-trip**: As Clang's Wasm backend stabilizes, the workflow of lowering Wasm back to LLVM IR (via `wasm2c` or `llvm-undname`) and feeding it to KLEE enables symbolic analysis of smart contracts and browser engine components. Integration with the Wasmtime IR (`cranelift-codegen`) is a parallel track.
+- **Symbolic execution of MLIR ops via KLEE**: Research projects (e.g., at ETH Zurich and CMU) are experimenting with running KLEE on MLIR programs lowered to LLVM IR, with domain-specific `klee_make_symbolic` wrappers for tensor shapes and loop bounds. Mid-term goal is a `mlir-sym-exec` tool that verifies MLIR dialect lowering equivalence using KLEE's solver chain.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Whole-system symbolic execution scaling via summaries**: Path explosion remains KLEE's fundamental limit (~10K LOC effective scale). Long-term research (building on COMPOSITIONAL KLEE and LLVM's new `Module Summary` infrastructure) aims for function-level symbolic summaries stored in the IR's `SummaryManager`, enabling interprocedural symbolic execution of million-LOC codebases without re-exploring called functions.
+- **SMT solver co-evolution (bitvector+array theory acceleration)**: The LLVM community's `mlir-smt` dialect (proposed in 2025 on discourse.llvm.org) aims to express SMT queries as MLIR ops, enabling LLVM optimizations (CSE, LICM) to simplify solver queries before dispatch to Z3/CVC5/Bitwuzla. KLEE's `Z3Builder` would emit to `mlir-smt` IR instead of Z3 C-API calls directly.
+- **AI-guided path prioritization**: Neural network heuristics (graph neural networks over the CFG annotated with coverage and constraint complexity signals) are being evaluated as replacements for `WeightedRandomSearcher`'s hand-tuned `CoveringNew` heuristic. Long-term goal is a learned `Searcher` trained on KLEE runs over open-source corpora that generalizes across project types without manual parameter tuning.
+
+---
+
 ## Chapter Summary
 
 - KLEE builds a shadow IR layer (`KModule`/`KFunction`/`KInstruction`) over LLVM IR to add symbolic execution metadata without modifying the IR itself

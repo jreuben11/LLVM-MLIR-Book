@@ -780,6 +780,32 @@ The connection between ZX-calculus and the categorical framework of [Chapter 188
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **QIR Alliance profile v2.0 finalization**: The QIR Alliance is finalizing the Adaptive Profile v2.0 specification, adding explicit support for real-time classical feedback loops with bounded latency annotations — enabling backends to statically verify that mid-circuit measurement feedback fits within the hardware's classical co-processor timing budget. Track progress at [github.com/qir-alliance/qir-spec](https://github.com/qir-alliance/qir-spec).
+- **Catalyst 0.10+ MLIR upstream contributions**: Xanadu's Catalyst team is upstreaming key `quantum` dialect primitives to MLIR's main repository under the `quantum` experimental dialect namespace; watch [discourse.llvm.org](https://discourse.llvm.org) for the RFC "Add quantum dialect to MLIR in-tree" targeting LLVM 23. This will co-locate quantum IR with the existing GPU and vector dialects.
+- **Qiskit 2.x OpenQASM 3 native round-trip**: Qiskit's `qiskit-terra` 2.0 release (Q2 2026) targets full OpenQASM 3 → `qe-compiler` → hardware round-trip without the legacy OpenQASM 2 fallback path, retiring the QASM2 serialization layer that constrained `defcal` and timing semantics.
+- **NVIDIA CUDA-Q Quake dialect extension for dynamic circuits**: NVIDIA is extending the `Quake` MLIR dialect to support dynamic circuit compilation (mid-circuit measurement branching) targeting the cuQuantum backend, with a planned RFC to [discourse.llvm.org](https://discourse.llvm.org) by mid-2026.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Fault-tolerant compilation tier in QIR / Catalyst**: As IBM's 100,000-qubit roadmap reaches deployable milestones, QIR and Catalyst are expected to gain a dedicated fault-tolerant compilation tier — automatically decomposing logical-level circuits into surface-code-encoded physical circuits with T-factory scheduling. Microsoft's Azure Quantum Resource Estimator will be extended to accept QUIR input in addition to QIR, requiring a standardized IR exchange format between the IBM/Microsoft ecosystems.
+- **ZX-calculus integration into MLIR pass infrastructure**: The `PyZX` / `ZXlive` ecosystem is moving toward a compiled C++ backend with MLIR integration (see the `zxcalc` GitHub organization). By 2028, ZX-based T-count minimization passes are expected to be expressible as standard MLIR transformation passes (`mlir-opt --zx-reduce`) operating on a `zx` dialect, unifying quantum optimization with the classical MLIR pass manager pipeline.
+- **OpenQASM 3 hardware-agnostic defcal standardization**: The OpenQASM 3 community (IBM, IonQ, Rigetti, Quantinuum, Intel) is working toward a hardware-agnostic pulse IR that abstracts over the current platform-specific `defcal` semantics (OpenPulse for superconducting, AHS for Rydberg atoms, RF pulses for trapped ions). The `openqasm/openqasm` repository issue tracker tracks this as the "pulse dialect interoperability" milestone.
+- **TKET v2 MLIR-native compilation path**: Quantinuum has announced TKET v2 will use MLIR as its internal IR rather than the current custom DAG representation, enabling standard MLIR passes (CSE, DCE, loop transformations) to apply to quantum circuits directly and allowing TKET's routing passes to inter-operate with QUIR and Catalyst compilation pipelines.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Verified quantum compilation via Vellvm-Q**: Building on the Vellvm project ([Chapter 176 — Verified Compilation with Vellvm](../part-24-verified-compilation/ch176-verified-compilation-vellvm.md)), the academic community is developing Vellvm-Q — a Coq/Lean 4 formalization of QIR semantics enabling machine-checked proofs of quantum circuit optimization correctness. Complete ZX-calculus completeness proofs in Lean 4 (in the style of the Mathlib category theory library) are a prerequisite and are expected to land by 2028–2029.
+- **Topological qubit compilation stack integration**: If Microsoft's Majorana-based topological qubits reach the 100+ logical qubit milestone, a new compiler tier targeting the topological qubit's native gate set (topological braiding operations rather than surface-code distillation) will be required. QIR's extensible runtime model is designed to accommodate this — the `__quantum__qis__` namespace can be populated with topological-qubit-native operations without IR-level changes.
+- **Quantum-classical heterogeneous IR unification**: The long-term vision (articulated in the "Quantum Computing in 2030" roadmap discussion at Q2B 2025) is a unified heterogeneous IR where CPU, GPU, QPU, and neuromorphic accelerators are first-class compute targets addressable from a single MLIR module — analogous to how LLVM's SPIR-V/NVPTX backends target GPU from the same IR. MLIR's dialect-based extensibility makes this architecturally feasible; the missing piece is a standardized QPU target registration mechanism analogous to LLVM's `TargetMachine` abstraction.
+
+---
+
 ## 191.12 Chapter Summary
 
 - **Quantum compilation** is a multi-level optimization problem: gate sequence reduction, qubit mapping to constrained topologies, and lowering to hardware pulses — analogous to classical mid-end optimization, instruction selection, and register allocation, but with no-cloning and decoherence as hard constraints without classical analogs.

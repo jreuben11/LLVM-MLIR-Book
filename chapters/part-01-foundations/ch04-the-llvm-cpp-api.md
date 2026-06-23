@@ -1093,6 +1093,32 @@ void analyseFunction(llvm::Function &F) {
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **`isa_impl` and `CastInfo` consolidation**: The LLVM community has been incrementally migrating from the legacy `classof`/`isa_impl` two-tier system to the unified `CastInfo<To, From>` customisation point (introduced in LLVM 15). By late 2026, expect most in-tree class hierarchies — including `Type`, `Constant`, and `MachineInstr` — to have migrated from `classof` to `CastInfo`, simplifying the casting header and enabling better diagnostics when a cast is used on an unregistered type pair. Track on [discourse.llvm.org](https://discourse.llvm.org/c/llvm/6) under the "Casting infrastructure" thread series.
+- **`cl::opt` subcategory and structured help overhaul**: Several RFC threads on LLVM Discourse (2024–2025) propose extending `cl::OptionCategory` with subcategory nesting so that large tools (clang, lld, llvm-objdump) can group related flags into collapsible sections in `--help` output. A prototype implementation is being iterated on in the `llvm/lib/Support/CommandLine.cpp` area.
+- **`llvm::Error` propagation through the C API**: The stable C API (`llvm-c/`) currently uses `LLVMBool` and out-parameters to signal errors. An RFC from early 2025 proposes adding an `LLVMErrorRef` type that bridges `llvm::Error` to C callers, enabling richer error messages from bitcode parsing and JIT compilation APIs without breaking the ABI.
+- **`SmallVector` growth factor tuning for LLVM 22 profile-guided feedback**: Empirical profiling data from large Clang compilations has renewed interest in adjusting the growth factor from 2× to 1.5× for `SmallVector`. A patch series in 2025 showed 3–5% reduction in peak RSS for modules with many short-lived vectors; resolution is expected in the LLVM 23 timeframe.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Thread-safe `LLVMContext` (opt-in mode)**: The single-threaded-per-context design is the primary barrier to fine-grained parallel compilation within a single TU. A long-running design thread (see the 2023 "Parallel compilation" RFC) proposes an opt-in `LLVMContext::setThreadSafe()` mode that installs reader-writer locks on type-uniquing tables. The mid-term target is enabling parallel function-level optimisation passes within one module without context cloning.
+- **`DenseMap` replacement with a Swiss-table backend**: Following the upstream C++ `absl::flat_hash_map` and Folly F14 experiences, multiple LLVM contributors have benchmarked replacing `DenseMap`'s open-addressing with a SWAR (SIMD Within A Register) probing scheme. A 10–15% throughput improvement on typical pass-manager workloads has been demonstrated in downstream experiments; an in-tree migration is a plausible mid-term outcome for LLVM 25–26.
+- **Structured error taxonomy for LLVM IR**: Currently `llvm::Error` subtypes are ad hoc — different subsystems define their own error classes with no shared taxonomy. A proposal to define a canonical set of error categories (`IRVerificationError`, `BitstreamDecodeError`, `TargetUnsupportedError`, etc.) with stable identity would allow tooling to programmatically distinguish errors without string matching, enabling better IDE integration and structured diagnostics.
+- **`raw_ostream` async/non-blocking API**: Large IR dumps and verbose remark output are currently synchronous, stalling compilation pipelines. A design proposal for an async `raw_ostream` backend (backed by a thread-pool queue) would allow diagnostic emission to overlap with optimisation, reducing total wall time for remark-heavy builds.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Reflection-driven ADT containers**: The proposed C++26/C++29 reflection TS (P2996 and successors) would allow `DenseMapInfo` specialisations to be generated automatically for aggregate types, eliminating the current requirement to hand-write sentinel values. LLVM's ADT library would likely adopt reflection-based defaults while preserving custom specialisations for performance-critical types.
+- **Memory-safe ADT layer**: As LLVM explores Rust interoperability (see the LLVM+Rust ABI work and the `#[repr(C)]` bridge proposals), a parallel-implementation strategy for `SmallVector`, `DenseMap`, and `StringMap` in safe Rust — with C++ interop via the same `ArrayRef`/`StringRef` pointer-and-length conventions — is a plausible long-term outcome. This would allow safety-critical compiler components (e.g., security-sensitive metadata processing) to use the same logical API with memory-safety guarantees.
+- **Unified `InstVisitor`/`PatternMatch` composition**: The current gap between `InstVisitor` (dispatch on concrete instruction types) and `llvm::PatternMatch` (structural pattern matching on value trees) requires developers to choose one paradigm per use case. A composable visitor-plus-pattern layer — similar to Rust's `syn` parse tree visitors — that lets a visitor method also perform structural matching on its argument is a compelling long-term API design direction that would unify large parts of InstCombine, SCCP, and GVN.
+
+---
+
 ## 4.8 Chapter Summary
 
 - **Custom RTTI** (`isa<>`, `cast<>`, `dyn_cast<>`, `dyn_cast_or_null<>`) replaces `dynamic_cast` throughout LLVM. The `classof` static method is the required hook; the `isa_impl<To, From>` trait (LLVM 14+) provides a non-intrusive alternative for external hierarchies.

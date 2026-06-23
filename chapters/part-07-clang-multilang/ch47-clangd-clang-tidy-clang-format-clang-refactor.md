@@ -1117,6 +1117,32 @@ The `clang-tools-extra/pseudo/` directory (not to be confused with `clang/tools/
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **clangd LSP 3.18 compliance**: The LSP 3.18 specification (published late 2025) adds `workspace/textDocumentContent` and `notebook/did*` notifications; clangd tracking issue on GitHub ([llvm/llvm-project#77439](https://github.com/llvm/llvm-project/issues/77439)) aims to implement `inlineValues` and expanded `semanticTokens` modifiers for C++ attributes and concepts, due in the Clang 23 release cycle.
+- **clang-tidy C++26 check expansion**: The `modernize` and `readability` modules are actively acquiring checks for C++26 features ratified at the Sofia (November 2025) WG21 meeting — `modernize-use-placeholder-variables` for unnamed variables (`_`) and `readability-use-std-print` to replace `printf`/`fprintf` with `std::print`; tracked under LLVM RFC "clang-tidy C++26 modernize wave".
+- **clang-format `ColumnLimitByLanguage` RFC**: An active LLVM Discourse RFC (2025) proposes `ColumnLimitByLanguage`, a map from embedded language (JavaScript in JSX, SQL in raw strings) to per-language column limits, addressing formatting failures in C++ files with embedded DSLs; implementation in `clang/lib/Format/` is in review.
+- **clang-pseudo integration with clangd fallback parser**: The `clang-tools-extra/pseudo/` experiment is converging toward a clangd configuration flag `FallbackParser: pseudo` that activates GLR-based recovery for files with fatal parse errors, replacing the current heuristic token-skipping fallback.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Cross-TU analysis without external index files**: The current CTU workflow requires pre-generating `externalDefMap.txt` via `clang-extdef-mapping`. An active research direction (Gábor Horváth et al., ongoing) integrates `CrossTranslationUnitContext` with the Clang module system so that pre-built PCMs serve as CTU definition sources, eliminating the separate index-build step and enabling CTU in incremental build systems like Bazel.
+- **clangd remote index v2 (Protocol Buffers binary shards)**: The current `.idx` shard format uses LLVM's bitstream, which lacks schema evolution support. A planned redesign would migrate shards to Protocol Buffers binary encoding, enabling index servers to serve mixed Clang versions without full re-indexing and supporting streaming shard updates after incremental builds.
+- **Semantic diff tooling using clang-tidy AST matchers**: The community is developing `clang-semantic-diff`, a tool that applies structured AST-matcher-based queries as diff predicates — enabling CI gates that detect semantically equivalent but differently-expressed patterns (e.g., "did any PR add a raw `new` expression that was not present before"), reusing the `ClangTidyCheck` infrastructure for policy specification.
+- **clang-format support for Carbon and Mojo**: As Carbon (Google) and Mojo (Modular) gain adoption, `clang-format` is being extended with `Language: Carbon` and `Language: Mojo` grammar modes built on the same `UnwrappedLineParser` infrastructure; the `FormatStyle::Language` enum currently covers C, Cpp, CSharp, Java, JavaScript, Json, ObjC, Proto, TableGen, TextProto, and Verilog — Carbon/Mojo additions are proposed in LLVM Discourse (2025).
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **AI-assisted clang-tidy check generation**: Research prototypes (e.g., ClangAutoFix, 2025 academic work building on LLM-guided AST-matcher synthesis) are exploring generating `ClangTidyCheck` skeletons from natural-language descriptions of code patterns, with the AST matcher expression verified via the `clang-query` REPL; a production pipeline integrated with the LLVM toolchain would allow project-specific checks to be authored without C++ expertise.
+- **clang-pseudo as the primary clangd parser for C++26+**: As C++ continues to grow in syntactic complexity (reflection, pattern matching proposals), the declarative `cxx.bnf` grammar in `clang-pseudo` may supplant the hand-coded recursive-descent parser for IDE-mode use, with the production compiler retaining its own parser for compilation; the two parsers would share semantic analysis (`Sema`) but diverge in parse-tree representation.
+- **Whole-project semantic rename via distributed CTU index**: A fully integrated multi-TU rename operation — covering cross-TU, cross-module, and macro-expanded occurrences — requires a distributed index with per-symbol reference provenance. The long-term vision merges `BackgroundIndex` shards with `CrossTranslationUnitContext`'s ASTImporter pool, enabling clangd's rename to achieve IDE-level completeness across million-line codebases without manual `clang-extdef-mapping` preprocessing.
+
+---
+
 ## 47.14 Summary
 
 - `ClangdLSPServer` → `ClangdServer` → `TUScheduler` is the three-layer architecture that decouples transport, semantic coordination, and per-file async parsing. `ASTWorker` threads own preambles and `ParsedAST` caches, reusing unchanged preambles across edits.

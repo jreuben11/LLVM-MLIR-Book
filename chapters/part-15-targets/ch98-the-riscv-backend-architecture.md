@@ -570,6 +570,32 @@ grep "amoadd" example.s
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **RVA23 profile shorthand in `-march`**: Work is underway on LLVM's `RISCVISAInfo.cpp` to accept `-march=rva23u64` directly, allowing profile-targeted compilation without enumerating every mandatory extension. Tracked in [LLVM discourse/RFC: RISC-V Profile Support](https://discourse.llvm.org/t/rfc-riscv-profiles).
+- **Zvkng / Zvksg vector crypto extensions**: The RVV-based vector cryptography extensions (AES-GCM and SM4 vector acceleration) are landing in RISC-V Linux distributions; LLVM 22.x backend patches for instruction selection and scheduling models for `zvkng`/`zvksg` are in active review.
+- **P-extension (packed SIMD) ratification and backend skeleton**: The RISC-V P (packed-SIMD) extension has been re-ratified as `Zp64`; initial LLVM TableGen definitions and a legalizer stub are expected within this window as vendors (T-Head, Andes) ship silicon.
+- **Improved `vsetvli` hoisting in `RISCVInsertVSETVLI`**: The VSETVLI insertion pass is being extended with a dominator-tree-aware hoisting phase to eliminate redundant `vsetvli` across loop-carried vector configurations, reducing vector loop overhead by 5–15% on RVA23 targets.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Zaamo / Zalrsc ratification and separation from A-extension**: The RISC-V ISA has split the old monolithic `A` extension into `Zaamo` (atomic memory ops) and `Zalrsc` (LR/SC); LLVM will need to emit distinct feature flags, update the ABI negotiation in `RISCVABIInfo.cpp`, and regenerate calling-convention tables for targets that implement only one sub-extension.
+- **RVB (Bit-Manipulation) integration with GlobalISel**: The Zba/Zbb/Zbc/Zbs extensions currently have complete SelectionDAG patterns; the GlobalISel `RISCVInstructionSelector` is expected to gain parity — including `G_BITREVERSE`, `G_CTPOP`, and `G_ROTR`/`G_ROTL` patterns — as RV64GC GlobalISel matures toward being the sole code path.
+- **Scheduling models for Alibaba Yitian 710 / SpacemiT X60 and future OOO cores**: As open-source RISC-V server SoCs proliferate, LLVM will require detailed `SchedMachineModel` entries for high-issue-width cores (8–16 wide), including separate ALU, FP, vector, and load/store port modelling analogous to `ARMSchedA77.td`.
+- **Linker relaxation in LLD for GP-relative Zc* compressed extensions**: The `Zcmp` and `Zcmt` extensions (table-jump and push/pop) require new linker-relaxation passes in LLD; LLVM/MC must emit matching `R_RISCV_ZCMT_TABLE` relocations and the relaxation engine must handle multi-instruction sequences produced by `cm.push`/`cm.pop` pseudos.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **RVA30 profiles and 128-bit scalar ISA (RV128I)**: RISC-V International is expected to publish RVA30 profiles mandating vector extensions well beyond RVA23; concurrently, the RV128I base ISA (XLEN=128) is ratified in draft form, requiring LLVM type-legalization changes throughout `RISCVTargetLowering.cpp` for 128-bit pointer and integer arithmetic.
+- **Hypervisor (H-extension) and IOMMU extension integration**: Full Hypervisor-mode (`H`) support enabling virtual machine monitor (VMM) compilation targets will require ABI and calling-convention changes, new address-space types (`VS-mode`, `VU-mode`) in `RISCVSubtarget`, and LLVM IR memory model extensions to express hypervisor memory attributes.
+- **Formal verification of RISC-V backend correctness with Alive2 / Vellvm**: As RISC-V becomes a primary datacenter ISA, formal equivalence checking of the SelectionDAG and GlobalISel lowering paths against the RISC-V ISA formal specification (written in Sail) will become critical infrastructure; integration between LLVM's `llvm-mca` and RISC-V Sail models is an active long-term research direction.
+
+---
+
 ## Chapter Summary
 
 - The RISC-V base ISA comes in two widths (RV32I/RV64I); RV64I adds `*W`-suffix instructions for 32-bit arithmetic with sign-extension, essential for correct `int` semantics.

@@ -369,6 +369,32 @@ The practical picture: MLIR is the compile-time representation for the frontend 
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **StableHLO 2.0 versioning scheme**: The openxla/stablehlo working group is finalizing a forward-compatibility window policy (tracked at [github.com/openxla/stablehlo/issues/2152](https://github.com/openxla/stablehlo/issues/2152)) that pins a minimum 6-month serialization guarantee, enabling stable AOT deployment across XLA releases without recompilation.
+- **PJRT C API stabilization**: The PJRT plugin ABI (C API defined in `xla/pjrt/c/pjrt_c_api.h`) is expected to reach v1.0 stability by mid-2026, unblocking hardware vendors (Cerebras, Graphcore successors, SambaNova) from shipping closed-source PJRT plugins that load dynamically into JAX without recompilation.
+- **Triton-based GEMM as default GPU path**: XLA's `TritonFusion` backend, currently gated behind `xla_gpu_enable_triton_gemm=true`, is on track to become the default GEMM emitter for NVIDIA GPUs, replacing the cuBLAS dispatch path for shapes covered by the Triton autotuner.
+- **HLO shardy partitioner replacing old SPMD pass**: The `shardy` SPMD partitioner ([github.com/openxla/shardy](https://github.com/openxla/shardy)) is being integrated as the default multi-device partitioner, with the legacy `SpmdPartitioner` pass deprecated; first production enablement in JAX is planned for JAX 0.5.x.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Full Linalg/MLIR GPU codegen path production-ready**: The experimental `XlaGpuToLinalg` / `XlaGpuToNVVM` pipeline (tracked in the `xla/backends/gpu/codegen/mlir/` directory) is expected to subsume the legacy `IrEmitter` for most GPU kernels by 2027–2028, enabling unified MLIR optimization passes (vectorization, tiling, software pipelining) across the GPU backend.
+- **Dynamic shape support in HLO passes**: XLA's `is_dynamic_dimension` field is currently under-exploited by most optimization passes. The community effort to propagate dynamic-shape reasoning through `AlgebraicSimplifier`, `InstructionFusion`, and `BufferAssignment` (tracked as `xla_dynamic_shapes_v2` internally) will unlock compiler support for variable-length sequences without padding.
+- **XLA for heterogeneous multi-chip topologies**: OpenXLA's roadmap includes a unified device topology representation that extends beyond TPU pod slices and GPU NVLink meshes to model heterogeneous memory hierarchies (HBM + DDR + host) explicitly in buffer assignment, enabling cross-chip pipeline scheduling at the HLO level.
+- **Ahead-of-time compilation with shape polymorphism**: JAX's `jax.export` / `jax.load` AOT workflow currently requires fully static shapes. A polymorphic AOT path — where dimension variables are symbolic — is under development, requiring changes to `AotCompilationResult` serialization and the `HloModuleConfig` shape constraint representation.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **HLO IR unification with StableHLO**: The long-term architectural direction (discussed in OpenXLA RFCs) is to collapse the HLO/StableHLO split: the internal `HloInstruction` representation would be replaced by a versioned MLIR-native representation, eliminating the `ConvertStableHloToHlo` round-trip and enabling direct MLIR pass application to the full pipeline.
+- **Compiler-driven collective scheduling for exascale training**: As training scales to 100k+ accelerator pods, HLO-level collective operations (`AllReduce`, `AllGather`, `ReduceScatter`) need compiler-assisted overlap scheduling. Research into automatically deriving asynchronous collective insertion from the HLO dataflow graph (building on `AsyncCollectiveCreator`) is expected to become a core compiler transformation for frontier model training.
+- **XLA as a first-class target for emerging ISAs**: With RISC-V AI extensions (RVV + matrix ops), Intel Gaudi 3+, and next-generation AMD CDNA architectures providing PJRT plugins, XLA's backend abstraction layer is expected to host a wider diversity of codegen targets, driving improvements to the `HloToLLVMIrTranslation` abstraction and enabling generic tile-based codegen that doesn't assume NVIDIA PTX semantics.
+
+---
+
 ## Chapter Summary
 
 - XLA is Google's ML compilation framework; OpenXLA is the open-source project hosted at github.com/openxla/xla.

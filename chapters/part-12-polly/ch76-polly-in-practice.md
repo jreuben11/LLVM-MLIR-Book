@@ -327,6 +327,32 @@ For existing C/C++ codebases where adding MLIR is impractical, Polly remains the
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Polly build-system clean-up**: The LLVM community has ongoing discussion (discourse.llvm.org thread "Polly future in the monorepo") about whether Polly should remain an in-tree project or be moved to a separate downstream repo; a decision and migration plan are expected before LLVM 23.
+- **MLIR Affine dialect: affine-to-GPU lowering stabilization**: The `AffineToGPU` conversion pass (tracked in `mlir/lib/Conversion/AffineToGPU/`) is being hardened for correctness with non-unit strides and non-rectangular iteration domains — directly expanding the set of loops that can replace a Polly-ACC offload.
+- **ISL 0.27 integration**: Upstream ISL is preparing version 0.27 with improved schedule tree serialization; Polly's vendored ISL copy (`polly/lib/External/isl/`) will be updated, fixing known exponential-blowup cases in Feautrier multi-dimensional scheduling for triangular domains.
+- **`-polly-scops-trip-count-threshold` auto-tuning**: A Phabricator patch (D157xxx series) proposes making Polly's minimum trip-count threshold a profiling-guided value rather than a static command-line knob, reducing false-positive SCoP detection on short loops.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Polly-ACC deprecation or replacement by OpenMP offload**: With Clang's OpenMP `target` offload path maturing and MLIR GPU dialect covering the same ground, Polly-ACC's CUDA generation path is expected to be removed or formally deprecated in favor of directing users to `omp target teams distribute parallel for` or MLIR-based workflows.
+- **MLIR Affine dialect: full PolyBench parity with Polly**: The `mlir-opt` pipeline (`affine-loop-tile`, `affine-loop-unroll`, `affine-parallelize`) currently trails Polly on PolyBench `gemm` and `heat-3d`; ongoing work in `mlir/lib/Dialect/Affine/Transforms/` targets closing this gap by improving cache-model-aware tile-size selection analogous to Polly's `polly-tile-sizes`.
+- **ScalarEvolution improvements benefiting SCoP detection**: LLVM proposals to add symbolic range inference to ScalarEvolution (broadening what is recognized as "affine") would directly expand the set of loops Polly can analyze without source-level annotation, recovering polyhedral structure from more real-world C++ patterns (e.g., range-for over `std::array`).
+- **Polyhedral model integration with the new LLVM Machine Scheduler**: Academic work (e.g., Grosser et al., CGO 2023 follow-up submissions) on applying ISL schedule trees at the MIR level for post-register-allocation software pipelining could surface as LLVM patches, complementing Polly's pre-RA optimization.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Full migration of polyhedral optimization to MLIR**: The long-term LLVM community trajectory is for MLIR's Affine + Linalg + Transform dialects to fully supersede Polly for all production use cases; Polly may be archived similarly to how `llvm/tools/dragonegg` was retired, with a maintained compatibility shim for legacy users.
+- **ISL replacement by a formally verified scheduling library**: Research groups (building on the Lean 4 verification of ISL core algorithms — analogous to the Vellvm effort) are exploring replacing ISL's C implementation with a verified scheduling kernel, eliminating a class of soundness bugs that Polly inherits from ISL's unverified dependency analysis.
+- **AI-guided polyhedral schedule search**: Integration of reinforcement-learning schedule search (following the AlphaTensor / TensorEigen line of research) into the MLIR Transform dialect's `transform.structured.tile_using_forall` infrastructure, superseding ISL's model-driven Pluto-style optimization with learned cost models calibrated per hardware microarchitecture.
+
+---
+
 ## Chapter Summary
 
 - Polly provides the most benefit for **high arithmetic intensity** loops (matrix multiplication, stencils) where cache tiling reduces memory bandwidth pressure by an order of magnitude; it provides little or no benefit for short loops, loops with indirect accesses, or loops with function calls with unknown memory effects.

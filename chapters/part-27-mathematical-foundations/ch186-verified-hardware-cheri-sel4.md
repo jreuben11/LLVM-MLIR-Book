@@ -597,6 +597,32 @@ The two layers are independent: CHERI stops hardware-level memory safety violati
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **CHERI upstream LLVM integration**: the CTSRD-CHERI LLVM fork ([`github.com/CTSRD-CHERI/llvm-project`](https://github.com/CTSRD-CHERI/llvm-project)) has active RFC discussions on discourse.llvm.org for upstreaming the non-integral address-space-200 capability pointer infrastructure, the `@llvm.cheri.cap.*` intrinsic family, and the PCuABI calling convention metadata. Near-term milestones target landing the CHERI-neutral non-integral pointer and address space 200 machinery into mainline LLVM 23.x, following the precedent set by AMDGPU's non-integral address spaces.
+- **CherIoT-RTOS formal verification**: Microsoft Research's ~25,000-line CherIoT RTOS kernel has stated a formal verification goal modeled on seL4's three-level refinement. As of early 2026 the AutoCorres-based C parsing infrastructure is being adapted for the CherIoT C++ code base; initial function-level correctness lemmas for the compartment switcher and revocation subsystem are expected in the six-month window.
+- **seL4 Multicore proof progress**: the l4v team's 2024 CLH lock correctness proof using rely/guarantee reasoning is the stated stepping stone toward the full multicore seL4 correctness proof. The next published milestone is expected to cover the IPI (inter-processor interrupt) protocol correctness using the rely/guarantee framework, moving beyond per-lock reasoning to whole-kernel concurrent refinement.
+- **Morello CheriBSD and Android compatibility**: the Google Android-on-Morello research port is targeting a public 2026 release milestone, including compatibility for the Android Runtime (ART) JIT compiler under PCuABI, which requires capability-aware JIT code generation in the ART LLVM backend. The CHERI LLVM fork's `MorelloTargetMachine` ART patches are under active review.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **RISC-V CHERI ratification**: CHERI-RISC-V is proceeding through the RISC-V International extension ratification process. The `Zcheri` extension task group (formed 2024) is reconciling the CHERI ISA specification v9 with RISC-V encoding constraints (compressed instruction encodings, Zca/Zcb/Zcd conflicts with the capability register file). A ratified `Zcheri` standard would trigger mandatory LLVM upstream support under LLVM's RISC-V extension policy, replacing the fork with an in-tree backend.
+- **Sail-to-Rocq (Coq) extraction and seL4 hardware model closure**: the Sail project's experimental Rocq (Coq) backend, combined with a Rocq formalization of the RISC-V Sail model, would enable carrying the hardware trust assumption of seL4's Isabelle proof into a Rocq model that connects to CompCert's Rocq proof obligations. This Sail-Rocq-CompCert-seL4 chain would be the first end-to-end machine-checked proof from ISA ground truth through compiler to OS kernel correctness, closing the hardware trust gap identified in §186.7.6.
+- **Formal CHERI bounds compression proof**: the compressed bounds representation (§186.2.1) uses a floating-point-like exponent scheme that introduces potential rounding. A formal Isabelle/HOL proof that the compression scheme preserves the monotonicity invariant under all bit patterns — analogous to the Sail CSetBounds semantics but covering the hardware encoding — has been proposed in the CHERI Cambridge group as a necessary precondition for safety-critical CHERI hardware certification.
+- **seL4 on RISC-V with Sail ISA semantics**: the Data61/seL4 Foundation roadmap includes extending the RISC-V seL4 Isabelle proof to use the official Sail-extracted Isabelle ISA theory (§186.5.2) as the hardware model, rather than the current hand-written RISC-V machine model. This would make the seL4/RISC-V proof formally dependent on the Sail model, creating an explicit and machine-checked link between ISA specification and OS correctness.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Complete multicore seL4 correctness proof**: the full rely/guarantee multicore correctness proof for seL4 — covering functional correctness, integrity, and information-flow noninterference for the SMP kernel with up to 8 cores — is the stated long-term goal of the l4v team. Achieving this would require a concurrent refinement framework that handles the interleaving of all kernel entry points across all cores, a substantially harder problem than the uniprocessor case.
+- **Verified hardware RTL via Sail**: the connection from Sail formal ISA models to hardware RTL verification (via CHERIoT's Sail-to-SystemVerilog extraction experiments and the CHIPS Alliance's formal verification working group) points toward a future in which CHERI capability hardware is itself formally verified at the RTL level, with a machine-checked proof connecting the Sail specification down to silicon. This would discharge the hardware trust assumption in §186.7.6 for CHERI-RISC-V RTL implementations.
+- **CHERI in mainstream server silicon**: the UK DSIT's Digital Security by Design (DSbD) programme (which funded Morello) has stated a goal of CHERI capability hardware in mainstream Arm server silicon by approximately 2030. If achieved, this would make CHERI LLVM backend support — and the formal guarantees it enables — relevant to general-purpose cloud infrastructure, with immediate implications for memory-safety enforcement in C/C++ codebases at scale.
+
+---
+
 ## 186.9 Summary
 
 The landscape of hardware-software co-verification, as approached through CHERI and seL4, reveals both the achievable and the open:

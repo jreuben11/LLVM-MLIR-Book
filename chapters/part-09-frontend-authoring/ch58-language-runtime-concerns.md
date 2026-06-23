@@ -535,6 +535,32 @@ The choices are interrelated: a GC-managed language that also uses coroutines mu
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Statepoint promotion out of "experimental" status**: The `llvm.experimental.gc.statepoint` / `gc.relocate` / `gc.result` intrinsics have carried the "experimental" label since their introduction; an active LLVM Discourse thread (RFC: "Graduating GC statepoints from experimental", 2025) tracks the API stabilization work needed to remove the prefix and lock down the binary StackMap format for external consumers such as the Azul Falcon JIT and the GraalVM LLVM backend.
+- **StackMap v4 format proposal**: The v3 StackMap format (current in LLVM 22) does not encode type information for live values, requiring GC runtimes to rely on side-channel metadata. An RFC tracked under LLVM issue #83069 proposes a v4 format adding optional per-location type tags and support for compressed pointer encoding, enabling more compact maps for high-live-value-count statepoints.
+- **W^X dual-mapping abstraction in JITLink**: `JITLink`'s `InProcessMemoryManager` currently requires platform-specific code for the `memfd_create`+dual-`mmap` pattern on Linux and `MAP_JIT`+`pthread_jit_write_protect_np` on Apple Silicon. LLVM 22.x development includes a unified `WritableMemoryMapper` interface (PR #87543) that abstracts this behind a single API, making patchpoint sled mutation fully portable across Linux, macOS, and Windows.
+- **`SyncScope` extensibility for heterogeneous targets**: AMDGPU and NVPTX backends have target-specific sync scopes (wavefront, workgroup, device). An ongoing effort (LLVM RFC, March 2025) proposes a mechanism for frontends to query the target's valid `SyncScope` enumeration at IR construction time, enabling frontends for GPU languages such as HIP or CUDA-via-Clang to emit portable `AtomicOrdering` + scope pairs without hard-coding backend-specific integers.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Precise GC with address spaces reaching parity on all tier-1 targets**: Using address-space-tagged GC pointers (address space 1 = GC-managed heap) is the community-preferred alternative to explicit `gc.root` annotation. By 2028 this model is expected to fully replace `gc.root` for tier-1 targets (x86-64, AArch64, RISC-V), with the `RewriteStatepointsForGC` pass consuming address-space metadata directly and the shadow-stack GC retired.
+- **Language-integrated atomics for weak memory targets (RISC-V Ztso, POWER)**: The C/C++ `consume` ordering is currently promoted to `Acquire` by LLVM because no backend reliably lowered it. Work tied to the RISC-V `Ztso` TSO extension and POWER's `lwsync`/`isync` instruction selection (tracked in llvm/llvm-project#66915) aims to implement a semantically correct `consume` lowering that avoids the unnecessary fence, benefiting languages with pervasive pointer-chasing (Java, Go) on weak-memory targets.
+- **Coroutine-aware GC safe points**: `@llvm.coro.*` coroutine frames currently require manual `gc.statepoint` insertion at `coro.suspend` points. By 2028 the coroutine passes are expected to automatically emit statepoints at suspend edges, making stackless coroutines fully transparent to the statepoint model — a prerequisite for languages like Swift (async/await) and Kotlin coroutines that use LLVM as a backend.
+- **Signal-safety static analysis pass**: LLVM currently provides no verification that IR inside a signal-handler body restricts itself to async-signal-safe operations. A planned opt-in pass (analogous to `-Wshadow` in Clang) would annotate functions with `signal_safe` and flag call-graph edges that reach non-safe callees, enforcing the invariant the frontend currently maintains informally.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Unified runtime ABI for GC statepoints across LLVM-hosted languages**: Today each language that uses LLVM's statepoint mechanism (Graal, MoonBit, Enso, LiquidHaskell) implements its own StackMap parser and GC-root-scanning convention. A longer-term goal is a standardized "LLVM GC ABI" specification — analogous to the Itanium C++ ABI — defining a common `gc.statepoint` calling convention, relocator protocol, and StackMap consumer API, enabling language runtimes to share GC infrastructure (e.g., a ZGC-like concurrent, region-based collector) without reimplementing the scanning layer.
+- **Hardware-assisted TLS for near-zero-overhead green threads**: Current TLS models require at least one instruction per access on most targets. As CPU vendors (Intel, ARM) expose hardware thread-context identifiers (e.g., Intel UINTR user-interrupt context, ARM MPAM partition IDs) that can serve as fiber identifiers, TLS lowering can be redesigned to be fiber-local at hardware speed. LLVM's TLS lowering infrastructure would need new `ThreadLocalMode` variants and target-specific lowering hooks.
+- **Post-quantum-safe atomics for security-critical runtimes**: Emerging cryptographic agility requirements (NIST PQC standards finalized 2024) may require atomic memory operations on 512-bit or 1024-bit values for post-quantum key material. LLVM's `AtomicRMWInst` is currently limited to pointer-width integers; a future extension to large-integer atomics (using `lock cmpxchg16b`-style expansion or hardware support) would serve secure language runtimes targeting post-quantum workloads without falling back to mutex-based locking.
+
+---
+
 ## Chapter Summary
 
 - LLVM provides two GC models: the legacy `gc.root` model and the recommended `gc.statepoint` model; prefer statepoints for new implementations.

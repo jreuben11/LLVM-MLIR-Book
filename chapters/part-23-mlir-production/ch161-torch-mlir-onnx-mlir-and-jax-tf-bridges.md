@@ -533,6 +533,32 @@ print(result.to_host().shape)  # (32, 10)
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- torch-mlir is migrating fully from `torch.jit.trace` to `torch.export`-based frontends; the legacy TorchScript importer is expected to reach deprecation status by mid-2026, tracked in [torch-mlir RFC #2997](https://github.com/llvm/torch-mlir/issues/2997) and related cleanup PRs.
+- ONNX opset 22 support is actively being added to ONNX-MLIR; ops covering ONNX 1.17 (ONNX-MLIR GitHub milestones) including `GroupNormalization`, `ImageDecoder`, and `IsInf` v22 semantics are under review.
+- StableHLO 1.0 forward-compatibility guarantees (5-year window encoded in the StableHLO versioning spec at [github.com/openxla/stablehlo](https://github.com/openxla/stablehlo)) are being extended with the `vhlo` (versioned HLO) dialect to enable bytecode downgrade, with upstream patches landing in MLIR's `include/mlir/Dialect/VHLO/`.
+- TOSA specification 1.0 ratification by the ML Platform working group is expected in H1 2026; the MLIR in-tree TOSA dialect is tracking spec changes including new `tosa.fft2d` and `tosa.rfft2d` ops for signal processing on embedded targets ([TOSA spec PRs on mlplatform.org](https://www.mlplatform.org/TOSA/)).
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- torch-mlir's `TorchToLinalg` decomposition library is being upstreamed into MLIR core as a reusable ATen-to-Linalg lowering library; this would allow other frontends (e.g., JAX custom ops, Triton) to share the same Linalg lowering patterns without depending on the torch-mlir package itself.
+- ONNX-MLIR is pursuing an `ONNXToStableHLO` lowering path (in addition to the existing `ONNXToKrnl`) to enable deployment through IREE and XLA backends; this would complete an ONNX → StableHLO → IREE pipeline analogous to the existing torch-mlir path.
+- JAX's `jax.export` API is expected to evolve toward supporting polymorphic shape constraints expressed directly in StableHLO's shape refinement dialect, replacing the current `jax2tf`-style shape polymorphism with native symbolic shape propagation through `shape_assertion` ops.
+- TF's MLIR bridge (`mlir_bridge` flag in TF 2.x) is being promoted from experimental to default-on for SavedModel compilation; the `tf.*` → `mhlo.*` lowering pipeline is being hardened for SPMD sharding annotations, aligning with the JAX/XLA `jax.sharding` model.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- A unified ML frontend IR that supersedes the current per-framework dialects (Torch, ONNX, TF) may emerge around a stabilized, hardware-neutral abstraction layer; leading candidates are an extended TOSA with control flow and quantization-aware training ops, or a new dialect purpose-built for the `torch.export` + `jax.export` convergence point.
+- Cross-framework model interoperability — loading a PyTorch model, JAX-JIT-compiling part of it, and deploying via ONNX-MLIR — is likely to become practical as StableHLO matures as the common interchange; this requires runtime ABI alignment between IREE, XLA, and ONNX-MLIR runtimes.
+- Sparsity-aware compilation through the MLIR sparse tensor dialect is expected to be integrated into torch-mlir and ONNX-MLIR lowering pipelines, enabling end-to-end sparse model deployment without manual pruning artifacts in the bridge code.
+
+---
+
 ## Chapter Summary
 
 - torch-mlir converts PyTorch's `torch.export` programs to the Torch dialect (ATen ops), then lowers to StableHLO, Linalg, or TOSA; `torch_mlir.compile()` is the primary API.

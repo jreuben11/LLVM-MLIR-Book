@@ -1247,6 +1247,32 @@ The `rustc_llvm` build script (`build.rs`) determines which LLVM libraries to li
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Polonius v2 stabilization on nightly**: The `-Z polonius=next` flag (Polonius v2, integrated with the next-gen trait solver and a-mir-formality) is on track to pass the full `rustc` test suite on nightly; tracking issue [rust-lang/rust#117066](https://github.com/rust-lang/rust/issues/117066) documents the remaining blockers, primarily around higher-ranked lifetimes in the new solver.
+- **Cranelift backend opt-out on nightly**: The Cranelift codegen backend (`rustc_codegen_cranelift`) is expected to flip from opt-in to opt-out for debug builds on nightly, making it the default for `cargo build` without `--release`; remaining blockers are inline assembly coverage gaps and a handful of SIMD intrinsics (`rust-lang/rust#87555`).
+- **Parallel front-end (`-Z threads`) on stable**: After years on nightly, parallel query evaluation is expected to land in stable rustc following the 1.80 cycle; this parallelizes HIR lowering, type checking, and MIR building across crate items using the query system's existing dependency-tracking infrastructure.
+- **Tree Borrows as Miri default**: Miri's current default (Stacked Borrows) is expected to transition to Tree Borrows (`-Zmiri-tree-borrows`) as the default memory model, reducing false positives for two-phase borrows and interior mutability patterns; the Miri team has signaled a target of late 2026 for this switch.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Next-gen trait solver stabilization**: The `-Z next-solver` next-generation trait solver (implementing coinductive cycles, improved higher-ranked trait bounds, and correct associated type normalization per the a-mir-formality spec) is expected to be stable and the default by 2027–2028; it unblocks stabilization of `async fn` in traits without boxing and generic `impl Trait` in trait bounds.
+- **MIR-level debug info improvements for inlined functions**: The current debug info emitted by `rustc_codegen_llvm` for MIR-inlined functions is incomplete — DWARF locations inside inlined bodies often do not map correctly back to Rust source. An RFC to emit inline-aware DWARF (`DW_AT_call_file`/`DW_AT_call_line` chains) at the MIR level rather than reconstructing them in LLVM is under discussion on LLVM Discourse (thread: "Rust MIR debug info quality").
+- **`rustc_codegen_gcc` inline assembly and LTO parity**: The GCC backend is expected to reach full `core`/`alloc`/`std` compatibility, with AT&T-dialect `asm!` constraints translated via a new constraint-mapping layer, enabling Rust on m68k, ia64, and AVR targets without LLVM cross-compilers; LTO via GCC's GIMPLE IR serialization (separate from libgccjit) is a longer-term stretch goal.
+- **a-mir-formality mechanical verification via Lean 4**: There is community interest in porting the PLT Redex a-mir-formality model to Lean 4 for proof-assistant-level mechanization; this would allow formal proofs of soundness properties of the Rust type system (particularly borrow-checking completeness under Polonius v2 rules) rather than relying solely on test-suite evidence.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **MIR in SSA form with explicit phi nodes**: A long-standing discussion ([rust-lang/compiler-team#706](https://github.com/rust-lang/compiler-team/issues/706)) proposes adding a `Runtime(SSA)` MIR phase where locals satisfying SSA invariants are tracked explicitly, enabling more powerful MIR-level optimizations (e.g., global value numbering, SCCP) without relying entirely on LLVM's `mem2reg`; this would narrow the optimization gap between the Cranelift backend and LLVM for release builds.
+- **Formal memory model ratification (Ferrocene/SAE standard)**: Ferrocene (the ISO 26262 / IEC 61508 qualified Rust toolchain) and the Rust Foundation's Safety-Critical Rust Consortium are working toward a formally ratified Rust memory model — incorporating Tree Borrows semantics and LLVM `noalias`/`noundef` semantics — that could be submitted to a standards body (ISO WG23 or SAE); this would be the first formal memory model standardization for a systems language since C11.
+- **Cranelift optimizing tier parity with LLVM at `-O1`**: The Bytecode Alliance roadmap envisions Cranelift reaching LLVM `-O1` code quality through additions of: CLIF-level inlining, a global value numbering pass, and an improved instruction selector using ISLE (Instruction Selection Lowering Engine); this would make Cranelift viable for embedded release builds on RISC-V and AArch64, eliminating the need for LLVM on resource-constrained targets.
+
+---
+
 ## Chapter Summary
 
 - **rustc's driver** is a demand-driven query graph (`TyCtxt::query`) providing memoization and incremental compilation via the red-green dependency tracking algorithm; the pipeline runs in phases: parsing → HIR → type checking → THIR → MIR → codegen.

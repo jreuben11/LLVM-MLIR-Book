@@ -377,6 +377,32 @@ The project tracks missing coverage explicitly through `MissingFeatures` entries
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Close `MissingFeatures` atomics and TLS gaps**: The `MissingFeatures::opLoadStoreAtomic()` and `MissingFeatures::opGlobalThreadLocal()` stubs are actively targeted by contributors in the Clang/CIR working group; expect `cir.atomic.load`/`cir.atomic.store` ops and TLS model attributes to land as reviewable patches on the LLVM Phabricator/GitHub by LLVM 23.
+- **Inline assembly support (`cir.asm`)**: Upstreaming of `cir.asm` — mapping Clang's `GCCAsmStmt` through a new CIR op — was discussed at the 2025 US LLVM Dev Meeting and is on track for implementation before LLVM 23; see discourse thread "CIR inline asm representation" (discourse.llvm.org, Nov 2025).
+- **HLSL via CIR hardening**: Early HLSL-to-CIR work (`-fclangir -x hlsl`) is progressing in tandem with DirectX backend contributions; the near-term goal is to make the HLSL test suite pass end-to-end through the CIR pipeline, replacing the existing `MissingFeatures::hlslSupport()` stub.
+- **OpenMP `cir.omp.*` op set**: The OpenMP/CIR RFC posted to discourse.llvm.org (Jan 2026) proposes a structured `cir.omp.parallel` / `cir.omp.for` op hierarchy mirroring OpenMP 5.2 regions; initial patches are expected before mid-2026.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Full C++23 coverage via CIR by default**: The long-term goal is for `-fclangir` to produce bit-identical codegen to the classic path across all GCC/Clang test suites; C++23 features (deducing this, explicit object parameters, `std::expected`) will require new CIR ops or attribute extensions.
+- **Through-MLIR lowering path to production**: The through-MLIR path (CIR → `scf`/`memref`/`affine` → LLVM dialect) is the strategic direction for enabling polyhedral and vectorization analyses on C++ code; reaching parity with direct lowering and enabling it in distribution builds is targeted for this window, based on the CIR architectural RFC (discourse.llvm.org, "CIR lowering strategy," Mar 2024).
+- **CIR-based lifetime safety checker**: The prototype lifetime checker (tracking `cir.alloca` scope vs. pointer escape through `cir.ptr` types) is expected to mature into a diagnostics pass replacing or complementing the existing AST-level lifetime analysis, with direct integration into `clang-tidy`.
+- **CIR serialization as a compilation artifact**: Persistent `.cir` files as a cache-able build artifact (analogous to `.pcm` for modules) are under design discussion; this would allow incremental CIR-level optimization across TUs without re-parsing the AST.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **CIR as the default Clang pipeline for C/C++/HLSL**: Pending full-coverage validation and performance parity, the LLVM community goal is to make CIR the default backend consumer, retiring `CodeGenModule` for new language features and eventually legacy C/C++ as well.
+- **Cross-language CIR interoperability**: With Flang emitting MLIR and CIR providing a C/C++ dialect, a unified MLIR-level whole-program module linking C++, Fortran, and HLSL is architecturally feasible; this would enable cross-language inlining and ABI negotiation at the MLIR level rather than at the LLVM IR link step.
+- **Formal verification of CIR-to-LLVM lowering**: Following the Vellvm/Alive2 model for LLVM IR correctness, a mechanized proof of the `cir.direct.convertCIRToLLVM` conversion — verifying that each CIR op maps to semantically equivalent LLVM dialect ops — is a natural extension of the verified-compilation research emerging from the academic community around ClangIR.
+
+---
+
 ## Chapter Summary
 
 - **CIR** is an MLIR dialect for C/C++ that preserves source structure between the Clang AST and LLVM IR.

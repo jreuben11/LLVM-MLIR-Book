@@ -477,6 +477,32 @@ flang-new hello.f90 -O2 -o hello.o
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **HLFIR-level vectorization hints**: the Flang community is actively extending the HLFIR-to-FIR lowering to emit `llvm.loop.vectorize` and `llvm.loop.interleave` metadata directly from `DO CONCURRENT` and array intrinsic patterns, reducing reliance on LLVM's auto-vectorizer heuristics for Fortran-specific access patterns (tracked in [LLVM Discourse: "DO CONCURRENT → loop vectorization"](https://discourse.llvm.org/c/subprojects/flang/)).
+- **`flang-rt` asynchronous I/O (ASYNCHRONOUS= clause)**: Fortran 2003's `ASYNCHRONOUS` I/O attribute is partially stubbed in the current runtime; full non-blocking I/O using POSIX AIO or thread-based overlap is scheduled for implementation in the 22.x release cycle to support ECMWF IFS and HPC workloads.
+- **AArch64 SVE ABI support in TargetRewrite**: the `TargetRewrite` pass's `AArch64TargetCodeGenInfo` is being extended to handle SVE scalable vector types in Fortran array-valued function return conventions, enabling proper codegen for Arm Neoverse N2/V2 targets with SVE.
+- **IEEE extended-precision (`REAL(10)`) on macOS**: upstream patches are in progress to implement `feenableexcept`-equivalent functionality via `mach/mach.h` thread exception ports, resolving the macOS limitation documented in §128.4.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **FIR-level polyhedral optimization integration**: after the Flang/Polly integration RFC discussed at the 2025 LLVM Developer Meeting, work is expected to add a `polly-fir` pass that operates on FIR `fir.do_loop` nests before lowering to LLVM IR, enabling dependence-based loop transformations for dense linear algebra without relying on LLVM IR's less Fortran-aware alias analysis.
+- **Full Fortran 2023 `REDUCE` clause and `DO CONCURRENT` locality**: codegen for `DO CONCURRENT` with `REDUCE(+:s)` and `LOCAL`/`LOCAL_INIT` specifiers is partially implemented; complete lowering to OpenMP reduction regions or GPU parallel loops is targeted as part of the Flang GPU offload roadmap.
+- **`flang-rt` rewrite of the formatted I/O state machine**: the current template-heavy format state machine in `format-implementation.h` accumulates technical debt from incremental Fortran 2003/2008/2018 additions; a planned rewrite will separate scanning, parsing, and data-item formatting into distinct layered components, improving maintainability and enabling parallel I/O statement execution.
+- **Link-time interprocedural optimization of `fir.box` descriptors**: because `fir.box` descriptors are passed by reference, LLVM's IPO passes cannot currently devirtualize descriptor-mediated array accesses across compilation units. An LTO-aware Flang descriptor devirtualization pass is prototyped to convert descriptor-based accesses into direct pointer arithmetic at link time, eliminating runtime stride lookups in simple rank-1 cases.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **GPU-native `flang-rt` for AMD ROCm and NVIDIA CUDA offload**: as `flang-new` adopts OpenMP 5.2 `target` region offload as a first-class feature, a GPU-resident subset of `flang-rt` (allocatables, intrinsic reductions, formatted I/O via device buffers) will be required; this parallels the path taken by GFortran's libgfortran for GPU via OpenMP runtime, but targeting the MLIR GPU dialect for portability.
+- **ClangIR/FlangIR shared mid-level IR convergence**: long-term architecture discussions in the community envision FIR and ClangIR converging on a shared "compiler IR" layer within MLIR, allowing Fortran–C++ interoperability optimizations (e.g., mixed-language LTO of `BIND(C)` interfaces) to operate at the IR level rather than through ABI conventions alone.
+- **Formal verification of `flang-rt` I/O correctness**: the complexity of Fortran's I/O specification (Fortran 2018 §12) creates a high bug surface; research prototypes using Lean 4 or TLA+ to model-check the `BeginExternalListOutput`/`EndIoStatement` state machine against the standard's transition semantics are anticipated to mature into upstream test harnesses.
+
+---
+
 ## Chapter Summary
 
 - `ConvertFIRToLLVM` is the primary codegen pass; it converts FIR types (especially `fir.box` → CFI descriptor struct) and ops (loops, memory ops, calls) to the MLIR LLVM dialect, followed by `ConvertMLIRToLLVMIR`

@@ -1020,6 +1020,32 @@ The token serialization path (for PTH generation, now largely deprecated) used a
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **`#embed` production stabilisation**: Clang's `HandleEmbedDirective()` implementation (merged in 2024) continues to receive performance and standards-conformance fixes; ongoing work tracks WG14 DR resolutions against the C23 `#embed` specification, particularly around limit/prefix/suffix/if-empty parameter interactions with tokenisation edge cases — see discourse.llvm.org thread "P1967 `#embed` follow-up issues".
+- **`DependencyDirectivesScanner` fast-path expansion**: The scanner (used by `-M`/`-MD` and `clangd`) is being extended to recognise more `__has_include` patterns and module-import pseudo-directives without falling back to full preprocessing, tracking the RFC "Faster dependency scanning for C++20 modules" on LLVM Discourse.
+- **C++26 `#warning` standardisation**: P2437R1 standardised `#warning` (previously a Clang extension) in C++23; C++26 conformance work in `HandleWarningDirective()` includes ensuring the directive interacts correctly with `PPCallbacks::Warning()` and `-Werror` stacks.
+- **Named UCN performance**: `tryReadNamedUCN()` currently uses a linear scan over the compile-time Unicode name table; an RFC proposes replacing it with a perfect-hash lookup table generated at build time to match the speed of numeric UCN handling for identifiers with heavy `\N{...}` usage.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **C++26 module preprocessing semantics**: The ISO C++26 draft (expected 2026 IS ballot) is expected to tighten the relationship between `import` directives and preprocessor state; Clang's `ModuleImportState` machinery in `Preprocessor::Lex()` will need updating to handle `export import` inside module partitions and constrained macro visibility across GMF/purview boundaries as specified in P2996 and successor papers.
+- **Lazily-materialised `MacroInfo` for PCH/BMI**: Current PCH/BMI loading eagerly deserialises replacement-token arrays from `ExternalPreprocessorSource`; a proposed redesign would store macro bodies as compressed token-offset ranges in the BMI and materialise `MacroInfo::ReplacementTokens` on first expansion, reducing memory pressure for large standard-library module interfaces.
+- **Reflection-aware preprocessor (`P2996` interplay)**: C++26 static reflection (P2996R7+) introduces `^` as a reflection operator; the lexer's `tok::caret` disambiguation and keyword-context logic must be extended to handle `^T` splicing contexts that the preprocessor must not macro-expand, requiring new `DisableExpand` semantics analogous to the current template-argument handling.
+- **HLSL preprocessor conformance layer**: As HLSL support matures in Clang (`LangOpts.HLSL`), the `#pragma pack`, `#pragma warning`, and intrinsic-macro stacks require HLSL-specific behaviour that differs from C++ (e.g., `#pragma warning` maps to HLSL numeric codes, not GCC-style identifiers); this work is tracked in the `llvm/clang-tools-extra` HLSL milestone.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Unified lexer for C, C++, HLSL, and Objective-C++ via `LangOptions` composability**: A long-term architectural proposal (discussed at the 2024 LLVM Dev Meeting) would collapse the four separate language front-end lexer paths into a single parameterised state machine driven entirely by `LangOptions`, eliminating per-language `#ifdef` blocks in `Lexer.cpp` and `PPDirectives.cpp` and making it straightforward to add future dialects (e.g., Carbon-to-Clang bridge) by composing option sets.
+- **Incremental preprocessing for live-coding and IDE scenarios**: clangd's vision for sub-millisecond re-preprocessing on each keystroke requires the `Preprocessor` and `IncludeMacroStack` to support checkpointing and rollback — similar to the `IncrementalCompilerBuilder` work in Clang-REPL but extended to the PP layer, preserving `MacroDirective` history and `ConditionalStack` state across edits without a full re-lex of unchanged regions.
+- **Verified macro expansion semantics via Alive2-style model**: Academic work on formally specifying C preprocessor expansion order (Prosser's algorithm and its interactions with `__VA_OPT__`, token pasting, and re-scan limits) is converging toward a small-step operational semantics; a Lean 4 or Coq mechanisation of `TokenLexer::Lex()` + `MacroArgs::getPreExpArgument()` could serve as a reference for finding edge-case expansion bugs similar to how Alive2 finds LLVM IR miscompilations.
+
+---
+
 ## Summary
 
 - `Lexer` operates over a `[BufferStart, BufferEnd)` byte range with `BufferPtr` as the cursor; `LangOptions` selects which syntactic forms are recognized.

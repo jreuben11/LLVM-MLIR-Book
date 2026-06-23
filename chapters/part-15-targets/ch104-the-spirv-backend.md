@@ -1198,6 +1198,32 @@ The LLVM SPIR-V backend thus occupies a dual role: it is a backend that *produce
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **SPIR-V 1.6 full compliance in LLVM's in-tree backend**: The backend currently defaults to SPIR-V 1.4 for OpenCL; ongoing work ([D149578](https://reviews.llvm.org/D149578) lineage) aims to enable 1.6 emission for Vulkan 1.3 targets including `VulkanMemoryModel` and removal of deprecated `OpModuleProcessed`. Tracked in `llvm/lib/Target/SPIRV/SPIRVSubtarget.cpp`.
+- **SPV_KHR_cooperative_matrix full lowering**: Cooperative matrix (`CooperativeMatrixKHR`) support is being wired end-to-end from `@llvm.matrix.*` intrinsics through `SPIRVInstructionSelector` to the final `OpCooperativeMatrixLoadKHR`/`MulAddKHR` opcodes; patches are active on `discourse.llvm.org` under the "SPIR-V cooperative matrix" thread (mid-2025 postings).
+- **Opaque pointer type reconstruction improvements**: The `SPIRVEmitIntrinsics` + `SPIRVGlobalRegistry` pipeline still has edge cases for multi-use pointers with divergent pointee types (e.g., pointers aliased through function calls). RFC "[Better SPIR-V type inference for opaque pointers](https://discourse.llvm.org/t/spirv-opaque-pointer-type-inference)" aims to extend def-use walk depth and handle `ptrtoint`/`inttoptr` chains.
+- **`spirv-unknown-vulkan*` triple stabilization**: The Vulkan SPIR-V triple family (`spirv-unknown-vulkan1.3`) was experimental in LLVM 22; stabilization effort includes making Binding/DescriptorSet decoration inference from `hlsl.binding` metadata robust for the DirectX-SPIR-V codegen path co-developed with the `hlsl` Clang frontend.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **SPIR-V 1.7 / Vulkan 1.4 alignment**: Khronos SPIR-V 1.7 (anticipated alongside Vulkan 1.4) is expected to introduce typed pointers as an optional capability (reversing the Vulkan 1.3 deprecation of the `VariablePointers` model), ray-tracing payload improvements, and `OpExpectKHR`/`OpAssumeTrueKHR` for compiler hint propagation. The LLVM backend will need new capability-tracking entries and `OpType*` reconstruction paths.
+- **Bidirectional SPIR-V ↔ LLVM IR in-tree**: The Khronos translator's reverse path (SPIR-V → LLVM IR) is currently out-of-tree. There is ongoing discussion ([discourse.llvm.org/t/spir-v-reader-in-tree](https://discourse.llvm.org/)) about merging a structured SPIR-V reader alongside the existing writer, enabling debugger, profiler, and re-optimization workflows without an external tool dependency.
+- **SYCL 2025 / oneAPI LLVM backend migration**: Intel is progressing the DPC++ SYCL toolchain away from the Khronos translator toward the in-tree LLVM SPIR-V backend for its primary codegen path. This will require the in-tree backend to match the translator's `SPV_INTEL_*` extension coverage (arbitrary-precision integers, `bfloat16`, global variable host access, cache controls).
+- **Mesh and task shader support (SPV_EXT_mesh_shader)**: Vulkan mesh shaders use `TaskEXT`/`MeshEXT` execution models with `OpEmitMeshTasksEXT` and `OpSetMeshOutputsEXT` opcodes. The in-tree backend's Vulkan path currently handles `GLCompute`/`Vertex`/`Fragment`; mesh shader support requires new execution mode lowering in `SPIRVTargetMachine::createPassConfig`.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **SPIR-V as a first-class LLVM IR serialization format**: Research proposals (cf. "LLVM IR serialization via SPIR-V" informal threads) suggest leveraging SPIR-V's structured binary format and type system as a persistent LLVM IR bitcode alternative for heterogeneous targets, with the SPIR-V backend's `SPIRVGlobalRegistry` evolving into a general cross-IR type registry.
+- **GPU-accelerated JIT via SPIR-V runtime compilation (SPIR-V RC)**: The `SPV_KHR_runtime_compiled` extension (proposed in Khronos roadmap documents) would allow on-device SPIR-V specialization and re-optimization, enabling the LLVM JIT stack (ORC JIT) to emit SPIR-V modules that partially evaluate at dispatch time — blurring the boundary between LLVM's backend and GPU driver JIT.
+- **Formal verification of SPIR-V backend correctness**: The Vellvm/Alive2 tradition of formalizing LLVM IR semantics is being extended toward heterogeneous IRs; research at Edinburgh and MPI-SWS has prototyped Coq/Lean mechanizations of SPIR-V's type system and memory model, with long-term goals of proving the `SPIRVInstructionSelector`'s opcode mappings correct against the SPIR-V specification.
+
+---
+
 ## Chapter Summary
 
 - SPIR-V is a logical binary intermediate language: no register allocation, no physical addressing (Vulkan profile), mandatory capability declarations, and a canonical module ordering that all drivers rely on.

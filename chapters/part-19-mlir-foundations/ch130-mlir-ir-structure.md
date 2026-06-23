@@ -665,6 +665,32 @@ for (OpResult result : op.getResults()) {
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **`Properties` migration completing across core dialects**: MLIR is mid-way through migrating op attributes to the new `Properties` mechanism (tracked in [`mlir/include/mlir/IR/PropertiesSupport.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/mlir/include/mlir/IR/PropertiesSupport.h)), which separates op-inherent data from discardable attributes and unlocks faster serialization; remaining in-tree dialects (notably `linalg` and `tensor`) are scheduled for completion by late 2026 per LLVM discourse RFC ["Properties Migration Status"](https://discourse.llvm.org/t/rfc-mlir-op-properties).
+- **Scalable vector type extensions for RISC-V V**: `vector<[N]xT>` scalable types gained SVE support in LLVM 17 and are being extended for RISC-V V extension including multi-register groups (`vector<[N]x[M]xT>`); patches targeting the `vector` type canonicalization in `mlir/include/mlir/IR/BuiltinTypes.h` are in review.
+- **`DistinctAttr` and opaque attribute blobs**: the `DistinctAttr` (non-uniqued attribute) mechanism introduced for `debug_info` use cases is expanding to cover large constant buffers, allowing non-interned `DenseResourceElementsAttr` data; this directly affects how `DenseIntOrFPElementsAttr` vs `DenseResourceElementsAttr` is chosen at code-generation time.
+- **IR bytecode format v3 stabilization**: MLIR's binary bytecode format (`mlir/lib/Bytecode/`) is advancing toward a stable v3 encoding with versioned dialect sections, enabling cross-LLVM-version IR exchange without full textual round-tripping.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Graph region semantics formalization and verification**: the current `RegionKind::Graph` vs `RegionKind::SSACFG` distinction is under-specified for inter-block value visibility; a proposed "Dataflow Region" kind with explicit producer/consumer edge semantics (modeled after IRDL's graph dialect) aims to allow formal verifiability of graph-region ops like `func.graph_func` and CIRCT modules.
+- **Typed location system**: current `Location` is an untyped attribute hierarchy; RFC discussions propose a typed `SourceLocation` infrastructure with structured provenance chains (inline, macro-expansion, template instantiation) to support high-fidelity Clang→ClangIR→MLIR source mapping, aligning with the ClangIR project (see [Chapter 113](../../part-08-clangir/ch113-clangir-overview.md)).
+- **Concurrent IR mutation APIs**: MLIR's `OpBuilder` and `PatternRewriter` are single-threaded; a proposed read-copy-update (RCU) scheme for multi-threaded rewriting would enable parallel pattern application within a single pass invocation, critical for large ML model graphs with hundreds of thousands of ops.
+- **`AffineMap` extensibility to semi-affine and piecewise expressions**: current `AffineMap` forbids symbolic division and modulo (except by constants); ISL-backed semi-affine maps are proposed as a `SemiAffineMap` attribute type to support parametric tile sizes and conditionally-affine array accesses, closing the gap between `affine` dialect and real-world polyhedral analyses.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Unified IR ownership and lifetime model**: the current `Operation` memory model (bump-pointer allocated within an `MLIRContext`) requires care around dangling pointers during rewriting; a future ownership-typed IR (inspired by Rust borrowing or Lean4's RC-based IR) could enable safe concurrent transformations and automatic dead-op cleanup without explicit `op->erase()` calls.
+- **Verification as a first-class IR query**: MLIR verification is currently a pass-time check; a proposed "verified IR" mode would embed lightweight SMT or abstract-interpretation constraints directly in op attributes (akin to IRDL or Lean4 propositions), enabling tooling to statically guarantee transformation correctness before application, supporting the goals of Part XXIV (Verified Compilation).
+- **Multi-level type system with dependent types**: MLIR types are currently monomorphic at the IR level; a proposed `ParametricType` facility backed by a dependent type checker would allow shape-polymorphic tensor types (`tensor<N×M×f32>` with N, M symbolic) to carry proof obligations, enabling optimizations conditioned on shape equalities without runtime assertion overhead.
+
+---
+
 ## Chapter Summary
 
 - MLIR's structure is recursive: `Operation` → `Region` → `Block` → `Operation`; this allows function bodies, loop nests, GPU kernels, and hardware hierarchies to be expressed with the same primitives

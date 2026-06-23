@@ -682,6 +682,32 @@ Chapter 209 ([CUTLASS, CuTe, and TileIR](ch209-cutlass-cute-tileir-gpu-parallel-
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Triton 4.x stable release and Hopper TMA first-class support**: The Triton project's in-progress work on making `tma.load_tile` and `tma.store_tile` a first-class citizen (tracked in [openai/triton#3234](https://github.com/openai/triton/issues/3234) and related PRs) is expected to land in the 4.x cycle, exposing TMA descriptors directly from `@triton.jit` without descending to Gluon-level primitives. This narrows the Gluon niche for TMA-only use cases on H100/H200.
+- **Helion upstream integration into PyTorch core**: Meta's helion-lang project (github.com/pytorch/helion) is on a trajectory toward a `torch.compile` backend integration, allowing `@helion.kernel` functions to be invoked via `torch.compile(model, backend="helion")` for automatic kernel-level autotuning. The differential evolution search infrastructure will be exposed as a first-class PyTorch profiling artefact.
+- **TritonGPU dialect: Linear layout representation**: The ongoing LLVM/MLIR Triton fork has active work replacing the ad-hoc `#triton_gpu.blocked` / `#triton_gpu.mma` encoding attributes with a unified **linear layout** algebra where all encoding transformations are affine functions over thread/warp indices. This generalises the current attribute system and enables automated layout compatibility checks — see discourse.llvm.org RFC "Linear layouts for TritonGPU" (2025).
+- **Gluon API stabilisation and Blackwell (B200) wgmma support**: Gluon's warp-group API (as of late 2025 described as unstable) is expected to stabilise around B200/GB200 architecture support, adding `gl.wgmma_b200` variants for the expanded 256×128×16 tensor core tiles on Blackwell and direct `tma_descriptor_v2` bindings for the new TMA multicast unit.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **MLIR-native Triton dialect upstreaming**: Longstanding discussion in the LLVM community (discourse.llvm.org, "Upstreaming Triton dialect to LLVM") proposes moving the `tt` and `triton_gpu` dialects into the main LLVM monorepo. This would allow the Triton TritonGPU passes to be run from standard `mlir-opt` without a separate `triton-opt` build, enabling tighter integration with upstream MLIR passes (e.g., the Linalg → TritonGPU lowering path without the current OpenAI-fork dependency).
+- **Helion-style ahead-of-time autotuning for AMD CDNA and Intel Xe**: Current Helion targets NVIDIA CUDA exclusively; the differential evolution search infrastructure is GPU-vendor-agnostic but the tile-configuration space (pid_type, num_stages) is CUDA-specific. By 2028, AMD ROCm and Intel oneAPI variants of the Helion tuner (adapting to CDNA3/CDNA4 wavefront-64 and Xe EU-subgroup-16 constraints) are likely, making Helion a portable ahead-of-time tuning layer across vendors above a common TritonGPU lowering path.
+- **LLM-driven kernel synthesis integrated with Triton/Helion toolchains**: The `generate_attention_kernel` pattern of §208.6.2 will evolve from ad-hoc template generation to a structured synthesis tool backed by an LLM fine-tuned on Triton/Helion corpora (similar to the 2024 AlphaCode-for-CUDA experiments). Expected: a `triton.synthesize(spec: KernelSpec) -> triton.JITFunction` API that wraps the LLM synthesis + Helion tuning + safety-fallback loop described in §208.6.3–4.
+- **Persistent-kernel-first inference frameworks**: Helion's `pid_type="persistent_interleaved"` pattern will likely become the default for production inference frameworks (TensorRT-LLM, vLLM, SGLang), replacing per-layer kernel-launch dispatching with a small set of persistent mega-kernels that loop over all layers in a transformer. This requires kernel versioning infrastructure (§208.6.4) to be framework-integrated rather than ad-hoc.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Hardware-software co-design: tile-ISA GPUs**: The academic case for exposing explicit tile ISA at the hardware level (tile-matrix load/store/mma as ISA-level instructions, not library calls) has been made in papers such as "Graphene" (Jain et al., MICRO 2023) and NVIDIA's own PTX `tcgen05` family for Blackwell. By 2031, a tile-level ISA may displace warp-level PTX as the canonical GPU target, with Triton/Helion/Gluon lowering directly to tile ISA instructions rather than warp-shuffle + register-file sequences.
+- **Verified kernel generation: Lean/Coq mechanised Triton semantics**: The correctness of the `safe_deploy_kernel` pattern (§208.6.4) currently relies on empirical `torch.testing.assert_close` testing. A mechanised semantics for Triton's tile operations (analogous to Vellvm for LLVM IR, Chapter 176) would allow formal verification of generator correctness: given a parameterised kernel template, prove that for all valid tile-size choices, the output is numerically equivalent (within specified tolerances) to a reference specification. Early steps toward this appear in the "TritonVerif" direction described in the 2025 PLDI workshop on verified ML compilers.
+- **Autonomous kernel fleet management**: By 2031, large-scale inference clusters (10,000+ H-class or B-class GPUs) will likely run kernel fleet managers — systems that continuously profile all running workloads, generate candidate replacement kernels via Helion-style synthesis, A/B test them in shadow execution, and automatically roll out improvements. This is the production engineering realisation of the cognitive self-improvement loop in §208.6.3: not a research prototype but a standard operational tool, analogous to today's continuous deployment pipelines for model weights.
+
+---
+
 ## Chapter Summary
 
 - **Triton** provides a tile-level GPU programming model where the programmer writes blocked algorithms over 1D/2D tiles and the compiler determines the warp-level mapping. `tl.load`/`tl.store` with masking handle irregular shapes; `tl.dot` dispatches to tensor cores; `triton.autotune` selects tile configurations at first call per shape.

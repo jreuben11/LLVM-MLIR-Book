@@ -676,6 +676,32 @@ clang --target=riscv64-linux-gnu \
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **RVV 1.1 / Zvfbfmin and Zvfbfwma ratification follow-through**: The BFloat16 scalar/vector extensions (`Zvfbfmin`, `Zvfbfwma`) were ratified in 2024; LLVM codegen is being hardened for full support of `__riscv_vfwmaccbf16` and related intrinsics. Patches landing on discourse.llvm.org thread "RVV BFloat16 widening FMA lowering" complete the codegen path.
+- **`vscale_range` attribute propagation through inlining**: LLVM RFC "Improve vscale_range inference across function boundaries" aims to propagate min/max VLEN constraints across inlining sites so the VLS optimizer can eliminate redundant runtime vscale queries in hot inner loops.
+- **EVL-based tail-folding enabled by default for RVV**: The Loop Vectorizer's EVL tail-folding mode (`-prefer-predicate-over-epilog`) was experimental as of LLVM 18; the RVV target team is working to enable it by default in `-O3` (tracked in LLVM bug #62004 and related phabricator patches).
+- **RISCVInsertVSETVLI Phase 3 generalization**: Ongoing work to extend the redundancy elimination phase to handle `VSETVL` (dynamic avl) across branch edges using a lattice-based liveness analysis, reducing `vsetvli` stalls on out-of-order cores.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Zvbb / Zvbc / Zvkb crypto vector extensions full LLVM integration**: The RISC-V Vector Cryptography extensions (bitmanip: `Zvbb`; carry-less multiply: `Zvbc`; SHA/SM3/SM4 vector: `Zvkned`, `Zvknhb`, `Zvksed`) are ratified. Complete DAGISel lowering for all intrinsics and integration with the LLVM cryptography optimization passes is expected by mid-2027.
+- **MLIR `vector` dialect scalable-vector canonicalization for RVV**: MLIR upstream work on `vector.scalable.*` ops (RFC "Scalable Vectorization in MLIR") will enable high-level loop transformations targeting RVV without dropping to LLVM IR, enabling tile-and-vectorize pipelines for RISC-V in IREE/XLA.
+- **SLP Vectorizer scalable-vector support**: The SLP (Superword Level Parallelism) vectorizer currently only emits fixed-width vectors. An LLVM RFC proposes extending SLP to emit `<vscale x N x T>` bundles for RVV when the target supports scalable SIMD; this unlocks autovectorization of straight-line code without explicit loops.
+- **RVV profile-guided LMUL selection**: A compiler pass that uses PGO trip-count information to choose the optimal LMUL at compile time for known-size loops (avoiding runtime `vsetvli` overhead), combined with an LTO-time VLEN specialization mechanism for embedded targets.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **RISC-V Matrix Extension (RVA23 / Zmmul + matrix profile) LLVM backend**: The RISC-V International working group is defining a matrix acceleration ISA profile. As hardware (e.g., SOPHON SG2380, T-Head matrix cores) ships, LLVM will require a new MachineInstr-level matrix register file, a dedicated `MatrixType` lowering path analogous to the AArch64 SME backend, and MLIR `linalg`-to-matrix-ISA lowering.
+- **Compiler-directed VSET elision via hardware speculation**: Future RISC-V cores (VLEN > 2048, multi-LMUL pipelines) may support speculative execution across `vsetvli` boundaries. Compiler support will require new memory model annotations and a `vsetvli`-fence IR intrinsic for precise exception semantics.
+- **Formal verification of RVV codegen via Alive2-RISC-V**: Extension of the Alive2 translation validation framework to cover the RVV instruction set, including the semantics of mask policies (`tu/mu` vs `ta/ma`) and segmented memory operations, enabling automated correctness proofs for the `RISCVISelLowering` vector lowering path.
+
+---
+
 ## Chapter Summary
 
 - RVV's defining innovation is hardware-defined VLEN: software sets SEW (element width) and LMUL (register grouping) via `VSETVLI`, and the hardware provides as many elements as it can; programs auto-scale from 128-bit to 2048-bit implementations.

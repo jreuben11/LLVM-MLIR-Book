@@ -964,6 +964,32 @@ The PTX is compiled by `ptxas` to a CUBIN embedded in the IREE `.vmfb` FlatBuffe
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Automatic FlashAttention fusion via Transform dialect**: An LLVM RFC (discourse.llvm.org, 2025) proposes a `transform.structured.fuse_attention` op that recognises the online softmax normalisation pattern (`QK^T` → `rowmax` → `exp` → `rowsum` → rescaled `PV`) and fuses it into a single tiled loop body without manual decomposition; expected to land in MLIR HEAD by mid-2026.
+- **`nvgpu.warpgroup_mma` for FP8 E4M3 operands**: The `nvgpu` dialect currently exposes WGMMA only for FP16/BF16 operands; patches in review (D154901 series) add `wgmma.mma_async` variants for FP8 E4M3/E5M2 with per-tile scale-factor SSA operands, enabling Hopper FP8 training paths directly through the MLIR compiler rather than Transformer Engine's hand-written CUDA.
+- **StableHLO 1.0 specification freeze**: The OpenXLA StableHLO versioning RFC (github.com/openxla/stablehlo, Q1 2026) targets a stable ABI-frozen 1.0 by mid-2026, guaranteeing forward compatibility of `.mlirbc` serialised modules across major XLA releases — a prerequisite for shipping pre-compiled model artifacts in production serving infrastructure.
+- **GGUF native `linalg` dequantise ops in IREE**: The IREE Turbine project is merging MLIR-native dequantise kernels for `Q4_K_M` and `Q8_0` formats, replacing the hand-written C kernels in llama.cpp's CPU path with `linalg.generic` + `arith` sequences that IREE can tile and vectorise for AVX-512 VNNI and Arm SME targets.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Symbolic-shape specialisation as a first-class MLIR pass**: The current `torch.export` Dim-constraint system produces conservative code with runtime guards; a planned MLIR shape-specialisation pass (tracked in the IREE roadmap, 2025) will perform multi-version compilation — emitting specialised kernels for common shapes (batch=1, seq∈{512,1024,2048}) with a runtime dispatcher — eliminating the performance gap between AOT static-shape and JIT trace-cache approaches.
+- **MLIR-native rematerialisation (activation checkpointing)**: JAX's `jax.checkpoint` policies and XLA's HLO rematerialisation scheduler are framework-specific; an ongoing academic effort (related to Parashar et al. "TEMPO" system) aims to expose rematerialisation as an MLIR Transform dialect op (`transform.rematerialise`) that any compiler front-end can invoke, with cost model integration via `memref.alloc_tensor` liveness analysis.
+- **`amdgpu` dialect MI300X-series support with FP8 MFMA**: AMD's CDNA3 architecture (gfx940/gfx941) exposes `MFMA_F8F6F4` instructions; the `amdgpu` dialect `--convert-vector-to-amdgpu` pass is being extended (phabricator.llvm.org, 2025-2026) to recognise FP8 `vector.contract` ops and emit the correct `amdgpu.mfma` variant with scale-tensor operands, closing the performance gap with NVIDIA's FP8 Transformer Engine path on MI300X deployments.
+- **TOSA as the universal NPU intermediate**: As of 2026, the TOSA Technical Steering Committee is extending the op set (TOSA-1.0 draft) to cover sparse attention, grouped query attention (GQA), and state-space model (Mamba/SSM) scan ops. If ratified, MLIR's `--tosa-to-tflite` and `--tosa-to-qnn` lowering passes become a single portable compilation path for heterogeneous edge NPU deployments without vendor-specific dialect forks.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Compiler-automated SPMD sharding for heterogeneous device meshes**: Current GSPMD partitioning (XLA) and `sdy` dialect sharding (2025 addition to MLIR) operate on homogeneous device meshes; long-term research (related to Google's "Pathways" system and academic work on heterogeneous auto-parallelism) targets MLIR-level sharding annotation inference for meshes mixing CPUs, GPUs, and specialised AI accelerators with non-uniform inter-device bandwidth.
+- **Verified-correct quantisation lowering via Alive2-style equivalence checking**: Quantisation introduces numerical approximations that current compilers accept without formal bounds; a research direction building on Lopes/Lee/Hur (Alive2, PLDI 2021) would model affine quantisation error as first-order logic constraints and verify that every `quant.qcast`→compute→`quant.dcast` pattern preserves a specified maximum L∞ error bound, providing soundness guarantees for safety-critical deployments.
+- **General-purpose dataflow-driven kernel synthesis**: Beyond template-based tiling and vectorisation, research into polyhedral scheduling with data-flow analysis (extending Feautrier/Bondhugula scheduling to stochastic computation graphs) could enable the MLIR compiler to synthesise FlashAttention-quality fused kernels automatically from the unfused operator graph, without hand-specified Transform dialect scripts — making the 2026 gap between compiled and hand-written attention kernels obsolete.
+
+---
+
 ## Chapter Summary
 
 - **The four-level hierarchy** — eager, traced capture, middle-layer MLIR, target codegen — determines what information is available at each stage; the handoff formats are `ExportedProgram` (PyTorch), JAX jaxpr, and StableHLO; all converge on the same MLIR dialect tower.

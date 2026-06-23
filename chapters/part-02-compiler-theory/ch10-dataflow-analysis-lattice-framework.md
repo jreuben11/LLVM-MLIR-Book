@@ -1168,6 +1168,32 @@ A practical concern: how do we verify that an analysis implementation is sound? 
 3. **Formal verification**: tools like Alive2 (Chapter 170) can verify that specific optimisations are sound by checking that the transformation preserves program semantics for all inputs. Alive2 encodes the soundness condition as an SMT formula and checks it with an SMT solver.
 4. **Differential testing**: run two analyses (e.g., with and without an approximation) and check that the more precise one never claims fewer facts than the coarser one — a monotonicity sanity check.
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **LLVM Dataflow Framework Convergence Diagnostics**: Active work on `llvm/lib/Analysis/` to expose iteration-count statistics and convergence traces via the NPM's `AnalysisManager`, making analysis performance regressions detectable in CI. See discourse.llvm.org RFC "Analysis profiling hooks for the New Pass Manager" (early 2026).
+- **SCCP and MemorySSA Interaction Refinements**: Ongoing patches to `llvm/lib/Transforms/Scalar/SCCP.cpp` to tighten integration with MemorySSA's memory versioning, eliminating false negatives where SCCP marks a load non-constant because alias information is not threaded through the MemoryPhi lattice.
+- **Widening/Narrowing Support in LazyValueInfo**: Incremental patches (`llvm/lib/Analysis/LazyValueInfo.cpp`) to apply narrowing operators after identifying loop guards, improving `ConstantRange` precision for induction variables in loops without requiring a full ScalarEvolution query — targeting improved vectorisation triggers in the loop vectoriser.
+- **IDE Framework Prototype in Clang Static Analyzer**: Work in the Clang Static Analyzer to experiment with weighted-path-sensitive analysis based on the IDE (Interprocedural Distributive Environments) framework from Sagiv et al. 1996, replacing hand-rolled summary propagation in checkers such as the `RetainCountChecker`.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Probabilistic Dataflow Lattices for Profile-Guided Optimisation**: Research into extending the classical Boolean powerset lattice with probability weights, enabling a unified framework where "live with probability 0.9" is a lattice element. This supports profile-guided DCE and register allocation that gracefully degrades on cold paths. Connection to the LLVM block frequency analysis (`BlockFrequencyInfo`) and the existing BOLT profile infrastructure.
+- **Machine-Checkable Soundness Proofs for LLVM Analyses**: Following CompCert's model and the Vellvm project, extension of Alive2's SMT encoding (`llvm/lib/Transforms/Utils/Alive2/`) to verify soundness of individual dataflow transfer functions — particularly for pointer analyses (`BasicAliasAnalysis`, `MemorySSA`) where soundness bugs have historically caused miscompilation.
+- **Sparse Dataflow Analysis on MLIR's Generic IR**: Productionising the `mlir/lib/Analysis/DataFlowFramework.cpp` sparse dataflow solver (introduced in MLIR 16) to support dialect-specific abstract domains beyond the current `Lattice<T>` scalar template — enabling relational domains (zones, octagons) for affine loop nest analyses in the Polyhedral dialect and Linalg.
+- **k-CFA for LLVM's Pointer Analysis via Demand-Driven Refinement**: Prototype of a demand-driven, context-sensitive pointer analysis that achieves effective k=2 CFA precision for critical pointer-heavy code sections (C++ virtual dispatch, `std::function` chains) without paying full exponential cost — building on the existing `CFLSteensAA` and `CFLAndersAA` frameworks in `llvm/lib/Analysis/`.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Verified Compiler Middle-End via Dataflow Semantics**: A full Lean 4 or Rocq formalisation of LLVM's core dataflow analyses (liveness, SCCP, MemorySSA) paired with correctness proofs for the optimisations they enable, integrated into a CI-enforced proof corpus alongside the LLVM monorepo — extending current work in the Vellvm project and the LLVMSemanticsInLean experiments.
+- **Abstract Interpretation of GPU Warp Divergence**: A production-quality lattice framework for GPU code paths in LLVM's NVPTX and AMDGPU backends, modelling warp-level control flow as a product lattice over per-lane Boolean liveness, enabling divergence-aware register allocation and branch-merge optimisations currently handled only by ad hoc heuristics.
+- **Compositional Whole-Program Analyses at Link Time**: Integration of summary-based IFDS/IDE analyses into LLVM's LTO pipeline (`lld` + ThinLTO), enabling fine-grained interprocedural taint tracking, null-safety inference, and escape analysis as first-class LTO passes — replacing the current coarse FunctionAttrs-based model with a compositional summary calculus that scales to hundred-million-line codebases.
+
+---
+
 ## 10.11 Chapter Summary
 
 - **Partial orders and complete lattices** provide the mathematical substrate for dataflow analysis. The powerset lattice ℘(Vars), the flat lattice for constants, and the interval lattice are the three principal instances in compiler analyses.

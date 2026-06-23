@@ -909,6 +909,32 @@ The pipeline order matters: `CoroSplit` must run before inlining of the resume/d
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Constexpr coroutines (P3201 / CWG DR)**: WG21 discussions are underway to permit coroutines in constant-evaluated contexts, requiring CoroSplit to handle `consteval` execution without heap allocation. Clang tracks this in the `[[clang::coro_constexpr]]` prototype branch; SemaCoroutine changes to relax `err_coroutine_invalid_func_context` (select 3) are anticipated.
+- **Improved `SuspendCrossingInfo` precision**: Multiple LLVM Discourse threads (post-LLVM 22 cycle) report over-spilling of values that are technically not live across suspension after inlining. An RFC from the Clang/LLVM coroutines working group proposes an alias-set based refinement to `SuspendCrossingInfo` to reduce frame size in practice by 15–30% for common async task patterns.
+- **`[[clang::coro_lifetimebound]]` expansion**: Clang 22 introduced the attribute for annotating lifetime-bound coroutine parameters; Clang 23 is expected to enable `-Wdangling-coro` as a default-enabled diagnostic subgroup applying it automatically to reference parameters of coroutines, backed by the lifetime analysis in `clang/lib/Sema/CheckExprLifetime.cpp`.
+- **`CoroAnnotationElidePass` at O1**: Currently gated at O2+, community patches (LLVM PR #89423 class) propose lowering the gate to O1 for libraries that provide blanket `[[clang::coro_elide_safe]]` annotations, since the analysis cost is dominated by inline budget rather than optimization level.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Execution-context-typed coroutines (P3552 / P3090 direction)**: The SG1 concurrency group is shaping a proposal for coroutines whose promise type encodes the execution context as a template parameter, enabling Clang Sema to validate that `co_await` on a thread-pool task is only called from a coroutine that runs on a compatible executor. This would extend `buildCoroutinePromise()` with context-compatibility checking.
+- **Stackful coroutine support via LLVM's `llvm.coro.id.retcon` ABI**: Swift's async machinery already uses the `Retcon`/`RetconOnce` ABI in `CoroSplitPass`. Extending C++ coroutines to optionally target the Retcon ABI (enabling reentrant, variable-sized frames) is a recurring request in the LLVM RFC tracker; a prototype would require new `clang::coro_retcon` attributes and codegen changes in `CGCoroutine.cpp`.
+- **Debugger-assisted coroutine tracing**: LLDB 22 has coroutine-aware pretty printers; the next wave is DWARF-level coroutine-state annotations so that debuggers can reconstruct the logical async call stack from a core dump. This requires `CoroSplitPass` to emit `DW_TAG_call_site` entries for each resume function transition and a new `DW_AT_coro_suspend_index` attribute proposal to DWARF committee.
+- **Coroutine frame size static analysis**: A planned Clang analyzer checker (`alpha.cplusplus.CoroutineFrameSize`) would warn at the call site when the computed `CoroShape::FrameSize` exceeds a configurable threshold (default 4 KB), preventing accidental large-frame coroutines from defeating HALO.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Automatic structured concurrency enforcement**: Following the `std::execution` (P2300) adoption trajectory, the compiler may enforce structured-concurrency scope rules — that every coroutine spawned within a scope is awaited before the scope exits — as a flow-sensitive Sema check, analogous to how `[[nodiscard]]` escalated from advisory to structural. This would require inter-procedural dataflow in Sema or a new CFG analysis pass over the `CoroutineBodyStmt` graph.
+- **Whole-program coroutine graph optimization**: A proposed LLVM IPO pass would analyze the full async call graph (where coroutines call other coroutines via symmetric transfer) and perform cross-coroutine constant propagation and frame merging, potentially merging the frames of statically-paired producer/consumer coroutines into a single allocation. This builds on the `CoroShape` infrastructure and requires new module-level metadata encoding coroutine call edges.
+- **Hardware-accelerated coroutine dispatch**: As continuation-based hardware schedulers (RISC-V Zawrs, ARM TME extensions, and research architectures from IBM and Intel) expose ISA primitives for suspending and resuming fibers, the LLVM coroutine lowering layer would gain target-specific backends in `CoroSplitPass` that emit native suspend/resume instructions rather than the software frame-index switch, eliminating the indirect branch overhead in high-frequency async loops.
+
+---
+
 ## Chapter Summary
 
 - **C++20 coroutines** are specified through two protocols: the promise (controlling frame lifetime, return, and exceptions) and the awaitable (controlling suspension readiness and transfer).

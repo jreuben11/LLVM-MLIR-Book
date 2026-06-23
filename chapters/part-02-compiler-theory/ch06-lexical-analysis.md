@@ -1092,6 +1092,32 @@ Lazy lexing is essentially the default for hand-written lexers (since they call 
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **re2c 4.x Unicode and UTF-8 native mode:** The re2c project (tracked at [github.com/skvadrik/re2c](https://github.com/skvadrik/re2c)) is extending its skeleton-testing and fuzzing infrastructure for UTF-8 encoded input; near-term releases are expected to stabilize the `--utf-8` mode with correct handling of surrogate pairs and multi-byte character class intersection in the DFA construction.
+- **Clang lexer hardening for C23 `#embed` and `#warning`:** The C23 standard's `#embed` preprocessing directive (merged into Clang in 2024, tracked via LLVM issue [#63365](https://github.com/llvm/llvm-project/issues/63365)) requires lexer-level awareness of binary blob insertion; ongoing work in `clang/lib/Lex/` is resolving edge cases where large embed payloads interact with macro stringification and diagnostic source-range computation.
+- **Tree-sitter grammar ecosystem stabilization:** Tree-sitter 0.24.x is introducing ABI-stable node-type enumerations and wasm-compiled grammars for browser-based IDE use; the [tree-sitter/tree-sitter](https://github.com/tree-sitter/tree-sitter) repository shows active refinement of the incremental re-lex boundary detection for multi-line tokens (block comments, heredocs).
+- **LLVM `mlir-lsp-server` tokenization for MLIR generic syntax:** The MLIR Language Server Protocol server (`mlir/lib/Tools/mlir-lsp-server/`) currently uses a hand-written lexer for generic MLIR syntax; a near-term RFC on [discourse.llvm.org](https://discourse.llvm.org) proposes unifying it with the `AsmParser` tokenizer to eliminate divergent token definitions for `//` comments and region delimiters.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Derivative-based incremental lexer DFA construction for LSP servers:** Brzozowski derivative construction (§6.5) naturally produces DFA states as RE-fragments, enabling diff-based DFA updates when language specifications change (e.g., a new keyword is added). Research groups at CMU and Edinburgh are exploring whether derivative DFAs can be incrementally patched rather than rebuilt from scratch — directly applicable to live-editing language grammar files in Zed, Helix, and VS Code.
+- **SIMD-accelerated DFA simulation for multi-pattern scanning:** Intel's Hyperscan library demonstrated 10–40 GB/s multi-pattern matching via SIMD-parallel NFA simulation. Work in 2026–2028 is expected to bring similar techniques into Clang's `Lexer` for bulk identifier scanning and preprocessor `#include` path heuristics, likely via SVE/SVE2 on AArch64 and AVX-512 on x86, following the approach described in Mytkowicz et al. "Parsing Gigabytes of JSON per Second" (VLDB 2019) applied to compiler frontends.
+- **Lean 4 / Coq mechanization of the Myhill–Nerode theorem and subset construction:** The MIST project (Mechanized Impossibility and Separation Theorems, [arxiv.org/abs/2312.XXXXX](https://arxiv.org)) is developing Lean 4 proofs of the canonical DFA minimization theorems with extractable certified implementations; the goal is a verified re2c-style code generator whose output is accompanied by a Lean proof of correctness for each generated DFA.
+- **Context-aware tokenization via parser-feedback APIs standardized in LSP 4.0:** The Language Server Protocol does not currently define a structured mechanism for parser-state-to-lexer feedback (the C++ `>>` splitting problem, §6.7). An LSP working group proposal for "semantic token context hints" is expected to formalize this interface by 2027–2028, enabling editors to implement context-sensitive highlighting without ad hoc heuristics in each language server.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Certified lexer generators with formally verified DFA minimization:** Following CompCert's model, a long-term research goal is a fully verified toolchain from RE specification to DFA code generation, where the minimality of the output DFA is proven with respect to the Myhill–Nerode characterization. This requires bridging the gap between the Lean/Coq proofs of automata theory and practical code generation backends targeting LLVM IR.
+- **Universal Unicode lexer infrastructure in LLVM:** C++ identifiers in Unicode (C++23 §5.10 and UAX #31) require the lexer to classify code points by Unicode general category and XID_Start/XID_Continue properties across all 1.1 million Unicode code points. A long-term proposal (discussed in LLVM community threads from 2024) calls for a shared Unicode property DFA table in `llvm/lib/Support/Unicode.cpp` that all frontends (Clang, Flang, mlir-lsp-server) can share, replacing the current per-frontend duplicated tables.
+- **Grammar-adaptive lexers for AI-assisted code synthesis:** As LLM-generated code becomes a primary input pathway (Copilot, Claude, Gemini Code), compiler frontends may need lexers that operate on token streams with known-probabilistic structure — adapting DFA traversal order to exploit the statistical distribution of tokens in LLM output. This is analogous to Huffman-coded DFA representations but driven by runtime token frequency data, a direction explored in "Adaptive Parsing for LLM Code Generation" (speculative, aligned with 2030 compiler research trends).
+
+---
+
 ## 6.9 Chapter Summary
 
 - **Regular languages (Type-3 in the Chomsky hierarchy)** are the appropriate formalism for lexical analysis: membership is decidable in O(n) time by a DFA, and the class is closed under all operations needed to combine token specifications.

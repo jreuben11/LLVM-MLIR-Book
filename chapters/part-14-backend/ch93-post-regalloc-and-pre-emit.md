@@ -297,6 +297,32 @@ The function table (registered call targets) is emitted by `AsmPrinter::emitCFII
 
 `CFGuard` is enabled by the `-cfguard` Clang flag (`-fsanitize=cfi-icall` uses a different, software-only mechanism). The LLVM implementation is in `llvm/lib/Target/X86/X86CFGuard.cpp` and `llvm/lib/CodeGen/CFGuardLongjmp.cpp`.
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **MachineBasicBlock Sections v2 / FDO-guided layout**: The ongoing work on `MBBSections` (tracked in [D150006](https://reviews.llvm.org/D150006) and successor patches) is expected to land tighter integration between `MachineFunctionSplitter` and BOLT-style profile-guided basic block reordering, replacing the current coarse hot/cold split with per-block placement driven by LLVM PGO profiles.
+- **Post-RA anti-dependence breaking for RISC-V**: The `AggressiveAntiDepBreaker` is being extended to cover RISC-V's 32-register file. RFC discussions on discourse.llvm.org (early 2026) propose a target-specific hook that lets `RISCVTargetRegisterInfo` declare free scratch registers usable during post-RA rename without disrupting calling conventions.
+- **AArch64 SME2-aware prologue/epilogue insertion**: Support for SMCR (Streaming Mode Control Register) save/restore in `AArch64FrameLowering::emitPrologue` is being finalised to handle functions that enter/exit SME streaming mode, required for SVE2+SME2 ABI conformance on the Cortex-X925 and Neoverse V3 cores.
+- **CFGuard for AArch64 Windows**: Microsoft and Arm are co-authoring patches to extend `CFGuardLongjmp.cpp` to cover the AArch64 Windows ABI's `__guard_check_icall_fptr` pattern, which differs structurally from the x64 dispatch stub already supported.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Prologue/epilogue shrink-wrapping generalisation**: Current shrink-wrapping (`ShrinkWrap.cpp`) is limited by conservative liveness analysis near exception-handling regions. A proposed reimplementation using MachineSSA (part of the GlobalISel infrastructure) would allow more aggressive hoisting of prologue code past early-exit paths, especially beneficial for tight loops that rarely reach a return.
+- **If-conversion with machine learning profitability models**: `IfConverter::isProfitableToIfCvt()` currently uses a static threshold heuristic. Research prototypes (presented at CGO 2025 and LLSA 2026) demonstrate that a lightweight TFLite/ONNX inference model, trained on hardware performance counters, can predict if-conversion profitability with 15–20% improvement in branch-sensitive workloads on out-of-order ARM cores.
+- **Unified post-RA scheduler for heterogeneous targets (CPU+NPU)**: As vendor SoCs expose NPU functional units through LLVM target descriptions (see the Qualcomm Hexagon and Apple AMX extensions), the `PostRAScheduler` needs a multi-resource hazard recogniser that simultaneously models CPU pipeline slots and NPU DMA channels. A design RFC is expected in 2027.
+- **Frame index elimination for CHERI capabilities**: CHERI (Capability Hardware Enhanced RISC Instructions) replaces pointers with 128-bit capabilities. `eliminateFrameIndex()` on CHERI-RISC-V must emit capability-relative loads (`CLBU`/`CSB` family) rather than integer SP-relative offsets. The `CheriBSD` toolchain team's patches are upstream candidates tracking the CHERI RISC-V ISA v9 specification.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Formal verification of PrologueEpilogueInserter invariants**: The correctness of frame layout and callee-save slot assignment is a prerequisite for CompCert-style certified compilation. Ongoing work in the Vellvm project (University of Pennsylvania) aims to formalise the MIR-to-assembly translation, with `PEI` invariants — specifically that every frame index is resolved before emission and every callee-saved register used in the body is saved on entry — as key targets for Coq proof obligations.
+- **AI-driven tail duplication and if-conversion with program synthesis**: Beyond classifier models, 5-year research directions (outlined in the 2026 NSF CompilerAI programme solicitation) envision program synthesis engines that generate target-specific predicated instruction sequences for arbitrary small CFG subgraphs, not just the fixed triangle/diamond patterns currently handled by `IfConverter`.
+- **Cross-function hot/cold splitting via whole-program MBB sections**: `MachineFunctionSplitter` currently operates per-function. Long-term linker/LTO integration (building on the SHT_LLVM_BB_ADDR_MAP section format and Propeller/BOLT profile infrastructure) should allow the back-end to co-locate hot basic blocks from different functions in a single hot `.text` slab, further improving instruction-cache locality beyond what per-function splitting can achieve.
+
+---
+
 ## Chapter Summary
 
 - `PrologueEpilogueInserter` scans for used callee-saved registers, allocates stack slots, computes the final frame layout, and generates prologue/epilogue code; `eliminateFrameIndex()` replaces abstract frame indices with concrete SP/FP-relative offsets.

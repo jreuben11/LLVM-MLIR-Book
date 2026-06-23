@@ -531,6 +531,32 @@ if (mlir::failed(pm.run(module))) {
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **One-Shot Bufferization for dynamic shapes**: Ongoing work (tracked in MLIR Discourse RFC "Bufferization of dynamically-shaped ops") to improve `--one-shot-bufferize` accuracy for ranked memrefs with fully dynamic dimensions, reducing fallback copies in models with variable-length sequences.
+- **Buffer deallocation pipeline ownership refinement**: Patches in review to extend the ownership-based deallocation algorithm (`mlir/lib/Dialect/Bufferization/Transforms/BufferDeallocationOpInterfaceImpl.cpp`) to track ownership across `scf.if` branches without requiring conservative double-frees.
+- **`vector.warp_execute_on_lane_0` lowering maturity**: The `warp` dialect ops needed for warp-level reductions in GPU pipelines are approaching feature-complete lowering to `nvvm.shfl.sync`; expected to land in LLVM 23 release cycle (mid-2026).
+- **IREE HAL Vulkan async command buffer**: IREE's stream-to-HAL lowering is adding pipeline barriers derived from MLIR data-flow analysis rather than conservative global barriers, targeting Vulkan 1.3 timeline semaphores; first end-to-end tests expected Q3 2026.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Unified tiling + vectorization pipeline via `transform` dialect**: The MLIR community is consolidating bespoke tiling passes (`--linalg-tile`, `--affine-loop-tile`) into a single declarative `transform.structured.tile_using_for` + `transform.structured.vectorize` schedule language; the goal is that all pipeline stages in §152.2–152.5 are expressible as `.mlir` transform scripts without custom C++ pass construction.
+- **Scalable vector (SVE/RVV) pipeline integration**: `vector<[4]xf32>` scalable types are already lowered to `llvm.vscale` intrinsics, but the `--vector-unroll` and `--vector-contraction-lowering` passes do not yet handle scalable dimensions. A roadmap item (LLVM RFC "SVE codegen in MLIR", 2025) targets making the full vectorization pipeline width-agnostic by 2028.
+- **GPU-structured pipelines for AMD RDNA/CDNA via ROCDL**: The `rocdl` dialect parallels `nvvm` but lacks parity for matrix-core (MFMA) intrinsics and shared memory fence semantics. Systematic parity work targeting ROCm 7.x is expected to close the gap, enabling a GPU pipeline symmetric to §152.4 for AMD targets.
+- **Persistent pass caching and incremental pipelines**: Research into content-addressed IR caching between pipeline stages (analogous to ccache for Clang) would allow incremental recompilation of only changed dispatch regions in IREE. Prototype work in Google's internal IREE fork is targeting open-source release around 2027–2028.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Verified pipeline composition**: Integration with the Alive2-style semantic-equivalence checking for MLIR passes (building on the `mlir-lsp-server` and formalization work in the CIRCT project's FIRRTL verifier) to guarantee that a composed lowering pipeline preserves program semantics end-to-end, not merely at individual pass boundaries.
+- **Auto-pipelining: ML-guided pass ordering**: Using reinforcement learning over compilation cost models (following the line of work from MLGO / LLVM's ML-driven inliner) to select optimal pipeline stage orderings and tiling parameters per-operation graph, replacing hand-crafted pipeline recipes for heterogeneous accelerator targets.
+- **Heterogeneous unified lowering target**: A single MLIR pipeline that emits code for CPU + GPU + NPU simultaneously by leveraging `async` dialect + HAL-level dispatch, making the separate CPU (§152.2), GPU (§152.4), and IREE (§152.6) pipelines convergent legs of a single parameterized pass pipeline.
+
+---
+
 ## Chapter Summary
 
 - **MLIR lowering is a composition** of canonicalization, bufferization, loop generation, vectorization, and dialect-to-LLVM conversion passes; no single pass performs the full transformation.

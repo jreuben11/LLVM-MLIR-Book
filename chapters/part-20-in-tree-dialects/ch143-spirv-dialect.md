@@ -494,6 +494,32 @@ mlir-translate --mlir-to-spirvasm input.mlir
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **SPIR-V 1.6 / Vulkan 1.4 capability parity**: The MLIR `spirv` dialect is being updated to track SPIR-V 1.6 features promoted from extensions into core, including `SPV_KHR_cooperative_matrix` (promoted from NV), `SPV_KHR_uniform_group_instructions`, and `SPV_EXT_mesh_shader`. Ongoing patches on [llvm-project](https://github.com/llvm/llvm-project/tree/main/mlir/lib/Dialect/SPIRV) add the corresponding ops and target-env capability entries.
+- **`SPV_KHR_cooperative_matrix` migration**: The NVIDIA-vendor `spirv.NV.CooperativeMatrix*` ops are being replaced by the ratified KHR extension ops (`spirv.KHR.CooperativeMatrixLoad`, `spirv.KHR.CooperativeMatrixMulAdd`) with new type parameters for use (MatrixA/B/Acc/C) and scope. Conversion patterns in `GPUToSPIRV` must be updated to emit KHR ops on targets that support them.
+- **`SPV_INTEL_bfloat16` and `SPV_KHR_bfloat16` ops**: bfloat16 storage and arithmetic extensions continue to land for Intel and AMD targets; the dialect's type constraints for `bf16` are being expanded to cover `ArithToSPIRV` conversion patterns for fused BF16 matmul sequences.
+- **`mlir-translate` SPIR-V text assembly round-trip fixes**: Known round-trip failures for structured control flow (selection merge / loop merge headers) are being resolved in `Serialization.cpp`/`Deserialization.cpp`; tracked in LLVM Discourse threads under the MLIR GPU working group.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **SPIR-V Physical StorageBuffer (BDA) lowering from MLIR memref**: Vulkan buffer device address (`SPV_KHR_physical_storage_buffer`) enables raw 64-bit GPU pointers. A new `memref`-to-SPIR-V lowering mode targeting `Physical64` addressing and `PhysicalStorageBuffer64` storage class will allow MLIR programs using `memref.extract_aligned_pointer_as_index` to be compiled without the descriptor-set binding model.
+- **Mesh shader and ray-tracing dialect integration**: `SPV_EXT_mesh_shader` and `SPV_KHR_ray_tracing` require new execution models (`MeshEXT`, `RayGenerationKHR`) and structured payloads. A `mesh_spirv` or `rt_spirv` dialect layer above the core `spirv` dialect is expected as GPU-side ray tracing pipelines mature in MLIR.
+- **Structured control flow (`STRUCTURED` extension) as default**: SPIR-V 1.6 with the `SPV_KHR_maximal_reconvergence` and structured-CF guarantees is becoming the default target for Vulkan 1.4+. MLIR's region-based CFG will gain a stricter lowering path that preserves SPIR-V merge-block structure rather than generating unstructured CFGs that must be re-structured downstream.
+- **`--convert-linalg-to-spirv` cooperative matrix pipeline**: A complete `linalg.matmul` → `spirv.KHR.CooperativeMatrixMulAdd` lowering pipeline, analogous to the existing NVGPU/AMDGPU paths, is under design in the MLIR GPU working group (see [discourse.llvm.org MLIR GPU category](https://discourse.llvm.org/c/mlir/gpu/)) to close the gap with CUDA's tensor core paths.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **SPIR-V as a verified compilation target**: Integration with Vellvm-style semantics or Alive2-style verification for SPIR-V transformations in MLIR; early work on formalizing the SPIR-V memory model (Vulkan's relaxed memory model based on the Vulkan spec §12) as machine-checkable axioms for use in MLIR pass correctness proofs.
+- **OpenCL SPIR-V unified kernel pipeline**: Convergence of the `Kernel`-model OpenCL path and the `GLCompute`-model Vulkan compute path into a single parameterized lowering with capability-driven specialization, enabling a single MLIR kernel to target OpenCL 3.0, Vulkan 1.4, and HIP via SPIR-V as the common substrate.
+- **Hardware-specific SPIR-V extensions for AI accelerators**: As Khronos standardizes neural-network-targeted extensions (successor to `SPV_NV_tensor_addressing`, `SPV_INTEL_joint_matrix`), the MLIR `spirv` dialect will need automated op-generation from a machine-readable Khronos SPIR-V spec (the `spirv.core.grammar.json` grammar) to keep pace without hand-written TableGen for every vendor extension.
+
+---
+
 ## Chapter 143 Summary
 
 - The `spirv` dialect maps 1:1 to SPIR-V binary instructions. Every SPIR-V instruction is one MLIR op. `spirv.module` carries addressing model, memory model, capabilities, and extensions.

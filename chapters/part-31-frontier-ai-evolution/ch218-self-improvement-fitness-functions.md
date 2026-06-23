@@ -675,6 +675,32 @@ Three open problems prevent the loop from being formally closed:
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- The RLVR (Reinforcement Learning with Verifiable Rewards) research thread — exemplified by DeepSeek-R1's Group Relative Policy Optimisation on verifiable math/code tasks — is driving widespread adoption of external symbolic verifiers (Python interpreters, Lean 4 checkers) as the ground-truth extrinsic fitness signal. Expect production-grade PRM training pipelines that co-train the verifier alongside the PRM using the generator's own rollouts, replacing the static PRM800K paradigm with online data collection.
+- The Anthropic Interpretability team's Constitutional AI v2 and mechanistic interpretability scaling roadmap (as of early 2026) is moving SAE training to models in the 70B–400B parameter range. Within six months, `compare_sae_features` workflows will need to handle SAE dictionaries with >4M features per layer, requiring approximate nearest-neighbour indexing rather than dense delta arrays.
+- LiveBench (arXiv 2406.19314) monthly refresh cycles are adding agentic and tool-use task categories (Q3 2026 milestone announced on the LiveBench GitHub). Dynamic benchmark evaluation will need harnesses that execute multi-step tool-calling traces and score intermediate steps, not just terminal outputs.
+- MCTS-guided reasoning (AlphaProof / o3 pattern) is being ported to open-weight model stacks: the `trl` library (HuggingFace) is adding a `PRMTrainer` and `MCTSSearcher` API pair. Integration of step-level PRM scoring directly into `transformers.GenerationConfig` is in active RFC as of March 2026.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- Formal verification of PRM correctness using Lean 4 / Isabelle/HOL is an emerging research direction: if the PRM itself can be certified to not reward faulty reasoning steps on a defined problem class, it partially closes the evaluator bootstrapping problem of §218.10. The Lean 4 Mathlib community and RLVR researchers are expected to converge on a "verifiable PRM" standard for mathematical domains within this window.
+- Fully automated fitness calibration — replacing the manual weight-assignment step of §218.9 with a meta-learning outer loop — is an active ICLR/NeurIPS research stream. Meta-fitness functions that learn the weights `w₁, ..., w₄` of the hybrid `F(θ)` from a distribution of self-improvement episodes would automate the calibration protocol; several preprints on "learned evaluation" (Zheng et al., 2024 and successors) are pushing in this direction.
+- Quality-Diversity archives (MAP-Elites) over neural network weight space are scaling from toy transformer experiments (as in Chapter 215) to production-scale models. By 2028, expect open-source MAP-Elites implementations targeting 7B–13B model families, with behaviour descriptors drawn from SAE feature activation profiles rather than hand-designed performance axes — directly merging the fitness landscape analysis of §218.8 with the capability fingerprinting of §218.2.
+- The Goodhart resistance problem for learned reward models is being attacked via red-teaming-as-a-fitness-signal: a dedicated adversarial generator continuously probes the PRM for exploitable reward hacks, and identified hacks are used to patch the PRM's training distribution. Anthropic's "Constitutional AI with adversarial probing" and OpenAI's "reward model robustness" research lines both target this; a standardised API for adversarial reward probing is likely to emerge as a community standard.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- Computable approximations to the Gödel Machine's `V(t, r)` — the specification problem identified in §218.10 — may become tractable for restricted capability domains. Domain-specific utility functions, formally specified in Lean 4 and mechanically checked against a self-modification proposal, would allow the `F ⊢ V(t, apply(r)) > V(t, stop)` condition to be evaluated by proof search rather than proxy metrics for closed domains such as formal mathematics, verified code generation, and symbolic chemistry.
+- Neurosymbolic fitness functions that integrate SAE-derived interpretability signals with theorem-prover certificates will likely replace pure benchmark-based evaluation for safety-critical model deployment. The interpretability-as-evaluation paradigm of §218.6 will evolve into a continuous certification loop: every weight-space modification triggers an automatic SAE attribution audit, and modifications that alter safety-critical circuits are rejected by a formal policy irrespective of task performance.
+- The evaluator bootstrapping problem may be addressed by a multi-family cross-evaluation standard: a consortium of model families (analogous to the Common Criteria certification framework in security) maintains mutually independent evaluation pipelines, where no family's self-improvement loop is assessed by its own weights. This separates the capability improvement trajectory from the evaluation infrastructure and prevents any single model's Goodhart gaming from contaminating the shared fitness landscape.
+
+---
+
 ## Chapter Summary
 
 - The oracle problem is the central challenge: every feasible fitness function is a computable proxy for an uncomputable ideal (the Gödel Machine's `V(t, r)`); understanding where the proxy breaks is the engineering task.

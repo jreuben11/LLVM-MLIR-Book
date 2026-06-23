@@ -852,6 +852,32 @@ Cross-references: §96.7 (BTI) and §96.6 (PAuth, which works synergistically wi
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **SME2 full codegen coverage**: LLVM 22 introduced initial SME2 (ARMv9.2-A) instruction patterns; ongoing work on discourse.llvm.org (e.g., "[RFC] SME2 multi-vector operations codegen") is completing the ZA array slice addressing, `LUTI2`/`LUTI4` lookup-table instructions, and `FMOPA`/`BFMOPA` BFloat16 outer-product patterns for the AArch64 backend.
+- **PAuth ABI v3 stabilization**: The LLVM AArch64 PAuth ABI (`-mbranch-protection=pac-ret+b-key+leaf`) is being extended for `FEAT_FPAC` (Faulting PAC Authentication, ARMv8.7-A) where AUTH failures trap rather than corrupting addresses; patches adding the `FEAT_FPAC` attribute and updated `AArch64PointerAuth.cpp` logic are in review.
+- **Cortex-X5 and Neoverse V3 scheduling models**: ARM published microarchitecture specs for Cortex-X5 (Armv9.2-A, ~2026 release) and Neoverse V3; scheduling `.td` files tracking these cores are expected in the LLVM 23 development cycle, following the pattern of `AArch64SchedNeoverseV2.td`.
+- **GlobalISel coverage for SVE/SVE2**: The AArch64 GlobalISel path still falls back to SelectionDAG for many SVE operations; LLVM discourse RFC "[GlobalISel SVE support]" is tracking the expansion of `AArch64LegalizerInfo` and `AArch64InstructionSelector` to cover scalable vector types natively.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **FEAT_LSE2 and FEAT_LRCPC3 atomics adoption**: ARMv8.9-A `FEAT_LSE2` (atomicity of unaligned accesses) and `FEAT_LRCPC3` (load-acquire with writeback) require new lowering paths in `AArch64AtomicExpand.cpp`; as Cortex-A720 / Neoverse N3 class hardware reaches volume deployment, the LLVM backend will add optimized lowering for these instructions comparable to the existing LSE path.
+- **SVE2.1 and SME2.1 (ARMv9.4-A) backend support**: The ARMv9.4-A specification introduces SVE2.1 (256-bit minimum VLEN guarantee for cloud cores) and SME2.1 (multi-vector ZA outer-product instructions); LLVM will require new feature flags (`+sve2p1`, `+sme2p1`), TableGen instruction definitions in `AArch64InstrSVE.td`, and autovectorizer cost model updates.
+- **MTE v2 (FEAT_MTE2/MTE3) production integration**: `FEAT_MTE3` (asymmetric fault reporting, ARMv8.7-A) and inclusion-tag stores require updates to `-fsanitize=memtag` instrumentation in `AArch64MemTagInstrInfo.td` and `AArch64MTE.td`; production Android and Linux kernel usage will drive LLVM hardening of the full tagging ABI, including ABI-stable tag propagation conventions.
+- **AArch64 LFI production hardening and W^X enforcement**: The `MCLFIRewriter` introduced in LLVM 22 is expected to gain configurable sandbox granularity (sub-TB regions), XOM (execute-only memory) integration to prevent code injection, and tooling support via `llvm-lfi-rewriter`; browser vendors (Chromium, WebKit) are evaluating LFI as a V8/JSC JIT sandbox replacement on AArch64 Linux.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **FEAT_SVE3 and post-SVE2 vector ISA**: ARM's post-SVE2 vector roadmap (informally "SVE3", likely ARMv10) is expected to add structured sparse-vector predicates, 8-bit float (FP8) element support, and tighter ML-kernel primitives; LLVM will need corresponding type system extensions beyond `<vscale x N x T>`, potentially integrating with the MLIR Vector dialect to allow tile-level abstractions to lower to hardware-native instructions.
+- **Capability Hardware Enhanced RISC Instructions (CHERI) on AArch64 (Morello successor)**: The Arm Morello research chip demonstrated CHERI capabilities on AArch64; successor capability-hardware programs may require LLVM to model 129-bit capability registers, tag bits in the ISA, and a fully capability-safe calling convention, building on the work in the research `llvm-project/cheri` fork.
+- **Full verified AArch64 backend semantics**: Ongoing research (building on Vellvm / Alive2 methodologies) targeting AArch64 instruction semantics formalization, with goals of formally verifying the AArch64 ISel legalizer and GlobalISel pipeline for a subset of the ISA, potentially integrated with the Lean 4 LLVM formalization effort described in Part XXIV.
+
+---
+
 ## Chapter Summary
 
 - AAPCS64 passes 8 integer args in x0–x7 and 8 FP/SIMD args in v0–v7; Homogeneous Floating-Point Aggregates (HFAs) of 2–4 same-type FP elements bypass integer registers and land in consecutive S/D/Q registers; varargs place all args in integer registers.

@@ -495,6 +495,33 @@ llc -march=amdgcn -mcpu=gfx90a --filetype=obj -o kernel.o
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **SME2 multi-vector operations in `arm_sme`**: LLVM/MLIR patches extending the `arm_sme` dialect to cover SME2's multi-vector outer-product (`FMOPA` with ZT0 lookup table) and `arm_sme.multi_tile_store`; tracking discussion in [llvm/llvm-project#77578](https://github.com/llvm/llvm-project/issues/77578) and related RFCs on discourse.llvm.org.
+- **AVX10.1/10.2 coverage in `x86vector`**: Intel's unified AVX10 ISA (available on Diamond Rapids, 2025) consolidates AVX-512 subsets into a versioned capability model. Patches adding `x86vector.avx10.*` ops for the new `VCVT2PS2PH` (FP8 ↔ FP32) and 256-bit VNNI-INT8 forms are in progress, keyed on clang's `-mavx10.2` flag.
+- **AMDGPU MFMA for GFX950 (MI350X) in `amdgpu`**: The `amdgpu.mfma` op is being extended with `fp8` and `bf8` element types matching the `v_mfma_f32_16x16x32_fp8_fp8` instruction on GFX950; tracked in ROCm upstream MLIR patches to the AMDGPU dialect.
+- **`arm_neon` FEAT_LSUI support**: AArch64's new Load/Store Unprivileged Instructions (LSUI, ARMv9.5-A) require new `arm_neon` ops for unaligned vector scatter-gather; prototyped in Arm's MLIR fork and expected upstream by 2026Q4.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **SME3 tile-to-tile operations**: ARM's Cortex-X925 and future Grace 2 processors are expected to introduce SME3 with direct tile-to-tile GEMM without register spilling; the `arm_sme` dialect will need new tile-index semantics for ZA2 and ZB tile spaces, requiring changes to calling-convention lowering in the AArch64 backend.
+- **RISC-V Vector (RVV) hardware dialect**: The current `vector` dialect handles RVV via generic scalable types, but a dedicated `riscv_vector` dialect (analogous to `arm_sve`) is under discussion on discourse.llvm.org to expose RVV-specific intrinsics: vrgather, vslide1up/down, and segment load/store — necessary for high-performance RVV GEMM kernels targeting RISC-V server CPUs (EIC7700, SG2380).
+- **`x86vector` AMX-COMPLEX and AMX-FP8 ops**: Intel AMX (Advanced Matrix Extensions) tiles for complex numbers (AMX-COMPLEX, Granite Rapids) and FP8 types (AMX-FP8, Diamond Rapids) need dialect coverage to enable linalg-on-tensors lowering through AMX tiles rather than the existing VNNI+AVX-512 path.
+- **Unified cross-ISA quantization op set**: An LLVM RFC proposes a common `vector.quantized_dot` op that lowers to `arm_neon.intr.sdot`, `arm_sve.intr.sdot`, `amdgpu.mfma` (INT8), and `x86vector.avx512.bf16.intr.dpbf16ps` depending on target — eliminating the per-dialect specialization currently required in quantized ML inference stacks (IREE, OpenVINO backend).
+- **ROCDL FP4/FP6 MFMA coverage for CDNA4**: AMD's MI400 (CDNA4, ~2027) introduces 4-bit and 6-bit floating-point MFMA instructions (`v_mfma_f32_16x16x128_fp4_fp4`); the `rocdl` and `amdgpu` dialects will require new type attributes and layout semantics for sub-byte operand packing.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Hardware dialect auto-generation from ISA specification**: LLVM's TableGen-driven dialect generation (RFC: "ISA-to-MLIR dialect codegen") aims to derive `arm_neon`, `arm_sve`, and `x86vector` op definitions directly from LLVM's existing `IntrinsicsAArch64.td` and `IntrinsicsX86.td` files, eliminating manual `ArmNeon.td` maintenance and ensuring 1:1 parity with LLVM intrinsic tables.
+- **Configurable-compute architectures (CCA) dialect coverage**: Post-2028 processors (ARM's speculative CCA extensions, Intel XPU tiles) blur the boundary between CPU vectors and accelerator tiles; a new MLIR abstraction above hardware dialects — potentially a `tile` dialect with configurable shape and ISA type attributes — may subsume the current per-architecture dialect proliferation.
+- **Formal verification of hardware dialect lowerings**: Building on Alive2/MLIR work, projects like the MLIR ↔ LLVM IR correctness checker (collaboration between EPFL VCA lab and Google DeepMind) target machine-checked proofs that `arm_sme.outerproduct → llvm.aarch64.sme.fmopa` and analogous lowerings preserve semantics for all well-typed operands, providing a foundation for certified high-performance kernel generation.
+
+---
+
 ## Chapter 144 Summary
 
 - The `arm_neon` dialect provides fixed-width NEON intrinsics for AArch64: `arm_neon.2d_sdot`/`udot` for i8 dot products (ML INT8 inference), `arm_neon.intr.bfmmla` for BF16 2×2 matrix multiply, `arm_neon.intr.tbl1/2` for table lookup. Lowered by `--convert-arm-neon-to-llvm`.

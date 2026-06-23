@@ -1133,6 +1133,32 @@ MLIR's operation system and Rust's `enum`-based IR representations (e.g., Cranel
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Clang's incremental semantic analysis for C++ modules.** The Named Modules feature (C++20, enabled by `-std=c++20 -fmodules`) requires the compiler to cache and reuse `DeclContext` symbol tables across translation units. Active LLVM work (tracked in [llvm/llvm-project#78347](https://github.com/llvm/llvm-project/issues/78347) and downstream RFC threads on discourse.llvm.org) is improving the serialisation of `DeclContext::StoredDeclsMap` into `.pcm` files and reducing redundant two-phase lookup work during re-import, directly impacting §8.1.4 and §8.6.4.
+- **C++26 reflection and `consteval` semantic analysis extensions.** P2996 (static reflection) is accepted for C++26 and requires the semantic analyser to evaluate reflections of `DeclContext` hierarchies at constant-evaluation time. Clang's `Sema::EvaluateAsConstantExpr` will need to handle `std::meta::info` objects produced from name-lookup results, coupling §8.6 (name resolution) with constant folding in a new way.
+- **Two-phase lookup conformance for MSVC `/permissive-` parity in Clang.** Several remaining edge cases in Clang's handling of dependent-name ADL for partial template specialisations are under active fix (see `SemaTemplateInstantiate.cpp` change log). Expect landing of fixes for `UnresolvedLookupExpr` resolution in nested template contexts by mid-2026.
+- **Improved overload resolution diagnostics in Clang.** The Clang community RFC "Better overload resolution failure messages" (discourse.llvm.org, January 2026) proposes restructuring `Sema::DiagnoseFailedOverloadCandidates` to emit ranked candidate explanations with diff-style highlighting of mismatched argument types, directly improving the §8.5.5 overload resolution pipeline.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Persistent (functional) symbol tables for parallel Clang front-end compilation.** Research projects (notably the "ClangIR parallel front-end" effort and early-stage LLVM parallelism RFC threads from 2025) explore replacing Clang's mutable `DeclContext` hierarchy with a persistent HAMT-backed environment (§8.1.3) to enable safe parallel processing of class member declarations within a single TU. The key challenge is making `Sema`'s side-effecting error reporting thread-safe.
+- **Formalised attribute grammar specification for MLIR dialect verification.** MLIR's operation verifier (triggered by `mlir-opt --verify-diagnostics`) is currently hand-written in C++. A proposal under discussion in the MLIR community (related to the TableGen `Constraint` and `AttrConstraint` evolution) is to express verifier rules as an explicitly L-attributed grammar over the op's operand/attribute tree, enabling automatic evaluator generation and enabling formal well-definedness checks (§8.3.4) for dialect constraints at the TableGen level.
+- **Bidirectional type inference for C++ `auto` and deduction guides.** C++26/27 proposals (P2677 and successors) push toward richer bidirectional type inference in expressions involving `auto` parameters, `std::expected`, and monadic composition. This will require extending Clang's type-checking tree walk (§8.5.2–8.5.3) from a purely bottom-up S-attributed pass to an L-attributed scheme that passes "expected type context" inherited attributes downward, similar to the approach described in §8.5.4 for coercion insertion.
+- **ADL reform proposals for hidden-friend isolation.** The C++ Evolution Working Group is considering "ADL-proof namespaces" (EWG issue 2022-117) and strengthened hidden-friend rules to reduce the combinatorial explosion of ADL candidate sets in large codebases. Clang's `Sema::LookupArgumentDependentNames` (§8.6.5) will need corresponding restructuring.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Semantic analysis for dependently typed C++ successors.** Research into C++ successors (Carbon, cppfront/Cpp2) and safety-typed systems (Safe C++ P3081) is moving toward enriched type systems where semantic analysis must handle dependent types and refinement types, requiring the type-checking tree walk (§8.5) to interleave with a constraint solver rather than a simple equality-based type match.
+- **Machine-learning-guided overload resolution ranking.** Academic work (e.g., from the ML4Code community and ICLR 2025 papers on compiler error repair) proposes augmenting overload resolution's conversion-sequence ranking (§8.5.5) with learned heuristics to predict the programmer's intended overload, surfacing it first in error messages even when it is not the C++ standard's best viable function. Integrating such a model into Clang's `Sema` pipeline without affecting standards compliance is an open systems challenge.
+- **Verified semantic analysis via proof-assistant-checked attribute grammars.** The verified compilation community (building on CompCert's verified front-end and Vellvm §8.5) is working toward mechanically verified proofs that S-attributed and L-attributed evaluators (§8.3.2–8.3.3) produce correct symbol tables and type environments. Lean 4 and Coq-based frameworks for formalising C++ name lookup (analogous to the Featherweight Java formalisations) are early-stage active research, with the goal of providing a checkable specification that Clang's `Sema` can be tested against.
+
+---
+
 ## 8.8 Chapter Summary
 
 - **Symbol tables** map names to their declaration attributes. Chained (linked-list) symbol tables implement scope as a stack of frames and provide O(depth × scope\_size) lookup with O(1) scope management. Hash-based tables with per-entry binding stacks provide O(1) expected lookup with O(|scope|) scope retirement. Persistent (functional) tables using HAMTs or balanced BSTs support O(1) amortised lookup with structural sharing, enabling multi-branch and parallel compilation without explicit scope reversal.

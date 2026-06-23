@@ -438,6 +438,32 @@ The polyhedral model ensures that all candidates evaluated are *legal* (dependen
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **ISL scheduler precision improvements**: Ongoing patches to ISL (sched-opt branch, Verdoolaege et al.) targeting better parametric tile size selection within `isl_schedule_constraints_compute_schedule`; LLVM Polly tracks these via its vendored ISL copy at `polly/lib/External/isl`.
+- **MLIR affine dialect scheduling pass**: The `mlir-opt --affine-loop-tile` and `--affine-parallelize` pipeline continues to gain Pluto-style tileability constraints; RFC on discourse.llvm.org ("Pluto scheduling for MLIR affine loops") targets integrating the full dependence-distance minimization LP into the upstream affine pipeline.
+- **Polly vectorization scheduling**: Active Polly patches (e.g., `D159082`) improve scheduling decisions that account for SIMD lane width and AVX-512 register pressure, feeding back hardware constraints into the ILP cost function rather than post-hoc tile adjustment.
+- **PolyBench/C 4.2.1 benchmark suite**: Updated iteration with new stencils targeting RISC-V vector extension (RVV 1.0); results expected to drive ISL schedule heuristic tuning for non-x86 targets and inform the `--schedule-outer-coincidence` default.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **ML-guided Pluto cost functions**: Replace Pluto's hand-tuned LP objective (minimize Σ u_dep) with a learned cost model trained on measured execution times; TVM MetaSchedule's RL-based search (currently tile-size only) extended to full affine schedule coefficient selection via polyhedral feasibility as the legal-schedule oracle.
+- **Exact non-uniform dependence distance scheduling**: Pluto's limitation of uniform u_dep per dependence (Section 72.4.5) is addressed in academic work (Zinenko et al., CC 2022, "Exploring the Polyhedral Model with Integer Linear Programming"); integration into ISL upstream is expected once parametric ILP becomes tractable for the dependence polyhedra sizes common in deep learning kernels.
+- **Diamond-tiling standardization in MLIR**: Current MLIR produces skewed schedules ad hoc; a dedicated `transform.tile_diamond` operation in the Transform dialect (tracked in `mlir/include/mlir/Dialect/Transform/`) would encode Pluto's wavefront skewing + tiling as a first-class, verifiable transformation step.
+- **Sparse polyhedral scheduling**: Extension of Pluto-style scheduling to sparse iteration domains (COO, CSR, CSC formats); academic prototypes (Strout et al., "Sparse Polyhedral Framework") aim for integration into MLIR's sparse compiler pipeline (`mlir-opt --sparse-compiler`), requiring scheduling algorithms that handle union-of-polyhedra rather than a single polyhedron.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Quantum circuit scheduling via polyhedral model**: Mapping quantum gate ordering constraints (commutativity relations, qubit dependency chains) to polyhedral dependence polyhedra; Feautrier-style multidimensional scheduling for gate parallelism across qubit registers, with ISL as the solver backend for LLVM's emerging quantum IR extensions.
+- **Verified polyhedral schedules (Vellvm / Coq)**: Mechanized proofs (analogous to CompCert's verified code generation) that the Pluto LP solution, once Farkas multipliers are extracted, satisfies the original dependence constraints; target: a Coq-certified ISL schedule extractor that generates proofs consumed by the Alive2-style verification pipeline.
+- **Architecture-parameterized scheduling**: Schedule synthesis where tile sizes, skew factors, and parallelism dimensions are functions of runtime-queried hardware parameters (cache topology via hwloc, SIMD width via CPUID); the scheduler emits a *family* of schedule trees parameterized over (T, W, P) and selects at JIT time — building on LLVM's ORC JIT and the Ofast/PGO feedback infrastructure.
+
+---
+
 ## Chapter Summary
 
 - The **scheduling problem** is to find an affine schedule θₛ: ℤⁿ → ℤᵈ for each statement that satisfies all dependence legality constraints (derived via the Farkas lemma) while optimizing a given objective.

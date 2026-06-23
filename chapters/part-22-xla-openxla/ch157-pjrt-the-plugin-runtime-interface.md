@@ -502,6 +502,32 @@ with jax.profiler.trace("/tmp/profile"):
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **PJRT C API v2 stabilisation**: The OpenXLA community is finalising an extended PJRT_Api struct that adds first-class support for async compilation (`PJRT_Client_CompileAsync`) and topology-aware device grouping; tracked in the openxla/xla RFC "PJRT C API Extensions for Async & Topology" (opened Q1 2026).
+- **IFRT proxy server GA**: The IFRT proxy backend (implementing the IFRT C++ interface over gRPC) is graduating from experimental to production-supported in XLA, enabling multi-host IFRT dispatch without a SPMD compiler; see `xla/python/ifrt/support/ifrt_call_thunk.cc` for the in-progress implementation.
+- **Shardy sharding propagation integration**: The Shardy pass pipeline (replacing `xla_hlo_shardy` with a modular MLIR-based sharding dialect) is being wired into `PjRtClient::Compile` so that `CompileOptions::sharding_config` can accept Shardy IR directly instead of `xla::HloSharding` proto.
+- **FFI v2 custom call ABI**: The XLA FFI is being extended with typed dictionaries for `backend_config`, structured logging handles, and a stable versioned ABI (matching the `PJRT_Api` versioning model), removing the untyped JSON string currently used in `CustomCallOp`'s `backend_config` attribute.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **PJRT topology descriptors for heterogeneous pods**: Proposed in the OpenXLA 2025 roadmap, `PJRT_TopologyDescription` will be extended to express heterogeneous cluster graphs (e.g., TPU v6 + GPU + CPU tiers) with per-link bandwidth annotations, enabling the compiler to schedule inter-chip transfers at PJRT level rather than leaving them to the collective library.
+- **IFRT sharded compilation**: IFRT will grow a `CompileSharded` path where the SPMD partitioner runs inside the IFRT layer (not inside PJRT plugins), allowing the same partitioned program to be dispatched to mixed plugin backends in a single call — a prerequisite for heterogeneous LLM serving (e.g., attention on GPU, FFN on TPU).
+- **Plugin hot-reload and versioned state migration**: The PJRT plugin model will be enhanced to support in-process plugin upgrade without invalidating loaded executables, using a migration hook (`PJRT_Plugin_Migrate_Args`) that serialises and deserialises `PjRtLoadedExecutable` state across plugin versions.
+- **Persistent compilation cache at PJRT layer**: An ABI-stable compilation cache (backed by a content-addressed blob store) will be standardised at the PJRT C API level, so any framework using any plugin gets cache hits without per-framework cache logic; XLA's AOT compilation work (`xla/service/persistent_compilation_cache.h`) is the upstream precursor.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **PJRT as the universal accelerator ABI**: The PJRT C API is a candidate to become the standard device abstraction adopted beyond XLA — PyTorch's `PrivateUse1` backend, IREE's HAL, and ONNX Runtime's EP API all face similar problems; convergence on a common ABI would allow a single vendor-provided shared library to satisfy all three frameworks simultaneously.
+- **Distributed IFRT with automatic fault recovery**: Future IFRT versions will integrate with cloud orchestrators (via checkpoint/restore hooks) so that a `PjRtLoadedExecutable` spread across 1024 pods can survive individual node failures by replaying from the most recent IFRT-layer checkpoint, without framework-level intervention.
+- **Hardware-neutral memory model in PJRT**: As compute-memory separation (memory-fabric architectures like CXL 3.x) matures, PJRT will need explicit buffer-placement APIs that express affinity to memory domains distinct from compute devices, replacing the current `PjRtDevice*` parameter to `BufferFromHostBuffer` with a `PjRtMemorySpace*` abstraction (already prototyped in `xla/pjrt/pjrt_client.h` as `PjRtMemorySpace`).
+
+---
+
 ## Chapter Summary
 
 - PJRT is a stable C API (struct of function pointers) that decouples ML frameworks from hardware backends; backends are loaded as shared libraries via `GetPjrtApi()`.

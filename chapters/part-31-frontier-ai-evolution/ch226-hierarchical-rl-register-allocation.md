@@ -416,6 +416,32 @@ MLGO's eviction advisor is deployed in production at Google (optional, enabled b
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **MLGO integration of GNN-based advisors**: The MLGO project (github.com/google/ml-compiler-opt) has active RFC discussions on graduating from the single-feature eviction advisor to a GNN-backed ProGraML representation; patches for `--regalloc-enable-advisor=ml-gnn` are expected to land in LLVM 23 or 24, replacing the flat feature vector with per-node interference-graph embeddings (tracked in LLVM Discourse thread "ML-guided Register Allocation next steps", 2025).
+- **RL4ReAL hierarchical agent open-sourcing**: The RL4ReAL authors (arXiv 2204.02013) indicated intent to release training infrastructure alongside the LLVM compiler-opt framework; an upstream pull request to add `HierarchicalRegAllocAdvisor` as a third advisor mode alongside `default` and `release` is anticipated as LLVM's ML infrastructure matures.
+- **Pearl integration into LLVM's pass pipeline**: Following the Pearl paper (arXiv 2506.01880), Google's compiler team is expected to prototype a multi-heuristic RL coordinator that selects inlining thresholds and register allocation strategy jointly, with initial benchmarks on Chromium and TensorFlow targeting the October 2026 LLVM Developer Meeting presentation slot.
+- **Improved curriculum learning tooling in compiler-opt**: The `ml-compiler-opt` repo is adding corpus-partitioning tooling to automate Phase 1–4 curriculum scheduling based on live-range-count histograms, reducing manual tuning required to replicate RL4ReAL training from scratch.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Online RL for AOT compilation pipelines**: Offline-trained policies degrade when IR distributions shift (new codebases, new language features); ongoing research on online fine-tuning — updating the GNN policy incrementally as new IR is compiled — is expected to close the generalization gap, enabling deployment in CI pipelines where compilation time budgets allow 10–20 ms RL inference overhead.
+- **Cross-target register allocation policies**: Current RL4ReAL models are trained per-target (x86-64 separately from AArch64); work on target-agnostic GNN representations (encoding register class constraints and physical register count as features rather than assuming fixed topology) should enable a single trained policy to transfer across targets, reducing training costs and enabling faster deployment on new ISAs like RISC-V Vector or LoongArch.
+- **Hierarchical RL for MLIR progressive lowering**: As MLIR's progressive lowering pipeline (High-level dialect → linalg → vector → LLVM) becomes the dominant compilation path for ML workloads, research extending RL4ReAL's hierarchical approach to MLIR's multi-dialect decision sequence (which lowering strategy per op, which tiling factor, when to fuse) is expected to mature, with the MLIR region-tree GNN representation from §226.5 serving as the state encoder.
+- **Reward function discovery via LLM-guided symbolic search**: Rather than hand-crafting potential-based shaping functions, research combining large language models (to propose symbolic reward formulas) with empirical verification (to measure policy quality) is expected to automate reward shaping design for novel allocation objectives such as minimizing energy consumption or maximizing SIMD utilization.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **End-to-end differentiable compilation**: Research on replacing discrete allocation decisions with continuous relaxations (Gumbel-softmax over register assignments) and differentiating through the entire code-generation pipeline from LLVM IR to binary performance counter feedback may enable gradient-based optimization of the allocation policy without RL's high-variance trajectory sampling, potentially closing the remaining 3–5% gap between RL4ReAL and optimal PBQP on large functions.
+- **Foundation models for compiler optimization**: The trend toward large pre-trained IR encoders (analogous to BERT for code) trained on billions of LLVM IR instructions from diverse open-source corpora is expected to produce general-purpose embeddings that replace per-task GNN training; a foundation model pre-trained on IR structure would allow downstream RL agents (allocation, scheduling, inlining) to be fine-tuned with orders of magnitude less task-specific data.
+- **Verified RL policies with Lean 4 certificates**: As formal methods tooling for neural network verification matures (NNV, alpha-beta-CROWN), research on proving that a trained RL allocation policy never produces incorrect code — by combining policy network bounds with interference-graph invariant proofs in Lean 4 — may bridge the gap between RL4ReAL's research status and production deployment requirements, removing the correctness barrier that currently limits ML-guided allocation to advisory roles rather than replacing the Greedy fallback.
+
+---
+
 ## Chapter Summary
 
 - Register allocation is an NP-complete, cascading decision problem; the Greedy allocator makes locally optimal decisions but cannot reason about future consequences; RL offers global reasoning at the cost of approximate decisions

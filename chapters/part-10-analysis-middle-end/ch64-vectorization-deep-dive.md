@@ -380,6 +380,32 @@ For production vectorization in LLVM 22, the Loop Vectorizer (§64.1) and SLP Ve
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **VPlan native path promotion to default**: The VPlan-native vectorization path (`-vplan-native-path`) is on track to replace the legacy code-generation path in LLVM 22/23; active RFC and patch series on discourse.llvm.org (see "RFC: Enabling VPlan-based vectorization by default") aim to land this in the LLVM 23 release cycle, enabling outer-loop vectorization as a first-class feature.
+- **EVL tail-loop folding for RVV**: Upstream patches (D157054 and successors) extending EVL-based tail folding to cover reductions and first-order recurrences on RISC-V Vector — currently EVL tail folding handles simple loads/stores but not all reduction patterns supported by the scalar remainder path.
+- **Sandbox Vectorizer region support**: Active development to extend SandboxIR's `Tracker` to cover `callbr` and complex intrinsics (currently treated as opaque), tracked in the llvm-project GitHub issue tracker under the "SandboxIR coverage" milestone, targeting LLVM 23.
+- **SLP vectorizer scalable-vector support**: Work in progress (D144448 follow-ons) to enable SLP packing of `<vscale x N x T>` values for SVE/RVV targets, currently blocked by the lack of a cost model for variable-width pack operations in TTI.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Outer-loop vectorization via VPlan**: Once the VPlan native path is the default, outer-loop vectorization (loop nests whose inner loop is vectorized across the outer-loop dimension) becomes achievable; the VPlan recipe graph already models the control-flow structure needed, and RFC discussions on discourse.llvm.org outline the remaining legality and cost-model extensions required.
+- **Polyhedral-informed VF selection**: Integration of polyhedral dependence information (from Polly or a lightweight polyhedral analysis pass) into `LoopVectorizationLegality` to handle loop nests with parametric dependence distances that the current distance-based legality check conservatively rejects.
+- **Unified cost model for mixed fixed/scalable vectorization**: `TargetTransformInfo` currently treats fixed-width and scalable-vector costs separately; a unified cost API supporting `<vscale x N x T>` pack-cost queries would allow the Loop Vectorizer and SLP Vectorizer to compare fixed-VF and scalable-VF candidates in a single cost sweep, enabling better VF selection on SVE2 and RVV 1.0 targets.
+- **Auto-vectorization of histogram and scatter-accumulate patterns**: These patterns (common in HPC and ML workloads) require conflict-detection idioms (`llvm.experimental.vector.histogram.*` intrinsics, RFC posted mid-2025) not yet supported by the Loop Vectorizer's legality checker; mid-term goal is full legality and cost-model support, enabling AVX-512 VPCONFLICT and SVE2 HISTCNT code generation.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Machine-learning–guided VF and unroll-factor selection**: Replacing or augmenting TTI's static throughput model with a learned cost model (following the approach of MLGO for inlining, extended to vectorization) that predicts actual hardware performance from IR features, adapting VF selection to micro-architectural details not captured by the reciprocal-throughput abstraction.
+- **Cross-loop vectorization and supernode SLP**: Extending SLP beyond basic-block boundaries to pack operations across adjacent loop iterations or across function calls in a polyhedral supernode, requiring integration with the inter-procedural dependence analysis infrastructure being developed in the LLVM middle-end.
+- **Auto-vectorization for emerging SIMD ISAs**: Full vectorization support for Arm SME (Scalable Matrix Extension) streaming-mode SVE and for RISC-V Zvfbfmin/Zvfhmin half-precision vector extensions, including cost models reflecting the distinct throughput characteristics of matrix-tile and half-precision arithmetic units expected in 2028–2031 hardware generations.
+
+---
+
 ## Chapter Summary
 
 - The loop vectorizer has four phases: legality checking (`LoopVectorizationLegality`), cost modeling (`LoopVectorizationCostModel`), code generation (`InnerLoopVectorizer`), and VPlan generation.

@@ -656,6 +656,32 @@ The full supply-chain security stack for a production LLVM-based toolchain there
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **LLVM CAS upstreaming (RFC active)**: The llvm-cas infrastructure currently lives in Apple's downstream fork; the ongoing LLVM RFC ([discourse.llvm.org/t/rfc-cas-content-addressable-storage-for-llvm](https://discourse.llvm.org/t/rfc-cas-content-addressable-storage-for-llvm)) targets upstreaming the `llvm/CAS/` directory and `clang -fcas-backend` into mainline LLVM 23.x. Watch `llvm/include/llvm/CAS/` and `clang/lib/Frontend/CompilerInstance.cpp` for patch series landing.
+- **Explicit Module Builds in open-source Clang**: `-fexplicit-modules` with CAS-backed PCM caching is being driven by Apple and Meta engineers toward full upstream parity; near-term patches address parallel safe module lookup and lock-free action cache writes under heavy parallel builds (`clang/lib/Serialization/ModuleManager.cpp`).
+- **SLSA Level 3 for LLVM release CI**: The LLVM project's GitHub Actions release pipelines are expected to reach SLSA Level 3 (hermetic builds, signed provenance) by late 2026, requiring CASFS integration in the GitHub Actions release jobs and Sigstore cosign attestation of release tarballs.
+- **`llvm-ar --deterministic` default**: Ongoing effort to flip the default for `llvm-ar` to always zero archive-member timestamps (mirroring GNU `ar -D`), eliminating the most common diffoscope finding for LLVM-built static libraries.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Content-addressed LTO pipeline**: Extending CAS keying to LTO: the ThinLTO summary index, individual module backends, and the final link step would each be independently CAS-keyed, enabling fine-grained incremental LTO where only changed modules are re-optimized. This requires CAS-aware import lists in `llvm/lib/LTO/ThinLTOCodeGenerator.cpp`.
+- **Remote CAS protocol standardization**: The GRPC-based CAS protocol (currently Apple-proprietary) is expected to converge with or extend the Bazel Remote Execution API (REAPI v2+) into a shared LLVM Remote Cache Protocol, enabling interoperability between llvm-cas clients, Bazel, and Buck2 remote caches.
+- **CAS-keyed sanitizer instrumentation caching**: Caching sanitizer-instrumented object files (ASan, TSan, UBSan) by their CASID would eliminate redundant re-instrumentation in CI; requires that sanitizer runtime injection be deterministic, which involves fixing remaining non-determinism in `compiler-rt/lib/asan/asan_interceptors.cpp` initialization order.
+- **SBOM generation from CAS manifests**: Tooling to derive CycloneDX/SPDX SBOMs directly from the CAS action graph — every compilation action becomes an SBOM component with its CASID as the content hash — enabling per-artifact, fine-grained provenance records rather than per-release SBOMs.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Formally verified CAS correctness**: Integration of CAS content-addressing proofs into the Vellvm or CompCert verification frameworks; a proof that the CASID hash function collision resistance implies action-cache soundness (equal keys imply equal compilation semantics), giving a machine-checked foundation for CAS-keyed build correctness.
+- **Bootstrappable LLVM with full DDC (Diverse Double Compilation) coverage**: A public, automated diverse double compilation pipeline for LLVM — using GCC and an independent LLVM build as the two bootstrap paths, comparing stage3 binaries — integrated into the LLVM release process to provide practical Thompson-attack resistance for every release.
+- **Transparent CAS integration in MLIR compilation pipelines**: CASFS and action caching extended into MLIR's compilation pipeline (`mlir-opt`, `mlir-translate`), enabling hermetic, reproducible MLIR lowering chains where each dialect lowering step is independently CAS-keyed and cached for AI/ML compiler use cases (OpenXLA, IREE).
+
+---
+
 ## Chapter Summary
 
 - **LLVM CAS** (Content-Addressable Store) identifies every compilation artifact by a SHA-256 content hash (`CASID`), enabling reproducible, hermetic, and incrementally-efficient builds independent of file paths and timestamps.

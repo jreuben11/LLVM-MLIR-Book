@@ -549,6 +549,32 @@ This prints the payload IR state after every transform op application, making it
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **`transform.sequence` deprecation and migration to `transform.named_sequence`**: The LLVM community has been migrating all in-tree uses of the older `transform.sequence` op to `transform.named_sequence @__transform_main`, which enables better composability and separate-file scheduling. Expect the deprecated `transform.sequence` entry-point form to be removed in LLVM 23 (tracked in `mlir/lib/Dialect/Transform/IR/TransformOps.cpp`).
+- **Structured match predicate extensions**: Active patches on [discourse.llvm.org](https://discourse.llvm.org) propose adding `transform.structured.match` predicates for rank, element type, and named indexing-map attributes, enabling finer-grained op selection without attribute-tagging the payload IR manually.
+- **`transform.foreach_match` result propagation**: Ongoing RFC to allow `transform.foreach_match` to accumulate handles from all matched branches into a unified result set, unblocking patterns where heterogeneous ops need a shared post-match transformation.
+- **Debug listener API stabilization**: The `TransformDialectInterpreterListener` API (introduced for third-party transform schedule debuggers) is being stabilized; tooling like the MLIR LSP server and iree-opt are integrating it to display per-step payload IR diffs interactively.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Transform dialect for vector and tensor primitives beyond Linalg**: Current `transform.structured.*` ops are tightly coupled to `LinalgOp`. Community proposals (tracked as "Transform dialect generalization") aim to add `transform.vector.*` ops for explicit vector shuffle/insert/extract scheduling and `transform.tensor.*` ops for slice reuse, enabling non-Linalg workloads (e.g., `tensor.pack`/`tensor.unpack` schedules for packing-aware fusion) to use the same dialect.
+- **Ahead-of-time (AOT) transform schedule serialization**: The IREE and Triton communities are converging on a model where transform schedules are serialized as MLIR modules and loaded at compile time from a model registry, analogous to LLVM's target-library mechanism. This requires a stable binary encoding for transform IR (under the MLIR bytecode format `FlatSymbolRefAttr` extension).
+- **Parametric tile-size selection via `transform.param`**: The `!transform.param<i64>` mechanism is being extended to support symbolic tile sizes that are resolved by an external solver (autotuner, cost model, or hardware-capability query), making the connection between the transform dialect and search-based autotuning frameworks like OpenTuner or MLGO first-class.
+- **Verification of transform schedule correctness**: Research from the Edinburgh/ETH groups is developing a type-theoretic framework for proving that a transform schedule preserves program semantics (i.e., the payload transformation is correct). Expect an experimental `transform.verify` op and annotation scheme in MLIR that encodes postconditions on payload IR shape/type invariants enforced by the interpreter.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Learned transformation strategies using ML-guided schedule search**: The Transform dialect's clean separation of schedule from payload makes it an ideal substrate for reinforcement-learning-based compiler optimization (building on work like AlphaTensor, Halide autoscheduler, and TVM MetaSchedule). A Transform dialect backend for RL-based tuning—where the policy outputs transform op sequences directly—is a plausible long-term research direction with early prototypes in IREE's tuning pipeline.
+- **Cross-target portability of transform schedules**: As hardware diversity increases (CPUs, GPUs, NPUs, custom ASICs), the goal of writing one transform schedule that retargets across backends is being pursued via target-capability queries (`transform.query_target_capability`) and conditional dispatch (`transform.if_target`). Standardizing these ops would allow schedule libraries (analogous to BLAS) to ship as dialect-level MLIR modules.
+- **Integration with formal compiler verification (Vellvm / Alive2 successors)**: Long-term research aims to connect transform schedule correctness proofs to machine-verified semantics of MLIR operations, so that a transform schedule can carry a proof certificate that the interpreter can check before applying it—enabling verified-safe dynamic compilation for safety-critical domains.
+
+---
+
 ## Chapter Summary
 
 - The **Transform dialect** is a metaprogramming system: transform ops are MLIR operations that query and mutate a payload IR at compile time, enabling compiler strategies to be expressed as programs rather than hard-coded pass sequences.

@@ -705,6 +705,32 @@ target_link_libraries(cal PRIVATE ${LLVM_LIBS})
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **ClangIR frontend unification**: The ClangIR project (tracked in [`clang/lib/CIR/`](https://github.com/llvm/llvm-project/tree/main/clang/lib/CIR/)) is progressing toward making CIR the default Clang IR emission path, replacing the legacy `CodeGen/` layer. Frontends that currently emit LLVM IR directly may need to evaluate whether emitting CIR first and lowering is preferable — monitor the LLVM Discourse RFC "ClangIR Upstreaming Status" threads for stabilization signals.
+- **`TableGen`-driven lexer/keyword generation**: There are active LLVM community discussions (Discourse thread: "TableGen for frontend boilerplate") about expressing keyword tables and token kinds in TableGen to auto-generate `StringSwitch`-based dispatch, reducing manual maintenance in frontends like those illustrated in this chapter.
+- **`llvm::BumpPtrAllocator` slab-size tuning API**: A patch series under review (`[llvm-dev] BumpPtrAllocator: expose slab-size knob`) aims to allow frontends to configure arena block sizes at construction time rather than compile-time constants, directly improving the `AstArena` pattern shown in §55.3.2.
+- **ORC v2 lazy-compilation pipeline in Kaleidoscope chapter 4 update**: The Kaleidoscope tutorial is being refreshed to use the ORC v2 `LLJIT`/`LLLazyJIT` API (replacing the older `llvm::orc::KaleidoscopeJIT`); frontend authors relying on the tutorial's JIT chapters should track `llvm/examples/Kaleidoscope/` commits on `main`.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Incremental compilation via module-level IR caching**: The LLVM community is moving toward first-class incremental recompilation at the IR level. Frontends will need to emit stable module identifiers and expose dependency graphs so that `llvm::Module` subtrees can be cached and reused without full re-parsing — a direct extension of the Cal driver pattern in §55.6.
+- **Structured error recovery standardization**: Clang's `RecoveryExpr` (introduced in Clang 11, [`clang/include/clang/AST/Expr.h`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/clang/include/clang/AST/Expr.h)) is expected to become the recommended model for typed error holes in LLVM-based frontends; a language-agnostic recovery node base class in `llvm/include/llvm/Frontend/` is under long-term discussion.
+- **Unified source-location infrastructure**: The `mlir::FileLineColLoc` / `clang::SourceLocation` divergence is a known pain point. A unified `llvm::SourceLoc` abstraction usable across LLVM IR, Clang AST, and MLIR ops is on the long-term roadmap (see LLVM Discourse: "Unified Source Location Representation"), which would simplify the `Token` position tracking shown in §55.2.2.
+- **AI-assisted parser synthesis**: Research projects (notably "LLM-aided grammar extraction" at Microsoft Research and Meta's Pysa/Zydis toolchain work) are producing tools that infer Pratt precedence tables and recursive-descent skeletons from language specifications; integration with `llvm-project` tooling could auto-generate the `precedence()` dispatch shown in §55.4.3.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Formally verified lexer/parser components**: The Vellvm project (Zhao et al.) and Lean 4's `Parsec` library demonstrate machine-checked parsers; a future LLVM frontend toolkit may ship formally verified lexer automata and Pratt-parser correctness proofs for the core token classes, raising the bar for frontend correctness guarantees beyond what hand-written C++ can offer.
+- **WebAssembly-targeted frontend compilation**: As WASM gains SIMD, GC, and component-model features, frontend authors will need to target `wasm32`/`wasm64` as first-class LLVM backends with custom ABI conventions and memory models distinct from ELF targets; the Cal-style driver will require pluggable target selection beyond the current `X86`-centric CMake example in §55.8.
+- **Persistent, content-addressed AST stores**: Research into persistent compilation databases (analogous to Unison's content-addressed codebase model) suggests that future LLVM toolchains may store ASTs in content-addressed object stores, allowing cross-invocation AST sharing and eliminating full re-parses; the arena-allocation model in §55.3.2 is a stepping stone toward serializable, relocatable AST representations.
+
+---
+
 ## Chapter Summary
 
 - A minimal LLVM frontend comprises a lexer, parser, AST, type checker, and IR emitter; each is independently testable.

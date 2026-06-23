@@ -662,6 +662,32 @@ Process 1234 stopped
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **ARMv8.7-A asymmetric MTE wider adoption**: Clang's `-fsanitize-memtag-mode=asymm` flag targets FEAT_MTE3 (asymmetric mode); as Cortex-A720 and Cortex-X4 devices (ARMv9.2-A, 2024) ship in volume, expand compiler integration to auto-select asymm mode when the target CPU is known to support it. Track upstream in [`AArch64Subtarget.cpp`](https://github.com/llvm/llvm-project/blob/llvmorg-22.1.0/llvm/lib/Target/AArch64/AArch64Subtarget.cpp) and the ongoing discourse.llvm.org RFC "MTE mode selection policy".
+- **HWASan x86_64 LAM (Linear Address Masking) support**: Intel Sapphire Rapids and AMD Zen 5 implement LAM/UAI (bits [62:57] of virtual address usable as metadata), the x86_64 analogue of TBI. An LLVM patch series to use LAM instead of the current software mask in x86_64 HWASan mode is under review as of early 2026, reducing x86_64 HWASan overhead from ~20% to approximately the same as AArch64 HWASan (~12%).
+- **Scudo MTE heap scalability**: The Scudo allocator's MTE path (Chapter 112) uses per-class `mmap(PROT_MTE)` arenas; work is ongoing to reduce `STG` instruction counts in the allocation fast path by batching `ST2G` for double-granule allocations and using `stzm` bulk operations introduced in FEAT_MTE4 (ARMv9.3-A). See LLVM Scudo tracker and Android Bionic upstream.
+- **LLDB MTE watchpoints**: LLDB 19 added `memory tag read`; the next step tracked in LLDB's GitHub is `watchpoint set tag-mismatch` — a hardware watchpoint triggered on tag mismatch in addition to the existing SIGSEGV handler, enabling non-intrusive production heap profiling.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **FEAT_MTE4 (ARMv9.3-A) bulk tagging**: ARMv9.3-A introduces `STGM`/`LDGM` accessible from EL0 (user space) for bulk 64KB block tag operations and `DC GZVA` improvements, enabling the Scudo and jemalloc allocators to tag a 1MB arena in a single instruction burst rather than per-granule `STG` loops. LLVM's AArch64 backend will need new MC-layer instruction definitions and patterns for these when silicon ships (~2027).
+- **MTE integration in LLVM's MemorySSA-based alias analysis**: Currently `AArch64StackTaggingPass` runs post-RA without alias information; a proposed mid-term effort is to surface MTE tag constraints into LLVM's alias analysis framework so that mid-level passes (e.g., `GVN`, `LICM`) can exploit the invariant that two MTE-tagged pointers with different tags cannot alias, enabling tag-based aliasing as an optimization fuel.
+- **HWASan / MTE report symbolization in production crash pipelines**: Android Vitals and Google's in-production crash aggregation infrastructure (Perfetto + Crashpad) currently symbolize MTE async fault addresses only approximately. A planned extension adds a per-thread "last N faulting PCs" ring buffer (exportable via `ptrace(PTRACE_GETREGSET, NT_ARM_TAGGED_ADDR_CTRL)`) so that async crashes can be attributed to exact source lines, closing the gap with sync-mode reporting quality.
+- **Swift and Rust MTE integration**: Swift 6 and Rust (via the `allocator_api` nightly feature) are both evaluating MTE-aware allocators for their runtime heap implementations on AArch64. LLVM's sanitizer runtime will need stable ABI hooks (`__hwasan_tag_memory`, `__hwasan_generate_tag`) documented as a library interface rather than internal-use-only symbols.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **CHERI+MTE convergence on Morello successors**: Arm's Morello prototype (128-bit CHERI capabilities + AArch64) and MTE are currently separate features; the academic community (Cambridge, Edinburgh, Arm Research) is exploring a unified capability+tag model for a post-Morello ISA where the 4-bit MTE tag is extended into the CHERI bounds-and-permissions field. If standardized, LLVM will require a new `cheri-mte` target triple and combined `AArch64StackTagging` + capability lowering pass.
+- **LLVM IR-level tag semantics for formal verification**: The Alive2 / Vellvm communities (Chapter 147) are evaluating adding memory-tag semantics to the LLVM IR memory model so that HWASan/MTE instrumentation can be formally verified — a tagged pointer access with a mismatched tag would be `poison` in the IR sense, enabling automated mis-compilation checks for the sanitizer passes themselves.
+- **Production-wide MTE enforcement as a hardening baseline**: As ARMv9-A becomes the standard mobile/server baseline (~2029–2031) and Cortex-A/X cores universally include FEAT_MTE, the expectation is that MTE async mode will be a default Linux distro hardening option (analogous to ASLR today) rather than an opt-in sanitizer. LLVM toolchain changes required: default `memtag` ABI for AArch64 targets, linker changes to always emit `.memtag` sections, and compiler-rt runtime changes to enable MTE in the process startup stub without an application `prctl()` call.
+
+---
+
 ## Chapter 111 Summary
 
 - AArch64 TBI (Top Byte Ignore) makes bits [63:56] of a pointer available for metadata; HWASan uses all 8 bits as a random tag; MTE uses 4 bits [59:56] backed by hardware tag storage.

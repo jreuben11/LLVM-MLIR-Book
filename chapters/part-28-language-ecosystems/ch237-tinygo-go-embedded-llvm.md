@@ -376,6 +376,32 @@ For WASI targets (`wasm32-unknown-wasi`), TinyGo generates a `_start` function t
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **New LLVM pass manager migration**: TinyGo's `OptimizeModule` still uses the legacy `PassManager` API via `go-llvm`. Upstream tracking issue [tinygo-org/tinygo#3755](https://github.com/tinygo-org/tinygo/issues/3755) covers migrating to the new `PassBuilder` / `llvm::PassManager<Module>` C API introduced in LLVM 14 and stabilized in LLVM 16–22. This unlocks use of `llvm::ModuleInlinerWrapperPass` and the `ThinLTO` summary pipeline.
+- **ARM Cortex-M55 and Helium (MVE) target support**: The `thumbv8.1m.main` triple and MVE (M-Profile Vector Extension) intrinsics are underrepresented; community PRs for the Renesas RA6 series (Cortex-M33) and STMicro STM32H5 (Cortex-M33+TrustZone) are in review. LLVM 22's improved `ARMTargetMachine` MVE scheduler model enables better auto-vectorization for DSP workloads.
+- **WASI Preview 2 / Component Model**: The `wasm32-unknown-wasi` target currently targets `wasi_snapshot_preview1`. The WASI component model (Preview 2, stabilized in Wasmtime 18 and WasmEdge 0.14) requires a new `wasm32-wasip2` triple and WIT-generated glue; TinyGo RFC discussion is active on the tinygo-org Slack `#wasm` channel.
+- **Precise GC metadata format convergence**: The TinyGo precise GC's `runtime.typeBitmap` format is hand-maintained. Ongoing work aligns it with the LLVM `gc.statepoint` / `gc.relocate` infrastructure so that the LLVM GC plugin API (`llvm::GCStrategy`) can manage root enumeration, reducing hand-rolled stack scanning code in `src/runtime/gc_precise.go`.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **RISC-V 64 and RV32E bare-metal targets**: RISC-V 64-bit (`riscv64-unknown-unknown`) support for boards like the SiFive U74 and ESP32-P4 is prototyped but not production-ready. The LLVM RISC-V backend improvements in LLVM 18–22 (Zicond, Zba/Zbb/Zbc bit-manipulation, vector "V" extension) create a foundation for TinyGo to emit RVV (RISC-V Vector) instructions for signal processing on embedded Linux SoCs.
+- **Preemptive goroutine scheduling via signals**: The current cooperative coroutine scheduler (`llvm.coro.*`) cannot preempt compute-bound goroutines. Academic prototypes (cf. Behrends et al., "Preemptive Concurrency in Resource-Constrained Runtimes", LCTES 2024) demonstrate inserting preemption checks using LLVM safepoint polls (`llvm.experimental.gc.statepoint`) at loop back-edges; integration into TinyGo would require backend safepoint insertion and context-save/restore for MCU register banks.
+- **`go-llvm` wrapper replacement with `llvm-sys` / CGo 2.0**: TinyGo's `go-llvm` CGo wrapper incurs significant cgo call overhead for each LLVM API call during IR emission. A proposed redesign would batch IR emission via a protobuf or FlatBuffers wire format to a separate `tinygo-llvm-worker` process, similar to how `rustc` uses `librustc_llvm`. This would also decouple TinyGo's LLVM version from the host's installed `libLLVM.so`.
+- **Full `reflect` package support**: The current minimal `reflect` implementation blocks use of JSON encoding/decoding, gRPC-generated stubs, and protocol buffers. TinyGo developers are building a compile-time reflection table emitter that encodes type layouts in a read-only `.rodata` section, enabling `reflect.Type` / `reflect.Value` without a heap-resident type registry.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Integration with MLIR's `emitc` dialect for microcontroller retargetability**: As MLIR's `emitc` dialect matures (targeting C/C++ textual output for MCUs that lack a qualified LLVM backend, such as certain 8-bit PICs and proprietary DSPs), TinyGo could lower `go/ssa` to MLIR and use `emitc` for targets where full LLVM codegen is impractical, enabling Go programs on a much broader class of embedded systems.
+- **Hardware-assisted memory safety via Arm Memory Tagging Extension (MTE)**: Arm Cortex-A510/A710 and future Cortex-M85+ cores support MTE (FEAT_MTE2/MTE3). LLVM's MTE instrumentation pass (`llvm::MemTagSanitizer`) could be adapted for TinyGo's precise GC to tag heap allocations at runtime, providing spatial and temporal safety guarantees previously available only in Rust-style ownership systems for embedded targets.
+- **Go module ecosystem on WASM Components**: The Bytecode Alliance's WebAssembly Component Model roadmap projects production-grade language-agnostic component linking by 2028–2029. TinyGo, as a natural fit for compact WASM components, would need to generate WIT-typed exports, support multi-memory proposals (for shared-nothing isolation), and interoperate with Wit-bindgen-generated C/Rust glue — creating a viable path for Go libraries as universal WASM components deployable on cloud edge runtimes (Fastly Compute, Cloudflare Workers).
+
+---
+
 ## Summary
 
 - TinyGo reuses `golang.org/x/tools/go/ssa` for frontend parsing and SSA construction, diverging from `cmd/compile` at the IR level.

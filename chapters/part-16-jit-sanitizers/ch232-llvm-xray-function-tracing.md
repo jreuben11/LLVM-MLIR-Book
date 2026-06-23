@@ -483,6 +483,32 @@ XRay is preferable when building instrumented binaries from source. eBPF uprobes
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **RISC-V XRay sled support**: Active work to add 8-byte NOP sled instrumentation for RISC-V (RV64GC), matching the AArch64 pattern of two NOP instructions patchable to a `jal` indirect branch — tracked in `compiler-rt/lib/xray/xray_riscv.cpp` stubs and related LLVM Discourse RFC discussions on RISC-V backend parity.
+- **Perfetto integration in `llvm-xray convert`**: Effort to emit XRay logs directly in Perfetto's protobuf trace format (`.pftrace`) instead of Chrome JSON, enabling the richer Perfetto UI timeline, slice nesting validation, and memory and counter track support without intermediate conversion steps.
+- **`-fxray-instrument-with-types` generalization**: Extension of the existing `xray_log_args(1)` mechanism to capture floating-point and SIMD arguments (currently only integer/pointer `arg1` is logged), enabling argument-level tracing for math-heavy workloads.
+- **XRay + AddressSanitizer co-instrumentation**: Fixing link-time conflicts when both `-fxray-instrument` and `-fsanitize=address` are used simultaneously; the current restriction forces a choose-one policy that complicates sanitizer-assisted production tracing workflows.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Windows PE/COFF XRay support**: Port of the ELF `xray_instr_map` / `xray_fn_idx` section mechanism to PE/COFF on Windows x86-64, using `.xray$map` and `.xray$idx` named sections merged by the MSVC-compatible linker — prerequisite for XRay use in mixed MSVC/Clang Windows production deployments at scale.
+- **Sampling-aware XRay runtime library**: An upstream `compiler-rt` implementation of per-function rotation sampling (as described in Section 232.8) with configurable `XRAY_SAMPLE_RATE` and a background thread that rotates patches on a timer, removing the need for each application to implement the rotation pattern manually.
+- **Statistical call-graph reconstruction from flight recorder logs**: Integration of probabilistic stack reconstruction algorithms (similar to `perf record --call-graph`) into `llvm-xray stack` to handle truncated flight recorder buffers where stack frames are partially overwritten, improving p99 latency root-cause analysis fidelity.
+- **OpenTelemetry-native XRay export**: A `compiler-rt` XRay handler that emits spans directly via the OpenTelemetry C++ SDK's OTLP/gRPC exporter, allowing XRay function traces to appear alongside distributed traces in observability platforms (Jaeger, Grafana Tempo) with no offline conversion step.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Hardware-assisted XRay via Intel PT / ARM ETM**: Integration with Intel Processor Trace and ARM Embedded Trace Macrocell to eliminate the software NOP-sled patching overhead entirely — hardware records function addresses in a dedicated ring buffer at near-zero cost, with XRay providing the symbol-mapping and analysis toolchain (`llvm-xray account/convert`) over the decoded hardware trace stream.
+- **Profile-guided selective XRay instrumentation**: A feedback loop where PGO profile data (hot/cold function classification) drives the XRay instruction threshold automatically per function rather than using a single global `-fxray-instruction-threshold=N`, achieving near-zero overhead on hot leaf functions while retaining tracing coverage on moderately-called functions.
+- **XRay as a Clang plugin extension point for AI-driven anomaly detection**: A stable plugin ABI in `compiler-rt/lib/xray/` allowing third-party custom handlers to be loaded as shared libraries at runtime, enabling ML-based anomaly detectors (e.g., gradient-boosted latency models trained on historical XRay logs) to be hot-swapped into production processes without recompilation.
+
+---
+
 ## Chapter Summary
 
 - XRay inserts 5-byte NOP sleds at function entry (x86-64) at compile time; when inactive, these are free; `__xray_patch()` atomically replaces them with `call __xray_FunctionEntry(funcid)` using a lock-prefixed write

@@ -842,6 +842,32 @@ This creates a two-level symbol resolution: the ORC JITDylib for JIT'd symbols, 
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **LLVM Pass Plugin ABI versioning**: The ongoing RFC on discourse.llvm.org for adding a formal semantic version check to `LLVM_PLUGIN_API_VERSION` (currently a single integer) aims to replace it with a structured `{major, minor, patch}` triple so that `opt` can load plugins built against earlier LLVM minor versions without crashing when new `PassBuilder` callbacks are absent. Tracked in LLVM issue #83638.
+- **`llvm::sys::DynamicLibrary` RTLD_LOCAL support**: The current `LoadLibraryPermanently` API maps exclusively to `RTLD_GLOBAL` semantics, making it impossible to load hermetic plugins through the LLVM abstraction layer. A patch adding a `LoadMode` enum (`Global` / `Local`) has been discussed and is expected to land in LLVM 23.
+- **ELF symbol versioning tooling in lld**: lld 22 supports `--version-script` but does not yet warn when a symbol listed in an older version set is removed or renamed between link invocations. Tooling for ABI-diff detection (`llvm-abidiff`, integration with libabigail) is being extended to consume lld's `--version-script` output directly.
+- **macOS arm64 dylib signing integration in CMake/LLVM build**: The LLVM cross-compilation guide for Apple Silicon is being updated to automate `codesign --force --sign -` on all plugin dylibs built in tree, removing the manual `xattr`/codesign step that blocks local plugin development on hardened-runtime macOS hosts.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Standardized C++ ABI for plugin-safe types**: The C++ committee's SG15 (tooling interoperability) and the ongoing `std::embed` / stable ABI discussions are targeting a `std::abi_stable<T>` wrapper or a formal ABI-stable vocabulary subset that would allow `std::string_view`, `std::span`, and small `std::function`-like types to cross plugin boundaries safely across MSVC/GCC/Clang.
+- **ORC plugin loader as first-class LLVM tool**: The vision of an `llvm-plugin-runner` that combines `dlopen`-based stable ABI with ORC hot-swapping (§222.9 combined architecture) is being prototyped in the LLVM sandbox under the JITLink/ORC working group. The goal is a reference implementation that compiler-IR plugin authors can derive from, eliminating the need to write the `LLJIT` + `RedirectableSymbolManager` boilerplate from scratch.
+- **Privilege-separated plugin sandbox via Linux Landlock**: Landlock (stable since Linux 5.13) provides filesystem access restriction without root. Integration with LLVM's plugin loader to restrict `dlopen`'d plugins to a declared set of filesystem paths and deny `openat` on all other paths is planned as a security hardening layer for `clang`'s `--load-plugin` flag.
+- **WASM component model as portable plugin ABI**: The W3C WebAssembly Component Model (reaching phase 4 in 2026) defines a binary interface type system (`wit`) that is inherently ABI-stable across language and toolchain boundaries. LLVM's WASM backend is expected to gain component-model output support, enabling LLVM-compiled plugins to be loaded by any component-model host regardless of native ABI.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Kernel-enforced plugin isolation via io_uring and eBPF**: Rather than running plugins in the host process or a fork-exec sandbox, a future architecture pins plugin code in an eBPF verifier-checked VM or a `seccomp`-policy-confined subprocess, with `io_uring` rings as the IPC channel. LLVM-compiled plugin code would be verified before execution by the kernel's eBPF JIT, giving near-native performance with formal safety bounds.
+- **Formal ABI stability verification via Alive2/LLVM-level proofs**: Research into using Alive2-style SMT-backed equivalence checking to verify that two shared library versions are binary-compatible (same observable behavior for all valid input sequences) is beginning at academic level (see Lopes et al., *PLDI 2021*). A productized tool integrated into LLVM's CI for checking `libLLVM.so` ABI stability across releases is a plausible 5-year outcome.
+- **Cross-language plugin ABI via CIR (ClangIR)**: ClangIR's goal of providing a stable IR above LLVM IR and below Clang AST creates a natural plugin interchange format: a plugin compiled to CIR could be loaded by any CIR-capable host and lowered to native code using the host's optimization pipeline, eliminating the C/C++ ABI layer entirely in favour of a typed, versioned IR interchange.
+
+---
+
 ## Chapter Summary
 
 - `dlopen`/`dlsym`/`dlclose` is the POSIX dynamic loading API; `RTLD_NOW` (fail-fast) and `RTLD_LOCAL` (hermetic) are the safe production defaults; `RTLD_GLOBAL` exposes plugin symbols globally and should be used carefully

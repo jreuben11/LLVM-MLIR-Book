@@ -570,6 +570,32 @@ DenseIntOrFPElementsAttr weights = DenseIntOrFPElementsAttr::get(
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Properties migration completion across all in-tree dialects**: The MLIR community's ongoing effort to migrate remaining op attribute dictionaries to the Properties struct layout (tracked in [discourse.llvm.org RFC "Op Properties Migration"](https://discourse.llvm.org/t/rfc-introducing-properties-in-mlir-operations/)) is expected to reach full coverage in core dialects (Linalg, Affine, SCF, GPU), eliminating the last direct `DictionaryAttr` accesses for op-owned data.
+- **Declarative `TypeConstraint` composition in ODS**: Active patches (e.g., `mlir/lib/TableGen/Constraint.cpp`) are extending ODS to allow combining constraints with logical operators (`AllOf`, `AnyOf`, `Not`) in a fully declarative style, reducing the boilerplate `hasVerifier = 1` patterns currently required for composite type conditions.
+- **`DenseResourceElementsAttr` tooling for large model ingestion**: The `mlir-translate` and `mlir-opt` toolchains are gaining `--attach-resource` and `--detach-resource` flags to automate embedding and extracting binary blobs from `.mlirbc` bytecode, directly serving the IREE and OpenXLA model-deployment workflows.
+- **`SubElementTypeInterface` extension to attributes**: A pending RFC proposes generalizing `SubElementTypeInterface` to also cover attributes (not just types), enabling unified recursive walks over type/attribute hierarchies needed by the new `--mlir-print-op-generic` diagnostics infrastructure.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Parametric type aliases in the type system**: The MLIR community has discussed first-class *type aliases with parameters* (akin to C++ template type aliases), allowing dialects to define `MyTensor<T>` as a named alias for `tensor<?xT>` with verified parameter constraints, reducing verbosity in complex dialect IR and improving readability of printed IR.
+- **Dependent types for shape inference**: Research (building on [Shape Inference in MLIR, CGO 2023]) is driving toward allowing type parameters to reference SSA values (dimension sizes), making the type system aware of dynamic shapes at the type level without resorting to the separate `shape` dialect — analogous to dependent-type systems in Idris/Lean, adapted for a pragmatic compiler IR context.
+- **Extensible layout descriptors for `MemRefType`**: The current `MemRefLayoutAttrInterface` is being extended to support hardware-specific tiling hierarchies (e.g., NVIDIA Hopper's warp-specialized memory layouts, AMD RDNA3 wave-group layouts) as first-class layout attributes, replacing the current practice of encoding tile metadata in ancillary attributes on bufferization ops.
+- **Unified integer signedness model**: Following debate on [discourse.llvm.org/t/signedness-in-mlir](https://discourse.llvm.org/t/signedness-in-mlir/), there is an ongoing effort to optionally annotate integer types with `Signed`/`Unsigned` qualifiers (`si32`, `ui32`) while preserving backwards compatibility with the dominant signless `i32` model, enabling direct interoperation with languages (e.g., Rust, Swift) that carry signedness in the type system.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Gradual type checking and refinement types**: Long-term research aims at integrating refinement types (predicates on values attached to types, as in LiquidHaskell or F*) into MLIR's type system, allowing the verifier to statically enforce properties like "this `memref` dimension is a multiple of 64" or "this integer is non-negative" without separate analysis passes.
+- **Cross-dialect type unification via type-class interfaces**: Analogous to Haskell type classes or Rust traits, a proposed "Type Class" extension would let multiple dialects declare that their types implement a shared semantic contract (e.g., `Numeric`, `Commutative`, `Serializable`) verified at dialect registration time, enabling generic transformations that operate over any conforming type without explicit per-dialect specialization.
+- **Type-level metaprogramming and compile-time type computation**: As MLIR is increasingly used as a substrate for DSLs (Python ML frameworks, hardware design languages), demand is growing for Zig/D-style compile-time type computation within the MLIR type system — allowing ops to compute result types as functions of input types using constexpr-like TableGen or Python DSL extensions.
+
+---
+
 ## Chapter Summary
 
 - MLIR types and attributes are both uniqued, immutable, pointer-sized handles; equality is an `O(1)` pointer comparison; all are uniqued per `MLIRContext`

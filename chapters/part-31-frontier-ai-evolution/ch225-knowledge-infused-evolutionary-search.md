@@ -427,6 +427,32 @@ The key advantage: the evolutionary search amortises its cost (hours of offline 
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- LLVM's new pass manager (NPM) exposes richer analysis preservation metadata via `AnalysisManager::invalidate`; ongoing RFC on discourse.llvm.org proposes a machine-readable pass dependency manifest (YAML) that would eliminate the need to parse `getAnalysisUsage` to populate behavioral vectors automatically — watch llvm-dev thread "Pass dependency introspection for AutoTuning".
+- The LLVM AutoTuning project (`llvm/tools/llvm-autotuning`, RFC posted Q1 2026) is converging on a standard IR fingerprinting API; near-term target is a stable `llvm::ProfileSummary`-based fingerprint schema, directly enabling the policy-table representation in Section 225.7.
+- ECCO's iterative pruning loop (arXiv 2602.00087) is being ported to target LLVM 22 IR; Chandler Carruth's LLVM 22 pass pipeline refactor (removing legacy PM residue) is expected to land by mid-2026, after which ECCO's ablation harness must be rebased — track `llvm-project` PRs tagged `[NPM]`.
+- Alive2's batch verification throughput is being improved via bounded model checking with bitwuzla 0.6; the Synergy-guided GA + Alive2 filtering configuration in Section 225.6 is expected to reduce per-sequence verification latency by ~40%, enabling Alive2 filtering to be applied on every generation rather than only the top-10.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- Knowledge-infused pass synergy graphs will extend to machine-level MIR passes, enabling evolutionary search over the full compilation pipeline (IR → MIR → asm); LLVM's `MIRParser`/`MIRPrinter` infrastructure is the plumbing — expect a `MIR-ECCO` variant covering instruction scheduling and register allocation ordering.
+- The LLM initialization extension (Step 7 in the hybrid framework) will migrate from prompt-based pass name suggestion to embedding-space navigation: a code LLM fine-tuned on (IR snippet, pass sequence, speedup) triples will produce pass-sequence embeddings, with the GA operating in embedding space; preliminary results using Code Llama 34B suggest 2–3× faster convergence (NeurIPS 2027 deadline).
+- MLIR dialect-level synergy graphs will be constructed for the `linalg`→`affine`→`scf`→`llvm` lowering pipeline, enabling ECCO-style causal pruning of MLIR pass pipelines; this is a direct extension of the IR-level work and is tracked in the MLIR roadmap under "AutoScheduling for Linalg on Tensors."
+- The `ReOptimizeLayer` integration will generalize to adaptive fingerprint refinement: after each hot recompilation, the runtime profiler updates the fingerprint→speedup mapping and periodically triggers offline re-search for fingerprints where the current policy falls below a threshold, closing the offline/online gap.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- Evolutionary search over pass sequences will be superseded — or augmented — by differentiable program optimization: a neural network trained end-to-end to propose pass orderings using gradients from a surrogate speedup model, with evolutionary search used only for exploration outside the surrogate's training distribution; this direction follows from the AlphaDev (DeepMind, Nature 2023) methodology applied to compiler optimization rather than algorithm discovery.
+- Hardware-specific synergy graphs will be maintained as first-class artifacts in vendor toolchains (AMD ROCm, Intel oneAPI, ARM Compute Library), automatically updated from performance counter data collected by deployed compilers; the per-architecture synergy-graph divergence problem (a sequence optimal for AVX-512 may be suboptimal for ARM SVE) will be formalized as a transfer-learning challenge with open benchmarks derived from LLVM's `llvm/test/CodeGen/` corpus.
+- ECCO's counterfactual causal framework will be unified with formal methods: rather than ablation heuristics, causal contribution will be computed using Halpern-Pearl causal models over the IR transformation lattice, enabling proof-bearing optimization certificates that include a causal justification alongside the Alive2 correctness proof — integrating with the verified compilation stack described in Part XXIV.
+
+---
+
 ## Chapter Summary
 
 - Blind genetic operators (random crossover and mutation) waste generations on structurally invalid sequences; knowledge-infused operators encode pass prerequisites and synergy relationships directly into crossover and mutation

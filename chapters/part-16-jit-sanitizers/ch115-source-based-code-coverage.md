@@ -731,6 +731,32 @@ echo "Coverage: ${COVERAGE_PCT}% (threshold: 80%)"
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **MC/DC for C++ short-circuit expressions in coroutines**: Ongoing work to extend `-fcoverage-mcdc` support to coroutine suspension points and `co_await` expressions, where current MC/DC bitmask tracking loses context across suspension boundaries. Tracked in LLVM Discourse under the compiler-rt coverage working group.
+- **Coverage mapping format version 7**: The `__llvm_covmap` section is being updated to encode skip-region hints for template instantiations, reducing noise from unexpanded template bodies in `llvm-cov show` output. Proposals active in the LLVM Phabricator/GitHub review queue as of early 2026.
+- **`llvm-profdata` sparse profile format**: A new sparse `.profdata` layout that omits zero-count entries is under review to reduce disk I/O for large binaries with many uncovered functions — relevant for full-program coverage in monorepo CI pipelines.
+- **Clang coverage for GPU targets (CUDA/HIP)**: Patches from AMD and NVIDIA research branches targeting `-fcoverage-mapping` support for offload device code, so device kernels appear in `llvm-cov` reports alongside host code.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Path coverage pilot via symbolic region summarization**: Research prototypes from the LLVM sanitizer team explore augmenting region/branch counters with lightweight path identifiers (sampling a bounded set of paths per decision tree), giving a tractable approximation of path coverage without exponential counter blowup.
+- **MC/DC for IEC 61508 SIL-4 certification tooling**: Formal qualification kits for `clang -fcoverage-mcdc` aligned with TÜV and exida certification bodies are in early development; this requires reproducible, deterministic counter assignment and a stable mapping-format specification suitable for DO-330 tool qualification.
+- **Continuous coverage for distributed microservices**: Extensions to the `%Nm` continuous-mode mechanism to support shared-memory coverage aggregation across containers in a Kubernetes pod, enabling fleet-wide coverage without per-process `.profraw` file scatter. Google's internal coverage infrastructure (Borg-based) is the reference design.
+- **Integration of source-based coverage with LLVM's RemoteCoverage daemon**: A proposed long-running daemon (`llvm-covd`) that accepts coverage counter uploads from instrumented binaries over a Unix socket and maintains a live merged `.profdata`, eliminating the `llvm-profdata merge` step in CI and reducing artifact storage by 10–100x for large test suites.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Compiler-verified coverage adequacy proofs**: Research direction where Clang's MC/DC instrumentation is coupled with a formal model checker (e.g., CBMC or SeaHorn) to emit a proof certificate alongside the `.profdata` file, enabling safety-critical projects to submit machine-checked MC/DC evidence to certification authorities rather than human-reviewed test logs.
+- **Coverage-aware LTO and PGO co-optimization**: Unification of the coverage mapping infrastructure with PGO profile data so that `llvm-profdata` can simultaneously drive inlining/unrolling decisions and report human-readable coverage, eliminating the current need to build twice (once for PGO, once for coverage) — a long-standing usability friction for release builds.
+- **Language-server coverage overlays**: A Language Server Protocol (LSP) extension for clangd that streams live coverage data from a background `llvm-covd` daemon into editor gutter decorations, giving developers instant per-line hit counts without leaving the editor — analogous to mutation testing overlays in JVM tooling.
+
+---
+
 ## Chapter Summary
 
 - **Three coverage mechanisms**: gcov-compatible (GCC format), source-based (Clang-native, most precise), and SanitizerCoverage (fuzzing feedback). This chapter covers source-based coverage.

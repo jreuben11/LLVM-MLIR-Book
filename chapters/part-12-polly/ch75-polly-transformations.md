@@ -367,6 +367,32 @@ With `__restrict__`, LLVM's alias analysis marks A and B as non-aliasing, and Po
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Polly tile-size auto-tuning via ML cost models**: An ongoing effort ([LLVM Discourse, 2025](https://discourse.llvm.org/t/polly-tile-size-auto-tuning)) integrates a lightweight learned cost model into Polly's tiling pass to replace the fixed 32-element default, targeting cache-aware tile sizes per target micro-architecture without profile-guided iteration.
+- **JSCOP format versioning and structured-output stabilization**: The `.jscop` interchange format is being extended to encode band markers, reduction annotations, and multi-statement coincidence sets, enabling lossless round-trip between Polly, external ML schedulers (PolyDL, Tiramisu), and re-import via `-polly-import-jscop`; tracked in the `polly-dev` mailing list Q1 2026.
+- **OpenMP offload code generation for GPU SCoPs**: Polly's parallelization pass is being extended to emit `omp target teams distribute` pragmas for GPU offload in addition to host-side `omp parallel for`, targeting the LLVM OpenMP offload pipeline (libomptarget); patch series posted on Phabricator D154xxx.
+- **Improved reduction detection for non-scalar reductions**: The current reduction-parallelization pass only handles scalar reductions; active patches extend detection to array-valued reductions (histogram, sparse scatter-add), removing a significant restriction on what Polly can parallelize.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Polly integration with MLIR's Affine dialect schedule lowering**: As MLIR's `affine` dialect gains parity with ISL for polyhedral schedule representation, a unified code-generation backend that handles both Polly SCoPs and MLIR affine loop nests via the same ISL → LLVM IR pipeline is being prototyped; see [mlir-polyhedral RFC, 2025](https://discourse.llvm.org/t/rfc-unified-polyhedral-lowering-affine-and-polly).
+- **Learned schedule injection via the JSCOP interface**: Research projects (TensorFlow's XLA loop optimizer, Tiramisu v2, PolyDL) are targeting the `.jscop` import mechanism as a black-box code-generation backend; by 2028 a stable ABI and Python bindings for programmatic JSCOP construction and injection are expected to land upstream.
+- **Matmul pattern generalization to convolutions and attention**: Polly's pattern-based matmul optimizer (`-polly-opt-isl`/`containsMatMul`) is being generalized to detect and apply fixed high-performance schedules for 2-D convolution (sliding-window access pattern) and scaled dot-product attention; this mirrors the approach taken in MLIR's `linalg` named-op library.
+- **ISL-based alias disambiguation using TBAA metadata**: The current alias integration only queries `AAResults`; a forthcoming pass will also propagate LLVM Type-Based Alias Analysis (TBAA) metadata into the ISL dependence system as additional parametric constraints, reducing the number of runtime alias checks inserted for C++ programs.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Fully parametric hardware-adaptive tiling**: Tile sizes and vectorization widths that are left as symbolic parameters in ISL (rather than instantiated at compile time) will allow Polly to emit a single parameterized loop nest that selects tile sizes at runtime based on hardware counters, enabling a single binary to self-tune across cache configurations without recompilation.
+- **Polyhedral code generation targeting RISC-V Vector Extension (RVV)**: As RISC-V RVV deployment scales, Polly's vectorization backend will need to emit scalable-vector IR (`<vscale x N x double>`) rather than fixed-width vectors; this requires coordinating with LLVM's SVE/RVV lowering and the RISC-V backend's cost model for vector-length-agnostic scheduling.
+- **Integration of Polly transformation decisions into compiler IR debug information**: Tiling, fusion, and parallelization decisions will be recorded as structured LLVM debug metadata and surfaced in profiling tools (perf, VTune, LLVM's `-stats`), enabling developers to trace performance differences back to specific polyhedral scheduling choices.
+
+---
+
 ## Chapter Summary
 
 - **Tiling** in Polly splits permutable band dimensions into tile-coordinate outer loops and point-coordinate inner loops; tile sizes are user-specified (32 by default) or computed via ISL's auto-tiling heuristics.

@@ -751,6 +751,32 @@ Unauthenticated propagation (no signature, no verification) is equivalent to a r
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **ORC `ReOptimizeLayer` stabilization (LLVM 22/23)**: The `ReOptimizeLayer` added in LLVM 17 (llvm/lib/ExecutionEngine/Orc/ReOptimizeLayer.cpp) is being hardened for production use — epoch-based old-code reclamation, improved concurrency in `RedirectableSymbolManager`, and support for speculative inlining. Expect stable API in LLVM 23 after the RFC thread on discourse.llvm.org ("ORC Re-optimization Production Readiness", 2025-Q4).
+- **`clang::Interpreter` incremental ABI stabilization**: The `ParseAndExecute` / `Interpreter` API (exposed via `clang-repl`) is gaining stable C ABI bindings targeted at embedding in non-C++ hosts (Python, Julia foreign-call). Tracked in LLVM Phabricator D157234 and follow-up patches for LLVM 22.x.
+- **`llvm-bitcode-strip` tooling for selective section control**: Apple and LLVM upstream are coordinating on fine-grained bitcode section control — per-function bitcode embedding vs. whole-module — to reduce binary size overhead of `-fembed-bitcode` for self-analysis use cases (relevant to section 220.10).
+- **Alive2 in-process library mode**: The Alive2 team (Nuno Lopes et al.) has an open PR to make Alive2's `VerifyTransformation` callable as a library without spawning an external `alive-tv` process, directly enabling the in-process bounded SMT equivalence pattern from section 220.6.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Whole-function live patching via JITLink trampolines**: The JITLink-backend `RedirectableSymbolManager` currently patches only indirect-call stubs; a proposed extension would insert trampolines at function prologues (similar to Linux kernel `kpatch`) to redirect direct-call and inlined sites. This requires cooperation with the register allocator to reserve trampoline space — see the "JITLink live patch" design thread on llvm-dev.
+- **LLM-guided IR transformation with MLIR dialect round-trips**: Research prototypes (e.g., Google DeepMind's AlphaCode-IR work) are exploring LLM-generated MLIR transformations round-tripped through the LLVM pipeline instead of source patches. The `clang::Interpreter` path would be replaced by MLIR's `PassManager` applying LLM-specified dialect lowering sequences, with stronger structural guarantees than text-level source patches.
+- **`ResourceTracker` cross-dylib rollback**: Current `RT->remove()` operates within a single `JITDylib`. Multi-dylib programs (plugins, shared libraries) that perform cross-library hot-swap need transactional rollback spanning multiple dylibs. The ORC working group has a design sketch for a `TransactionTracker` abstraction covering this case.
+- **Distributed fleet self-modification with Byzantine-fault-tolerant consensus**: Extending the two-phase commit propagation protocol (section 220.11) to tolerate Byzantine peers (malicious or compromised instances) requires PBFT or HotStuff-class consensus rather than simple 2PC. Research collaborations between the LLVM JIT group and distributed systems labs (e.g., CMU, ETH) are exploring this for safety-critical autonomous systems.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Formally verified hot-swap correctness**: Integration of the Vellvm (Verified LLVM) framework with ORC's `redirect()` semantics to produce machine-checked proofs that the pointer-cell atomic-store swap preserves sequential consistency from the caller's perspective. This would extend CompCert-style verified compilation to cover runtime code modification, an open problem in verified systems.
+- **Language-runtime-level hot-swap for C++ with object migration**: C++ lacks Pharo's `#become:` analog for migrating existing object instances to a new class layout after a hot-swap. A proposed C++ extension ("C++ live object migration", joint proposal from LLVM and the C++ committee SG7 reflection group) would use compiler-generated migration trampolines driven by LLVM RTTI metadata, enabling full class-level hot-swap including vtable and data-member layout changes.
+- **Self-modifying safety-critical firmware with hardware root-of-trust integration**: Embedding the ORC self-modification loop in RTOS firmware (LLVM Embedded Toolchain for Arm target) with attestation via ARM TrustZone or RISC-V PMP so that each hot-swap is cryptographically attested before execution, enabling firmware self-improvement in deployed IoT and automotive ECU contexts without a service window.
+
+---
+
 ## Chapter Summary
 
 - The runtime self-modification loop has five phases: OBSERVE, REASON, COMPILE, VERIFY, SWAP; each phase maps to specific LLVM APIs

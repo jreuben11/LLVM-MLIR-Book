@@ -916,6 +916,32 @@ This separation means the Microsoft ABI (Chapter 43) overrides the same set of m
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **C++26 contracts and mangling**: The P2900 contracts proposal introduces `pre`/`post`/`contract_assert` attributes that may require new mangling productions in `ItaniumMangle.cpp`; Clang patches tracking P2900 implementation will stabilize the mangled form of constrained function templates with contracts by mid-2026 (track discourse.llvm.org RFC "C++26 Contracts in Clang").
+- **TLSDESC as the default on AArch64 Linux**: Following glibc 2.41 making `_tlsdesc` the default TLS ABI on AArch64, Clang is updating the `emitThreadLocalInitFuncs()` path so that `general-dynamic` TLS emits TLSDESC relocations by default without `-mtls-dialect=desc`, reducing TLS access latency for shared libraries by one indirection; patches landed in LLVM 22 and are being hardened for production use.
+- **`inrange` getelementptr removal**: The `inrange` keyword on vtable GEPs (used for alias-analysis) is being reconsidered in the LLVM LangRef after disagreements over its semantics in the presence of CFI and type-based alias analysis; a Discourse RFC from early 2026 proposes replacing it with `!tbaa` metadata on vtable stores instead.
+- **Sized-deallocation alignment propagation**: Work is underway to pass `std::align_val_t` alongside size to `operator delete` automatically in Clang's `EmitCXXNewExpr` when the class has over-aligned members, matching the behavior GCC adopted in GCC 14; the Clang implementation is in review on Phabricator as of Q1 2026.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Itanium ABI version 19+ for reflection (P2996)**: C++26 static reflection (P2996 / P3096) introduces `std::meta::info` as a new fundamental type; its Itanium mangling is unspecified and will require a new ABI version bump and corresponding `CXXNameMangler` productions; Clang's reflection prototype (clang.llvm.org/docs/Reflection.html) will drive the mangling design in collaboration with the cxx-abi-dev mailing list.
+- **Hardware exception handling (HWEH) support**: Several ARM and RISC-V server vendors are pursuing hardware-accelerated EH table lookups that bypass the `.gcc_except_table` LSDA format entirely; `EHStreamer.cpp` and `__gxx_personality_v0` will need optional alternative table encodings, with an LLVM RFC expected by 2027 building on the zero-cost EH work already merged for WebAssembly.
+- **Vtable security hardening — CFI and pointer authentication (PAC)**: Apple's arm64e PAC ABI signs vtable function pointers using `ptrauth_key_function_pointer`; Clang 22 supports this under `-fptrauth-vtable-pointer-type-discrimination`, but standardizing a portable cross-vendor vtable signing scheme (discussed in the cxx-abi-dev thread "Portable vtable pointer authentication") is expected to produce an Itanium ABI annex by 2027–2028.
+- **`dynamic_cast` acceleration with sealed vtables**: Work from the "Devirtualization using sealed classes" RFC (discourse.llvm.org, 2025) extends to `dynamic_cast`: when the entire class hierarchy is visible at link time, LTO can replace `__dynamic_cast` calls with inline hierarchy traversal or constant folding, eliminating the runtime ABI call; full production support in `lld` + Clang LTO is targeted for LLVM 24–25.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Memory-safe C++ and ABI implications**: ISO C++ safety profiles (P3465 and successor papers) and `std::sbo_ptr` / bounds-safe reference proposals may introduce fat-pointer types with inline metadata; if adopted, the Itanium ABI will require new calling-convention entries and mangling productions for these enriched pointer types, a larger redesign than any prior version bump.
+- **Modular ABI for C++ modules (P1779 follow-on)**: The current Itanium ABI encodes module-linkage names via the `W` production introduced for C++20 modules; as module-partitions and importable headers become the standard build model, the ABI may need a richer encoding that captures module-unit identity without symbol-name collisions — an area the cxx-abi-dev group has flagged as requiring a formal revision of the Itanium ABI document.
+- **Unified C++ / Rust ABI**: The "C++-Rust interop" initiative (supported by the Rust Foundation and the Google Chrome security team) is investigating a shared ABI layer that would allow Rust structs and C++ classes to share vtable formats without `extern "C"` shims; if successful this would require Clang to emit vtable metadata compatible with the Rust compiler's vtable layout, fundamentally extending `CGCXXABI`'s abstraction.
+
+---
+
 ## Chapter Summary
 
 - The `ItaniumCXXABI` class in `clang/lib/CodeGen/ItaniumCXXABI.cpp` and `CXXNameMangler` in `clang/lib/AST/ItaniumMangle.cpp` together implement the entire Itanium C++ ABI for Linux/macOS/Android/FreeBSD targets.

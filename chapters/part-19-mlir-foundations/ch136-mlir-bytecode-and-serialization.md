@@ -898,6 +898,32 @@ Configure in VS Code via the `vscode-mlir` extension by pointing `mlir.server_pa
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Bytecode version 7 stabilization**: The MLIR community has ongoing RFC discussions on adding a `kCompressedStrings` section to the bytecode format that would apply LZ4 compression to the string table (section 0), cutting file sizes a further 20–30% for model IR with many repeated symbol names. Tracking: [discourse.llvm.org/t/mlir-bytecode-v7-compressed-strings](https://discourse.llvm.org/c/mlir/mlir-bytecode).
+- **`mlir-lsp-server` bytecode diagnostics**: Active patches on Phabricator/GitHub to extend the MLIR Language Server to serve diagnostics directly from `.mlirbc` files without requiring a round-trip through the textual format, enabling IDE integration for binary compilation artifacts.
+- **`FallbackAsmResourceMap` thread-safety**: A known limitation in LLVM 22 is that `FallbackAsmResourceMap` is not safe for concurrent parsing of multiple modules sharing the same context; an RFC for a lock-free resource registry is under review as of early 2026.
+- **`mlir-translate --import-llvm` coverage gaps**: The LLVM IR → MLIR import path (`TranslateToMLIRRegistration` for `--import-llvm`) still lacks support for several LLVM 22 intrinsic groups (VP intrinsics, experimental matrix intrinsics); patches landing incrementally through mid-2026.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Content-addressed bytecode cache infrastructure**: As IREE and OpenXLA production deployments grow, a standardized content-addressed `.mlirbc` cache format (analogous to LLVM's module bitcode cache for ThinLTO) is being prototyped, with a `BytecodeCache` API that hashes dialect-version vectors together with IR content for stable cache keys.
+- **Stable ABI guarantee for bytecode format**: The MLIR project currently offers only best-effort forward compatibility (reader reads all versions ≥ `kMinSupportedVersion`). A proposed stability tier — committing to at least 3 years of reading support for any version shipped in an LLVM release — would enable long-lived production artifact stores without compiler-version pinning.
+- **Dialect-level streaming serialization**: For very large modules (>10 M ops), the current section-based layout requires the entire string table and attr/type sections to be loaded before any op can be deserialized. A streaming redesign using interleaved section chunks (borrowed from WebAssembly's streaming compilation model) is being prototyped in the MLIR RFC tracker.
+- **`mlir-translate` bidirectional SPIR-V support in upstream**: The SPIR-V translation library (`--import-spirv`, `--mlir-to-spirv`) is currently maintained out-of-tree in several Vulkan toolchains; an RFC to merge it into the LLVM monorepo and ship it in standard Linux package builds has been open since 2025.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Typed bytecode schemas via TableGen**: A long-discussed direction is generating `BytecodeDialectInterface` implementations automatically from ODS/TableGen dialect definitions, eliminating hand-written `readType`/`writeType` code. This would require extending TableGen's `def` machinery to emit discriminator assignments and VarInt schemas, and is expected to land after the ODS property system (version 5+) is fully stabilized.
+- **Cryptographic provenance in bytecode headers**: For supply-chain security in ML deployment pipelines, a proposal exists to embed Ed25519 signatures in an optional bytecode section that binds the module to a specific compiler revision and input hash, enabling attestation of compilation provenance without full re-compilation.
+- **Universal intermediate representation interop**: The convergence of MLIR bytecode, ONNX binary protobuf, StableHLO serialization, and emerging formats like GGUF (used by llama.cpp) into a shared IR interchange standard is an active research direction. Projects such as the MLProgram dialect and work at ONNX-MLIR are laying the groundwork for a single binary container that carries both computational graph semantics and compiler metadata.
+
+---
+
 ## Chapter Summary
 
 - **The textual format** provides exact round-trip serialization with human-readable syntax: SSA names, typed attributes, and dialect-extensible type/op printing; `parseSourceFile` auto-detects text vs bytecode.

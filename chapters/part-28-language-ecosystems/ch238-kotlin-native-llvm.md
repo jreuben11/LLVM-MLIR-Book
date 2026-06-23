@@ -446,6 +446,32 @@ This produces `main.bc.BitcodeOptimization.ll` and `main.bc.LTO.ll` in the outpu
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **LLVM 18/19 fork migration**: The JetBrains LLVM fork (`github.com/JetBrains/llvm-project`) is tracked in YouTrack KT-65995 for migration from the current LLVM 16 base to LLVM 18/19, unlocking opaque-pointer IR, improved MemorySSA, and new AArch64 MTE/BTI codegen attributes relevant to iOS security hardening.
+- **Swift direct interop (KT-67750)**: JetBrains' "Swift Export" experimental feature generates Swift modules directly from Kotlin declarations, bypassing the ObjC umbrella-header indirection; expected to stabilize and exit experimental status in Kotlin 2.2/2.3, eliminating the `@ObjCName` annotation workaround for most Apple-target use cases.
+- **Concurrent GC incremental mark phase**: The CMS GC in `kotlin-native/runtime/src/gc/cms/` is gaining incremental marking (splitting the mark phase across multiple GC cycles) to eliminate the remaining stop-the-world pauses that occur on large object graphs; tracked in YouTrack KT-49234.
+- **WASM GC target stabilization**: The `wasm32` target is being superseded by `wasmJs` and `wasmWasi` targets leveraging the WASM GC proposal; `KonanTarget.WASM_WASI` is expected to exit alpha and become fully supported alongside removal of the legacy `wasm32` ABI.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Upstream LLVM statepoint graduation**: The `llvm.experimental.gc.statepoint` intrinsic family (central to Kotlin/Native's safepoint mechanism in §238.5) is the subject of ongoing LLVM RFC discussions to graduate it from experimental status; if accepted, JetBrains can drop their statepoint-patching fork commits and track upstream LLVM more closely.
+- **K2 IR serialization for separate compilation**: JetBrains is developing `.klib`-level IR serialization that stores Kotlin IR (not just metadata) so that LLVM codegen can be deferred to link time, enabling true per-module lazy compilation and faster incremental builds analogous to Swift's `.swiftmodule` model; expected to require new `.klib` format version.
+- **Linux RISC-V 64 (`linux_riscv64`) tier-1 support**: With RISC-V gaining embedded Linux traction, a new `KonanTarget.LINUX_RISCV64` is planned once the Kotlin/Native runtime and GC safepoint scanning are validated on RISC-V's frame unwinding conventions; initial patches exist in feature branches.
+- **ARC-to-GC bridge elimination**: Currently, Apple-target builds still carry residual ARC retain/release calls around ObjC object crossings. A planned `ObjCRetainElimination` pass in `CodeGenerator.kt` will prove through alias analysis that Kotlin's GC already covers the lifetime, removing redundant `objc_retain`/`objc_release` pairs and reducing binary size on iOS by an estimated 3–8%.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **ClangIR (CIR) as shared mid-level IR**: If ClangIR (Chapter 220) matures into a stable interchange layer, Kotlin/Native's `InteropLowering` pass could lower `kotlinx.cinterop` calls through CIR rather than emitting LLVM IR directly, gaining access to Clang's type-layout infrastructure and reducing the bespoke C-ABI logic currently duplicated in the JetBrains fork.
+- **Ahead-of-time profile-guided optimization (PGO) via Kotlin instrumentation**: Kotlin/Native currently relies on LLVM's sample-PGO via `llvm-profdata`; long-term plans include a Kotlin-aware PGO that instruments at the Kotlin IR level (before `InteropLowering`) to preserve semantic context across the ~40 lowering passes, enabling profile-guided inlining of virtual dispatch sites that are opaque to LLVM's `pgo-instr-gen`.
+- **Formal verification of the concurrent GC write barrier**: As Kotlin/Native targets safety-critical embedded Linux use cases, a Coq or Iris proof of the Dijkstra-style write barrier in `Barriers.cpp` (§238.4) is a long-term research goal analogous to the verified GC work in the Mu micro-virtual-machine project; JetBrains Research has ongoing collaboration with academic groups on this.
+
+---
+
 ## Summary
 
 - Kotlin/Native's pipeline is K2 FIR → `Fir2Ir` → 40+ Kotlin IR lowerings → LLVM IR emission → ThinLTO → native binary; `KonanBackend` owns the compilation context.

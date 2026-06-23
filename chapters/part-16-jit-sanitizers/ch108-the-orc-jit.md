@@ -1030,6 +1030,32 @@ llvm::setCurrentDebugType("orc");
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **`ReOptimizeLayer` promotion to non-experimental**: The `ReOptimizeLayer` and `JITLinkRedirectableSymbolManager` have been tracked as in-progress features on the LLVM discourse (see "ORC JIT tiered compilation" RFC thread); finalizing the profiling callback ABI and making `reoptimizeIfCallFrequent` the default path is targeted for the LLVM 23 cycle.
+- **`EPCIndirectionUtils` cross-process lazy compilation**: Ongoing patches on `llvm-commits` aim to extend `CompileOnDemandLayer` so that trampolines can be registered in a remote executor without falling back to `SelfExecutorProcessControl`; this removes the current limitation that multi-process ORC cannot use `CompileOnDemandLayer` over `SimpleRemoteEPC`.
+- **Windows ARM64 trampoline support in `compiler-rt/lib/orc/`**: The `OrcAarch64.S` trampoline file uses Linux-specific ABI conventions; a separate `OrcAArch64Windows.S` is in review to support ORC lazy compilation natively on Windows on Arm, unblocking Julia and Swift on that platform.
+- **`llvm-jitlink` COFF/PE support**: Current `llvm-jitlink` handles ELF and MachO; JITLink PE/COFF support (x86_64 and AArch64) is underway in the JITLink backend and will make `llvm-jitlink` the universal ORC testing harness on all three major object formats.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **ORC v3 / `ExecutionSession` redesign for heterogeneous targets**: Discussion threads on discourse.llvm.org (started late 2024) propose splitting `ExecutionSession` into a `CompilerSession` and an `ExecutorSession`, with a well-typed RPC protocol replacing the ad-hoc `SimpleRemoteEPC` wire format, to support GPU/FPGA offload JIT workflows where the "executor" may not support `mmap` at all.
+- **Stackmap v4 / deoptimization frame reconstruction in ORC**: The current `@llvm.experimental.stackmap` / `.llvm_stackmaps` v3 binary format is not versioned at the consumer side; a proposed v4 (tracked in LLVM GitHub issues) adds support for live vector register state, enabling ORC's deopt path to correctly reconstruct frames containing SIMD values — a prerequisite for using `ReOptimizeLayer` on GPU-resident compute kernels via AMDGPU/NVPTX backends.
+- **Persistent JIT cache with cryptographic module identity**: `ObjectCache` in `IRCompileLayer` currently stores only by module name; a project to hash the IR contents (via LLVM's `stable_hash` infrastructure) and store object files in a content-addressed cache on disk is in early RFC stage; this would give ORC the ability to skip recompilation across process restarts, critical for long-lived server JIT workloads (gRPC services, database query engines).
+- **MLIR-to-ORC direct path via `mlir-cpu-runner` successor**: The current `mlir-cpu-runner` compiles MLIR to LLVM IR then feeds it to `LLJIT`; a proposed redesign would allow MLIR dialects to register custom `MaterializationUnit` types directly in an `ExecutionSession`, so that high-level MLIR transformations (e.g., tiling, vectorization) can be triggered lazily on a per-op-call basis rather than per-module.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Speculative compilation driven by ML-based call-frequency prediction**: Rather than the simple call-counter threshold in `reoptimizeIfCallFrequent`, a learned model (analogous to V8's Maglev/Turboshaft ML-hint infrastructure) trained on IR features and historical profiles could pre-schedule tier-2 compilation before the first cold call, eliminating first-call latency for hot functions entirely. This requires integrating ORC's dispatch loop with an inference runtime (GGML or a minimal ONNX evaluator) running on the compilation thread pool.
+- **Verified JIT compilation with Alive2/CompCert-style proofs**: As formal verification tools mature for LLVM IR semantics (Alive2, Vellvm), a future ORC layer could act as a "verification gate" that checks that the tier-2 optimized module is semantically equivalent to the tier-1 module before permitting `RSM->redirect()`, providing a correctness guarantee for JIT recompilation that is impossible to achieve with post-hoc testing alone.
+- **ORC as a universal AOT/JIT pipeline with unified caching and profiling feedback**: The long-term vision articulated in LLVM dev discussions is for AOT-compiled code (from `clang -O2`) and JIT-compiled code (from `LLJIT`) to share a single profile-guided optimization database, so that a server binary cold-started via AOT progressively hands off hot functions to an in-process ORC JIT that continues to specialize based on runtime type/value profiles — closing the performance gap between static and JIT compilation.
+
+---
+
 ## Chapter 108 Summary
 
 - ORC v2 is LLVM's third-generation JIT, designed for concurrency, laziness, and multi-process execution; it supersedes both the original `ExecutionEngine` and MCJIT by replacing whole-module/single-threaded compilation with a session-based, concurrent, resource-trackable architecture.

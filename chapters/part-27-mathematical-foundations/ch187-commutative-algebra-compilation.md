@@ -804,6 +804,32 @@ The *Ehrhart polynomial* bridges the static (algebra of loops as polytopes) and 
 
 *Modules*, *derivations*, and *Kähler differentials* close the loop by connecting the algebraic structures back to differential geometry: programs with state are sections of modules over the ring of parameters; differentiation (automatic or symbolic) is a derivation on that ring; the chain rule is the module morphism law. This connection enables compositional verification of differentiable programs — a growing need as ML compilation (XLA, MLIR's `linalg`, Enzyme) becomes mainstream.
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **ISL Barvinok precision improvements**: Ongoing work in the isl development tree (hosted at https://repo.or.cz/isl.git) to improve the quasi-polynomial parametric cardinality computation for non-full-dimensional sets; patches in review aim to reduce cases where `isl_pw_qpolynomial_bound` falls back to piecewise linear upper bounds rather than exact Ehrhart polynomials. Relevant Polly discussion thread: https://lists.llvm.org/pipermail/polly-dev/.
+- **Enzyme-MLIR graded AD types**: The Enzyme-MLIR project (https://github.com/EnzymeAD/Enzyme-JAX) is extending its `enzyme.autodiff` operation to support graded differentiability annotations, where the "grade" in the effect monoid distinguishes first-order from higher-order derivative computations; initial RFC posted to MLIR discourse in Q1 2026.
+- **MLIR `DataFlowSolver` semiring generalization**: An in-progress LLVM patch (https://reviews.llvm.org/D) proposes a `SemiringDataFlowAnalysis` base class that makes the closed-semiring structure explicit, allowing analysis authors to declare their ⊕ and ⊗ operations and have the solver verify the distributivity condition automatically; targeted for LLVM 23.
+- **SOS (sum-of-squares) certificate generation in Z3**: Z3's T_NIA team is integrating a Positivstellensatz certificate extractor backed by DSOS/SDSOS relaxations (Ahmadi-Majumdar 2019) to supplement Gröbner-basis refutation certificates for polynomial inequalities; milestone for Q3 2026 per the Z3 roadmap (https://github.com/Z3Prover/z3/milestones).
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Polynomial ideal arithmetic in MLIR's affine analysis**: A proposed MLIR dialect extension ("polyrith dialect") would represent loop-invariant polynomial assertions as elements of `k[x₁,…,xₙ]/I`, enabling ideal-membership checks — including Gröbner basis reduction — at compile time using embedded SageMath or Singular calls; initial design discussion at https://discourse.llvm.org/t/polyrith-dialect/. This would let `affine.apply` prove nonlinear index equalities that current `AffineMap` composition cannot handle.
+- **Graded type systems with multiplicity semirings in clangir**: The ClangIR project (Part VIII of this book) is expected to adopt a region-level multiplicity annotation by 2027, encoding Rust-style borrow-checking constraints for C++ `[[clang::ownership]]`-annotated types as grade-semiring constraints; this would bring the coeffect semiring of Section 187.6.2 into production C++ compilation.
+- **Tropical geometry for register allocation**: Research initiated at INRIA and Edinburgh (Louboutin, Wadler 2024 draft) formalizes register pressure as a min-plus matrix product over the interference graph; a prototype LLVM backend allocation pass using tropical eigenvalue computation for optimal spill placement is planned for evaluation in the LLVM backend research track by 2028.
+- **Categorical semantics of MLIR transformations via graded monads**: The CIRCT project (hardware compilation on MLIR) is developing formal semantics of its `hw` and `seq` dialects using graded monads indexed by the clock-domain monoid; proofs of transformation correctness (register retiming, pipeline balancing) will be stated and checked in Lean 4, following the Vellvm model of [Chapter 200](../part-24-verified-compilation/ch200-vellvm-verified-llvm.md).
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Automated Ehrhart-based loop optimization in Flang**: As Flang matures toward DO CONCURRENT and coarray support, the LLVM Flang team plans to integrate ISL's Ehrhart machinery directly into Flang's loop analysis infrastructure, enabling polyhedral trip-count computation with symbolic parameter dependencies for DO CONCURRENT tile-size inference; this requires unifying Flang's FIR with MLIR's affine dialect at the Ehrhart-polynomial level.
+- **Gröbner-basis-backed dependent type checking**: Research on *algebraic dependent types* (Choudhury-Wadler 2023; Krishnaswami-Pradic forthcoming) aims to use Gröbner basis membership as a decision procedure for type equality in a dependently-typed compilation IR; if successful, this would allow a compiler to discharge nonlinear index equality goals (e.g., `i*(i+1)/2 == j` for triangular loop scheduling) at type-checking time rather than requiring runtime guards.
+- **Unified semiring IR for heterogeneous compilation**: A long-term research direction in the MLIR ecosystem proposes a "semiring IR" layer that represents dataflow summaries (for GPU, NPU, and CPU backends) as closed-semiring expressions over a common abstract domain; the algebraic path problem formulation of Section 187.5.2 would then provide a single optimization framework for inter-device data movement minimization, replacing the current proliferation of device-specific cost models in XLA and IREE.
+
+---
+
 ## 187.9 Summary
 
 - **Commutative rings and ideals** are the structural underpinning of polynomial arithmetic. The Hilbert basis theorem — every ideal in k[x₁,…,xₙ] is finitely generated — is the finiteness guarantee behind both Gröbner basis termination and Noetherian induction arguments in compiler verification.

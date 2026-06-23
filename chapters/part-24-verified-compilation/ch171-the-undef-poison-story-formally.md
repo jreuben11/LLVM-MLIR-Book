@@ -544,6 +544,32 @@ The `llvm::impliesPoison(V)` function (in `llvm/include/llvm/Analysis/ValueTrack
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Completing the `undef`-to-`poison` migration in remaining LLVM passes**: Several InstCombine and DAGCombine patterns still emit `UndefValue` where `PoisonValue` is now correct. The ongoing LLVM upstream effort (tracked in discourse.llvm.org threads such as "Finishing the undef→poison migration") aims to audit all call sites of `UndefValue::get()` in optimization passes and replace them with `PoisonValue::get()` or `freeze` as appropriate.
+- **`noundef` inference for C++ standard library functions**: Clang's frontend currently emits `noundef` on function parameters only when the C/C++ type system guarantees it. Active work in the Clang community aims to extend `noundef` inference to more libstdc++/libc++ function signatures via function attributes, reducing the number of poison values that must be tracked across call boundaries.
+- **Improved `isGuaranteedNotToBePoison` / `impliesPoison` precision in ValueTracking**: The `llvm/lib/Analysis/ValueTracking.cpp` analyses that reason about poison are known to be conservative. Near-term patches (tracked at https://github.com/llvm/llvm-project) aim to sharpen these predicates by propagating `noundef` through inlined functions and improving range-based reasoning about overflow flags.
+- **Alive2 integration with the LLVM CI pipeline**: The Alive2 translation validator (Chapter 170) is being integrated as a non-blocking check in LLVM's pre-commit CI for InstCombine patches, surfacing undef/poison correctness violations automatically. This will directly catch cases where a new combine introduces an unsound freeze omission.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Formal specification of the LLVM IR memory model with poison provenance**: The current LangRef description of poison interacts subtly with the memory model (e.g., what happens when `poison` is stored to memory and later loaded). A planned "LLVM IR formal semantics" document, building on the Lee et al. (PLDI 2017) and Memarian et al. (POPL 2019) models, is expected to precisely specify store-of-poison / load-of-poison semantics and how they interact with `memcpy`, atomic operations, and volatile loads.
+- **Vellvm-based verification of core LLVM transformation passes**: The Vellvm project (Chapter 169) is extending its `UVALUE`/`DVALUE` model to cover the full `freeze` semantics. Mid-term goals include machine-checked Coq proofs that key passes (SROA, GVN, loop rotation) correctly insert `freeze` before every use where stability is required, closing the gap between the informal LLVM correctness arguments and formally verified transformations.
+- **C++ abstract machine alignment with LLVM poison semantics**: WG21 (the C++ standards committee) is actively exploring whether C++ undefined behavior for signed integer overflow should be reflected at the language level in a way that maps cleanly to LLVM `poison` rather than C UB. If this proposal advances through the committee, Clang's CodeGen will be updated to emit tighter `nsw`/`nuw` annotations with a corresponding expansion of `noundef` guarantees, directly reducing the scope of poison in typical C++ translation units.
+- **`freeze`-aware loop vectorizer**: The LLVM loop vectorizer currently must conservatively avoid vectorizing loops where a lane might produce poison that infects the control flow of other lanes. A planned enhancement will allow the vectorizer to speculatively freeze values at vector-lane boundaries, enabling vectorization of more loop patterns that currently block on poison conservatism.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Mechanized end-to-end correctness proof of LLVM middle-end via Vellvm + Alive2 composition**: A long-term research programme (building on CompCert, Vellvm, and Alive2) aims to connect Alive2's bounded SMT-based validation with Vellvm's Coq-mechanized interpreter into a single toolchain that can certify that a specific sequence of LLVM optimization passes, applied to a specific module, preserves semantics — including all undef/poison/UB distinctions. This would represent the first formally verified LLVM optimization pipeline for a realistic subset of IR.
+- **Language-level `freeze` semantics in future C/C++ standards**: If the WG21 and WG14 standardization trajectories continue, a future C or C++ standard may introduce a `std::freeze`-style operation that maps directly to the LLVM `freeze` instruction, allowing programmers to explicitly stabilize uninitialized values in well-defined ways rather than relying on UB. This would require Clang CodeGen changes to preserve the freeze through to IR.
+- **Poison-aware hardware: checking poison invariants in silicon**: Research prototypes (e.g., CHERI-inspired tagged architectures) are exploring hardware mechanisms for tagging memory cells as "uninitialized" or "poisoned," allowing the CPU to trap on use of a poison value rather than deferring the check to software. If such architectures become mainstream targets for LLVM, the undef/poison/freeze model in LLVM IR will need corresponding target-specific lowering rules.
+
+---
+
 ## Chapter Summary
 
 - **`undef`** represents a value that may be any bit pattern, with the "fresh at each use" interpretation; it enables optimizations that need to choose a convenient value for an unspecified result.

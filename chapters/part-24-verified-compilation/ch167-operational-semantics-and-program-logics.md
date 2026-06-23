@@ -528,6 +528,33 @@ For LLVM IR, the relevant fragment is primarily QF_BV (for integer operations) p
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Iris 4.x and HeapLang extensions**: The Iris Coq library is under active development (https://gitlab.mpi-sws.org/iris/iris); the 4.x series is introducing `iModIntro`-unification and better support for atomic invariants needed for lock-free data structure proofs — expect a stable release with upgraded HeapLang concurrency primitives by mid-2026.
+- **Bitwuzla 0.7+ integration with Alive2**: Bitwuzla (https://bitwuzla.github.io) is being integrated as a drop-in Z3 alternative in Alive2; the QF_FP (floating-point) solver improvements in Bitwuzla 0.6 reduce Alive2 float-optimization query times significantly — LLVM RFC tracking its adoption is active on discourse.llvm.org (search "Alive2 Bitwuzla backend").
+- **`poison` and `freeze` semantics stabilization in Vellvm**: Ongoing effort to align Vellvm's Coq formalization of `freeze` (introduced in LLVM 10) with the final LLVM Language Reference semantics; patches under review in the Vellvm GitHub (https://github.com/vellvm/vellvm) to handle `freeze` in the operational step relation.
+- **SMT encoding of LLVM opaque pointers**: With LLVM 17+ removing typed pointers, Alive2's memory model must encode pointer provenance in QF_BV+arrays without typed pointer tags; the refactoring effort (LLVM discourse thread "Alive2 opaque pointer memory model") is targeting completion by mid-2026.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **RustBelt 2.0 covering unsafe Rust intrinsics**: The original RustBelt (POPL 2018) covers safe Rust and a curated set of standard-library unsafe abstractions; extending the Iris-based model to cover LLVM intrinsics exposed through `core::arch` (SIMD, atomics, prefetch) is an active PLDI/POPL research direction — several groups (MPI-SWS, Aarhus) are publishing incremental results each year.
+- **Concurrent Alive2 (CALive)**: A research prototype extending Alive2's SMT encoding to handle LLVM's memory model for concurrent code (load/store with `acquire`/`release`/`seq_cst` orderings encoded using the RC11 axiomatic memory model) is expected to reach prototype status; initial design sketched in "Verifying Concurrent Optimizations in LLVM" (PLDI 2025 workshop proceedings).
+- **Lean 4 as a compiler verification substrate**: Lean 4's metaprogramming facilities and `omega` tactic (linear arithmetic decision procedure) make it competitive with Coq for formalizing operational semantics and Hoare logic proofs; the `Mathlib4` library's growing `Logic.Relation` and `Order.WellFounded` modules are being used in new compiler verification projects — expect Lean 4 ports of key CompCert and Vellvm lemmas by 2028.
+- **Weak memory model decision procedures**: Current SMT solvers handle SC (sequential consistency) efficiently but struggle with relaxed-memory models (TSO, PSO, RC11); specialized bounded model checkers (DARTAGNAN, Alloy-based tools) targeting LLVM's `atomic` memory ordering are maturing — integration into mainstream compiler verification workflows expected by 2028.
+- **Gradual verification for LLVM passes**: Rather than full Coq/Lean proofs, "gradual" approaches (mixing proof with runtime checking, à la Dafny or F*) applied to LLVM optimization passes — active DARPA-funded research (SEEC program); target: automatically verify a subset of InstCombine patterns by 2027.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **End-to-end verified Rust-to-binary stack**: Combining RustBelt (Rust type soundness in Iris), a verified rustc middle-end (MIR-level), and a CompCert-style LLVM backend into a single mechanized proof — currently blocked by the gap between Rust's MIR and LLVM IR; academic projects (e.g., at ETH Zurich and UPenn) are tackling MIR formalization with a target of a demonstration-scale verified stack by ~2030.
+- **Decidable fragment of LLVM IR semantics**: Identifying and formally characterizing the largest decidable fragment of LLVM IR (covering pointer-free, bounded-width integer code) for which validity of all legal optimizations is automatically checkable — a theoretical open problem that would place compiler verification on the same footing as hardware model checking; expected to produce definitive decidability results by 2030–2031.
+- **Higher-order separation logic for compiler IR transformations**: Current separation logic applications to compilers (CompCert, Vellvm) use first-order instantiations; higher-order CSL (Iris-style) applied to transformations on LLVM IR with closures, dynamic dispatch, and function pointers requires models not yet fully developed — a major theoretical open problem with expected progress as Iris adoption in PL research grows through 2031.
+
+---
+
 ## Chapter Summary
 
 - **Small-step semantics** defines execution as a transition relation `⟨e, σ⟩ → ⟨e', σ'⟩`; it captures evaluation order and intermediate states, making it the preferred basis for compiler correctness proofs.

@@ -649,6 +649,32 @@ This division of labour exploits the complementary strengths of each approach: M
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- The `ml-compiler-opt` project ([github.com/google/ml-compiler-opt](https://github.com/google/ml-compiler-opt)) is actively tracking LLVM 22's updated `MLModelRunner` API; expect a refreshed MLGO inliner model checkpoint trained on LLVM 22 IR with expanded feature vectors covering `musttail` and `noinline` attribute propagation, following patterns established in the LLVM discourse RFC "MLGO: expanding the feature set for LLVM 22" (discourse.llvm.org/t/mlgo-llvm22-features).
+- Triton's upstream autotuner is being extended with a Bayesian optimisation backend (replacing exhaustive enumeration) contributed by the OpenAI Triton team; the `triton.autotune` API will gain a `search_strategy` parameter accepting `"exhaustive"` (current default) or `"bayesian"`, reducing first-run autotuning latency from minutes to seconds for large config spaces on H100/MI300 targets.
+- IREE's `iree-tuner` CLI tool (under active development in the `iree-org/iree` repository) is reaching a stable interface for automated tile-size search over `llvm-cpu` and `cuda` backends, integrating with `iree-benchmark-module` to close the measurement loop without manual scripting.
+- The CovRL-Fuzz MLIR fuzzer (USENIX Security 2024 submission) is being adapted to cover the new `transform` dialect ops added in LLVM 22; expect a public corpus of transform-dialect crash inputs on the LLVM bug tracker within this window.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- ML-based profile inference via GNN over LLVM CFGs (the research direction described in §180.4.2) is expected to mature into an upstreamable pass for LLVM; the prerequisite is a standardised training-data format pairing IR snapshots with hardware-counter branch probabilities, which the AutoFDO working group (discourse.llvm.org) is formalising as an RFC for a new `!ml_inferred_prof` metadata namespace alongside the existing `!prof` format.
+- The MLGO register-allocator eviction advisor will likely be extended to target RISC-V vector extension (`zve64x`, `zvl512b`) register files, where the combinatorially larger physical register space makes learned eviction policies substantially more valuable than the x86-64 heuristic baselines; Google's MLGO team has published preliminary results for AArch64 SVE that set the template.
+- Alive2-integrated automated patch submission for verified `InstCombine` peephole rules discovered by neural superoptimizers is expected to transition from research prototype to semi-automated CI pipeline; the key enabler is the `llvm/utils/alive2/` patch-generation script reaching production quality, with human review gating only the final merge decision rather than pattern discovery and proof.
+- TVM `meta_schedule`'s XGBoost cost model is expected to be supplanted by a transformer-based model trained on combined CPU and GPU measurement data from the MLCommons hardware diversity dataset, improving generalisation to new microarchitectures (RISC-V AI accelerators, LoongArch 3C6000) without per-device fine-tuning.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- End-to-end learned pass ordering (POSET-RL style) is expected to achieve stable production deployment for a narrow domain — JIT compilers for neural network graphs (XLA, IREE) — where the input distribution is narrow enough that policy generalisation is tractable; deployment in general-purpose ahead-of-time compilation (Clang) will remain research-grade due to the vastly larger input distribution.
+- LLM-assisted backend authoring will extend beyond TableGen record generation to automated scheduling model validation: given a new CPU's instruction latency table, an LLM will generate `llvm-mca` test scripts and compare predicted versus measured throughput, flagging discrepancies for human review; this closes the feedback loop between `SchedMachineModel` authoring and hardware measurement that today requires significant manual effort per microarchitecture.
+- A tiered correctness architecture for AI-generated compiler transformations — combining Alive2 SMT verification for peephole rules, polyhedral dependence analysis for loop transformations, and learned confidence scores for pass-pipeline selection — is expected to emerge as a standard framework, potentially formalised as an LLVM RFC proposing a `VerifiedTransformation` interface that all ML-generated rewrites must implement before entering the pass registry.
+
+---
+
 ## Chapter Summary
 
 - The `MLModelRunner` abstraction unifies MLGO's ML components under a two-mode API: `ReleaseModeModelRunner` executes an AOT-compiled model as a direct C++ call; `DevelopmentModeModelRunner` opens a gRPC channel to a Python training server. The mode is selected at CMake time via `LLVM_HAVE_TF_AOT` / `LLVM_HAVE_TF_API` and at invocation time via `-enable-ml-inliner=release|development`.

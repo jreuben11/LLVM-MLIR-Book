@@ -462,6 +462,32 @@ Notice that:
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Bufferization of `tensor.pad` and dynamic shapes**: Ongoing community effort to make one-shot bufferization handle `tensor.pad` with fully dynamic padding widths in-place, eliminating the fallback copy that currently fires when padding values cannot be statically inferred (tracked in LLVM Discourse RFC "Improving dynamic-shape bufferization coverage").
+- **`memref.alloca` scope annotation**: RFC in progress to add structured scope annotations to `memref.alloca` to enable safe cross-block alloca promotion, replacing the current conservative restriction to single-block function scopes.
+- **Strided-layout canonicalization pass hardening**: Patches under review to extend `--canonicalize` to fold `memref.subview` chains transitively when intermediate subviews have static offsets, reducing redundant descriptor fields emitted to LLVM IR.
+- **`BufferizableOpInterface` coverage for `vector` dialect**: Several `vector.transfer_read`/`vector.transfer_write` bufferization paths are being unified so that mixed tensor/vector programs bufferize without manual `bufferization.to_memref` bridges, as part of the structured ops convergence tracked in `mlir/lib/Dialect/Vector/Transforms/`.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Ownership-transfer attributes for cross-function bufferization**: The current `bufferize-function-boundaries` mode requires function signatures to be rewritten eagerly. A planned attribute-based model (analogous to Rust's ownership annotations) will allow callee-side bufferization contracts to be expressed without rewriting all call sites — enabling incremental migration of large codebases.
+- **Hierarchical memref for multi-level memory systems**: Proposals in the MLIR working group for `memref` extensions that natively represent multi-level hierarchies (L1/L2/HBM on AI accelerators), replacing the current convention of stacking address-space attributes and relying on lowering passes to insert DMA ops.
+- **Alias-set tracking in OSB for SPMD programs**: One-shot bufferization currently has no model for concurrent writes from multiple threads/workitems. An alias-set extension is planned to propagate GPU launch-bound parallelism information into bufferization analysis, enabling correct in-place bufferization of `scf.forall` / `gpu.launch` bodies.
+- **Compile-time allocation size analysis**: Integration of `memref` shape inference with polyhedral volume analysis (from Polly/ISL) to compute tight upper bounds on dynamic allocation sizes at compile time, enabling stack promotion of dynamically-shaped buffers whose maximum size is statically bounded.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Formal verified bufferization correctness**: Research direction (aligning with the Vellvm/Alive2 tradition) to produce a machine-checked proof that one-shot bufferization is semantics-preserving for the tensor-to-memref transformation, using a Lean 4 or Rocq (Coq) encoding of the MLIR tensor/memref semantics.
+- **Persistent memory and heterogeneous address spaces**: As CXL-attached persistent memory and chiplet-based disaggregated memory architectures become mainstream, `MemRefType`'s address space attribute is expected to grow into a full capability model, with compiler-enforced lifetime and persistence guarantees encoded in the type system rather than enforced only by runtime libraries.
+- **Automatic layout selection for data-dependent access patterns**: Long-term research goal to integrate profiling feedback or analytical models (e.g., roofline-guided layout selection) directly into the MLIR bufferization pipeline, so that the compiler automatically chooses between row-major, column-major, blocked, and sparse layouts based on downstream access patterns detected during analysis.
+
+---
+
 ## Chapter 138 Summary
 
 - `MemRefType` encodes element type, shape, strided layout (as an affine map), and memory space. Dynamic shapes use `?` for runtime-determined dimensions.

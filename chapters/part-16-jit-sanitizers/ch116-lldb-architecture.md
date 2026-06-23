@@ -918,6 +918,32 @@ This is primarily a UX improvement for GPU kernel debugging workflows where sour
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **LLDB DAP 2.0 protocol adoption**: The Debug Adapter Protocol v2 specification (Microsoft, 2026) adds structured exception filters, memory references, and multi-process sessions. Patches under review at `lldb/tools/lldb-dap/` integrate the updated protocol, replacing the existing DAP 1.x adapter that ships in LLDB 22. Tracked in [LLDB DAP v2 meta-issue](https://github.com/llvm/llvm-project/issues).
+- **`SymbolFileJSON` extended schema with inline DWARF expressions**: A 2025 RFC on discourse.llvm.org proposed adding DW_OP variable location expressions to the JSON symbol format, enabling proper variable display in embedded firmware workflows without full DWARF. Implementation expected in LLDB 23 (late 2026).
+- **NVPTX process plugin (LLDB 23)**: The `ProcessPluginNVPTX` discussed in the GPU/accelerator section is in active development by NVIDIA contributors. Patches targeting LLDB 23 use CUDA's `libcuda.so` debug API rather than routing through `cuda-gdb`, enabling native NVIDIA GPU work-item inspection from LLDB.
+- **Scripted Process API stabilization**: The `ScriptedProcess` interface introduced in LLDB 14 is receiving ABI stability guarantees for LLDB 23, freezing the Python-facing `lldb.ScriptedProcess` virtual method signatures to enable third-party trace-replay backends without recompilation on each LLVM update.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **DWARF 6 adoption in SymbolFileDWARF**: DWARF 6 standardization (expected 2027–2028) introduces native support for heterogeneous (GPU) address spaces (`DW_AT_address_space` attribute) and lazy type references, eliminating the large DWARF inflation that occurs today when debugging GPU kernels. LLDB's `SymbolFileDWARF` will need to implement these new attributes alongside the existing DWARF 5 parser.
+- **ORC JIT v3 integration in expression evaluator**: The LLVM ORC JIT team is actively redesigning the executor model (JITLink v2, tracked in LLVM Discourse RFC "ORC JIT v3 architecture") to support multi-target and heterogeneous JIT execution. LLDB's `IRExecutionUnit` will migrate to this new API, enabling expression evaluation in GPU device contexts (i.e., evaluating a HIP expression in an AMDGPU work-item's register context).
+- **Time-travel debugging (TTD) via structured Intel PT snapshots**: Research from Microsoft (WinDBG TTD, 2022) and Pernosco (rr-based, 2024) demonstrated that ring-buffer-limited Intel PT can be supplemented with periodic memory snapshots to extend replay windows. LLDB's Intel PT integration (`IntelPTManager`) is a natural extension point; community proposals exist for a snapshot-augmented replay mode.
+- **Clang expression evaluator for Rust and Swift convergence**: The `ClangExpressionParser` currently handles C, C++, Objective-C, and Swift (via the swift-lldb fork). A 2025 LLVM Discourse thread discusses bringing Rust into the expression evaluator using `rustc_codegen_llvm` as a library, allowing `p my_rust_struct.method()` to compile Rust expressions using the actual rustc type system rather than a C++ approximation of Rust types.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Unified heterogeneous debugger model (CPU + GPU + NPU)**: As workloads increasingly span CPUs, GPUs, and ML accelerators, a unified LLDB session model that tracks cross-device data movement and synchronization barriers will become essential. This requires extending `Process`, `Thread`, and `RegisterContext` with device-agnostic abstractions and a heterogeneous memory model that tracks LLDB `SBValue` objects across address-space boundaries — a research challenge beyond any single RFC.
+- **LLDB as a library in language runtimes**: The `liblldb` library-first architecture positions LLDB for embedding in language virtual machines (Python, JavaScript, Wasm runtimes) that today implement ad-hoc debugger backends. A formal ABI-stable `liblldb` C API (analogous to LLVM's `llvm-c` API) could allow language runtimes to delegate all debug-info parsing, breakpoint resolution, and expression evaluation to LLDB, replacing a long tail of bespoke runtime debugger implementations.
+- **Verified expression evaluator soundness**: The expression evaluator's correctness relies on Clang correctly reconstructing types from DWARF, applying correct ABI rules, and generating IR that ORC compiles without UB. Research by the Alive2 and Vellvm communities (see Chapter 183) points toward mechanically verified compilation of small expression fragments; applying these techniques to `ClangExpressionParser` → `IRExecutionUnit` would provide soundness guarantees currently absent from LLDB's JIT path.
+
+---
+
 ## Chapter Summary
 
 - **LLDB's design** is library-first (`liblldb`) with a plugin architecture. Every optional capability — binary format parsing, debug info, disassembly, platform integration, process control — is a plugin.

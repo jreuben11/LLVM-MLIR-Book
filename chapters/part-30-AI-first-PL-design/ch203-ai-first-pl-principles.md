@@ -475,6 +475,32 @@ The implication: an AI-first PL that targets WASM gets capability safety and har
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **MoonBit semantic sampler integration with MLIR backend**: The MoonBit team has signalled plans to replace its WASM code generation with an MLIR-based backend (analogous to Mojo's architecture), enabling the semantic sampler to enforce constraints over LLVM IR rather than just source tokens — tracking upstream discussions at [moonbitlang/moonbit-core](https://github.com/moonbitlang/moonbit-core). Expect a prototype lowering pipeline by mid-2026.
+- **Dafny vericoding success rate crossing 90%**: The POPL 2026 vericoding track includes several submissions applying retrieval-augmented invariant synthesis (RAIS) to Dafny; combined with GPT-4o fine-tuning on Dafny corpus, the community target is pushing the current 82% LLM success rate past 90% for standard data-structure programs. Follow progress at [dafny-lang/dafny](https://github.com/dafny-lang/dafny/discussions).
+- **Outlines FSM compilation to WASM**: The dottxt-ai team is working on compiling Outlines' FSM token-mask tables to WebAssembly modules, enabling client-side structured generation in browsers without server round-trips — directly enabling the §203.8 MoonBit-edge-WASM convergence scenario; see [outlines-dev/outlines #984](https://github.com/outlines-dev/outlines/issues/984).
+- **DSPy 3.x typed multimodal signatures**: Stanford NLP has an open RFC for extending DSPy signatures to multimodal I/O — `Image[W,H,Format]`, `Audio[SR,Ch]` — as typed fields on `Signature`, directly addressing the G4 open problem from §203.6.4. DSPy 3.0 milestone tracking is at [stanfordnlp/dspy/milestone/3](https://github.com/stanfordnlp/dspy/milestones).
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Unified `{Stochastic}` algebraic effect across Koka/Lean 4/Dafny**: The open unification problem in §203.7 Paradigm 2 is on the research agenda of the Koka team (MSR Cambridge); the expected form is a shared effect-row encoding for probabilistic semantics that Lean 4's MetaM can elaborate and Dafny can lower to Z3 assertions — referenced in Leijen's 2025 workshop position paper on graded modal effects.
+- **Verus integration with Rust's built-in `unsafe` linting pipeline**: The Rust Foundation's Safety Critical Rust Consortium (active 2026) has Verus integration as a medium-term target, enabling Verus postconditions to interoperate with the `#[requires]`/`#[ensures]` RFC being drafted in rust-lang/rust for safety-critical use cases; see [rust-lang/rfcs#3458](https://github.com/rust-lang/rfcs/pull/3458) and downstream Verus RFC tracking.
+- **Gen trace semantics formalised in Lean 4**: A collaboration between MIT Probabilistic Computing Project and the Lean 4 community is targeting a Lean 4 formalisation of Gen's trace type (`Trace[A]`) and the content-hash reproducibility theorem from §203.7 Paradigm 3, enabling proof-level reasoning about stochastic program equivalence — initial design sketched in [probcomp/Gen.jl#492](https://github.com/probcomp/Gen.jl/issues/492).
+- **Wasm Component Model WASIp3 with capability effect types**: WASI preview 3 (targeting 2027–2028) adds async and stream interfaces; the capability-effects research thread (W3C WebAssembly CG) aims to embed Koka-style effect rows into the WASM Component Model's typed import/export interface, making §203.8's capability-safety-as-compiler-output fully expressible in the binary format.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **`patch` primitive for reflective self-improving code**: The open problem from §203.2 (the reflective tier, "Research frontier") — a `patch` primitive that modifies a running program while preserving all declared type invariants — is the subject of a DARPA-funded research thrust (Assured Neuro-Symbolic Learning and Reasoning, ANSR program). The expected form is a dependent-type theory where `patch(P, P')` is well-typed only when the verifier can prove `observational_equivalence(P, P')` on the subset of behaviours declared as preserved; timeline is 2029–2031.
+- **QTT (Idris 2 / Quantitative Type Theory) standardisation for AI agent resource budgets**: The §203.5.3 application of QTT to token budget tracking and agent capability attenuation is driving a long-term standardisation effort at the Programming Language Research Group (PLRG) for a QTT-based intermediate representation for AI agent orchestration, targeting ISO/IEC JTC1 SC22 submission around 2030.
+- **Formally verified AI-first PL compiler (Lean 4 meta-circular verification)**: The convergence of AlphaProof (§203.4.2) and the Lean 4 MetaM substrate points toward a compiler for an AI-first PL whose correctness is certified in Lean 4's own kernel — a meta-circular verification tower analogous to CompCert (Chapter 175) but targeting the unified PL described in Chapter 207. The research milestone is a verified elaborator for the G1–G6 open problems from Chapter 207 §207.2.
+
+---
+
 ## Chapter 203 Summary
 
 - An AI-first PL inverts seven human-PL design priorities: formal semantics over convention, rich type systems as machine-readable specs, explicit algebraic effects, homoiconicity, canonical single representation, structured typed diagnostics, and module-level edit locality.

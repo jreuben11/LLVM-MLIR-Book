@@ -878,6 +878,32 @@ The `AttributorPass` automatically upgrades any legacy attributes present in old
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **`preserve_none` broader adoption and expansion**: The `preserve_none` calling convention (CallingConv::PreserveNone, ID 21), introduced in LLVM 17 for GC write barriers and safepoint stubs, is being extended to cover additional runtime call patterns. Active Phabricator reviews target `preserve_none` support on AArch64 (currently only fully supported on x86-64) and discussion on discourse.llvm.org proposes a companion `preserve_most_registers` variant for profiling hooks.
+- **RISC-V calling convention stabilization post-ratification**: The RISC-V vector extension (RVV) calling convention for `vscale_range`-annotated functions is being finalized to match the ratified RISC-V EABI specification. The `RISCVCallingConv.td` changes tracking vector register usage (V0–V31) are expected to land in LLVM 22.x point releases, aligning with the GCC 15 implementation.
+- **`noundef` completeness for `_Bool` and bit-fields**: Clang 22 still conservatively omits `noundef` on `_Bool` parameters in certain indirect-call scenarios and on bit-field-containing struct parameters. An active RFC (discourse.llvm.org/t/noundef-bool-parameters) proposes extending Clang's `CGCall.cpp` analysis to cover these cases, enabling more aggressive GVN and SCCP across language boundaries.
+- **GlobalISel `CCAssignFn` integration**: The GlobalISel path uses a parallel `CallLowering` abstraction that partially duplicates the TableGen `CCAssignFn` tables used by SelectionDAG. An ongoing effort to unify these under a single TableGen-generated description (tracked in LLVM GitHub issue #63279) targets complete unification before LLVM 21 reaches end-of-life, reducing the per-target ABI maintenance burden.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **ABI stability guarantees for `fastcc`-promoted functions under LTO**: Current LTO pipelines can promote internal functions to `fastcc`, but the promotion is not persistently recorded in a way that allows incremental LTO rebuilds to reuse the convention across module cache invalidations. A proposed `fastcc`-sticky bitcode annotation (discussed as part of the ThinLTO roadmap) would allow `fastcc` promotion decisions to survive module recompilation, reducing link-time work for large codebases such as Chrome and Firefox.
+- **C23 `_BitInt` ABI standardization across targets**: The C23 arbitrary-precision integer type `_BitInt(N)` is supported in Clang 22 but its ABI (how `byval`/`zeroext`/`signext` apply, how it interacts with struct layout and calling conventions) is not yet standardized across all targets. The AAPCS working group and the x86-64 ABI maintainers (H.J. Lu) have open proposals for `_BitInt` ABI rules; resolution is expected to require coordinated changes to `TargetInfo.cpp`, `AArch64ABIInfo`, and `X86_64ABIInfo`.
+- **Capability-aware calling conventions for CHERI/Morello**: The CHERI project (Cambridge) and Arm Morello platform require capability (fat pointer) arguments to be passed in capability registers, not general-purpose registers. A `chericc` calling convention or an extension to `ccc` via capability-aware parameter attributes is under design; a reference implementation exists in the CheriBSD fork of LLVM and is expected to be proposed for upstream inclusion once the Morello hardware ecosystem matures.
+- **Swift async calling convention evolution for structured concurrency**: The `swiftasync` attribute and `swifttailcc` convention are central to Swift's async/await ABI. As Swift structured concurrency matures and the Swift runtime evolves its continuation-passing protocol, corresponding IR-level changes to the async context parameter (`swiftasync`) are anticipated, including potential introduction of a `swiftasynccc` distinct from `swifttailcc` to better express continuation ownership semantics.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Machine-readable ABI descriptors replacing `CCAssignFn` TableGen tables**: The current `CCAssignFn` mechanism requires per-target hand-written TableGen, which is error-prone and difficult to audit against ISA specifications. A long-term proposal (articulated in the 2024 LLVM Developers' Meeting talk "Towards a Unified ABI Description Language") envisions a formal, machine-readable ABI specification language (similar to ACLE or the RISC-V calling convention specification in RISC-V International's documentation) that generates both `CCAssignFn` tables and verification test cases, enabling automatic conformance checking against hardware reference implementations.
+- **Unified IR-level ABI model across LLVM/MLIR boundary**: MLIR's `func.call` operations have no native concept of `byval`, `sret`, or `signext`; these are encoded as dialect attributes or lost during MLIR-to-LLVM lowering. A unified ABI attribute model that survives the MLIR→LLVM IR lowering pass without information loss would enable MLIR-native ABI analysis passes (alias analysis, memory effect modeling) to operate at the same fidelity as LLVM IR-level passes. This is discussed in the MLIR roadmap under "first-class ABI representation."
+- **Post-quantum cryptography calling conventions**: As NIST PQC algorithms (CRYSTALS-Kyber, CRYSTALS-Dilithium, now standardized as ML-KEM and ML-DSA) enter hardware acceleration, vendors (ARM, Intel, RISC-V) are proposing ISA extensions with dedicated polynomial multiplication registers. These registers will require new calling convention rules — which argument values live in polynomial registers, what their callee-save obligations are — analogous to how AVX-512 registers required `x86_vectorcallcc` extensions. LLVM will need new `target-features` attributes and potentially new calling convention variants to expose these ABI surfaces to compilers targeting PQC hardware.
+
+---
+
 ## 23.9 Chapter Summary
 
 - **Function attributes** encode the optimizer's contract with a function: memory effects (`memory(none/read/write/readwrite)` replacing the legacy `readnone`/`readonly`/`writeonly` as of LLVM 16), control-flow properties (`nounwind`, `noreturn`, `willreturn`, `nosync`), inlining policy (`noinline`, `alwaysinline`, `optnone`), code generation hints (`cold`, `hot`, `naked`), and target-specific overrides (`target-cpu`, `target-features`, `vscale_range`).

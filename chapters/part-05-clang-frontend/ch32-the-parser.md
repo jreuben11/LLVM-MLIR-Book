@@ -1246,6 +1246,32 @@ PreferredTypeBuilder PreferredType;
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **C++26 grammar extensions in-flight**: The Clang parser is being extended for C++26 features ratified at the 2025–2026 WG21 meetings, including `static` data members in `constexpr` variable templates (P2996 reflection partially lands in parser via `reflexpr` expression syntax in `ParseBuiltinPrimaryExpression`), and the deducing-`this` refinements from P2797. Patches tracking `[clang] P2996 reflection` on LLVM Phabricator / GitHub PRs will land in the `ParseCastExpression` and `ParseDeclarationSpecifiers` paths.
+- **`clang-repl` CUDA/GPU incremental parsing**: The `IncrementalParser` is being extended (RFC: "clang-repl GPU execution backend", posted to LLVM Discourse in late 2025) to support offload compilation units in each `PartialTranslationUnit`, allowing GPU kernels to be JIT-compiled interactively. Parser changes gate on `ParseCUDAKernelCallExpr` surviving incremental boundary.
+- **OpenACC 3.3 clause additions in `ParseOpenACC.cpp`**: Following the OpenACC 3.3 standard finalization, Clang's `ParseOpenACC.cpp` is being updated to add new `tile`, `gang`-only restrictions, and `self` clause forms; tracked in `clang/lib/Parse/ParseOpenACC.cpp` on the `openmp-offload` and `acc` tracking issues.
+- **Faster tentative-parsing cache**: An RFC on LLVM Discourse ("Speed up TentativeParsingAction via token pre-annotation") proposes pre-annotating all resolvable identifiers in a translation unit during a lightweight pre-pass, reducing the number of `TentativeParsingAction` reversions by ~40% on large C++ header files — relevant to `ParseTentative.cpp`.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Full C++ static reflection (P2996 / P3294 / P3385) parser integration**: Once the reflection TS is finalised and merged into C++26/C++29 working papers, the Clang parser will require new primary-expression syntax for splice expressions (`[: expr :]`) and reflection queries (`^T`, `^^ns`), requiring new annotation token kinds (`tok::annot_reflect_type`, `tok::annot_reflect_expr`) and disambiguation in `ParseCastExpression` and `ParseParenExpression`. The `TryAnnotateName` family will need splice-context overloads.
+- **ClangIR-aware parser callbacks**: As ClangIR (CIR) matures from experimental to a default code-generation path (Part VIII of this book), the `ASTConsumer`/`Parser` interface will be extended to allow the CIR builder to receive fine-grained parse events (entering a function body, completing a class specifier) rather than post-hoc AST traversal — tracking the `clang/lib/CIR/FrontendAction/CIRGenAction.cpp` evolution.
+- **Parallel parser for include-heavy TUs**: Multiple LLVM community proposals (e.g., "Clang modular parsing" thread, Discourse 2024) envision a coarse-grained parser parallelism where independent top-level declarations can be parsed on separate threads, sharing a read-only `DeclContext` snapshot. This requires `Parser` to be instantiable without a global `Sema` mutex, affecting `ParseTopLevelDecl` and `ParseDeclGroup`.
+- **Richer incremental `Undo` semantics in `clang-repl`**: The current `Interpreter::Undo` removes whole `PartialTranslationUnit`s but cannot selectively roll back individual declarations. A per-declaration undo log (analogous to Cling's transaction model) is planned, requiring the parser to annotate each `DeclGroupRef` with a `TransactionID` for targeted rollback via `Sema::UndoDecl`.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Grammar-directed error recovery using ML models**: Research projects (Replit/Copilot compiler plugins, academic work on neural program repair) propose augmenting `SkipUntil`-based recovery with token-level language models that predict the most likely intended token sequence after a parse error. Integration point would be a pluggable `ErrorRecoveryPolicy` interface beneath `ExpectAndConsume` and `SkipUntil`, allowing LLM-guided recovery in LSP/IDE contexts without affecting AOT compilation paths.
+- **Lazy/demand-driven parsing for build-system integration**: Next-generation build systems (Buck2, Bazel with Clang plugins) may drive parsing at declaration granularity — parse only the declarations needed by a downstream consumer. This would expose a demand-driven `ParseDeclarationOnDemand(DeclName)` API, surfacing the `SkipFunctionBodies` idea to full declaration-level selectivity, requiring the parser to maintain a declaration-offset index into the raw source file.
+- **Verified parser correctness via mechanised proofs**: Long-term academic effort (following CompCert and Vellvm traditions) to produce a Lean 4 or Coq model of Clang's disambiguation logic, particularly the `isCXXDeclarationSpecifier` decision procedure and `TPResult` logic, ensuring the tentative-parsing mechanism correctly implements the C++ standard grammar. This would constrain future refactors of `ParseTentative.cpp` against a formal spec.
+
+---
+
 ## Chapter Summary
 
 - `clang::Parser` is a hand-written recursive-descent parser that couples directly to `Sema` via an `Actions` member, calling `Act*` methods at every AST-construction point.

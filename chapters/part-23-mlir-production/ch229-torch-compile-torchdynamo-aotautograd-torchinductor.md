@@ -477,6 +477,32 @@ compiled = torch.compile(model, backend="my_backend")
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Stable symbolic shape compilation**: The `torch.compile(dynamic=True)` path is graduating from Beta to Stable; remaining blockers around `torch.export` + symbolic shapes in FSDP2 distributed training are tracked in PyTorch RFC #126132 and `torch/_dynamo/symbolic_shapes.py` refactors targeting PyTorch 2.7.
+- **AOTInductor ABI freeze and C++ API expansion**: PyTorch 2.7 is expected to stabilize the `torch_inductor_run_with_state` C++ API, enabling multi-model weight sharing in AOTInductor-compiled `.so` binaries; tracked in `torch/_inductor/package.py` and the `aotinductor-api` label on pytorch/pytorch.
+- **Inductor FP8 training kernel generation**: TorchInductor is gaining direct Triton-level FP8 gemm emission (replacing the current cuBLASLt dispatch shim) to support BF16/FP8 mixed-precision training pipelines without Inductor graph breaks; prototype patches landed in `torch/_inductor/kernel/mm.py` in early 2026.
+- **`torch.compile` + `torch.distributed.pipelining`**: The pipeline-parallelism integration — where each pipeline stage is a separately compiled `torch.export`-exported subgraph — is advancing toward Beta; the `PipelineStage`/`compile`-compatible API is being stabilized in `torch/distributed/pipelining/`.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Convergence of `torch.compile` and torch-mlir lowering paths**: Efforts are underway (OpenXLA/StableHLO working group, PyTorch + IREE integration) to let TorchInductor optionally emit StableHLO rather than Triton, unifying the JIT and AOT MLIR paths and enabling deployment to TPUs and custom accelerators without two separate compilation stacks.
+- **Persistent compilation cache (PGO-driven Inductor)**: TorchInductor's `max_autotune` cache currently resets per process. A disk-persistent, profile-guided cache (`torch._inductor.codecache` redesign, discussed at PyTorch 2025 Developer Day) would allow multi-run tuning data to accumulate, converging on optimal tile sizes after several training runs — similar to LLVM's PGO database.
+- **First-class higher-order op support in TorchDynamo**: `torch.vmap`, `torch.cond`, `torch.while_loop`, and nested `torch.compile` calls are partially supported; full support for arbitrary higher-order ops (avoiding graph breaks on `functorch`-style transforms) is a known correctness gap, tracked in the `higher-order-ops` milestone on pytorch/pytorch.
+- **TorchInductor for AMD ROCm parity with CUDA**: The Triton-ROCm backend (`triton-lang/triton` ROCm fork) is being upstreamed; Inductor's autotune heuristics currently assume CUDA-specific register file / shared memory assumptions; a hardware-agnostic tuning model is needed for production ROCm deployments.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Whole-program AOT compilation of transformer training loops**: The current TorchDynamo model captures per-frame graphs and stitches them via Python. A longer-term direction — analogous to JAX's full-program XLA compilation — would export an entire training iteration (forward + backward + optimizer update + data pipeline) as a single static graph, enabling cross-iteration operator scheduling and memory planning across thousands of operators.
+- **Formal semantics for the ATen operator set and guard language**: The guard system (shape guards, value guards, object identity guards) currently relies on runtime Python evaluation with no formal specification; a typed, formally verified guard language (building on the `torch.fx.experimental.symbolic_shapes` infrastructure) would enable static verification that guard sets are complete and non-redundant, reducing incorrect fallbacks to eager mode.
+- **AI-driven kernel generation replacing hand-authored Triton templates**: Research prototypes (e.g., AlphaCode-derived kernel synthesis, Meta's KernelBench evaluations) suggest that LLM-assisted or RL-trained kernel generators could supersede hand-written Triton templates for the long tail of operator shapes not well served by Inductor's current heuristics, with Inductor acting as a verification harness rather than a primary code generator.
+
+---
+
 ## Chapter Summary
 
 - `torch.compile` uses TorchDynamo's PEP 523 frame hook to intercept Python execution and capture FX graphs without requiring model changes; graph breaks divide functions into separately compiled regions

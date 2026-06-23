@@ -706,6 +706,32 @@ jmp .Lbb0_label   # substituted absolute address
 
 On targets requiring position-independent code, the indirect branch operand may be a PC-relative offset or a GOT entry.
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **`asm goto` output operands (P2960R1 / GCC 14 parity)**: LLVM is working toward full support for output operands in `asm goto` (GCC allows `=r` outputs combined with label targets); tracking issue on LLVM GitHub and discourse.llvm.org thread "Support output constraints in asm goto". The `callbr` IR instruction already encodes this but backend constraint lowering needs completion for all tier-1 targets.
+- **Improved constraint verification in `clang -fsyntax-only`**: The upstream effort to move more inline-asm constraint errors into the Clang frontend (rather than deferring to the integrated assembler) is ongoing; patches adding constraint-count checks and register-class validity checks for x86/AArch64 are in review on Phabricator/GitHub.
+- **RISC-V inline asm constraint extensions**: As RISC-V vector (`V`) and Zicsr extensions mature, `getRegClassForInlineAsmConstraint` in `RISCVISelLowering.cpp` is being extended with new constraint letters (`vr` for vector registers, `f` for FP under Zfinx); patches track the RISC-V psABI Working Group RFCs.
+- **`InlineAsm` flag-word migration to typed API**: An RFC on discourse.llvm.org proposes replacing the raw `uint32_t` bit-field `getFlagWord` / `getKind` encoding with a typed `InlineAsm::Flag` class to reduce misuse and improve debuggability; initial patch series posted in early 2026.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Structured inline assembly (C++ proposal P3372)**: The ISO C++ committee has a standing study group (SG22) liaison tracking a structured replacement for the GCC-style `asm` statement that exposes explicit input/output/clobber as typed C++ objects instead of constraint strings; LLVM will need frontend and IR representation changes if this proposal advances to a TS or IS.
+- **GlobalISel full inline-asm support**: The Global Instruction Selector (`GlobalISel`) path currently falls back to SelectionDAG for inline assembly. Completing `CallLowering::lowerInlineAsm` for all tier-1 targets (AArch64, x86-64, RISC-V, AMDGPU) is a prerequisite for deprecating the SelectionDAG path entirely; tracked in the GlobalISel status wiki on llvm.org.
+- **Memory clobber precision via `!noalias` / escape analysis**: The current `~{memory}` clobber conservatively poisons all memory optimizations across the asm. Research into bounded memory clobbers (similar to GCC's `asm` memory operands with `__attribute__((access(...)))`) would allow alias analysis to remain valid for non-escaping locals, reducing spill-reload cost around asm blocks.
+- **Loongarch64 and SPARC V9 constraint letter coverage**: As LoongArch (added to LLVM 17) and SPARC V9 gain production usage, their `getRegClassForInlineAsmConstraint` implementations need parity with the x86/AArch64 coverage; community contributors are systematically auditing GCC's `config/loongarch/constraints.md` against the LLVM implementation.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Machine-readable constraint metadata for LTO-aware inline asm**: Link-time optimisation (ThinLTO/LTO) currently treats inline assembly as an opaque barrier. A long-term project would attach machine-readable side-effect and register-use metadata to `InlineAsm` values so that cross-module inlining across LTO boundaries can reason about asm semantics without executing it.
+- **Formal constraint solver for operand allocation**: Register-constraint satisfaction for inline assembly (choosing among `r,m,i` alternatives, resolving tied operands, avoiding early-clobber conflicts) is currently a greedy heuristic inside `ComputeConstraintToUse`. Research groups are investigating SAT/ILP-based approaches that can provably find globally optimal allocations for complex multi-operand asm blocks, particularly relevant for embedded DSP targets with highly constrained register files.
+- **Removing AT&T / Intel duality via unified IR dialect**: The long-term vision in several LLVM architecture discussions is for `InlineAsm` IR nodes to carry target-independent operand references and only render to AT&T or Intel text during the MC emission pass, eliminating the `AsmDialect` flag and the associated per-target substitution logic. This would simplify cross-compilation and improve optimization opportunities across dialect boundaries.
+
+---
+
 ## Chapter Summary
 
 - In LLVM IR, inline assembly is represented as a `call` to an `InlineAsm` value carrying the asm string, constraint string, side-effects flag, and dialect. The constraint string encodes output (`=r`), input (`r`), tied (`0`), and clobber (`~{reg}`) operands using GCC constraint syntax.

@@ -1282,6 +1282,32 @@ The Python bindings require that `libclang.so` (or `libclang.dylib`) is loadable
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Typed AST Matcher extensions for C++23/C++26 nodes**: Ongoing work to add matchers for new AST node kinds introduced by C++23 (`std::expected`, deducing this / explicit object parameters, consteval if) and C++26 pack indexing. Tracked in LLVM Discourse under the "clang-tidy" and "AST matchers" threads; patches landing incrementally through the 22.x → 23.x release cycle.
+- **`clang-query` scripting and batch mode**: RFC proposal (Discourse, early 2026) to expose `clang-query` as a scriptable filter accepting matcher expressions from stdin, enabling CI integration without embedding C++ tools. Prototype patches add `--query-file` flag to process matcher scripts non-interactively.
+- **`AllTUsToolExecutor` incremental scheduling**: Work toward a dependency-aware executor that skips TUs whose compilation database entry and included headers have not changed since the last run, using a persistent content-hash cache analogous to `ccache`. Design discussion active in the Clang tooling mailing list.
+- **`InterpolatingCompilationDatabase` accuracy improvements**: Patches to improve header-inference heuristics by consulting `.clang-tidy` and `.clangd` config files for additional include paths, reducing false "file not found" diagnostics on out-of-database headers.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Matcher DSL support for C++ modules**: As Clang's C++20/23 module implementation matures, the AST matcher infrastructure needs extensions for `importDecl`, `moduleDecl`, and module-private linkage matchers. Current matchers are not module-aware; `isInStdNamespace()` and `matchesName()` require updates to handle the module-qualified name space introduced by named modules.
+- **Persistent, incremental AST store for whole-project analysis**: Research prototype (`clang-index-store`, proposed LLVM RFC 2025) to serialize AST fragments to a content-addressed store and replay `MatchFinder` over stored ASTs without re-parsing, targeting 10× speedup for large monorepo analysis runs. Builds on the existing `ASTUnit` preamble serialization infrastructure.
+- **`clang::Rewriter` conflict resolution API**: Current `tooling::Replacements::add()` only detects conflicts — it provides no resolution strategy. Proposed extension adds a conflict-resolution policy (accept-first, accept-last, merge-adjacent-insertions) as a configurable parameter to `Replacements::add()` and `clang-apply-replacements`, enabling automated refactoring at Google-scale.
+- **libclang async / streaming API**: Proposal to expose asynchronous `clang_parseTranslationUnit_async()` with callbacks for diagnostic streaming and partial-result delivery, enabling progressive IDE feedback without blocking the main thread. Design is modeled on clangd's existing async infrastructure exposed through a stable ABI.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Declarative refactoring DSL (Clang Transform Language)**: Research direction to provide a high-level, verifiable transformation language layered over `tooling::Replacements`, enabling users to express refactorings as named rules (analogous to Coccinelle for C) that are checked for semantic equivalence before application. Early academic prototypes combine Clang's AST rewriting with Alive2-style verification of semantic preservation.
+- **AI-assisted matcher synthesis**: Integration of LLM-based tools into `clang-query` to synthesize AST matcher expressions from natural-language descriptions of code patterns. Prototype research systems (2024–2025 LLVM workshop papers) show 70%+ accuracy on benchmark pattern sets; productionizing requires ground-truth benchmarks and regression testing against the full matcher DSL.
+- **Cross-language libtooling via ClangIR**: As ClangIR (Chapter 57) stabilizes, the tooling infrastructure may migrate from Clang AST to ClangIR as the primary analysis IR, enabling `MatchFinder`-style queries over a unified IR that spans C, C++, Objective-C, and CUDA without language-specific AST node variants.
+
+---
+
 ## Chapter Summary
 
 - `ClangTool` drives Clang per-file over a `CompilationDatabase`, with `ArgumentsAdjuster` chains for flag injection; `runToolOnCode()` enables unit testing without a database.

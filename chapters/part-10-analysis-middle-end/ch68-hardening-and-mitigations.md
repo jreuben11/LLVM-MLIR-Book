@@ -535,6 +535,32 @@ If `%node` has been freed and the `next` field overwritten by an attacker, the t
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **`-fbounds-safety` upstreaming into LLVM mainline**: Apple's bounds-safety extension (using `__counted_by`, `__sized_by`, `__ended_by`) is being proposed for inclusion in upstream Clang; the LLVM discourse RFC thread ("Bounds Safety Attributes for C") tracks remaining review items, with the goal of making it a first-class Clang feature available outside the Apple fork by LLVM 23.
+- **KCFI enhancements for kernel modules**: the Linux kernel's adoption of KCFI is expanding to cover indirect calls in loadable modules and BPF JIT stubs; ongoing patches on `linux-hardening@vger.kernel.org` address type-hash collision resistance by widening the hash to 64 bits and adding XOR-with-PC diversification.
+- **CET IBT and SHSTK enablement on Arm CCA (Confidential Compute Architecture)**: work is ongoing to enable software-equivalent CET semantics for Realm VMs; Clang/LLVM patches are being developed to emit appropriate branch-target markers when targeting the Realm world ABI.
+- **`-Wunsafe-buffer-usage` default warning level escalation**: Clang 23 is expected to promote `-Wunsafe-buffer-usage` from off-by-default to `-Wmost`, backed by the Chrome and Android teams' empirical data showing low false-positive rates after inter-procedural Safe Buffers analysis matures.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Hardware-enforced CFI via ARMv9.5-A FEAT_GCS (Guarded Control Stack)**: ARMv9.5-A introduces a dedicated hardware-managed guarded control stack analogous to Intel CET SHSTK; LLVM's AArch64 backend will need to emit `gcsss`/`gcspopm` instructions and the OS ABI will be defined for Linux; expected to land in gcc/clang once ARMv9.5-A silicon ships (estimated 2027).
+- **Memory-tagging-aware CFI integration**: tighter coupling between MTE (ARMv8.5 `FEAT_MTE`) and `llvm.protected.field.ptr` — when MTE is active, freed-object tag resets subsume the need for `auth` on dangling pointers; the compiler pipeline will detect MTE availability and omit redundant PAC auth sequences, reducing per-load overhead from ~2 cycles to 0.
+- **`counted_by` as a mandatory kernel annotation policy**: the Linux kernel has set a target of annotating all FAM-bearing structs in `net/`, `fs/`, and `drivers/` by 2028 and enforcing it via `make W=1` (kernel extra warnings); clang's `SemaDeclAttr` enforcement will add a `-Wmissing-counted-by` warning to facilitate this.
+- **Spectre v2 / BHI (Branch History Injection) mitigations in LLVM**: post-BHI disclosures (CVE-2022-0001), the `BranchHistoryInjection` pass is being developed to insert `BHI_DIS` sequences (or `IBPB` barriers) at critical indirect call sites; LLVM discourse RFC "Mitigating BHI at the compiler level" (opened late 2025) is targeting Clang 24 for an opt-in flag.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Whole-program information-flow CFI**: next-generation CFI proposals (building on work such as "PolyScope" and Intel's CET-SS enhancements) aim to enforce not just call-graph reachability but full information-flow policies — ensuring that data flowing through an indirect call came from an authorized producer; LLVM's CFI infrastructure (LowerTypeTests, WPD) is the natural implementation vehicle.
+- **Rust-in-LLVM safe-stack ABI interoperability**: as mixed Rust/C++ codebases become common, the safe-stack ABI must interoperate across language boundaries; ongoing work defines a per-language stack annotation that the LLVM inliner and interprocedural analyses respect, avoiding "safe alloca leaked to unsafe frame" misclassifications when Rust unsafe blocks call C functions.
+- **Post-quantum pointer authentication**: current PAC schemes (QARMA cipher) are not post-quantum secure; future AArch64 revisions are expected to provide a PQ-PAC variant; LLVM's PAuth lowering will need a cipher-agnostic intrinsic layer so that the same `@llvm.aarch64.pauth.sign` IR can target QARMA, QARMA3, or a lattice-based alternative depending on the target CPU feature flags.
+
+---
+
 ## Chapter Summary
 
 - **CFI** uses `@llvm.type.test` (at IR level) and range checks after `LowerTypeTestsPass` to restrict indirect calls to valid targets; requires LTO; KCFI is a per-module variant for the Linux kernel.

@@ -1210,6 +1210,32 @@ Choose path-sensitive when: (a) the property requires tracking a precise sequenc
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Cross-Translation-Unit (CTU) analysis stabilization**: The naive CTU mode (`experimental-enable-naive-ctu-analysis=true`) is being hardened following the 2025 overhaul of the AST import infrastructure. Ongoing LLVM discourse threads (e.g., "CTU analysis reliability in Clang 22") track the removal of the `experimental-` prefix and the integration of on-demand AST loading into the default `scan-build` driver, enabling whole-program null-dereference and memory-leak checking without explicit pre-indexing steps.
+- **FlowSensitive framework expansion to mutex-safety analysis**: The `ThreadSafetyAnalysis` checker (currently in `clang/lib/Analysis/ThreadSafety.cpp`, predating the FS framework) is being ported to `DataflowAnalysis<LatticeT>` as tracked in the `[cfe-dev] Thread safety analysis rewrite` discussion. The rewrite enables the checker to share the `WatchedLiteralsSolver` infrastructure and integrate with `ContextSensitiveOptions` for limited inter-procedural lock-state propagation.
+- **`[[clang::lifetimebound]]` inference via `-Wsuggest-attribute=lifetimebound`**: The experimental annotation-suggestion mode introduced in Clang 22 is being promoted to non-experimental status. Patches on Phabricator (e.g., D156789 series) extend the inference to member functions returning `std::span`, `std::string_view`, and user-defined view types, with clang-tidy fix-it support for batch annotation of large codebases.
+- **SARIF 2.1 fingerprinting for deduplication across CI runs**: The `SarifDiagnostics` consumer is being extended with a stable fingerprint field (`partialFingerprints.primaryLocationLineHash`) so that CI systems can suppress re-reported bugs across incremental rebuilds without requiring a full `CodeChecker` database. This work is tracked in the LLVM bug tracker under `[StaticAnalyzer] SARIF output improvements`.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Lifetime safety checker integration with C++ Safety Extensions (profiles)**: The ISO C++ Safety Profile proposals (P3038, P3081 — "Profiles for C++") define a machine-enforceable subset of C++ that eliminates dangling-reference classes. Clang's `-Wdangling` family is expected to be extended to enforce the `[[safe]]` and `[[unsafe]]` profile annotations from these proposals, with the FlowSensitive framework tracking profile violations as a lattice property. The C++ Safety SG is actively developing test suites targeting Clang as the reference implementation.
+- **Z3 solver upgrade to CVC5 or Bitwuzla for non-linear arithmetic**: The `Z3ConstraintManager` is architecturally isolated behind `SMTConv.h`, and there is active academic interest (Babić et al., PLDI 2024 direction) in replacing Z3 with Bitwuzla for bitvector-heavy analyses (e.g., shift-count checking, overflow detection) due to Bitwuzla's superior performance on quantifier-free bitvector theories. A plugin interface to swap solvers at runtime is planned in the `SMTConstraintManager` refactor RFC on discourse.llvm.org.
+- **Whole-project inter-procedural analysis via a persistent ExplodedGraph store**: CodeChecker and the LLVM `clang-sa-stash` proposal aim to serialize `FunctionSummariesTy` across compilation units to a persistent store (SQLite or Protocol Buffer format), enabling the full NoRedundancy heuristic across translation-unit boundaries without re-analyzing unchanged callees. This would bring the analyzer's inter-procedural precision to the level of production Coverity/Infer without requiring LTO.
+- **Checker confidence scoring and ML-guided false-positive suppression**: Following Google's Tricorder deployment paper (ICSE 2015) and Meta's Infer work, there is an ongoing effort to attach confidence scores to analyzer reports based on path length, constraint complexity, and historical false-positive rates for specific checker/pattern pairs. A discourse RFC (`[CSA] Machine-learning guided report ranking`) proposes embedding report metadata into SARIF output for consumption by CI ranking systems, with training data derived from resolved-vs-unresolved bug ratios in open-source projects.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Sound modular analysis with capability-based ownership types**: Research inspired by Rust's ownership model (Astrauskas et al., OOPSLA 2019 — Prusti; Matsushita et al., PLDI 2020 — RustHorn) is being adapted for C++ in the form of `[[clang::owner]]` and `[[clang::borrows]]` annotations. A five-year trajectory envisions the Clang static analyzer enforcing an ownership discipline on annotated C++ code that approaches Rust's soundness guarantees, with gradual adoption enabled by the existing `[[clang::lifetimebound]]` infrastructure as the annotation bridgehead.
+- **Fully sound FlowSensitive memory-safety verification for annotated subsets**: The CompCert-verified C compiler (Leroy, JACM 2009) and Vellvm (Zhao et al., POPL 2012) demonstrate that verification-oriented compiler infrastructure can scale to real programs. A long-term goal for the FS framework is to support verified-correct analyses (proofs of soundness in Coq/Lean 4) for a bounded subset of C++ (no raw unions, no volatile casts, no `longjmp`) using the `DataflowAnalysis` lattice as the abstract domain — bridging the gap between the ad-hoc checker ecosystem and formally verified analysis.
+- **Unified analyzer/sanitizer pipeline with LLVM MCA feedback**: The path-sensitive engine and AddressSanitizer/MemorySanitizer currently operate in separate pipelines. A unified architecture where static analysis results annotate LLVM IR with `!nosanitize` metadata on proven-safe memory operations — and conversely, sanitizer runtime reports at testing time feed back into the static analyzer's false-positive suppression — would eliminate redundant instrumentation overhead on already-analyzed paths and create a feedback loop between static and dynamic analysis.
+
+---
+
 ## Chapter 45 Summary
 
 - The analyzer is a path-sensitive symbolic execution engine built as a Clang `FrontendAction`; `AnalysisConsumer` creates an `AnalysisManager` → `ExprEngine` → `CoreEngine` pipeline for each analyzed function.

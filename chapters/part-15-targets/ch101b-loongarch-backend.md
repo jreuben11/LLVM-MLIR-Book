@@ -786,6 +786,32 @@ The TLSDESC sequence saves one call compared to GD: it calls the descriptor func
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **GlobalISel completion for LoongArch**: The SelectionDAG path is production-ready, but GlobalISel coverage is still expanding. Ongoing LLVM patches (tracked on discourse.llvm.org under the LoongArch label) aim to enable GlobalISel for all scalar integer and FP operations by late 2026, unlocking faster compile times and better register allocation for `-O0` builds on LoongArch hardware.
+- **LoongArch v1.2 ISA ratification**: Loongson has signaled an upcoming v1.2 specification adding new atomic instructions (extended `amcas` variants), a `LBT` binary translation extension revision, and additional CSR registers. LLVM subtarget feature flags (`+lbt-v2`, tentative) and corresponding MC layer patches are expected to follow the specification release.
+- **TLSDESC linker relaxation in LLD**: LLD's LoongArch port currently emits TLSDESC sequences without relaxing the descriptor-GOT reference to a direct TP-relative offset in static executables. A patch series (analogous to the AArch64 TLSDESC-to-LE relaxation) is in review to fold TLSDESC to LE when the variable is in the same link unit, eliminating the indirect call entirely at link time.
+- **`R_LARCH_PCREL20_S2` linker relaxation**: Ongoing work in LLD to support the `R_LARCH_PCREL20_S2` relocation for relaxing `pcaddu18i`+`jr` call36 pairs to shorter `bl` direct calls when the target is within ±128 MiB, reducing PLT stub indirections in large executables.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Loongson 3A7000/LA864 micro-architecture support**: The next Loongson generation (informally LA864, targeting 2027 production) is expected to introduce wider out-of-order execution, SVE-class scalable vector extensions, and SMT improvements. LLVM will need a new `la864` CPU definition, updated cost models in `LoongArchTargetTransformInfo`, and scheduling models for the new pipeline.
+- **Scalable vector (LSX-SVE or LASE) intrinsics**: Loongson has explored a scalable-vector extension analogous to RISC-V RVV or Arm SVE, tentatively called LASE (LoongArch Scalable Extension). If ratified, LLVM would gain a new register class, VectorLength predicate infrastructure, and auto-vectorization cost models — following the RVV precedent established in LLVM's RISC-V backend.
+- **LoongArch Clang sanitizer completion**: AddressSanitizer and UBSan are functional on LoongArch; MemorySanitizer and ThreadSanitizer shadow-call-stack support still require upstream patches. By 2028, full parity with x86-64/AArch64 sanitizer coverage (including HWASan via tagged pointers if the LA864 ISA adds memory tagging) is expected.
+- **openEuler and Debian LoongArch bootstrap to tier-1**: Loongson is investing in enterprise Linux distribution quality for loongarch64. By 2028, loongarch64 is projected to reach Debian tier-1 and openEuler primary-architecture status, driving upstream demands for LTO, PGO, and BOLT profile-guided optimization support on LoongArch in LLVM.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **LoongArch as an HPC platform**: Loongson's 3C6000 (16-core) and successors target HPC workloads in Chinese national computing facilities. LLVM's LoongArch backend will need polyhedral optimization (Polly) integration, OpenMP offload support, and LASX→LASE vectorization upgrades comparable to AVX-512 on x86-64. This mirrors the trajectory of the RISC-V HPC stack (SG2042, Sophon).
+- **LoongArch MLIR target and IREE backend**: As MLIR-based ML inference frameworks (IREE, TensorFlow, JAX via XLA) expand to non-x86 targets, LoongArch will need an MLIR lowering path from `linalg`/`vector` dialects through `loongarch-lsx` / `loongarch-lasx` intrinsic lowering — analogous to the existing AArch64 NEON and RISC-V RVV MLIR lowering paths.
+- **Formal ABI stability and LLVM LoongArch tier promotion**: The LoongArch ABI has evolved rapidly (v1.0 → v1.1 → v1.2). By 2031, with a stable v2.0 ABI, LLVM is expected to promote LoongArch to an official tier-1 supported target (currently tier-2), with continuous integration on loongarch64 hardware in the LLVM build infrastructure and full `check-all` gating on every commit.
+
+---
+
 ## Chapter Summary
 
 - **LoongArch** is a 32/64-bit little-endian RISC ISA from Loongson Technology, with LA32 (32-bit pointer) and LA64 (64-bit pointer) variants; all production hardware uses LA64.

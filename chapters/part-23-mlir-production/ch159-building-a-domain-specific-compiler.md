@@ -663,6 +663,32 @@ Lessons learned from building production DSL compilers with MLIR:
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **ODS 2.0 declarative interfaces**: The ongoing MLIR RFC to extend ODS with first-class `Interface` declarations inside `.td` files (eliminating separate `*Interfaces.td` boilerplate) is expected to land in LLVM 23. Out-of-tree dialects like MatAlg will gain automatic interface generation from `let interfaces = [...]` clauses ([discourse.llvm.org RFC: ODS Interface Declaration](https://discourse.llvm.org/t/rfc-ods-interface-declarations)).
+- **`mlir-opt` migration to `MlirOptMain` v2 (plugin-based)**: LLVM 22/23 is finalizing `--load-dialect-plugin` and `--load-pass-plugin` as the canonical way to register out-of-tree dialects without re-linking. MatAlg-style compilers benefit from removing the `registry.insert<>` boilerplate in the driver entirely ([llvm-project#82672](https://github.com/llvm/llvm-project/pull/82672)).
+- **Bytecode versioning stabilization**: MLIR's bytecode format (`mlir::BytecodeWriter`) is gaining a stable version-negotiation protocol; dialect authors can declare `getDialectVersion()` in the `BytecodeDialectInterface` to enable forward-compatible serialization of custom types like `MatrixType`.
+- **Linalg named-op deprecation study**: An ongoing discussion on discourse.llvm.org evaluates retiring `linalg.matmul` in favour of `linalg.contract` with explicit indexing maps, which will require updates to MatAlg → Linalg lowering patterns targeting `linalg.contract` directly.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Attribute-driven op legality via `ConversionTarget` 2.0**: The MLIR community is designing a declarative `ConversionTarget` DSL inside `.td` so that legality rules can be specified in TableGen and inferred at compile time, reducing the boilerplate in `createLowerMatAlgToLinalgPass()` for dialect pairs.
+- **Automatic differentiation dialect (`autodiff`)**: The in-tree `enzyme` / `autodiff` dialect work (based on Enzyme AD) will allow DSL compilers like MatAlg to add gradient generation (backward pass for `gemm`) as a dialect transformation pass rather than bespoke AD lowering, broadening the addressable use cases for scientific computing DSLs.
+- **MLIR's `Transform` dialect for user-controlled optimization**: The `transform.structured.*` and `transform.loop.*` operations are stabilizing as the recommended interface for exposing tuning knobs (tile sizes, vectorization widths) to end-users without recompiling the compiler. MatAlg compilers can expose `matalg.transform.tile_gemm` scripts rather than baking in fixed tile sizes.
+- **Out-of-tree dialect CI with `mlir-check`**: A proposed upstream testing utility will allow out-of-tree dialect repositories to run `mlir-check --dialect=matalg` to validate ODS correctness, verifier completeness, and roundtrip fidelity against the installed MLIR version, replacing ad-hoc FileCheck pipelines for dialect unit testing.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Compositional dialect packages**: A packaging standard (analogous to Python's wheel for MLIR dialect shared libraries) is expected to emerge, enabling versioned distribution of out-of-tree dialects and their lowering passes as binary plugins consumable by any `mlir-opt`-based driver, making MatAlg-style compilers installable without source builds.
+- **LLM-assisted dialect synthesis**: Research projects (Stanford's Exo-IR, MIT's Metalift successors) are targeting LLM-guided generation of MLIR dialect ODS definitions and lowering patterns from high-level DSL specifications, with MLIR serving as the structured target; this will shift the DSL compiler authoring workflow from writing ODS manually to reviewing and refining generated dialect skeletons.
+- **Unified heterogeneous target lowering**: As MLIR's GPU/AMX/SME/SPIR-V dialects converge on a common `HWAccel` abstraction layer, domain compilers like MatAlg will be able to target multiple hardware backends (CPU SIMD, GPU tensor cores, NPU matrix engines) through a single `matalg → HWAccel → <target>` lowering rather than per-backend conversion passes.
+
+---
+
 ## Chapter Summary
 
 - An out-of-tree MLIR dialect requires: ODS TableGen definitions, dialect registration, op verifiers, CMake integration with `mlir_tablegen`, and a driver binary.

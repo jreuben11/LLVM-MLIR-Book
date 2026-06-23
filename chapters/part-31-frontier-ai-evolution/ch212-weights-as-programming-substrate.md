@@ -683,6 +683,32 @@ The cognitive framing — capabilities as vectors, understanding as geometry, mo
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **SafeTensors v2 metadata standardisation**: The Hugging Face community is converging on a richer `__metadata__` schema — including provenance fields (base model hash, fine-tune recipe, quantisation history) — that would make weight checkpoints self-describing in the way ELF build-ID notes describe binaries. Track progress on the `huggingface/safetensors` GitHub repository; the v2 spec discussion is open as of Q1 2026.
+- **GGUF version 4 with tensor compression**: The `llama.cpp` community is prototyping GGUF v4 support for losslessly compressed tensor blocks (zstd-compressed spans within the data section), enabling models to ship in a single file without the size penalty of full-precision intermediate representations. RFC discussion is active in the `ggerganov/llama.cpp` issue tracker.
+- **TOSA dialect: mutable variable support for in-graph weight updates**: The MLIR TOSA working group (Arm / IREE maintainers) is extending `tosa.variable` / `tosa.variable_write` semantics to cover task-vector-style elementwise accumulation patterns, enabling capability arithmetic operations to be expressed as first-class TOSA graph transformations rather than out-of-graph Python mutations. See LLVM Discourse thread "TOSA variable semantics for weight update patterns" (2025).
+- **mergekit integration with `mlir-opt` pipelines**: The Arcee AI `mergekit` library (arXiv 2403.13257) is adding MLIR serialisation export of merge configurations, allowing TIES/DARE/SLERP pipelines to be expressed as MLIR modules and compiled with `mlir-opt` to hardware-specific kernels rather than executed as Python-level PyTree operations.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Weight-space type systems in MLIR**: Research prototypes (notably the `weight-ir` proposal discussed at EuroLLVM 2026) aim to introduce a typed MLIR dialect for weight tensors that encodes fine-tune provenance, quantisation lineage, and arithmetic history as type attributes — enabling compiler passes to verify that capability arithmetic operations are applied only to linearly-mode-connected parameter tensors and to emit warnings when the LMC condition is likely violated based on training metadata.
+- **Formalisation of the capability module**: The linear algebraic structure of task vectors (τ forming a module over ℝ under addition and scalar multiplication) is beginning to attract attention from the verified compilation community. A Lean 4 formalisation of the LMC conditions sufficient to guarantee loss-barrier bounds on task vector addition is an active research direction, analogous to the CompCert formalisation of semantic preservation.
+- **Standardised weight-diff interchange format**: An industry-proposed binary diff format for weight tensors — analogous to binary patch formats (xdelta, bsdiff) for executable code — would allow fine-tuned model deltas to be distributed without shipping the full base model. The HuggingFace Hub, AWS SageMaker, and NVIDIA NIM infrastructure teams are jointly scoping such a format; a draft spec is expected by late 2027.
+- **Quantisation-aware capability arithmetic**: Current task vector methods assume full-precision (BF16/FP32) weights; the GGUF quantisation ecosystem (Q4_K, Q8_0) introduces non-linearity into the arithmetic that breaks the unbiasedness of DARE rescaling. Research into quantisation-aware TIES and DARE variants — where sign election and magnitude trimming operate in the quantised domain — is at the prototype stage, with results expected to appear at NeurIPS 2026–2027.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Compiler-driven capability composition at training time**: Rather than composing capabilities post-hoc via weight arithmetic, future toolchains may guide multi-task training so that fine-tuned task vectors are by construction orthogonal in weight space — achieved by adding an inter-task cosine-similarity regularisation term to the training objective and expressing it as a custom XLA HLO lowering that operates over the gradient PyTree. This would make task arithmetic lossless rather than approximate.
+- **Weight-space decompilers as LLVM analysis passes**: If mechanistic interpretability matures to the point where SAE feature dictionaries can be automatically extracted and annotated with semantic labels (as Chapter 213 surveys), it becomes possible to implement an LLVM/MLIR analysis pass that reads a SafeTensors or GGUF file and emits a human-readable "capability manifest" — a structured document listing the model's skills, their locations in parameter space, and their mutual interference structure — analogous to how `nm` and `objdump` expose the symbol table of a compiled binary.
+- **Self-modifying runtime with weight-arithmetic JIT**: A long-term vision in the neural program architecture community is a runtime that applies task vector arithmetic at inference time in response to task context — detecting that the current prompt requires a capability that is not present in the loaded base model, selecting the appropriate task vector from a library of delta checkpoints, and applying it to the running model's parameters in a single vectorised kernel call with sub-millisecond latency. This requires weight tensors to be memory-resident in a form that supports atomic elementwise updates, which motivates ongoing research into mutable weight-segment ELF-style runtime formats and JAX-based stateful device memory management.
+
+---
+
 ## Chapter Summary
 
 - **SafeTensors** stores weight tensors as an 8-byte LE uint64 header-length prefix, a UTF-8 JSON tensor-descriptor header (with `data_offsets` relative to the data region, not the file start), and raw dtype-packed tensor bytes — no magic identifier. Memory-mapped loading is zero-copy and backend-agnostic.

@@ -722,6 +722,32 @@ This pattern is used by IREE (cross-ref Ch162), CIRCT (cross-ref Ch190), and vir
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **`LoopLikeOpInterface` expansion for structured loops**: Ongoing RFC ([discourse.llvm.org](https://discourse.llvm.org)) to extend `LoopLikeOpInterface` with `getInitArgs()` / `getYieldedValues()` accessors, enabling generic loop-carried variable handling across `scf.for`, `scf.while`, and `affine.for` without dialect-specific pattern matching.
+- **`BufferizableOpInterface` deallocation consolidation**: The upstream bufferization roadmap (tracked in `mlir/lib/Dialect/Bufferization/`) is moving deallocation handling from ad-hoc patterns into a first-class `DeallocationOpInterface`, allowing backends to express ownership semantics through the external model mechanism rather than post-bufferization fixups.
+- **`InferTypeOpInterface` integration with properties**: With MLIR's shift from `DictionaryAttr` to typed op properties (landed in LLVM 18+), `InferTypeOpInterface::inferReturnTypes` is being updated to receive `OpaqueProperties` pointers natively; dialect maintainers must update external implementations to avoid the deprecated `DictionaryAttr` overload.
+- **Trait-driven folding improvements**: The `Pure` trait currently gates CSE/DCE; an in-progress patch adds `AlwaysSpeculatableImplTrait` as a separate mixin so speculation (hoisting past conditionals) can be opted into independently of purity, reducing false negatives in `scf.if` speculation passes.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Typed external model registry**: Current `DialectRegistry::addExtension` lambdas are stringly-typed; a proposed redesign tracks which interface models are registered per dialect-op pair in a queryable map, enabling diagnostic tooling (`mlir-opt --dump-interface-models`) to detect missing or conflicting external model registrations at pipeline construction time.
+- **Interface versioning and binary compatibility**: As MLIR is increasingly used as a stable ABI between compiled plugins (IREE, CIRCT, downstream AI compilers), the community is exploring versioning annotations on `OpInterface` methods so that a plugin compiled against MLIR 22 can call interface methods safely against MLIR 24+ runtimes without full recompilation.
+- **Trait composition algebra**: Research into formalizing which trait combinations are valid (e.g., `Pure` + `Terminator` is currently disallowed in `verifyTrait`, but the rule is encoded implicitly); a proposed `TraitConstraint` TableGen record would express compatibility rules declaratively and generate cross-trait verification automatically.
+- **`DestinationStyleOpInterface` unification with structured op generalization**: The ongoing generalization of `linalg.generic` toward named structured ops (`linalg.conv_2d_nhwc_hwcf`, etc.) is driving a push to lift `DestinationStyleOpInterface`'s `getInputs()`/`getOutputs()` split into a more flexible `OpOperandClassifier` interface that can encode multi-level ownership (read-only, read-write, write-only, init-only).
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Formal semantics for MLIR interfaces**: Academic projects (building on the Vellvm and K-MLIR lines of work) aim to encode MLIR interface contracts in Lean 4 or Coq so that op implementors can machine-check that their `getEffects()` or `inferReturnTypes()` implementations satisfy the interface's declared semantic obligations — not just the syntactic type signature.
+- **Gradual trait verification for multi-level IR**: As MLIR is used in progressively higher-level IRs (Python-level, type-theoretic), trait verification rules appropriate only at low levels (e.g., SSA dominance constraints checked by `Terminator`) need to be relaxable per-IR level; a long-term design proposes a `VerificationLevel` annotation on traits so that high-level dialects can defer low-level structural invariants until lowering is complete.
+- **Interface-driven JIT dispatch in MLIR execution engines**: The MLIR ExecutionEngine currently requires AOT linking of all op implementations; research into interface-based late binding would allow JIT-compiled modules to resolve interface dispatch tables at load time, enabling plugin architectures where new op implementations are loaded as shared libraries without recompiling the core engine.
+
+---
+
 ## Chapter Summary
 
 - Interfaces are MLIR's protocol mechanism: an interface declares virtual method signatures; ops implement them by listing `DeclareOpInterfaceMethods<I>` in their ODS traits; passes dispatch via `dyn_cast<Interface>(op)`

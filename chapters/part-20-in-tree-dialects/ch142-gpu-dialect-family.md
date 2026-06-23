@@ -450,6 +450,32 @@ nvvm.barrier0  // __syncthreads()
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **NVIDIA Blackwell (sm_100) support in NVGPU dialect**: PTX 8.7 introduces new `mma` shapes for Blackwell's 5th-gen Tensor Cores and FP4/FP6 quantized compute; patches are in progress on LLVM Discourse to extend `nvgpu.warpgroup.mma` shape descriptors accordingly ([LLVM RFC: Blackwell NVGPU support](https://discourse.llvm.org/)).
+- **AMD RDNA 4 (GFX12) lowering in ROCDL/AMDGPU dialects**: ROCm 7.x adds `ds_swizzle`/`wave64` changes for RDNA 4 and new `amdgpu.raw_buffer_atomic_fadd` variants; the MLIR AMDGPU dialect is being updated to cover GFX12 address space semantics and `s_wait_kmcnt` instruction mappings.
+- **`gpu.subgroup_reduce` and cooperative group ops**: An MLIR upstream RFC (Discourse thread "GPU subgroup collective ops") proposes adding `gpu.subgroup_reduce`, `gpu.subgroup_broadcast`, and `gpu.subgroup_shuffle` as first-class target-independent ops replacing current ad-hoc warp shuffle patterns — implementations for NVVM and ROCDL lowering are under review.
+- **Structured Pipeline Stages for `nvgpu` async copies**: The IREE and Triton communities are upstreaming structured software pipelining passes that schedule `nvgpu.device_async_copy`/TMA and `nvgpu.warpgroup.mma` into multi-stage latency-hiding pipelines directly within the MLIR `nvgpu` lowering infrastructure.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Unified target-independent GPU collective dialect**: The ongoing "GPU collective ops" design discussion aims to abstract MPI/NCCL-style all-reduce, all-gather, and barrier operations into the `gpu` dialect so that multi-GPU communication patterns can be expressed and lowered to vendor-specific backends (NVSHMEM, ROCm RCCL) without leaving MLIR abstraction.
+- **SPIR-V convergence and `gpu`→SPIR-V path maturation**: The `gpu`-to-SPIR-V lowering (currently partial) is targeted for parity with the NVVM path, enabling Intel GPU (XeHPG/XeHPC), Vulkan compute, and WebGPU as first-class targets. This includes full support for `gpu.address_space<workgroup>` as SPIR-V `Workgroup` storage class and `gpu.barrier` as `OpControlBarrier`.
+- **Grace-Hopper / NVLink Coherent Memory in MLIR**: NVIDIA's NVLink-C2C interconnect (Grace-Hopper) exposes host-device coherent memory; new `nvgpu` ops for persistent kernel patterns (CUDA persistent threads) and fine-grained coherent atomics (PTX `atom.relaxed.sys`) are being proposed to model this memory model in the `gpu` dialect.
+- **AMD Instinct MI400 / CDNA 4 WMMA dialect extensions**: Future AMD CDNA 4 architectures are expected to introduce FP8 tensor operations with hardware-managed accumulation; the AMDGPU dialect will need new `amdgpu.mfma` variants analogous to Hopper's WGMMA, with MLIR-level accumulator descriptor types.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Hardware-agnostic tile ISA abstraction**: Research projects (cf. NVIDIA's PTX level-of-abstraction paper, IREE's HAL design) aim for an MLIR dialect representing tile-level matrix operations (`tile.matmul`, `tile.reduce`) that can be lowered to Tensor Core (CUDA), Matrix Extension (Intel AMX), SME (Arm), or future custom AI accelerator ISAs — unifying the `nvgpu`/AMDGPU/ArmSME dialect family into a single target-independent tile dialect.
+- **Formal verification of GPU memory model lowerings**: Inspired by the Vellvm/Alive2 lineage, research groups are working on mechanized proofs of correctness for the `gpu` dialect's address space and synchronization lowerings, particularly verifying that `gpu.barrier` → `nvvm.barrier0` preserves the PTX memory consistency model (SC-per-loc with release-acquire at barriers).
+- **GPU dialect support for photonic and quantum accelerators**: As non-von Neumann accelerators adopt CUDA-like execution models, the `gpu` dialect's abstract thread/block/grid model may serve as the substrate for programming photonic tensor processing units and near-term gate-model quantum co-processors, with vendor-specific lowering layers analogous to today's `nvgpu`/ROCDL dichotomy.
+
+---
+
 ## Chapter 142 Summary
 
 - The `gpu` dialect models the CUDA/OpenCL execution model: threads, blocks, grids, shared memory, and synchronization. `gpu.block_id`, `gpu.thread_id`, `gpu.block_dim`, `gpu.grid_dim` provide hardware indices.

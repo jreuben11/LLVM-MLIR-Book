@@ -377,6 +377,32 @@ This enables function-level dead stripping, cross-module inlining, and CFI for t
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **NDK r29 Clang 23 integration**: The Android LLVM team is tracking upstream Clang 23 for NDK r29, bringing improved AArch64 NEON autovectorisation and updated `__builtin_arm_*` intrinsics. Follow the Android LLVM prebuilt release schedule at `android.googlesource.com/platform/prebuilts/clang/host/linux-x86`.
+- **MTE (Memory Tagging Extension) GA in NDK**: Hardware MTE support in HWASan was enabled for Pixel 8+ in Android 14; NDK r28/r29 is expected to promote `-fsanitize=memtag` for production builds (beyond just debugging), including MTE heap tagging via Bionic's `__libc_malloc_set_mte_policy` ABI. Track the `[llvm-dev] MTE production enablement` thread and `bionic/libc/include/malloc.h` annotations.
+- **16 KB page-size migration**: Google mandated 16 KB page alignment for new Play submissions targeting Android 15 (API 35). The NDK toolchain must produce `.so` files with `PT_LOAD` alignment ≥ 16384; CMake support via `CMAKE_SHARED_LINKER_FLAGS "-Wl,-z,max-page-size=16384"` is being standardised. See the Android developer blog post "16 KB page size" (2024) and `android.googlesource.com/platform/ndk` issue tracker.
+- **Rust NDK interop improvements**: The Android Rust team is closing gaps between the Rust NDK toolchain (`rustup target add aarch64-linux-android`) and the Clang NDK sysroot, particularly for `jni` crate symbol interoperability and `panic=abort` integration with Bionic's `abort_message` facility.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Drop of 32-bit ABIs (armeabi-v7a, x86)**: Google has signalled intent to require 64-bit-only APKs on Play by ~2027. The NDK will likely drop default armeabi-v7a and x86 ABI support, simplifying the toolchain and sysroot. Watch `developer.android.com/guide/practices/64bit` policy updates.
+- **Clang-built GKI with PGO**: Android kernel builds with Clang ThinLTO are expected to add Profile-Guided Optimisation (PGO) using Pixel device sampling profiles, following the pattern established for userspace libraries (`-fprofile-use` with Chrome profiles). The kernel PGO work in mainline Linux (merged circa 6.8) will be adapted for GKI; follow `lore.kernel.org/clang-built-linux`.
+- **CFI enforcement for third-party `.so` files**: Currently, third-party NDK libraries can be loaded without CFI without triggering `__cfi_slowpath` violations. Android's platform security team has proposed extending CFI cross-library checking to opt-in third-party code; this requires linker script changes in `libdl.so` and a new `android:cfiBridge` manifest attribute under discussion in AOSP issue tracker.
+- **LLVM BOLT post-link optimisation for NDK libraries**: Google has been applying BOLT to system libraries (e.g., `libart.so`) since Android 14. An NDK-facing workflow that applies `llvm-bolt` to instrumented `.so` files (with a profile-collection step via `adb`) is under active exploration; see `discourse.llvm.org` threads on BOLT Android integration.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Full ELF symbol versioning in Bionic**: Bionic's lack of GNU symbol versioning (`GNU_VERSYM`) is a long-standing limitation that prevents fine-grained ABI compatibility shims. A proposal to introduce symbol versioning in Bionic (tracking `ANDROID_35`, `ANDROID_36`, etc.) has been discussed in the Android platform mailing list; adoption would require updates to NDK stubgen and the sysroot `.map.txt` format.
+- **LLVM libc replacing Bionic's math/string routines**: The LLVM libc project (`libc.llvm.org`) is adding Android as a target platform. Over time, Bionic's `string.h` and `math.h` implementations may be replaced with LLVM libc's fully-verified, MPFR-tested routines, providing correct-rounding guarantees and improved vectorised implementations for SVE2 on future ARM SoCs.
+- **Unified NDK/WebAssembly sysroot**: Google's Emscripten and Android NDK teams are exploring a shared sysroot model for Wasm-capable Android apps via the `wasm32-unknown-emscripten` target, allowing a single CMakeLists.txt to target both Android ABI and WASM for WebView-hosted native code. This depends on progress in the Clang `wasm32` ABI stabilisation and Bionic/WASI ABI alignment.
+
+---
+
 ## Summary
 
 - The NDK ships Clang/LLD wrappers named `<triple><api>-clang`; always use these wrappers, not raw `clang --target=`.

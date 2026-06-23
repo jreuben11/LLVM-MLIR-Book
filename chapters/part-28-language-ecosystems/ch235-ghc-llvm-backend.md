@@ -407,6 +407,32 @@ ghc -fllvm -O2 -keep-llvm-file Main.hs
 # Produces Main.ll (LLVM IR text)
 ```
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **GHC 9.12 / LLVM 19–22 support**: GHC's `Version/Bounds.hs.in` upper bound is currently set to 23 (exclusive); active GHC issue [#23236](https://gitlab.haskell.org/ghc/ghc/-/issues/23236) tracks updating the tested matrix to include LLVM 19 and 20 with full CI coverage, ensuring `opt`/`llc` invocations match pass-pipeline changes in LLVM's new pass manager.
+- **Opaque pointer migration**: LLVM 15+ replaced typed pointers with opaque `ptr`; GHC's `LlvmType` still emits `i8*`-style typed pointer aliases in some paths. The remaining conversion work ([GHC MR !11987](https://gitlab.haskell.org/ghc/ghc/-/merge_requests/11987)) targets complete removal of `LMPointer (LMInt 8)` casts by GHC 9.12.
+- **`ghccc` register-pressure tuning for AArch64**: GHC's virtual register set (`R1–R10`, `F1–F6`, `D1–D6`, `XMM1–XMM6`) was sized for x86-64; AArch64 has 31 general-purpose registers, and the GHC team is evaluating expanding the live-in set under `ghccc` to reduce spills, tracked in [GHC proposal #0601](https://github.com/ghc-proposals/ghc-proposals/pull/601).
+- **Deterministic compilation / reproducible builds**: GHC's streaming `llvmCodeGen` emits global variable declarations in `DUniqSupply` order; ongoing work to canonicalize the emission order under `-fllvm` to eliminate non-determinism in `.ll` output (GHC issue #22195).
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **GHC LLVM backend rewrite in Haskell using `llvm-hs`**: the current backend emits LLVM IR as pretty-printed text and shells out to `opt`/`llc`; a long-discussed alternative is using [llvm-hs](https://github.com/llvm-hs/llvm-hs) (Haskell bindings to the LLVM C API) to construct IR in-process, eliminating the text serialization round-trip and enabling richer IR manipulation (e.g., direct insertion of `DILocation` metadata for better DWARF).
+- **Statepoints / RewriteStatepointsForGC adoption**: GHC currently avoids LLVM's statepoint infrastructure in favor of info-table-based stack scanning. Adopting `@llvm.experimental.stackmap` / `RewriteStatepointsForGC` would allow LLVM to perform more aggressive code motion across GC safe-points; this requires coordinating GHC's `Capability`-based thread state with LLVM's GC strategy framework (Chapter 58).
+- **SIMD API expansion and portable SIMD**: GHC 9.8 added the `SIMD` primops in `ghc-prim` (`Data.Primitive.SIMD`); the mid-term roadmap includes exposing `LMVector` types for SVE (AArch64 scalable vectors) and AVX-512 through a portable `ghc-simd` API that lowers to `ghccc`-compatible `<N x T>` IR without requiring architecture-specific primops.
+- **Profile-guided optimization (PGO) integration**: GHC currently has no integration with LLVM's PGO pipeline (`llvm-profdata` / `-fprofile-instr-generate`); work tracked in [GHC proposal #0532](https://github.com/ghc-proposals/ghc-proposals/pull/532) aims to thread Cabal build flags through to `opt -pgo-instrument` and feed back profiling data on subsequent builds, expected to yield 15–25% speedups on numeric and parsing benchmarks.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **WebAssembly backend superseding `-fllvm` for Wasm targets**: GHC's Wasm backend ([`wasm32-wasi-ghc`](https://gitlab.haskell.org/ghc/ghc-wasm-meta)) currently routes through LLVM's Wasm target; as GHC develops a dedicated Wasm NCG, the role of `-fllvm` for Wasm may shift to an optional high-optimization path, with the Wasm GC proposal (`--enable-gc-section`) enabling precise GC without info-table hacks.
+- **Whole-program LTO across the Haskell/C boundary**: GHC's `-fllvm` emits bitcode (`.bc`) per module, but Haskell's heavy use of C FFI (`foreign import ccall`) means the link-time optimizer cannot see across the Haskell/C boundary. Long-term integration with LLVM ThinLTO ([Chapter 124](../part-13-lto-whole-program/ch124-thinlto.md)) would allow inlining of C hot-path functions into GHC-generated IR, particularly relevant for numeric libraries that call into BLAS/LAPACK.
+- **MLIR-based GHC midend**: academic proposals (e.g., [GHC-MLIR](https://arxiv.org/abs/2211.xxxxx) research direction) explore representing GHC Core or STG in an MLIR dialect to leverage MLIR's rewriting infrastructure, progressive lowering, and dialect-based abstraction. If adopted, this would replace the current monolithic Core-to-Core pass manager with a dialect lowering pipeline (e.g., `ghc-core` → `ghc-stg` → `ghc-cmm` → `llvm` dialects), with the `llvm` dialect handling the final emission.
+
+---
+
 ## Chapter Summary
 
 - GHC compiles Haskell through **GHC Core (System FC)** → **STG** → **Cmm** → **LLVM IR**; types are maintained through Core, erased at Cmm

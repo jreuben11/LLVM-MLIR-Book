@@ -725,6 +725,32 @@ void MyTargetPassConfig::addISelPasses() {
 }
 ```
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **X86 GlobalISel promotion beyond `-O0`**: The LLVM community (tracked in [D155148](https://reviews.llvm.org/D155148) and successor patches) is actively expanding X86 GlobalISel coverage to `-O1` optimized builds; completion of the integer and SSE/AVX scalar legalization tables is the primary blocker.
+- **RISC-V GlobalISel vector extension (RVV) legalization**: RVV scalable-vector types (`nxv4i32`, etc.) require `LLT::scalable_vector` legalizer entries across all arithmetic, memory, and permutation opcodes; patches landing on the RISC-V GlobalISel track through late 2026.
+- **GICombineRule DSL pattern enhancements**: The TableGen combiner DSL is gaining support for multi-root patterns and instruction-sequence matching (analogous to SelectionDAG's `ComplexPattern`), enabling combiner rules that span more than one instruction without requiring C++ glue code.
+- **`MachineIRBuilder` type-inference API**: An RFC on discourse.llvm.org proposes auto-inferring `LLT` for `buildInstr` calls from operand types, reducing boilerplate in `IRTranslator` translation routines and target `CallLowering` implementations.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **GlobalISel as the default path for AArch64 at all optimization levels**: AArch64 already defaults to GlobalISel at `-O0`; the plan documented in the LLVM GlobalISel status page is to enable it by default through `-O3`, requiring parity with SelectionDAG on codegen quality metrics (particularly for SVE and SME targets).
+- **Unified combiner infrastructure replacing `DAGCombine`**: An architectural proposal to share combiner rules between SelectionDAG's `DAGCombiner` and GlobalISel's `GICombiner` via a common TableGen description is under discussion; this would allow rules written once to apply in both pipelines.
+- **AMDGPU wave32/wave64 register bank unification**: AMDGPU's dual wave-width model requires two distinct register bank configurations; work is ongoing to express wave-width selection as a first-class `RegisterBankInfo` attribute rather than a post-selection fixup pass.
+- **`LegalizerInfo` static type-lattice verification**: A proposed diagnostic tool would analyze `LegalizerInfo` tables at compile time to detect gaps (opcode+LLT combinations that reach `Unsupported` through the action chain), replacing the current runtime assertion failures with actionable build-time diagnostics.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **SelectionDAG deprecation and GlobalISel-only LLVM**: The long-term architectural direction (discussed at the 2023 and 2024 LLVM Dev Meetings) is to retire SelectionDAG once GlobalISel achieves full target coverage and codegen quality parity; this requires completing GlobalISel support for SPARC, Mips, SystemZ, and embedded targets currently lacking `LegalizerInfo` implementations.
+- **Machine-learning-guided `RegBankSelect` cost model**: Research projects (including work from Google's compiler team) explore using learned cost models to replace the hand-tuned `InstructionMapping` costs in `RegBankSelect`, targeting cases where heuristic bank assignment produces suboptimal register pressure ahead of allocation.
+- **GlobalISel integration with the New Register Allocator (NRA/RegAllocFast2)**: The emerging register allocator overhaul under discussion would expose allocation hints directly from GlobalISel's `RegBankSelect` assignments, bypassing the current impedance mismatch between bank-assigned virtual registers and the allocator's constraint representation.
+
+---
+
 ## Chapter Summary
 
 - GlobalISel operates on the entire function (not just one basic block), using Generic MachineIR (`G_*` opcodes) with `LLT` types. This enables cross-block optimizations during instruction selection.

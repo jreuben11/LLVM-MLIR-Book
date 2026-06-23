@@ -467,6 +467,32 @@ The pattern across all these downstreams is consistent: a fork or vendored copy 
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **LLVM 23 release and cadence enforcement**: The `release/23.x` branch cut is scheduled for approximately August 2026, with LLVM 23.1.0 targeting October–November 2026. Tracked at [discourse.llvm.org/c/release](https://discourse.llvm.org/c/release); the release manager process introduced at LLVM 14 continues to enforce scheduled branch-cut dates.
+- **`RemoveDIs` debug-info transition completion**: The `DbgRecord`/`DPValue` non-instruction debug-info representation (removing `llvm::DbgInfoIntrinsic` entirely) is expected to be finalized across all in-tree passes by LLVM 23, closing the migration begun in LLVM 18. RFC at [discourse.llvm.org/t/rfc-instruction-api-changes](https://discourse.llvm.org/t/rfc-instruction-api-changes-needed-to-make-debug-value-intrinsics-non-instruction/68939).
+- **LLVM libc full POSIX coverage on Linux/AArch64**: Ongoing LLVM libc work aims to complete POSIX and C23 function coverage on AArch64 Linux by the LLVM 23 cycle, making it viable as a full `glibc` overlay. Progress tracked at [libc.llvm.org](https://libc.llvm.org/status/posix.html).
+- **Flang OpenMP 5.2 compliance**: AMD, Arm, and NVIDIA contributors are pushing Flang's OpenMP runtime support toward full OpenMP 5.2 specification compliance (device offload, `taskloop simd`, `interop` constructs), with the target milestone aligned to LLVM 23.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **ClangIR (CIR) promotion to default Clang lowering path**: The ClangIR project ([`clang/lib/CIR/`](https://github.com/llvm/llvm-project/tree/main/clang/lib/CIR)) replaces Clang's direct AST-to-LLVM-IR lowering with a Clang-specific MLIR dialect, enabling richer mid-level analysis and inter-procedural optimization before LLVM IR. The RFC ([discourse.llvm.org/t/clangir-upstreaming](https://discourse.llvm.org/t/clangir-upstreaming/)) targets CIR being the default by approximately LLVM 25–26.
+- **GlobalISel as the default instruction selector for all major targets**: AArch64 already defaults to GlobalISel; X86, AMDGPU, and RISC-V are on migration paths. Full GlobalISel parity with SelectionDAG across these targets is expected by the LLVM 26–28 window, at which point the SelectionDAG path may enter maintenance mode.
+- **Monorepo governance reforms for downstream contributors**: Ongoing LLVM community discussion on RFC [discourse.llvm.org/t/rfc-downstream-support-policy](https://discourse.llvm.org/c/infrastructure) addresses formal policies for downstream forks (Apple, AMD ROCm, Intel SYCL, Android) to contribute target-specific features with longer stabilization windows, reducing the version lag from the current 1–4 major releases.
+- **LLVM 25+ C API coverage expansion**: A recurring community RFC thread advocates extending the stable C API (`llvm-c/`) to cover the new pass manager, basic block IR manipulation, and OrcV2 JIT APIs, enabling foreign-language bindings (Rust's `llvm-sys`, Python's `llvmlite`) to drop their C++ shim layers.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **LLVM IR versioning and stability for distribution**: A long-standing community aspiration — formalized in multiple RFC threads — is to assign explicit version identifiers to `.ll`/`.bc` formats to enable durable cached IR across toolchain updates, analogous to SPIR-V module versioning. By 2031, the convergence of ClangIR and MLIR's dialect versioning infrastructure may make this tractable for the LLVM dialect at minimum.
+- **BOLT and LLVM LTO deep integration**: BOLT's post-link binary optimization is currently a separate pass invoked after LLD produces an output binary. Research prototypes (Meta/Google collaboration) explore integrating BOLT's profile-guided basic-block reordering directly into the LTO pipeline so that function layout is optimized before final link emission, eliminating a separate tool invocation and enabling cross-function layout optimization.
+- **LLVM as a universal hardware-synthesis backend**: The convergence of CIRCT (Circuit IR Compilers and Tools, an LLVM incubator project) with mainstream MLIR dialects positions LLVM-ecosystem infrastructure as the dominant open-source backend for FPGA and ASIC synthesis by the early 2030s, extending the "LLVM for compilers" model to "LLVM for hardware design."
+
+---
+
 ## 8. Chapter Summary
 
 - LLVM began as Chris Lattner's UIUC graduate research in 2000, with the MS thesis completed December 2002 and LLVM 1.0 released October 2003. Apple's 2005 hire of Lattner and subsequent investment transformed it from research infrastructure into production toolchain.

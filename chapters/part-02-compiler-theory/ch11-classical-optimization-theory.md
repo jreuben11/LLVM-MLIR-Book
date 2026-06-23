@@ -1026,6 +1026,32 @@ The result is a tight vectorized loop with ~0 overhead per iteration beyond the 
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **NewGVN correctness and performance push**: the LLVM community has several open patches on Discourse (discourse.llvm.org) to fix remaining NewGVN divergences from GVN (load-PRE completeness under MemorySSA phi cycles); expect these to land and `newgvn` to become the default GVN pass at `-O2` by mid-2026, superseding the RPO-based `GVN` for most pipelines.
+- **MemorySSA-aware LICM hoisting of speculative loads**: RFC patches extending LLVM's `LICM.cpp` to hoist dereferenceable-but-not-dominance-safe loads behind a guard using the `llvm.assume` + `llvm.experimental.guard` mechanism are in active review; the primary target is CUDA/GPU kernels where uniform loads in divergent branches are extremely common.
+- **RegAllocGreedy live-range-split cost model rework**: a series of patches (tracked at https://github.com/llvm/llvm-project/issues) is revising the `SplitKit` spill weight formula to account for block frequency profiles more precisely, aiming to reduce spill code in profile-guided `-O3` builds by 5–15%.
+- **MachinePipeliner (SMS) enablement for RISC-V**: the `MachineScheduler`/`MachinePipeliner` RISC-V back-end integration is advancing; near-term goal is to enable SMS by default for in-order RISC-V cores (Spacemit X60, T-Head C906) where software pipelining delivers 30–50% loop throughput improvements.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **SSA-based register allocation in LLVM production**: research work (Braun et al.'s "Simple and Efficient Construction of Static Single Assignment Form", and Hack/Goos/Grund SSA-RA) is being re-evaluated for LLVM's backend after JIT-style workloads in MLIR/IREE showed RegAllocFast bottlenecks; a prototype SSA-based allocator targeting MLIR's `func` dialect is expected to mature into a production path, enabling graph-coloring quality at O(n) compile time.
+- **ML-guided phase ordering**: LLVM's `MLInliner` (already shipping in `-O3` as `ml-inliner`) is being extended to cover phase ordering decisions for the full scalar pipeline (GVN vs. PRE order, LICM vs. unroll thresholds) via an RL-trained policy, following the AutoPhase paper (Huang et al., CGO 2019); integration with LLVM's `PassInstrumentation` framework is underway.
+- **Concurrent GC statepoints for MLIR-based runtimes**: the `RewriteStatepointsForGC` infrastructure is being extended to handle MLIR's `async` dialect and deferred reference counting (as used in Swift's concurrency runtime and proposed for LLVM-based Mojo runtimes); this requires per-task safepoint tables, not just per-function `.llvm_stackmaps` records.
+- **Superword-level PRE (SLP + PRE co-optimization)**: academic work (Mendis et al., VeGen PLDI 2021) proposes fusing the SLP vectorizer's pack decisions with a PRE-style redundancy elimination so that vectorized loads are speculatively hoisted into preheaders; an LLVM prototype was demonstrated at the 2025 LLVM Developers' Meeting and is being productized for the `-O3` vectorization pipeline.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Verified register allocation in production compilers**: the CompCert-RA (Jourdan et al.) and Vellvm-RA lines of work are converging toward a formally verified IRC-style allocator that can be extracted to OCaml/C++ and integrated as a drop-in replacement in LLVM; the five-year goal is a verified allocator for the AArch64 back-end that is checked against the Coq model of the interference-graph invariants (Section 11.6), providing a machine-checked guarantee of no spill-correctness bugs.
+- **Polyhedral-aware global PRE**: extending LCM/GVN-PRE to reason about polyhedral loop nests (integrating ISL's integer set library directly into the PRE dataflow equations) so that partial redundancies that only become apparent across loop boundaries (e.g., `A[i][j]` computed in one loop nest is partially available for a second nest over the same bounds) are eliminated without manual loop fusion; this unifies the polyhedral model (Chapter 71) with classical PRE theory.
+- **Quantum instruction scheduling**: as quantum-classical hybrid compilers (e.g., LLVM-QIR, OpenQASM 3 backends) mature, the dependence-DAG scheduling theory of Section 11.8 must be extended to handle qubit decoherence windows as a new resource constraint (analogous to pipeline latencies but time-bounded by T₂ decoherence times); the LLVM-QIR project (Microsoft/QIR Alliance) is the primary vehicle for developing this theory and its compiler implementation.
+
+---
+
 ## 11.12 Chapter Summary
 
 This chapter has surveyed the theoretical foundations of classical compiler optimization, from simple local transformations to the sophisticated graph algorithms that underpin modern register allocation and instruction scheduling.

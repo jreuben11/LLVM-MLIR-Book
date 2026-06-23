@@ -541,6 +541,32 @@ The IR verifier enforces that `freeze` receives a single operand of any first-cl
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **`co_await` symmetric transfer elision in CoroElide**: active work ([D143931](https://reviews.llvm.org/D143931) lineage) to extend `CoroAnnotationElidePass` to handle symmetric-transfer chains where multiple coroutines form a static call graph with no escaping handles, eliminating heap allocations across the entire chain, not just the outermost call.
+- **`memory_order_consume` revival**: the P0371 / P2535 WG21 papers targeting C++26 propose a hardware-mapped `consume` ordering that Clang and LLVM IR would support natively, removing the current workaround of promoting `consume` to `acquire`; LLVM infrastructure changes (new `AtomicOrdering::Consume` enumerator, backend lowering on AArch64 and RISC-V) are tracked in [llvm-project issue #63749](https://github.com/llvm/llvm-project/issues/63749).
+- **RISC-V Zabha extension support in AtomicExpandPass**: Zabha adds byte- and halfword-width `amoadd.b`, `amoor.h`, etc.; patches to `RISCVTargetLowering::shouldExpandAtomicRMWInIR` to return `None` for byte/halfword RMWs when `+zabha` is active are under review as of Q1 2026.
+- **Coroutine frame size reduction via rematerialisation**: `CoroSplitPass::OptimizeFrame` currently rematerialises only single-use non-memory values; RFC on discourse.llvm.org (March 2026) proposes extending it to rematerialise cheap instruction sequences (GEPs, shifts, constants derived from arguments) to shrink frame footprint in hot coroutine-heavy server workloads.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **C++26 `std::execution` (P2300) coroutine lowering**: the upcoming senders/receivers concurrency framework requires structured coroutine composition across executor boundaries; Clang will need new `co_await` protocol intrinsics (beyond the existing `llvm.coro.await.suspend.*` trio) to model inline completion paths and `set_stopped` cancellation without heap allocation per-operation.
+- **AArch64 LRCPC3 / LSE128 atomic instruction support**: Armv9.4 adds 128-bit CAS (`CASP` successor) and load-acquire/store-release for 128-bit operands; `AtomicExpandPass` will need a new `AtomicExpansionKind::Native128` path and `AArch64TargetLowering` updates to emit `LD64B`/`ST64BV` for `cmpxchg` on `i128` without falling back to LL/SC.
+- **GPU syncscope unification across NVPTX and AMDGPU**: current `SyncScope::ID` values are context-local integers registered independently by each target, making cross-target IR difficult to inspect; a proposed RFC on discourse.llvm.org suggests a canonical string-interning layer in `LLVMContext` with target-agnostic scope names (`"thread"`, `"warp"`, `"workgroup"`, `"device"`, `"system"`) mapped by each backend.
+- **Hazard pointer and RCU idiom recognition in the middle-end**: academic work (Kokologiannakis et al., "GenMC", PLDI 2021–2024) demonstrates that compiler-assisted RCU critical-section detection can unlock significant alias-analysis improvements; LLVM integration would add new `atomic load`-specific metadata similar to `!nontemporal` to tag RCU read-side critical sections for `AA` and DCE.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Formal memory-model verification integrated into LLVM's CI**: the Alive2 tool (Lopes et al.) already verifies scalar optimisation soundness; extension to verify that `AtomicExpandPass` expansions (CAS loops, LL/SC sequences) are correct with respect to the LLVM memory model as formalised in Promising Semantics (Kang et al.) or the RC11 model would give a machine-checked proof of every per-target expansion path.
+- **Coroutine ABI stabilisation for the C ABI boundary**: no current C++ coroutine ABI allows a `std::coroutine_handle` to cross a shared-library boundary compiled by different compilers or different ABIs; a new "coroutine descriptor" format analogous to the Objective-C block descriptor (with stable vtable-like layout for resume/destroy pointers) would enable cross-DSO coroutine transfer and interoperate with the C23 `_Coroutine` proposal under committee discussion.
+- **Hardware-assisted transactional memory integration via `atomicrmw txn`**: as Intel TSX successors and RISC-V Ztm (tentative) mature, LLVM IR will likely need a new `transactional` scope or `atomicrmw` operation variant allowing the backend to speculatively execute a CAS loop as a hardware transaction and fall back to the lock-based path only on abort; the instruction selection and scheduler implications for `AtomicExpandPass` are substantial.
+
+---
+
 ## Chapter Summary
 
 - Coroutines require a *split-function transformation* that LLVM represents via `llvm.coro.*` intrinsics emitted by the frontend and lowered by four mandatory passes: CoroEarlyPass (Module), CoroSplitPass (CGSCC), CoroElidePass (Function), and CoroCleanupPass (Module).

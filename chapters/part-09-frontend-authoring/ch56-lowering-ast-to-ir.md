@@ -670,6 +670,32 @@ The redundant loads and alloca for `n` are eliminated; the parameter is used dir
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **`IRBuilder` typed-pointer annotations**: The ongoing LLVM RFC to re-introduce opt-in typed pointer metadata (for sanitizer tools that need to track pointee types through opaque pointers) is expected to land in LLVM 23. Frontend IRBuilder usage will need to supply `ElementType` annotations to `CreateGEP` and `CreateLoad` when this metadata is requested — see [discourse.llvm.org/t/rfc-typed-pointer-metadata](https://discourse.llvm.org/t/rfc-typed-pointer-metadata).
+- **`dbg.value` migration replacing `dbg.declare`**: LLVM's ongoing removal of `dbg.declare` in favour of `dbg.value`+`dbg.assign` intrinsics (RFC landed partially in LLVM 18, full removal targeted for LLVM 23) will require frontend `DIBuilder::insertDeclare` call sites to migrate to `insertDbgValueIntrinsic` / `insertDbgAssign` APIs.
+- **`SetInsertPointPastAllocas` deprecation**: Patches are in review to replace the current entry-block alloca positioning idiom with a dedicated `AllocaInsertPoint` token that survives inlining without needing a separate `IRBuilder` temporary — watch [llvm/llvm-project#88014](https://github.com/llvm/llvm-project/issues/88014).
+- **Opaque-pointer ABI for vararg functions**: LLVM 23 is tightening the `CreateCall`/`CreateInvoke` verifier rules for variadic calls — frontend code that builds `FunctionType::get(..., /*vararg=*/true)` and passes non-promoted types (float, short) will fail new `verifyFunction` checks; emit `fpext`/`zext` before variadic arguments.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **SSA construction without alloca (direct phi placement)**: Ongoing research (building on Braun et al. "Simple and Efficient Construction of Static Single Assignment Form", CC 2013) is being prototyped as a new `IRBuilder` mode that performs on-the-fly dominance-frontier phi placement, allowing frontends to omit the alloca-then-mem2reg round-trip entirely. A production implementation is expected within LLVM's tutorial/Kaleidoscope successor track.
+- **`DebugIntrinsic` unification**: The LLVM Debug Info Working Group RFC to unify `dbg.declare`, `dbg.value`, and `dbg.assign` into a single `llvm.dbg` intrinsic family (with a `DIExpression`-based variant tag) will require frontend `DIBuilder` API updates; the new API surface is expected to stabilise by LLVM 24–25.
+- **ClangIR (`CIR`) as standard frontend IR layer**: The ClangIR project (Part VIII of this book) aims to make the `CIR → LLVM IR` lowering pipeline the standard path for Clang; third-party frontends authoring their own `IRBuilder`-based emitters may be redirected to target `CIR` dialects instead, then delegate to the standard lowering. Tracking issue: [llvm/clangir](https://github.com/llvm/clangir).
+- **Poison value semantics enforcement in IRBuilder**: LLVM's ongoing formalisation of poison/undef semantics (Juneyoung Lee et al., "Reconciling High-Level Optimizations and Low-Level Code in LLVM", OOPSLA 2018) will progressively tighten `IRBuilder` — `CreateAdd` without `NUW`/`NSW` flags on signed arithmetic will emit deprecation diagnostics when a new `-Wundef-arithmetic` mode is enabled in opt-level builds.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Typed IR frontends targeting MLIR directly**: As MLIR's `func`/`arith`/`cf` dialects become first-class targets for language frontends (replacing hand-rolled LLVM IR emitters), tools like `mlir-translate` and the `--convert-func-to-llvm` pipeline are expected to mature to production quality, rendering direct `IRBuilder` usage a lower-level escape hatch rather than the primary recommended frontend path.
+- **Incremental/lazy IR construction for IDEs**: Research into incremental compilation models (e.g., driven by Rust's `rustc_codegen_ssa` architecture and proposals in the LLVM developer forum) envisions an `IRBuilder` variant that can patch individual basic blocks without re-emitting an entire function — enabling sub-second recompilation for large functions in language servers.
+- **Automatic debug-info generation from IR metadata**: Long-term proposals in the LLVM Debug Info working group envision a mode where source-location metadata attached to AST nodes is propagated automatically through the `IRBuilder` without per-call `SetCurrentDebugLocation` — reducing the frontend burden of maintaining debug fidelity for inlined and optimised code.
+
+---
+
 ## Chapter Summary
 
 - `IRBuilder<>` is the core instruction factory; its insertion point determines where new instructions land.

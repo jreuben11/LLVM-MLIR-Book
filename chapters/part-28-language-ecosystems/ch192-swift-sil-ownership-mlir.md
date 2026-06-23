@@ -636,6 +636,32 @@ After IRGen produces LLVM IR, the standard LLVM optimization pipeline runs. At t
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **`~Copyable` / `~Escapable` completion**: Swift Evolution proposals SE-0427 (`borrowing` and `consuming` parameter modifiers), SE-0429 (partial consumption of `~Copyable` values), and SE-0432 (Borrowing and Consuming Pattern Matching for `~Copyable` Enums) are landing in Swift 6.x. The SIL verifier and mandatory passes must be updated to track partial-consume paths through enum pattern matching — a non-trivial extension of the existing OSSA linear-use proof system tracked at [swift/issues](https://github.com/swiftlang/swift/issues).
+- **Lifetime dependency syntax (`@lifetime`)**: SE-0430's `~Escapable` model requires a surface-level `@lifetime(copy param)` annotation for functions returning non-escapable types. The corresponding SIL lowering of `@lifetime` to `mark_dependence` chains through inlined functions is under active development in the Swift compiler; the mandatory propagation of `mark_dependence` through inliner and optimizer has open correctness issues as of Q1 2026.
+- **SIL concurrency model / `swift_task` integration**: Swift 6 strict concurrency checking generates `hop_to_executor` SIL instructions and actor-isolation ownership proofs. The interaction between actor-isolation (which requires `@owned` transfer across isolation boundaries via `swift_task_switch`) and OSSA's linear-use verifier is being formalized in proposals being discussed on the Swift forums ([forums.swift.org/c/evolution](https://forums.swift.org/c/evolution)).
+- **OSSA copy-on-write (COW) optimization**: the `CopyOnWriteOptimization` pass (`lib/SILOptimizer/Transforms/COWOpts.cpp`) is being extended to handle `~Copyable`-bounded generic parameters; the current pass only recognizes stdlib `Array`/`Dictionary`/`Set` COW idioms and misses user-defined COW types.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **SIL as a stable binary interchange format**: there is ongoing discussion in the Swift compiler community about stabilizing a subset of SIL as a serialized module artifact (analogous to LLVM bitcode) to enable cross-module OSSA-level optimization without requiring full WMO re-compilation. This would formalize the `.swiftmodule` binary SIL encoding (currently unstable between compiler versions) and enable incremental SIL-level LTO analogous to LLVM's ThinLTO.
+- **Formal ownership proof in Lean 4**: the Swift team has expressed interest (Lattner, LLVM 2022 keynote) in mechanizing the OSSA ownership proof — proving that the verifier's acceptance of a SIL function implies correct ARC behavior — in a proof assistant, following the pattern of CompCert's Coq formalization. A research prototype using Lean 4 has been mentioned in academic contexts; no public artifact exists as of 2026.
+- **MLIR `ownership` dialect**: as MLIR's bufferization matures, there is recurring discussion on discourse.llvm.org (MLIR category) about introducing a first-class `ownership` dialect that encodes `@owned` / `@borrowed` / `@moved` value semantics at the MLIR level — eliminating the need for `bufferization.alloc_tensor` as a proxy for ownership and allowing dialects to express transfer-of-ownership directly in their type system, mirroring SIL's OSSA model exactly.
+- **Swift/Wasm ownership-safe ABI**: the WebAssembly target for Swift (tracked in `swiftwasm/swift`) requires a new calling convention for `~Copyable` types across Wasm component model boundaries. The component model's resource type (a Wasm-native owned handle) maps directly to SIL's `@owned` semantics; aligning the Swift ABI with the Wasm component model resource lifetime model is an active 2026–2028 engineering effort.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Ownership-aware LLVM IR extension**: the long-standing limitation that LLVM IR has no ownership semantics — requiring all ARC optimization to be done upstream in SIL — may be partially addressed by adding `llvm.ownership.take` / `llvm.ownership.release` intrinsics analogous to `llvm.lifetime.start` / `llvm.lifetime.end`. This would allow LLVM's IPO passes to reason about ARC calls structurally and enable cross-language ARC optimization between Swift and Objective-C in the LLVM backend. A precursor design is the `operand_bundle` mechanism for deopt / funclet semantics; extending it to ownership is technically plausible.
+- **Whole-program SIL optimization with Swift macros**: Swift 5.9+ macros (`@attached`, `@freestanding`) generate SIL-transforming plugins. Long-term, the macro expansion system may be extended to support SIL-level rewrites (analogous to MLIR's `RewritePattern` mechanism), enabling ownership-aware library-defined optimizations that run in the SIL optimizer pipeline. This would require stabilizing the SIL API as a public plugin interface.
+- **Cross-language ownership interop (Swift ↔ C++ / Rust)**: Swift's C++ interoperability (SE-0384 importing C++ types, SE-0396 `std::move` / `std::forward` support) currently boxes C++ move-only types as Swift `~Copyable` values. Long-term, a bidirectional ownership-safe FFI between Swift SIL's OSSA model and Rust MIR's borrow-check model — allowing zero-copy data transfer between Swift and Rust components with compiler-verified lifetime guarantees — is a research goal discussed in the context of Rust-in-Swift package proposals.
+
+---
+
 ## Chapter Summary
 
 - **SIL exists because LLVM IR cannot optimize ARC**: LLVM's alias analysis treats `swift_retain` / `swift_release` as opaque calls; SIL makes ownership an explicit first-class invariant of the IR type system through Ownership SSA.

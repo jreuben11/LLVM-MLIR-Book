@@ -418,6 +418,32 @@ Managed mode allows Sulong to interoperate with GraalPy: a Python `bytearray` ca
 
 TruffleRuby uses Sulong for C extension execution: `require 'openssl'` loads the OpenSSL C extension as LLVM bitcode, interpreted by Sulong, and optimized alongside Ruby code by the same Graal JIT.
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **GraalVM 24.x / JDK 25 integration**: GraalVM Community tracks OpenJDK releases closely; GraalVM 24.2 (paired with JDK 25) is expected to ship JVMCI improvements that reduce PE compilation latency and expose new intrinsic hooks for Truffle specialization caching — follow [oracle/graal milestones](https://github.com/oracle/graal/milestones).
+- **Project Leyden Phase 2 (JEP 483)**: OpenJDK's Leyden AOT layer is iterating toward a "condensed JDK" that stores a pre-linked class hierarchy; GraalVM Native Image's Bigbang points-to analysis will need to consume or produce Leyden-compatible condensed images, and co-ordination discussions are ongoing on the [leyden-dev mailing list](https://mail.openjdk.org/pipermail/leyden-dev/).
+- **Sulong managed-pointer arithmetic relaxations**: The Sulong team is extending managed-memory mode to support more LLVM pointer idioms (integer-to-pointer casts, union-like struct reinterpretation) required by real C extension codebases; progress tracked in [graal/sulong issue #1062](https://github.com/oracle/graal/issues?q=label%3Asulong).
+- **GraalPy HPy ABI stabilization**: GraalPy's C extension compatibility layer targets the HPy 0.9 stable ABI; patches landing in [hpyproject/hpy](https://github.com/hpyproject/hpy) reduce the CPython-only surface that forces fallback to slow CPython emulation mode.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Truffle speculation-free partial evaluation**: Research prototypes from Oracle Labs and TU Wien explore eliminating deoptimization stacks entirely via ahead-of-time recompilation triggers; this would allow Native Image binaries to re-specialize without JIT infrastructure, narrowing the throughput gap vs. JVM mode described in §231.6.
+- **LLVM bitcode as primary Sulong IR (LLVM 18+ opaque-pointer convergence)**: Sulong currently lowers opaque LLVM pointers to managed objects with special rules; as LLVM's opaque-pointer model stabilizes across LLVM 17–22, Sulong's IR ingestion layer is being rewritten to use a single typed-value abstraction, eliminating the dual native/managed memory configuration flag (`--llvm.managed`) in favor of per-allocation policy.
+- **GraalWasm ahead-of-time tier with Wasm GC proposal**: GraalWasm targets the W3C Wasm GC proposal (finalized 2023, still ramping in runtimes); full AOT compilation of Wasm GC programs via SubstrateVM requires teaching Bigbang to reason about Wasm's heap type hierarchy — active work under [graal/wasm](https://github.com/oracle/graal/tree/master/wasm).
+- **Polyglot isolates and shared-heap multi-tenancy**: The current Polyglot `Context` model creates per-context heaps; Oracle Labs research into *shared-heap polyglot* (where GraalPy and TruffleRuby objects live in the same GC heap) is targeting production readiness for SaaS multi-tenant deployments — related to the "Value Sharing" RFC posted to the Truffle issue tracker in late 2024.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Full metacompilation stack in a single binary**: The vision of embedding Graal's PE engine inside a Native Image binary (so a native app can JIT its own Truffle plugins at runtime without a JVM) has been prototyped in the "SVM JIT" research line; productizing this would collapse the JVM-mode vs. Native Image trade-off and is a multi-year research program at Oracle Labs.
+- **MLIR-based Graal IR back-end**: Community proposals have explored replacing the sea-of-nodes Graal IR with an MLIR-based representation that would allow Graal to share LLVM middle-end passes (e.g., polyhedral loop optimizations via Polly) and emit to LLVM's machine-code back-ends directly; this would make Sulong redundant for C code and enable GraalVM languages to target GPU/accelerator back-ends via MLIR's `gpu` and `nvgpu` dialects.
+- **Verifiable partial evaluation via Lean/Coq proofs**: Following CompCert and Vellvm precedents, long-term academic work aims to formally verify Truffle's PE correctness — that the compiled output of partial evaluation is observationally equivalent to the interpreted AST execution — using Lean 4 as the proof assistant; early formalization work is appearing in POPL/PLDI venues.
+
+---
+
 ## Chapter Summary
 
 - GraalVM stacks Truffle (AST interpreter framework), Graal JIT (sea-of-nodes, JVMCI), and SubstrateVM (AOT native image) on a common foundation

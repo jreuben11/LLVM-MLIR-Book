@@ -567,6 +567,32 @@ end subroutine
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **HLFIR expression fusion pass**: An in-progress optimization pass (`FuseHLFIRExpressions`) aimed at composing adjacent `hlfir.elemental` operations without materializing intermediate temporaries — tracking LLVM Discourse RFC "HLFIR: expression fusion for array temporaries" (posted March 2026). This directly reduces heap traffic in loop-heavy Fortran codes.
+- **`hlfir.forall` and `hlfir.where` operation refinements**: Ongoing work to represent Fortran 2018 FORALL and WHERE at HLFIR level with explicit mask semantics before `LowerHLFIROrderedAssignments` fires, enabling better dependence analysis; tracked in [llvm-project#92340](https://github.com/llvm/llvm-project/issues/92340).
+- **Box type alias analysis for FIR**: Contributions to `fir.alias_analysis` to distinguish `fir.ref<T>`, `fir.ptr<T>`, and `fir.heap<T>` at the alias-analysis level so downstream optimizers (LICM, DSE) can exploit Fortran's strict aliasing rules between POINTER and non-POINTER arguments.
+- **`fir.do_concurrent` operation**: Proposal to add a dedicated FIR op for Fortran DO CONCURRENT to preserve parallelism metadata through the lowering pipeline to enable OpenMP/OpenACC mapping without relying on pattern-matching on `fir.do_loop` attributes.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Deferred-length character lowering at HLFIR level**: Full representation of `CHARACTER(LEN=:), ALLOCATABLE` variables as `hlfir.expr<!fir.char<1,?>>` without eagerly materializing length into a separate SSA value; requires extending `hlfir.declare` to carry an optional length expression and teaching `BufferizeHLFIR` to allocate correctly sized buffers.
+- **HLFIR-level polyhedral optimization integration with Polly/Flang**: Research track connecting the `hlfir.elemental` nest to Polly's SCoP analysis via a bridge pass (`ConvertHLFIRToSCoP`) so that Fortran array expressions can benefit from polyhedral tiling and loop interchange — analogous to the existing Polly/LLVM IR pipeline but operating before boxing.
+- **Improved `ArrayValueCopy` alias analysis**: Replacing the current conservative temporary-insertion heuristic with a proper anti-dependence analysis using MLIR's `SideEffectInterfaces` and value-range information to eliminate unnecessary temporaries in expressions like `a(1:n) = a(2:n+1) + b`.
+- **CFI interop extensions for assumed-rank and co-arrays**: Extending `fir.box` and the CFI descriptor layout to fully support Fortran 2018 §18.5 assumed-rank (`fir.array<*:T>`) and co-array (Fortran 2018 §5.3.6) descriptors, targeting compatibility with the MPI co-array extension ABI.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **HLFIR as a stable Fortran ISA for ahead-of-time specialization**: Stabilizing the HLFIR dialect spec (versioned op interfaces, backward compatibility guarantees) so that pre-compiled HLFIR modules can be distributed and linked — analogous to LLVM bitcode distribution — enabling whole-program Fortran optimization without source redistribution.
+- **GPU offload at HLFIR level via OpenMP/OpenACC dialect interop**: Representing `!$OMP TARGET` and `!$ACC PARALLEL` regions as HLFIR-level structured ops (rather than inserting OpenMP dialect ops post-FIR), allowing data-parallelism-aware intrinsic lowering (e.g., `hlfir.matmul` → `gpu.launch` + cuBLAS call selection) controlled by device-target attributes.
+- **Formal verification of FIR array-copy semantics**: Mechanized proof (in Lean 4 or Coq) that `fir.array_load` / `fir.array_merge_store` correctly implements Fortran's copy semantics under all alias configurations identified by `ArrayValueCopy`, eliminating classes of silent correctness bugs in the most subtle part of the lowering pipeline.
+
+---
+
 ## Chapter Summary
 
 - FIR (Fortran IR) is an MLIR dialect providing Fortran-specific types and operations: `fir.ref<T>`, `fir.box<T>` (array descriptor), `fir.array<NxT>`, `fir.char<K,L>`, `fir.heap<T>`, `fir.ptr<T>`

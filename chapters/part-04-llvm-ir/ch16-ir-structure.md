@@ -741,6 +741,32 @@ Walking through this module: the `target datalayout` and `target triple` set the
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Opaque pointer cleanup and typed-pointer removal**: The LLVM community is finalizing the complete removal of all legacy typed-pointer code paths from the middle-end and bitcode reader. Remaining compatibility shims introduced in LLVM 15–17 are being excised; downstream bitcode consumers built on older APIs are expected to migrate by LLVM 23. Track progress via the `[llvm-dev] typed pointers` thread on discourse.llvm.org and `llvm/IR/PointerType.h` deprecation notices.
+- **`Value`/`User`/`Use` memory layout compaction**: An ongoing RFC proposes reducing the per-`Use` storage overhead by encoding the use-list pointer and tag bits directly inside the `Value` vtable slot rather than in a separate `Use` node allocation. This would shrink memory footprint for modules with millions of SSA values, relevant to LTO pipelines over large C++ codebases.
+- **Module flag `Min`/`Max` behavior expansion for RISC-V and LoongArch ABI flags**: As RISC-V vector extension versioning (`zve32x`, `zvl128b`, etc.) becomes standard, the module flags mechanism is being extended to carry vector ABI compatibility constraints using `Max` semantics. Patches adding `"riscv-isa"` and `"loongarch-abi"` module flags are tracked under LLVM bug [llvm.org/PR68084](https://github.com/llvm/llvm-project/issues/68084).
+- **`llvm-link` module-flag merge diagnostics improvements**: The current merge error message for `Error`-behavior flag conflicts lacks file provenance (which `.o` contributed the conflicting value). A patch series improving diagnostics to emit source filenames alongside conflicting values is being reviewed on Phabricator/GitHub.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **IR versioning and forward-compatibility for bitcode**: The LLVM bitcode format's forward-compatibility guarantee is informally maintained but not machine-checked. A proposal being discussed in the LLVM community (related to the LLVM Bitcode Specification RFC from 2024) aims to introduce an explicit schema version record in the bitcode module block, enabling automated compatibility testing between LLVM releases and easing adoption in long-lived build cache systems.
+- **Hierarchical IR extensions — RegionBlock and StructuredControlFlow block types**: MLIR's region model has proved more expressive than LLVM IR's flat `BasicBlock` list for representing structured control flow (loops, if-then, try-catch). An ongoing convergence effort aims to introduce optional *structured region annotations* as metadata on the LLVM IR `Function`, enabling passes like `LoopIdiomRecognize` and the vectorizer to consume structured information without re-deriving it from the CFG every time.
+- **`replaceAllUsesWith` concurrent safety for parallel compilation**: LLVM's in-process parallel compilation via `llvm::parallel` (used in the new pass manager's module splitting) currently requires that `replaceAllUsesWith` and use-list mutation are single-threaded per module. A thread-safe use-list implementation using epoch-based reclamation (similar to Folly's `hazptr`) is being prototyped to allow multiple threads to mutate disjoint parts of the same module's IR.
+- **Bitcode compression integration (LZ4/zstd)**: The current bitcode container's abbreviation-based compression is a bespoke format. A proposal to optionally wrap the bitcode payload in `zstd` (already used by LLVM's `lld` for `.debug_info` compression) would reduce LTO artifact size by 30–50% for debug builds, accelerating distributed ThinLTO workflows.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **LLVM IR as a standardized interchange format**: With increasing adoption by non-LLVM frontends (Rust/rustc via MIR lowering, Swift, Kotlin/Native, Circle C++), there is growing interest in a formal LLVM IR specification — analogous to the WebAssembly spec — that would govern bitcode stability, type system invariants, and undefined-behavior semantics independently of the LLVM C++ implementation. Early discussions reference the Vellvm project (Zhao et al., Penn) as a formal model foundation.
+- **First-class `Value` provenance and alias metadata in the IR data model**: The current alias analysis infrastructure relies on metadata attachments (`!tbaa`, `!noalias`, `!alias.scope`) that are advisory and easily dropped by transformations. A long-term proposal would make pointer provenance a first-class property of the `Value` base class — tracked in the `Use` graph — so that alias facts survive arbitrary IR transformations without recomputation, grounding LLVM's memory model in the C/C++ provenance semantics described in the N3005 / P3367 ISO WG14/WG21 papers.
+- **Unified LLVM IR + MLIR module container**: As MLIR in-tree dialects (`llvm`, `cf`, `func`) approach semantic equivalence with native LLVM IR, the long-term trajectory is a single serialization format that can represent both MLIR operations and native LLVM IR instructions in one bitcode file — eliminating the LLVM-to-MLIR round-trip overhead that currently affects compilation pipelines using MLIR as a middle-end (e.g., Triton, IREE, OpenXLA).
+
+---
+
 ## 9. Chapter Summary
 
 - **The four-level hierarchy** — `Module` → `Function` → `BasicBlock` → `Instruction` — partitions every IR object into a strict containment structure. Each level owns the level below it and exposes STL-compatible iterators. The three-level nested loop over `Module`/`Function`/`BasicBlock` is the fundamental traversal pattern in LLVM pass infrastructure.

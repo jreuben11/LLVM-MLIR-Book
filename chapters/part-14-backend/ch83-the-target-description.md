@@ -341,6 +341,32 @@ This mechanism enables function multiversioning (multiple implementations of the
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **GlobalISel completion for remaining in-tree targets**: The AArch64 and RISC-V GlobalISel paths are production-ready, but MIPS and PowerPC still fall back to SelectionDAG for many patterns. Active patches on `llvm-commits` (tracked under the `globalisel` label) aim to close these gaps, including completing `RegBankSelect` coverage for vector register banks on RISC-V's V extension.
+- **`TargetLowering` `LowerOperation` migration to `LowerNodeToMCInst`**: An ongoing RFC ([discourse.llvm.org/t/globalised-loweroperation](https://discourse.llvm.org/)) proposes a cleaner split between DAG-level lowering (in `TargetLowering`) and MC-level emission, reducing the dual-path maintenance burden.
+- **Per-function `target-cpu` subtarget caching improvements**: The current `SubtargetMap` keyed on `CPU+Features` string can cause unbounded memory growth with many unique feature strings (e.g., function multiversioning at scale). A patch series targets replacing the `std::map<std::string>` cache with a `FoldingSet`-based interned key to reduce allocation overhead.
+- **SME2 and SVE2.1 `SubtargetFeature` additions**: Arm's Streaming Mode Extension 2 (SME2) and SVE2.1 (with new 2D tile operations) are being integrated as `SubtargetFeature` entries in `AArch64.td`, with corresponding `TargetLowering` action tables for the new vector operations.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Machine IR (MIR) serialization improvements for `SchedMachineModel` testing**: Improved round-trip fidelity of scheduling model data through MIR `.mir` files (tracked under the `machine-scheduler` LLVM project area) to make scheduling regression tests reproducible without full compile pipelines.
+- **`TargetMachine` hierarchical subtarget sharing**: A proposed refactoring would allow multiple `TargetMachine` instances (e.g., one per LTO partition) to share immutable `TargetSubtargetInfo` objects via an interner, reducing memory footprint for large LTO compilations that instantiate hundreds of identical subtargets.
+- **Unified `TargetLowering` and `LegalizerInfo` tables**: GlobalISel's `LegalizerInfo` and SelectionDAG's `TargetLowering` maintain parallel legalization rules for every target. A mid-term design goal (discussed at the 2024 and 2025 LLVM Dev Meetings) is a single declarative legalization table consumed by both pipelines, reducing the N×2 maintenance surface.
+- **RISC-V P-extension (packed SIMD) `RegisterClass` additions**: The ratified RISC-V P extension introduces packed 32/64-bit SIMD with distinct register overlays; integrating it requires new register classes with sub-register relationships similar to AArch64's `WReg`/`XReg` hierarchy in `RISCVRegisterInfo.td`.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **ML-driven `SchedMachineModel` synthesis**: Research prototypes (building on the EuroLLVM 2024 paper "Learning Microarchitectural Scheduling Models with LLVM-MCA") aim to automatically derive `SchedMachineModel` entries from hardware performance counters, eliminating the manual `WriteRes` annotation burden for new CPUs.
+- **Declarative `TargetLowering` via TableGen**: A long-range proposal to express all `setOperationAction` calls and `LowerOperation` dispatch in TableGen, enabling static validation that all `(opcode, MVT)` pairs are covered and enabling cross-target sharing of common expansion patterns (e.g., `CTPOP` expansion is identical for dozens of targets).
+- **Quantum ISA backend support via `TargetMachine` abstraction**: Emerging quantum compiler projects (OpenQASM 3, QIR Alliance) are evaluating LLVM's `TargetMachine` / `TargetLowering` infrastructure for classical control flow portions of hybrid quantum-classical programs, requiring new `MVT` types for qubit operands and `RegisterClass` semantics without physical allocation.
+
+---
+
 ## Chapter Summary
 
 - **`TargetMachine`** is the root of the target description; it holds the target triple, data layout, code and relocation models, and creates the pass configuration. It provides per-function subtargets keyed on CPU + feature strings.

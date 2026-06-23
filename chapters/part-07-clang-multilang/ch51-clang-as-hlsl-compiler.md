@@ -981,6 +981,32 @@ These features require no special Sema treatment beyond what C++ already provide
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Shader Model 6.9 feature integration**: SM 6.9 (announced for DirectX Agility SDK 1.717+) adds `WaveMatrix` cooperative-matrix operations and expanded `uint16_t` texture atomics; the LLVM `DXIL.td` opcode table and `SFI0` feature-flag definitions require extension to cover `WaveMatrix*` intrinsics and the `WaveMatrixLoadLeftColAcc` / `Store` / `Multiply` family of opcodes. Tracked in ongoing LLVM DirectX backend patch series on [discourse.llvm.org](https://discourse.llvm.org/c/llvm-project/directx-spirv-backend/53).
+- **Root Signature version 1.2 full support**: RS version 1.2 (`#define D3D_ROOT_SIGNATURE_VERSION_1_2`) tightens default `DataStatic` semantics for SRV/CBV descriptor table ranges; `clang::hlsl::RootSignatureParser` needs `Version12` token handling and `DescriptorTableClause::Flags` defaults adjusted accordingly. The RFC proposing version-1.2 support landed on LLVM Phabricator in early 2026.
+- **Bindless heap indexing for Vulkan SPIR-V path**: HLSL SM 6.6 bindless (`ResourceDescriptorHeapIndexing` / `SamplerDescriptorHeapIndexing` `SFI0` flags) already works for the DXIL path; the SPIR-V code path needs corresponding `VK_EXT_descriptor_indexing` decoration emission in the SPIR-V backend pass to reach feature parity. Active work in the `clang/lib/CodeGen/CGHLSLRuntime.cpp` SPIR-V branch.
+- **HLSL 202x draft feature landing**: The `HLSLLangStd::HLSL_202x` enum value is reserved; the HLSL working group (joint Microsoft / Khronos effort) is standardizing `reinterpret_cast<>` for resource types, `constexpr` resource arrays, and `__attribute__((hlsl_vk_buffer_ref))` for Vulkan buffer references — prototype parsing is gated behind `HLSL_202x` and expected to stabilize in Clang 23.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Full HLSL 202x standard compliance in Clang**: The HLSL 202x specification (standardization process documented at [https://github.com/llvm/wg-hlsl](https://github.com/llvm/wg-hlsl)) is expected to ratify `constexpr` resource handles, improved template constraints, and a hygienically-specified implicit-conversion matrix; `SemaHLSL`'s implicit-binding assignment and overload resolution will need updates to align with the ratified spec.
+- **ClangIR (CIR) as an HLSL lowering stage**: [Chapter 8 — ClangIR] introduces CIR as an intermediate representation between Clang AST and LLVM IR; the `clang/lib/CIR/CodeGen/` effort (tracked at [https://discourse.llvm.org/t/clangir-rfc/](https://discourse.llvm.org/t/clangir-rfc/)) aims to lower `cbuffer` members, resource handles, and wave intrinsics through CIR dialects before emission to DXIL or SPIR-V, enabling richer source-level analyses and shader debugging.
+- **Mesh/amplification shader enhanced diagnostics**: SM 6.5 mesh shaders impose constraints on output array sizes (`SetMeshOutputCounts()` bounds, `numthreads` ≤ 128), per-vertex/per-primitive output indexing, and payload size limits; `SemaHLSL::CheckEntryPoint()` currently emits only basic stage-mismatch errors. Enhanced mesh/amplification validators modelled on GPU vendors' own correctness checkers are planned for the LLVM DirectX backend.
+- **`llvm-dxil-val` open-source parity with `dxcompiler.dll` validator**: The in-tree offline DXIL validator (`llvm/tools/llvm-dxil-val/`) currently covers a subset of the runtime validation rules. Closing the gap — including PSV0 signature-element validation, root-signature–binding cross-checks, and feature-flag consistency verification — is a multi-release effort tracked as a meta-issue on [github.com/llvm/llvm-project](https://github.com/llvm/llvm-project/issues).
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **HLSL as a first-class cross-platform GPU language**: The joint Microsoft/Khronos/LLVM HLSL working group ([wg-hlsl](https://github.com/llvm/wg-hlsl)) is positioning HLSL 202x as a fully portable GPU language targeting DXIL (DirectX), SPIR-V (Vulkan/OpenCL), and Metal IR; Clang would provide a single unified front end with target-conditioned code paths in `CGHLSLRuntime` replacing vendor-specific shader compilers (DXC, glslang, naga).
+- **Shader interprocedural optimization at the IR level**: Current HLSL compilation is strictly whole-module: each shader variant is a separate TU. A linking model analogous to LTO — shipping DXIL bitcode libraries and performing inter-entry-point inlining, constant-buffer propagation, and wave-intrinsic vectorization at link time — would enable game engine shader micro-batching. This requires extending `DXILPrepare` and `DXILOpLowering` to handle module-merge scenarios and is contingent on DirectX runtime support for multi-shader PSOs.
+- **Formal verification of DXIL semantics**: Research projects (e.g., building on the Alive2 framework used for LLVM IR verification — [Chapter 160 — Alive2 and Translation Validation]) are beginning to apply SMT-based verification to DXIL instruction semantics and wave-convergence guarantees; if successful they could be integrated into `llvm-dxil-val` as a formal correctness mode, eliminating whole classes of GPU shader bugs that manifest only at runtime on specific hardware.
+
+---
+
 ## Chapter Summary
 
 - **HLSL compiles to DXIL** — a strict subset of LLVM IR — via a DirectX target triple (`dxil-pc-shadermodel6.6-*`) or to SPIR-V for Vulkan (`spirv-unknown-vulkan1.3-*`).

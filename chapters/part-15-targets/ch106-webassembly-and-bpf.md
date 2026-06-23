@@ -1467,6 +1467,34 @@ The size reduction comes from eliminating the GC runtime itself from the binary 
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Wasm GC stabilization in LLVM**: The `--experimental-wasm-gc` flag is expected to graduate to a supported feature in LLVM 23/24, with complete `struct.new`/`array.new`/`ref.cast` emission for C++ classes targeting WasmGC address spaces; tracked in [LLVM Discourse RFC: WebAssembly GC support](https://discourse.llvm.org/t/rfc-webassembly-gc/63584).
+- **WASI Preview 2 / wasm32-wasip2 triple hardening**: The `wasm32-wasip2` triple (component model) is actively gaining Clang 22 support; near-term work focuses on WIT-driven ABI generation for `wasi:sockets` and `wasi:http` interfaces, tracked via [`WebAssembly/wasi-sdk`](https://github.com/WebAssembly/wasi-sdk) releases.
+- **BPF `sched_ext` compiler support improvements**: Linux 6.12+ `sched_ext` BPF schedulers are complex enough to push against the 1M instruction verification limit and 512-byte stack limit; LLVM RFC discussions on LLVM Discourse propose BPF-specific inlining budget heuristics that account for per-program verifier complexity, not just code size.
+- **Wasm Relaxed SIMD finalization**: The Relaxed SIMD proposal (post-Wasm 2.0) introduces non-deterministic SIMD operations (`i8x16.relaxed_swizzle`, `f32x4.relaxed_madd`) for performance parity with AVX2/NEON; LLVM 22 adds initial Relaxed SIMD lowering but pattern-matching for auto-vectorization paths is incomplete as of April 2026.
+- **BPF token-based program loading (kernel 6.9+)**: The BPF token mechanism allows unprivileged users to load BPF programs within a scoped namespace; Clang/libbpf support for generating token-compatible BTF and CO-RE relocations is being finalized.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Wasm shared-everything threads proposal**: The shared-everything-threads proposal (W3C WebAssembly CG) extends Wasm's threading model beyond SharedArrayBuffer by allowing shared Wasm module instances with shared tables and shared GC objects; LLVM's Wasm backend will require a new `+shared-everything` subtarget feature and changes to how `WebAssemblyCFGStackify` handles cross-thread control flow.
+- **BPF type-safe memory model (arena allocations)**: Linux kernel BPF working group proposals (see [BPF arena RFC](https://lore.kernel.org/bpf/)) aim to add kernel-managed BPF memory arenas with verified lifetime tracking; Clang will need new address space annotations (beyond the current `__attribute__((address_space(N)))` approach) to express arena-allocated pointer types that the verifier can track.
+- **Full WasmGC C/C++ frontend support**: LLVM WasmGC support for C++ classes (mapping `new`/`delete` to `struct.new`/GC-managed allocation) requires changes to Clang's CodeGen for address spaces 10/20, class layout mapping, and vtable representation as WasmGC typed function references; expected to reach experimental status with full `clang -target wasm32-unknown-unknown --gc` support.
+- **Wasm JSPI (JavaScript Promise Integration) in LLVM**: The JSPI proposal (Stage 3, 2025) allows Wasm functions to suspend on async JS calls; LLVM's coroutine lowering pass needs extension to emit `suspend`/`resume` intrinsics for the Wasm JSPI ABI, enabling `async/await` C++ code to compile correctly without Emscripten's Asyncify transformation.
+- **BPF signed CO-RE programs (BTF signing)**: Proposals for BPF program signing using kernel keyring infrastructure (analogous to kernel module signing) require the LLVM BPF backend and libbpf to embed signed BTF digests in ELF objects; Clang toolchain extensions for `-fbpf-sign-key=<keyfile>` are under discussion.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Wasm 3.0 feature convergence in LLVM**: The full Wasm 3.0 feature set (GC, stack switching, memory control, type imports, branch hinting, numeric values in reference types) is expected to be standardized by 2028–2029; LLVM will require a comprehensive Wasm 3.0 subtarget feature gate with coordinated CFGStackify, RegStackify, and MC emission updates to support stack switching coroutines as a first-class backend feature.
+- **BPF as a universal kernel extension ABI**: The trajectory of BPF subsystem growth (scheduler, LSM, filesystem, network, device drivers via BPF kfuncs) suggests that BPF may subsume many traditional kernel module use cases; LLVM's BPF backend will need to support increasingly complex type constraints (multi-level pointer provenance, multi-kfunc calling conventions) and may require a dedicated BPF-to-BPF LTO pipeline for large BPF program suites.
+- **Wasm native AOT compilation via LLVM (WAT to native)**: Runtimes like Wasmtime and WasmEdge already use Cranelift or LLVM for AOT compilation; long-term, the gap between the Wasm backend (for source-to-Wasm) and the native AOT backend (for Wasm-to-native via cranelift/LLVM) may close into a unified LLVM pipeline where Wasm becomes a true portable LLVM IR level, enabling round-trip optimization across Wasm boundaries.
+
+---
+
 ## Chapter 106 Summary
 
 - **WebAssembly** is a stack machine with structured control flow; LLVM's Wasm backend uniquely must convert register-based MachineIR into stack form via the `WebAssemblyRegStackify` and `WebAssemblyExplicitLocals` passes.

@@ -1242,6 +1242,35 @@ Before `llvm.clmul`, this operation required target-specific intrinsics (`llvm.x
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **RemoveDIs migration to completion**: The RFC to fully retire `llvm.dbg.declare`/`llvm.dbg.value` intrinsics in favour of `DbgRecord` non-instruction metadata (tracking in [llvm/issues#89799](https://github.com/llvm/llvm-project/issues/89799)) is targeting LLVM 20–21 as the default-on release; LLVM 22 retains the intrinsic form for compatibility but the community is driving final removal by late 2026, eliminating an entire category of `IntrinsicInst` subclasses.
+- **`llvm.clmul` landing and vectorizer integration**: `llvm.clmul` (carryless multiply, added in LLVM 22) needs vectorizer cost-model entries and SLP/loop vectorizer recognition so that scalar GF(2^8) loops auto-vectorize to `VPCLMULQDQ` on AVX-512 and `pmull` on AArch64; patches are in review on Phabricator (D154xxx series).
+- **Convergence control promotion from `experimental`**: The `llvm.experimental.convergence.*` intrinsics have been stable for two releases; the RFC on discourse.llvm.org (thread "Convergence Control — removing experimental prefix", Jan 2026) proposes renaming them to `llvm.convergence.*` by LLVM 23, which will require a bitcode-upgrade path.
+- **C++26 `[[assume]]` and contract annotations in Clang/LLVM**: C++26 contracts (`pre`/`post`/`contract_assert`) will be lowered through an evolution of `llvm.assume`; the Clang contracts RFC (discourse.llvm.org, "C++ Contracts lowering strategy", Nov 2025) proposes new `llvm.assume.bundle` operand bundles to attach richer predicate information than the current `!nonnull`/`!range` approach.
+- **AArch64 SME2 intrinsics stabilisation**: Scalable Matrix Extension 2 (SME2, ARMv9.2-A) streaming-SVE intrinsics (`llvm.aarch64.sme.*`) are actively being added to `IntrinsicsAArch64.td`; the multi-vector and ZT0-register operations are targeted to be complete by LLVM 23.
+- **RISC-V P-extension (packed SIMD) intrinsics**: The RISC-V Packed SIMD extension (P-extension) ratification is expected mid-2026; LLVM will need an `IntrinsicsRISCV.td` addition for `llvm.riscv.pkaddb`, `llvm.riscv.smaqa`, and related operations mirroring the existing RVV intrinsic pattern.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Typed pointer restoration for intrinsic overloading**: The community is discussing a typed-opaque hybrid pointer model that would let intrinsic overloads encode address-space information in the type suffix without reverting to typed pointers everywhere; the motivation is that `llvm.memcpy.p0.p0.i64` address-space encoding is already fragile for targets with >2 address spaces (AMDGPU, NVPTX), and a new `llvm.memcpy.generic` with operand-bundle annotations is a proposed mid-term direction.
+- **Scalable-vector masked gather/scatter on RISC-V RVV**: `llvm.masked.gather`/`llvm.masked.scatter` are fixed-length intrinsics; RVV needs a scalable variant using `<vscale x N x ptr>` address vectors. The RFC proposing `llvm.riscv.vluxei`/`llvm.riscv.vsuxei` promotion to target-independent scalable gather/scatter is expected to land in the LLVM 24–25 timeframe after the AArch64 SVE precedent is validated in production.
+- **Intrinsic cost model unification for ML-driven vectorization**: MLGO (ML-Guided Optimization, the project using TFLite models inside opt) needs structured cost data for intrinsics; the "IntrinsicCostTable" RFC (discourse.llvm.org, Oct 2025) proposes TableGen-emitted latency/throughput tables for all intrinsics that the cost model queries, replacing the current per-target `getIntrinsicInstrCost` overrides scattered across ten `TargetTransformInfo` implementations.
+- **Floating-point exception trapping intrinsics**: The constrained FP intrinsic family (`llvm.experimental.constrained.*`) covers most IEEE 754 operations but lacks equivalent coverage for bit-manipulation and reduction operations; extending `llvm.vector.reduce.fadd` to a constrained form (with explicit rounding-mode and exception-behaviour operands) is tracked in LLVM issue #55678 and expected to stabilise by LLVM 26.
+- **Hardware-accelerated memory tagging intrinsics (MTE)**: AArch64 MTE (Memory Tagging Extension) is gaining adoption in Android 15+ and server Linux; `llvm.aarch64.mte.stg`, `llvm.aarch64.mte.ldg`, and the tag-checking variants need a target-independent `llvm.memtag.*` abstraction so that sanitisers (HWASan) can emit portable IR rather than target-specific intrinsics.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Quantum computing intrinsics**: IBM Qiskit and Intel's Quantum SDK are experimenting with LLVM-based quantum IR backends; a `llvm.quantum.*` intrinsic family (single-qubit gates `llvm.quantum.h`, `llvm.quantum.cx`; measurement `llvm.quantum.measure`) is proposed in the academic literature (e.g., Litteken et al., "LLVM IR for Quantum Computing", IEEE Quantum Week 2024) and is expected to reach LLVM mainline as a target dialect once the quantum IR standardisation effort (QIR Alliance, qir-alliance.org) converges on an LLVM-compatible ABI.
+- **Type-safe intrinsic verification via IR constraints**: A long-term direction from the LLVM Verifier WG is to encode intrinsic parameter constraints (e.g., "argument 3 must be a compile-time constant power of two not exceeding 8") directly in TableGen rather than as imperative verifier checks in `IntrinsicImpl.inc`; this would enable static intrinsic type-checking in front-ends and reduce a class of IR verification failures to compile-time errors.
+- **Unified memory-effect lattice replacing the current attribute set**: The `MemoryEffects` class introduced in LLVM 14 partially replaced `readnone`/`readonly`/`writeonly`; the next step is to extend it to cover argument-level effects (which pointer argument is read vs. written vs. aliased) with enough precision to subsume `IntrArgMemOnly`, `IntrReadMem`, `IntrWriteMem`, and the various per-argument `nocapture`/`readonly` attributes into a single declarative lattice, dramatically simplifying alias analysis for intrinsics with complex memory patterns.
+
+---
+
 ## 24.19 Chapter Summary
 
 - Intrinsics are `declare`-only `llvm.*`-named pseudo-functions that allow IR to express operations — memory bulk transfers, math, bit manipulation, overflow detection, vector reductions, masked operations, debug information, profiling, exceptions, coroutines, and target-specific instructions — beyond the core opcode set.

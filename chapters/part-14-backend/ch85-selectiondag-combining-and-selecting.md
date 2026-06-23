@@ -631,6 +631,32 @@ def : Pat<(i64 (add GPR64:$Ra, (mul GPR64:$Rn, GPR64:$Rm))),
 
 This pattern consumes the `mul` sub-tree entirely and emits a single MADD instruction, saving one instruction compared to selecting `MUL` and `ADD` separately.
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **GlobalISel promotion for remaining AArch64 codepaths**: The ongoing effort to make GlobalISel the default for AArch64 `-O0` and `-O2` builds (tracked on discourse.llvm.org as "GlobalISel parity") will retire several `FastISel` and `SelectionDAGISel::Select()` overrides; DAGCombiner rules will partially migrate to `CombinerHelper` TableGen-driven rules.
+- **TableGen `isel` byte-stream compaction**: LLVM RFC (2025) proposes compressing the `OPC_` opcode stream via LEB128 encoding and shared pattern subtrees, targeting a 15–25% reduction in the size of `*GenDAGISel.inc` files, which currently exceed 200 KB for X86 and AArch64.
+- **DAGCombiner reassociation across basic blocks**: Patches in review extend the DAGCombiner's reassociation window to span `CopyToReg`/`CopyFromReg` boundaries within a single MachineFunction when all intervening blocks are unconditional, enabling constant-folding that is currently blocked by block boundaries.
+- **`ComplexPattern` migration to TableGen predicates**: Ongoing work to express common C++ `ComplexPattern` bodies (e.g., AArch64's 12-bit shifted-immediate checks) declaratively in `.td` using `PatLeaf` inline predicates, reducing the C++ surface area and enabling cross-target sharing.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Machine combiner integration with SelectionDAG combining**: A proposed two-phase combiner design would pass `MachineInstr`-level peephole rules (currently only in `MachineCombiner`) back upstream into the DAG phase, allowing DAGCombiner to reason about machine-instruction costs rather than abstract ISD costs when deciding between strength-reduction alternatives.
+- **RISC-V Zfa / Zfbfmin pattern coverage**: As IEEE 754-2008 minimum-magnitude and BFloat16 instructions land in RISC-V, `RISCVISelLowering.cpp` and `RISCVInstrInfoF.td` require new `PerformDAGCombine` rules to fold `fpext`/`fptrunc` chains through BF16 intermediates; these patterns are being upstreamed as extensions are ratified (~2026–2027).
+- **Vectorized DAGCombiner worklist**: Research prototypes (Stanford, 2024) replace the `SmallSetVector<SDNode*>` worklist with a SIMD-parallel visitor that batches independent nodes in the same equivalence class; projected 8–12% speedup on wide SIMD-heavy IR (AVX-512, SVE2 workloads) where DAGCombiner dominates compile time.
+- **Pattern-predicate caching in SelectCode**: The `OPC_CheckPatternPredicate` interpreter opcode currently calls back into C++ on every node visit. A proposed predicate-result cache keyed on `(SubtargetFeatureBits, PredNo)` would amortize the call overhead for loops with many identical nodes, targeting 3–5% `llc` wall-time improvement on inner-loop kernels.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Equality-saturation for SelectionDAG combining**: Academic work (egg / egglog framework, 2021–2025) demonstrates that equality saturation can find optimal DAG rewrites that greedy worklist combiners miss. Integration with LLVM's SelectionDAG — as a replacement for or complement to DAGCombiner — would require an e-graph representation of `SDNode` equivalence classes and a cost model derived from `TargetTransformInfo`; several research groups are actively prototyping this.
+- **Declarative full-pipeline instruction selection via MLIR**: The longer-term trajectory of LLVM backend development (articulated in the "MLIR as the new backend IR" series of talks, 2023–2025) is to migrate instruction selection from TableGen+C++ to MLIR's Op/Pattern/Rewrite infrastructure, using `PDL` (Pattern Description Language) and the MLIR `Transform` dialect to express selection, legalization, and combining in a single unified language rather than three separate mechanisms.
+- **LLM-assisted DAGCombiner rule synthesis**: Research (CMU, 2024; PLDI 2025) explores using large language models to synthesize new DAGCombiner combine rules from missed-optimization traces, validated by the Alive2 equivalence checker; if mature, this pipeline could automatically discover architecture-specific strength-reduction identities (e.g., for new RISC-V and Arm extensions) without manual rule authoring.
+
+---
+
 ## Chapter Summary
 
 - `DAGCombiner` is the primary peephole optimizer for SelectionDAGs; it runs three times per basic block (before type legalization, after type legalization, and after operation legalization) to simplify the DAG algebraically and structurally.

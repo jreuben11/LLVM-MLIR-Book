@@ -596,6 +596,32 @@ llvm-lit libcxxabi/test/catch_class_01.pass.cpp
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Compact unwind tables for C++ EH on AArch64**: Ongoing LLVM patches ([D152351](https://reviews.llvm.org/D152351) and follow-ons) to shrink `.gcc_except_table` LSDA encoding for AArch64 by using compact unwind descriptors, reducing binary size for exception-heavy libraries by 10–20%.
+- **`std::exception_ptr` zero-copy refcount**: RFC on discourse.llvm.org to eliminate the atomic increment/decrement in `__cxa_begin_catch` by adopting a thread-local slab allocator for `__cxa_exception` headers — directly targeting overhead measured in tight exception micro-benchmarks.
+- **Guard variable shrinkage on 32-bit targets**: Clang/libc++abi patch under review to reduce guard variables from 32 bits to 8 bits on ARM Thumb-2 and RISC-V 32-bit, saving `.bss` space in embedded firmware images.
+- **`__cxa_thread_atexit` integration with glibc 2.40+ `__wur` attribute**: Tracking upstream glibc's hardening of `__cxa_thread_atexit_impl` return-value checking, requiring a matching libc++abi change to propagate `[[nodiscard]]` and avoid silent registration failures.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Contracts-aware exception ABI (C++26 `[[pre:]]`/`[[post:]]`)**: The C++26 contracts proposal (P2900) introduces a new violation-handling path that bypasses `__cxa_throw` but must cooperate with `__cxa_begin_catch` and `noexcept` unwinding; libc++abi will need a new `__cxa_contract_violation` entry point and updated LSDA encoding to mark contract-checked call sites.
+- **RTTI-free `dynamic_cast` via reflection (P2996)**: C++26 static reflection (P2996R6) enables library-level `dynamic_cast` emulation without runtime RTTI; libc++abi is evaluating a compile-time-generated dispatch table that can replace `__vmi_class_type_info::__do_dyncast` for targets with `-fno-rtti`, eliminating the vtable-traversal cost.
+- **Hermetic exception tables for WebAssembly Component Model**: As WASM components require ABI-stable exception passing across component boundaries, libc++abi's `'CLNGC++\0'` exception class mechanism must be extended with a component-scoped tag, tracked in the WASM Exception Handling Phase 2 proposal and Binaryen/LLVM co-design discussions.
+- **Coroutine-aware unwinding for `std::execution` (P2300)**: `std::sender`/`std::receiver` pipelines (P2300R7, targeting C++26) launch coroutines on arbitrary thread pools; libc++abi's two-phase unwind (`_UA_SEARCH_PHASE`/`_UA_CLEANUP_PHASE`) is being extended to propagate exceptions across coroutine resume boundaries without breaking the async stack-trace guarantees required by P2300's `let_error`.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Post-Itanium C++ exception ABI (`__cxa_v2_throw`)**: An LLVM community proposal to define a new exception ABI version that encodes type information in a compressed side-table (similar to `.debug_abbrev`) rather than per-object `_Unwind_Exception` headers, halving per-exception allocation size and enabling zero-cost catch matching via pre-sorted type-index tables.
+- **Hardware-accelerated `__dynamic_cast` via pointer authentication (PAC)**: On ARMv9 systems with Pointer Authentication Codes, vtable pointers are signed; a revised `__dynamic_cast` implementation must authenticate the vptr chain before traversal, and LLVM is prototyping a PAC-aware `__vmi_class_type_info` path that batches authentication checks to minimize PAC overhead in deep inheritance hierarchies.
+- **Unified foreign-exception interoperability layer**: As Swift, Rust (via `extern "C-unwind"`), and Zig all expose unwind-compatible exception classes, a cross-language exception interop standard is emerging (tracking ISO WG21 SG16 and the Rust `C-unwind` RFC); libc++abi is a reference implementation target for a multi-class personality function that can match and rethrow exceptions from any participating language.
+
+---
+
 ## Chapter Summary
 
 - libc++abi implements the Itanium C++ ABI runtime: `__cxa_throw/begin_catch/end_catch/rethrow`, the `__gxx_personality_v0` personality function, RTTI type info, thread-safe statics, demangling, and `__dynamic_cast`.

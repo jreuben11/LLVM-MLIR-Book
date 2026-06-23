@@ -818,6 +818,32 @@ The `tosa-check-shapes` pass performs shape inference for dynamically-shaped TOS
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **`linalg.generic` iterator-type extensions**: The MLIR community is actively discussing adding `window` and `scan` iterator types to `linalg.generic` to natively express prefix-scan patterns and sliding-window operations without resorting to index-arithmetic workarounds — tracked on [discourse.llvm.org RFC: Extended Iterator Types for Linalg](https://discourse.llvm.org/c/mlir/).
+- **TOSA 1.0 `reduce_mean` operator**: The TOSA specification working group (Arm, Qualcomm, Intel) has an open patch to add `tosa.reduce_mean` as a first-class op in TOSA 1.1, eliminating the current workaround of `reduce_sum` + `mul` with a reciprocal scalar.
+- **Structured named-op expansion via Python DSL**: The `mlir-linalg-ods-yaml-gen` workflow is being replaced by a Python-based structured op generation DSL to ease authoring of new convolution variants (e.g., `conv_3d_ndhwc_dhwcf` for video models). In-progress on the LLVM monorepo as of early 2026.
+- **One-shot bufferization composability with `linalg.pack`**: Several patches in review aim to make one-shot bufferization correctly analyse aliasing through `linalg.pack`/`linalg.unpack` pairs, enabling in-place packing without intermediate copies on CPU targets.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Dataflow graph partitioning at linalg level**: Research into automatic operator fusion heuristics beyond greedy producer-consumer fusion — incorporating cost models for memory bandwidth, cache footprint, and register pressure — is underway in IREE's codegen research group. The goal is linalg-level partitioning that drives GPU thread block and warp assignment without manual `TilingInterface` annotations.
+- **TOSA 2.0 training profile and gradient ops**: The TOSA specification roadmap includes a `Main Training` (MT2) profile adding `tosa.conv2d_backprop_input`, `tosa.conv2d_backprop_filter`, and gradient ops for all activation functions, enabling TOSA to serve as a deployment target for training frameworks such as IREE-PT.
+- **Structured sparsity in `linalg.generic`**: Building on the `sparse_tensor` dialect (Chapter 141), ongoing work (notably from MIT/MIT-IBM Watson) targets first-class 2:4 structured sparsity encoding in `linalg.generic` indexing maps, allowing the compiler to emit cuSPARSELt-compatible sparse GEMM patterns directly from linalg.
+- **`tensor` dialect dynamic shape completeness**: Completing the `ShapeReification` interface for all tensor ops so that dynamic shape propagation through `tensor.pad`, `tensor.concat`, and `tensor.reshape` is fully inferrable at compile time, removing the need for runtime `tensor.dim` queries in fully-static subgraphs.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Declarative transformation scheduling**: A long-term goal articulated at the 2025 MLIR Open Design Meeting is a declarative, provably-correct transformation scheduler for `linalg.generic` — analogous to Halide's scheduling language but integrated with the MLIR Transform dialect and capable of generating optimal tile/vectorize/parallelize schedules for arbitrary hardware cost models.
+- **TOSA as a hardware ABI**: As heterogeneous SoCs (smartphone NPUs, edge inference chips) proliferate, TOSA is positioned to become a binary-compatible ABI layer — analogous to SPIR-V for GPUs — where compiled TOSA modules execute on any conformant accelerator without recompilation. Standardization through MLCommons is the expected path.
+- **Fused `linalg`-to-systolic-array lowering**: Direct lowering from `linalg.matmul` and `linalg.conv_2d_*` to systolic-array dataflow IR (analogous to Google TPU HLO → XLA → LLO) is a research goal for in-tree MLIR, enabling MLIR to serve as the universal compilation stack for custom ML ASICs without vendor-proprietary intermediate representations.
+
+---
+
 ## Chapter 139 Summary
 
 - The `tensor` dialect provides value-semantic, aliasing-free dense arrays. Key ops: `tensor.empty` (uninitialized), `tensor.splat` (broadcast scalar), `tensor.extract`/`tensor.insert` (scalar access), `tensor.extract_slice`/`tensor.insert_slice` (sub-tensor slicing), `tensor.pad` (padding with computed values).

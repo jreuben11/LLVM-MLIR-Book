@@ -1014,6 +1014,32 @@ FileCheck test pattern:
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Stable plugin ABI via `libclang-cpp.so` versioning**: The LLVM community is progressing toward a stable, versioned ABI for `libclang-cpp.so` that would allow plugins compiled against one Clang minor version to load in a later minor release without recompilation. Follow the RFC thread at discourse.llvm.org and the tracking issue for `CLANG_LINK_CLANG_DYLIB` policy changes (LLVM 22–23 window).
+- **`ParsedAttrInfo` expansion for C23 and C++26 attributes**: Clang 22 is gaining first-class C23 attribute parsing; the `ParsedAttrInfo` plugin interface is expected to expose the `AS_C23` spelling enum value in tree, enabling plugins to register attributes with standard C23 `[[]]` syntax rather than falling back to GNU spelling.
+- **Improved `-fplugin` forwarding in LTO and distributed builds**: Current `-fplugin` arguments are stripped by LLD's ThinLTO compilation model. An active patch series (tracked in LLVM Discourse "LTO + plugins" thread) aims to forward plugin flags through `lld`'s codegen worker processes so IR-level plugin hooks fire during link-time code generation.
+- **`clang-scan-deps` plugin API**: The dependency-scanning fast path (`clang-scan-deps --experimental-reduce-minimized-sources`) currently bypasses plugins entirely. A proposed extension point would let plugins register a lightweight dependency observer that fires during scanning without running the full AST pipeline.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **C++20 module-aware plugin callbacks**: The current plugin model delivers no AST callbacks for declarations imported via `import` statements. A proposed `HandleModuleImport(ImportDecl *)` callback (discussed in the Clang dev list, circa 2025) would give plugins visibility into module-imported symbols, enabling module-aware safety checkers and indexers.
+- **In-process plugin sandboxing via Wasm / WASI**: Several large-scale Clang deployments (Chrome, LLVM monorepo CI) are evaluating shipping plugins as Wasm modules loaded by a WASI runtime embedded in Clang. This would decouple plugin ABI from the host compiler entirely. A prototype was demonstrated at EuroLLVM 2025; production readiness is a 2–3 year horizon.
+- **`PluginASTAction` support for distributed builds (distcc/icecream/icecc-ng)**: Remote compilation wrappers currently cannot propagate plugin `.so` binaries to remote hosts. A standardised plugin packaging format (analogous to compiler wrapper scripts) is under community discussion to allow distributed builds with plugins.
+- **TableGen-generated plugin attribute infrastructure**: The boilerplate required by `ParsedAttrInfo` is substantial. A proposal under discussion would generate `ParsedAttrInfo` subclasses from a plugin-private `.td` file via a new `clang-tblgen` mode, analogous to how in-tree attributes are generated, reducing plugin authoring friction.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **ClangIR (CIR) plugin hooks**: As `ClangIR` matures into the default Clang code-generation pipeline (see [Ch52 — ClangIR Architecture](../part-08-clangir/ch52-clangir-architecture.md)), today's IR-level `CodeGenerator::GetModule()` hook will be supplemented or replaced by a CIR-level plugin callback that fires after CIR lowering but before LLVM IR emission, enabling semantic-preserving IR transformations at a higher abstraction level.
+- **Cross-TU plugin analysis with persistent AST stores**: Current plugins are constrained to per-TU analysis. Long-term integration with the Clang Static Analyzer's cross-TU analysis infrastructure (using CTU `ast-dump` stores) would allow plugins to perform whole-program null-safety or lifetime analyses during incremental builds, not just single-file checks.
+- **Formal plugin API stability contract**: The LLVM project has resisted versioning its C++ APIs, but sustained industry pressure from large Clang plugin deployments (Google, Apple, Meta) is expected to produce a `CLANG_PLUGIN_API` subset with documented stability guarantees and a deprecation policy, similar to the LLVM C API commitment.
+
+---
+
 ## 15. Chapter Summary
 
 - **`PluginASTAction`** is the plugin base class. Override `CreateASTConsumer`, `ParseArgs`, and optionally `getActionType`. Register with `FrontendPluginRegistry::Add<>`.

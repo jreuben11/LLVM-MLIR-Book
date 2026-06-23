@@ -532,6 +532,32 @@ Post-fusion, softmax compiles to 3 kernels: one for reduce-max, one for exp+subt
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **StableHLO 2.0 compatibility window extension**: The OpenXLA community is actively discussing extending the 5-year compatibility guarantee to cover `stablehlo.composite` ops and user-defined attributes; track progress in the StableHLO RFC tracker at [github.com/openxla/stablehlo/issues](https://github.com/openxla/stablehlo/issues) and the associated MLIR discourse threads.
+- **Dynamic shape generalization in StableHLO**: Current bounded-dynamic-shape support (`is_dynamic_dimension`) is being extended to cover unbounded dynamic dimensions via `stablehlo.dynamic_*` ops (e.g., `stablehlo.dynamic_gather`, `stablehlo.dynamic_reshape`) that accept shape operands rather than static attributes, enabling frameworks like TF and PyTorch to export fully dynamic models without static-shape specialization.
+- **`stablehlo.composite` op stabilization**: The `stablehlo.composite` op — which allows embedding named, versioned sub-graphs (e.g., for attention patterns or activation functions) that survive round-tripping — is undergoing verification hardening and is expected to reach stable status in the 1.x series by mid-2026.
+- **CHLO → StableHLO parity for new transcendental ops**: Ongoing work adds `chlo.airy`, `chlo.bessel_i0e`, and `chlo.next_after` decompositions to ensure numerical parity between XLA-CPU and the JAX reference implementations; see [openxla/stablehlo PR #1800+](https://github.com/openxla/stablehlo/pulls).
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Sparse tensor extensions to HLO/StableHLO**: The MLIR sparse tensor dialect (`sparse_tensor`) and XLA's sparse core (deployed on TPUv5) are converging; the mid-term goal is first-class `stablehlo.sparse_dot` and `stablehlo.sparse_reduce` ops with VHLO versioning, eliminating the current `kCustomCall`-to-sparseCoreOp bridge.
+- **Quantization dialect integration via StableHLO**: Current post-training quantization workflows (TFLite, StableHLO Quantizer) inject per-tensor and per-channel scale/zero-point as `stablehlo.uniform_quantize` ops; planned work will add block-sparse and mixed-precision quantization schemes (FP8, INT4 with blockwise scales) as first-class StableHLO types, tracked by the [OpenXLA Quantization RFC](https://github.com/openxla/xla/issues).
+- **Unified HLO ↔ StableHLO round-trip without loss**: Today, the `LegalizeHloToStableHlo` pass loses some HLO-specific metadata (frontend attributes, scheduling hints). A lossless round-trip via proto-to-attribute conversion is planned to enable StableHLO as XLA's primary serialization format, retiring the `HloProto` wire format for new deployments.
+- **VHLO-based cross-compiler portability (IREE / Triton / XLA co-evolution)**: IREE (now an OpenXLA sub-project) and OpenAI Triton are both targeting StableHLO as an ingestion format; a shared VHLO versioning governance model is being established so that serialized models from one compiler can be reliably loaded by another without re-export from the framework.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **HLO as a verified IR with Lean 4 / Coq proofs**: Inspired by Vellvm (LLVM IR formalized in Coq) and the Alive2 approach for LLVM peephole rewrites, the XLA team and academic collaborators are exploring a formal semantics for HLO opcodes in Lean 4, enabling machine-checked correctness proofs for `AlgebraicSimplifier` rewrites and `InstructionFusion` transforms.
+- **StableHLO as a cross-hardware ISA for accelerators**: With TPU, GPU (NVIDIA, AMD), Trainium, Gaudi, and custom ASICs all targeting XLA, StableHLO is positioned to become the portable accelerator ISA that LLVM IR is for CPUs — complete with an ABI specification for collective communication ops (`stablehlo.all_reduce`, `stablehlo.all_gather`) that abstracts over NVLink, TPU ICI, and Ethernet collectives.
+- **Automatic differentiation encoded in StableHLO**: JAX's JVP/VJP transformations currently produce StableHLO by re-tracing; a proposed long-term direction encodes forward- and reverse-mode AD rules directly in StableHLO via dialect attributes, enabling differentiation-aware optimizations (e.g., rematerialization, gradient checkpointing) at the IR level without re-invoking Python-side tracing.
+
+---
+
 ## Chapter Summary
 
 - HLO's opcode space spans element-wise arithmetic, linear algebra, shape manipulation, reductions, control flow, and collective communication.

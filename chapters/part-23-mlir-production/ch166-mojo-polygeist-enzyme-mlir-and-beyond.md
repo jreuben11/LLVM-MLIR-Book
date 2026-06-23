@@ -486,6 +486,34 @@ As of early 2026:
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Mojo open-source compiler**: Modular has signalled intent to open-source the Mojo compiler front-end; near-term milestones include publishing the Mojo stdlib and MAX engine under an Apache-2 license, enabling community dialect contributions. Track progress at [modular.com/blog](https://www.modular.com/blog) and the Mojo GitHub repository ([github.com/modularml/mojo](https://github.com/modularml/mojo)).
+- **Polygeist GPU path**: Active patches on llvm-project ([github.com/llvm/Polygeist](https://github.com/llvm/Polygeist)) extend polyhedral lifting to GPU kernels — lifting `__global__` CUDA functions to `gpu.launch` + `affine.for` for unified host/device polyhedral scheduling; expected to land in the LLVM 23 development window.
+- **Enzyme-MLIR linalg coverage**: The EnzymeAD team (MIT/ETH) is completing differentiation rules for the full `linalg` named-op set (`linalg.conv_2d_nhwc_hwcf`, `linalg.batch_matmul`, etc.) so that Enzyme-JAX can replace XLA's built-in AD without custom VJP registrations. See [github.com/EnzymeAD/Enzyme-JAX](https://github.com/EnzymeAD/Enzyme-JAX) and the NeurIPS 2024 Enzyme-JAX paper.
+- **HEIR CKKS bootstrapping pass**: Google's HEIR team is implementing an automatic CKKS bootstrapping insertion pass (`--heir-insert-bootstrapping`) targeting the 2026 Google Privacy Sandbox FHE deployment; RFC and early patches visible at [github.com/google/heir/issues](https://github.com/google/heir/issues).
+- **CIRCT formal verification integration**: CIRCT is adding an `ltl` (Linear Temporal Logic) dialect for property checking via bounded model checking back-ends (Btor2, SMT-LIB), tracked in [github.com/llvm/circt/issues/1974](https://github.com/llvm/circt/issues/1974).
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Mojo as MLIR host language**: With Mojo's `__mlir_op` and `__mlir_type` intrinsics maturing, the community is working toward writing MLIR dialect definitions and passes directly in Mojo rather than C++, collapsing the language/compiler boundary. This depends on Mojo achieving ABI stability (targeted for Mojo 2.0).
+- **Polygeist + MLIR Presburger integration**: The ongoing MLIR Presburger library development ([mlir/lib/Analysis/Presburger](https://github.com/llvm/llvm-project/tree/main/mlir/lib/Analysis/Presburger)) will give Polygeist access to exact integer linear programming for tighter dependence analysis, enabling lifting of loops currently rejected due to conservative pointer aliasing assumptions.
+- **Enzyme-MLIR higher-order AD**: Current Enzyme-MLIR handles first-order reverse mode; the roadmap includes composable higher-order AD (Hessians, Hessian-vector products) directly at the MLIR level, which is essential for second-order optimization methods (Newton-CG, L-BFGS) in ML training without going through JAX's vmap/grad composition overhead.
+- **HEIR multi-party computation (MPC) dialect**: HEIR roadmap documents (visible in GitHub project boards) plan a `secret_sharing` dialect representing MPC protocols (GMW, SPDZ) at the MLIR level, enabling a unified compiler that selects FHE vs. MPC vs. trusted-hardware (SGX/TDX) based on threat model.
+- **CIRCT RISC-V synthesis flow**: Integration of CIRCT with the open-source synthesis tool OpenROAD (via an `openroad` dialect) to produce place-and-route-ready GDSII from MLIR-described circuits; this would close the loop from high-level Chisel/FIRRTL design to tapeout using only open-source tools.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **MLIR as the universal program IR**: The long arc of Mojo, CIRCT, HEIR, Enzyme, and VAST converges on MLIR becoming the shared IR for software (CPUs, GPUs), hardware (ASICs, FPGAs), encrypted computation (FHE/MPC), and formal verification — with a common type system and pass pipeline infrastructure enabling cross-domain co-optimization (e.g., co-designing a neural network and its FHE-encrypted inference circuit jointly).
+- **Enzyme-MLIR as the standard AD layer**: As PyTorch 3.x and JAX move toward MLIR-based backends, Enzyme-MLIR is positioned to replace framework-specific autograd engines with a single, dialect-agnostic AD transformation, enabling AD through custom hardware ops, FHE ops, and even hardware RTL descriptions via CIRCT.
+- **VAST formal verification production use**: As Trail of Bits matures VAST's verification condition generation and integrates with Lean 4 and Coq proof checkers, VAST-based C/C++ verification may enter safety-critical certification flows (IEC 61508, DO-178C), where MLIR-level proof certificates replace expensive manual review.
+
+---
+
 ## Chapter Summary
 
 - Mojo compiles Python-compatible syntax via MLIR; `SIMD[DType, N]` maps to `vector<Nxf32>`, `@gpu.func` maps to `gpu.launch`, `@parameter` blocks are compile-time specialization.

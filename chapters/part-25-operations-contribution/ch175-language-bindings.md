@@ -622,6 +622,32 @@ Julia is transitioning from the custom JIT stack it built around MCJIT to ORC v2
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **MLIR Python bindings dialect coverage**: The MLIR community is actively expanding auto-generated Python bindings for dialects via `mlir-tblgen` (IRDL/ODS backends). Ongoing RFC tracking: [discourse.llvm.org/t/python-bindings-for-mlir-dialects](https://discourse.llvm.org/t/mlir-python-bindings-auto-generation) — expect `vector`, `transform`, and `gpu` dialects to achieve full parity with C++ APIs by mid-2026.
+- **inkwell LLVM 22 support**: inkwell tracks LLVM major versions via feature flags (`llvm22-0`). The maintainers have committed to a 22.x release to align with the LLVM 22.1.x stabilization cycle; watch [TheDan64/inkwell](https://github.com/TheDan64/inkwell/issues) for the feature-flag PR.
+- **llvmlite ORC JIT v2 migration**: llvmlite currently relies on the legacy MCJIT engine (`LLVMCreateMCJITCompilerForModule`). The Numba team has an open tracking issue to migrate `llvmlite.binding` to the ORC JIT v2 C API (`LLJIT`, `LLLazyJIT`) to support concurrent JIT and better per-function optimization.
+- **tinygo LLVM 22 backend upgrade**: tinygo regularly lags LLVM by 1–2 versions; active work on tinygo's `go-llvm` fork targets LLVM 20+ by Q3 2026, including updated ABI mappings for RISC-V and WebAssembly reference types.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Typed C API extensions for LLVM IR**: The C API currently exposes only core IR constructs. An ongoing LLVM discourse thread proposes typed C API extensions for LLVM 24–25 to cover `DebugInfo`, `DIBuilder`, and `AttributeList` APIs that are currently C++-only, enabling richer language bindings without custom C++ shims.
+- **Julia LLVM fork reduction**: Julia maintains a substantial patch set on its LLVM fork. The Julia community's stated roadmap is to upstream these patches (notably the GC stack-map changes and coroutine lowering patches) into mainline LLVM, eliminating the fork by LLVM 25–26. See [JuliaLang/julia#49065](https://github.com/JuliaLang/julia/issues/49065).
+- **Stable MLIR C API expansion**: MLIR's C API (`include/mlir-c/`) lags the C++ API significantly. A multi-year effort to stabilize and expand MLIR C API coverage — tracked via MLIR's GitHub issue [mlir: stable C API surface](https://github.com/llvm/llvm-project/issues) — will enable new generation of language bindings (e.g., native Rust MLIR bindings without pybind11).
+- **Native Rust MLIR bindings (melior)**: The `melior` crate ([raviqqe/melior](https://github.com/raviqqe/melior)) provides Rust-native MLIR bindings via the MLIR C API. As the MLIR C API surface expands, melior is expected to replace ad-hoc MLIR C++ usage in Rust-based ML compilers by 2027–2028.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Language-agnostic binding generation from TableGen/ODS**: A longer-term direction in the MLIR community is to extend ODS/IRDL to auto-generate binding stubs for arbitrary target languages (Python, Rust, Swift, Kotlin) from the same declarative dialect definitions, eliminating manual binding maintenance entirely.
+- **WebAssembly Component Model as universal binding layer**: With the W3C WebAssembly Component Model (WIT interfaces) advancing through standardization, LLVM/MLIR could emit component-model-compatible modules that language bindings across the ecosystem use as a language-neutral ABI, replacing the C opaque-handle pattern for hosted environments.
+- **JVM/GraalVM native LLVM integration**: GraalVM's Sulong project already interprets LLVM bitcode; a deeper integration — where GraalVM compiles LLVM IR to native via its Graal JIT rather than interpreting — would provide a high-quality Java/JVM binding path without the performance overhead of the current LLVM C API + JNI stack.
+
+---
+
 ## Chapter Summary
 
 - The **LLVM C API** (`llvm-c/Core.h`) provides a stable, ABI-stable interface using opaque handles; it is the foundation for all non-C++ language bindings.

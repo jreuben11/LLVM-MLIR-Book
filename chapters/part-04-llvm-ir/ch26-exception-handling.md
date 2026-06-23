@@ -709,6 +709,32 @@ Rust's panic/unwind uses `rust_eh_personality` (`EHPersonality::Rust`), which wr
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **Wasm exnref standardization land**: The WebAssembly exception-handling proposal using `exnref` typed references was standardized in Wasm 3.0; LLVM's `-mllvm -wasm-enable-exnref` backend path is stabilizing with the `llvm.wasm.throw`/`llvm.wasm.catch` intrinsics transitioning from experimental to official. Tracking patches on [LLVM Discourse](https://discourse.llvm.org/tag/webassembly) and D147000-series reviews will complete the scoped-to-native-exnref migration in `WasmEHPrepare`.
+- **`nounwind` inference improvements in `function-attrs`**: An open RFC on discourse.llvm.org proposes extending the `function-attrs` pass to perform interprocedural `nounwind` propagation across DSO boundaries using LTO summary information, enabling more `invoke`-to-`call` conversions at link time without whole-program IR.
+- **ClangIR EH lowering**: As ClangIR (`CIR`) matures (tracked in `clang/lib/CIR/`), its `cir.try`/`cir.catch` operations must be lowered to LLVM `invoke`/`landingpad` or `catchswitch`/`catchpad`. Near-term work focuses on matching Clang's `CodeGenFunction::EmitLandingPad` output for all five LLVM EH personalities.
+- **ARM64EC EH on Windows**: The ARM64EC ABI (x64-emulation-compatible ABI for ARM64 Windows, triple `arm64ec-pc-windows-msvc`) requires a hybrid funclet EH strategy mixing `__CxxFrameHandler3` metadata with ARM64 unwind codes. Active patches in LLVM 22.x point releases address `Win64Exception` emission gaps for ARM64EC frames containing both native and emulated code regions.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **`libunwind` as the universal Itanium runtime**: The LLVM project's plan (see LLVM 21 release notes and llvm-dev threads) is for `libunwind` to fully replace `libgcc_s` as the default stack-unwinding library on Linux. This requires completing `libunwind`'s `_Unwind_ForcedUnwind` (POSIX thread cancellation) support and its DWARF expression evaluator to handle all `DW_OP_*` stack-machine operations that GCC occasionally emits in `.eh_frame` CFA rules.
+- **Typed exception handling for C interoperability**: A C++ Evolution proposal (P2795 and successors) targets C++ 29 for standardizing `std::error` as a zero-overhead alternative to EH for error-propagation APIs. Clang and LLVM will need a new IR lowering strategy — likely a dedicated intrinsic or calling-convention extension — to represent typed-return error propagation without EH overhead while preserving ABI compatibility with `std::expected`.
+- **EH table compression and `.eh_frame_hdr` optimization**: As binaries grow (especially with Rust + C++ mixed codebases), the `.eh_frame` / `.gcc_except_table` sections can constitute 5–15% of binary size. Research into compressed DWARF CFI (DWARF 6 proposal for call-frame information encoding improvements) and LSDA compaction — merging action tables across functions during LTO — is active in the LLVM linker and `DwarfCFIException` emitter.
+- **RISC-V Zicfilp/Zicfiss shadow-stack integration with EH**: The RISC-V Control-Flow Integrity extensions (landing-pad instructions `lpad` / shadow-stack pointer `ssp`) interact with LLVM EH: every `landingpad` block must emit an `lpad` instruction, and `resume` must not violate the shadow stack. Patch series targeting LLVM 25–26 add `RISCVCFIEHPrepare` to insert CFI landing pad markers compatible with the existing `SjLjEHPrepare` / `DwarfEHPrepare` pipeline.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **MLIR exception handling dialect**: A long-discussed but unstarted MLIR `exception` dialect would model structured EH at a higher level than LLVM IR, enabling transformations — like converting throwing function pairs into typed-return pairs — that are impossible once lowered to `invoke`/`landingpad`. This would particularly benefit MLIR-based frontends (Flang, ClangIR, Julia's new compiler pipeline) that currently lower EH directly to LLVM IR without intermediate representation.
+- **Coroutine + exception interaction formalization**: C++23 coroutines (`co_await`, `co_yield`) already interact with EH through `promise_type::unhandled_exception()`, but the coroutine frame destruction path on exception exit is not modeled in LLVM IR EH tables — the coroutine body function uses `nounwind` and handles all exceptions internally. A future coroutine-EH integration could expose frame destruction via actual `cleanuppad` funclets, enabling better stack-trace support and debugger integration for coroutines that propagate exceptions across suspension points.
+- **Unified cross-language unwind ABI**: The Rust `C-unwind` ABI (stabilized in Rust Edition 2021) and similar efforts in Swift and Kotlin/Native aim toward a universal cross-language unwinding contract. By 2031, the expectation is a stable cross-language EH ABI at the OS level — potentially via a new `_Unwind_*` extension in a future POSIX revision or a W3C Wasm component model EH mechanism — that LLVM's `EHPersonality` enum would adopt as a new `CrossLang` personality class.
+
+---
+
 ## Summary
 
 - LLVM 22 supports five EH models: Itanium table-based (Linux/macOS/FreeBSD), Windows SEH/MSVC C++ (funclet model), SJLJ (setjmp/longjmp), WebAssembly (scoped or native instruction), and platform variants (XL_CXX, ZOS_CXX, GNU_ObjC).

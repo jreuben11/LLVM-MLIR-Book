@@ -1016,6 +1016,32 @@ For completeness: `llvm-dwarfutil` (LLVM 16+) includes `DWARFLinkerParallel`, a 
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **DWARF 6 standardization progress**: The DWARF Standards Committee has been working on DWARF 6 features including a revised `.debug_names` index format with improved hash collision handling and support for C++ modules (named module units). Expect draft specification sections to be published on dwarfstd.org and prototype LLVM patches on discourse.llvm.org tracking the `[DWARF]` tag.
+- **SFrame for RISC-V and LoongArch**: SFrame emission landed for x86-64 and AArch64 in LLVM 22; RFC patches for RISC-V and LoongArch SFrame support are under review ([D157701](https://reviews.llvm.org/D157701) lineage). Expect these to land upstream by ~Q3 2026 as Linux distributions begin defaulting to SFrame for glibc.
+- **`llvm-dwarfutil` parallel linker GA**: `DWARFLinkerParallel` (introduced LLVM 16, stabilized in LLVM 22) is being promoted to the default backend for `llvm-dwarfutil --linker parallel`. Near-term work includes fixing remaining correctness issues with type unit deduplication in parallel mode, tracked in LLVM GitHub issues under the `debuginfo` label.
+- **debuginfod caching and federation**: The `elfutils` project is adding a federated mirror protocol to debuginfod so that enterprise deployments can cache and proxy public servers (Fedora, Ubuntu, Debian). LLDB's debuginfod client (`llvm/lib/Debuginfod/`) is being extended with LRU disk caching to avoid re-fetching on repeated lookups.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **C++ named modules and DWARF**: ISO C++20/23 named modules (`import std;`, `import my.module;`) require a new DWARF encoding for module boundaries, inter-module type deduplication, and `DW_TAG_module` scoping. The Clang modules-DWARF integration (tracking discourse thread: "DWARF for C++ Modules") is expected to reach production quality by LLVM 26–27, aligning with C++26 module feature completeness in Clang.
+- **CTF (Compact Type Format) integration**: The Linux kernel and BPF ecosystem use CTF alongside BTF (BPF Type Format). `pahole` already converts DWARF→BTF; a proposal to add a first-class CTF emitter to LLVM (analogous to DWARF) is in early design, driven by the kernel BPF community's need for type-safe CO-RE (Compile Once, Run Everywhere) across kernel versions.
+- **Coroutine and async frame unwinding**: C++20 coroutines and Rust async functions produce split stack frames (coroutine state on the heap). DWARF currently lacks a standard encoding for coroutine-suspended state, making `bt` useless in a suspended coroutine. LLVM and GDB developers are drafting a `DW_TAG_coroutine_type` + location expression extension; expect a DWARF 6 proposal by 2027 and LLVM implementation by 2028.
+- **`llvm-symbolizer` with source embedding**: DWARF 5's `DW_LNCT_source` attribute allows embedding source text in line tables (primarily for JIT-compiled languages). A planned `llvm-symbolizer --show-source` flag will extract and display this inline source, making crash reports from JIT runtimes (V8, SpiderMonkey using LLVM backend) fully self-contained without requiring source file access.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Pervasive SFrame adoption replacing `.eh_frame` for non-exception paths**: As glibc, libunwind, Linux `perf`, and BPF stack walkers all gain SFrame support, the toolchain ecosystem may reach a tipping point where `.eh_frame` is generated only for C++ exception-unwinding paths and `.sframe` handles all other unwinding. This would require ABI-level decisions across Linux distributions (analogous to the `-fasynchronous-unwind-tables` transition of the 2000s) and coordination with the GNU toolchain, glibc, and kernel communities.
+- **Unified debug info format for heterogeneous compute**: GPU and accelerator debug info remains fragmented — NVIDIA uses NVVM IR with proprietary DWARF extensions, AMD uses ROCm DWARF extensions, Intel uses SPIR-V debug extensions. A unified DWARF extension for heterogeneous device code (covering SIMT lane state, work-group context, and device memory address spaces) is under discussion in the Khronos SPIR-V working group and the LLVM Heterogeneous Computing SIG, targeting standardization by ~2029–2030.
+- **AI-assisted debug info quality**: Large-scale analysis of DWARF coverage gaps (variables marked "optimized out") is being used to train ML models that can suggest pass-ordering changes to preserve more debug info without sacrificing optimization quality. Research prototypes (e.g., from the "DebugIR" direction at academic venues) may feed back into LLVM's `salvageDebugInfo()` and variable-location tracking infrastructure, producing compilers that are simultaneously more optimizing and more debuggable.
+
+---
+
 ## Chapter Summary
 
 - **DWARF 5** is the current standard, stored in `.debug_info`, `.debug_line`, `.debug_loclists`, `.debug_rnglists`, `.debug_names`, and related sections in ELF binaries.

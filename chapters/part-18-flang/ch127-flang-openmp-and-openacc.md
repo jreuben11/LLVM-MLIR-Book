@@ -795,6 +795,32 @@ After `ConvertOpenMPToGPUPass`, the `omp.target` block is replaced by a `gpu.lau
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **OpenMP 6.0 clause coverage in Flang**: The OpenMP 6.0 specification (ratified November 2025) introduces `omp.assume`, `omp.nothing`, and revised `interop` semantics; Flang patches tracked in the [OpenMP 6.0 Flang RFC on discourse.llvm.org](https://discourse.llvm.org/c/subprojects/flang/) are expected to land in the `main` branch by mid-2026, adding `OpenMP_AssumeClause` and `OpenMP_NothingClause` to `OpenMPClauses.td`.
+- **DO CONCURRENT locality clause completeness**: The `-fdo-concurrent-parallel=device` path for `LOCAL_INIT` and `DEFAULT(NONE)` locality clauses remains partially unimplemented as of LLVM 22; several patches (e.g., D157512 follow-ons) targeting `check-do-forall.cpp` and `DoLoopHelper` are in review to complete Fortran 2018 `DO CONCURRENT` compliance.
+- **liboffload v2 stabilization**: The `offload/` subtree refactoring (replacing the legacy `openmp/libomptarget/`) continues; LLVM 22 ships a transitional dual-library layout, and the community aims to drop the legacy `libomptarget` path by LLVM 23, consolidating all `__tgt_*` dispatch into the new `liboffload` ABI.
+- **OpenACC 3.3 support**: OpenACC 3.3 added `acc.serial` construct semantics and revised `routine` gang/vector/worker directives; the `acc.*` dialect in MLIR requires new `acc.serial` op and updated `acc.routine_info` attribute — active development tracked via the OpenACC MLIR RFC at [https://discourse.llvm.org/t/rfc-openacc-mlir-dialect-updates](https://discourse.llvm.org/t/rfc-openacc-mlir-dialect-updates).
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Flang as primary Fortran GPU compiler for HPC**: As NVIDIA's `nvfortran` and AMD's `amdflang` converge with upstream Flang, the community roadmap targets Flang being the de-facto open-source Fortran GPU compiler for DOE HPC workloads (Frontier, Aurora successors), requiring full OpenMP 5.2 `metadirective` support, `declare variant`, and device-side `allocate` directives in the `omp.*` dialect.
+- **Unified offload runtime across Clang and Flang**: The `clang-linker-wrapper` + `liboffload` stack is being unified so that Flang-generated and Clang-generated offload objects can be linked in the same `--offload-arch` build; this requires a common fat-binary format and interoperable `__tgt_offload_entry` descriptors across both frontends.
+- **`omp.target` multi-device dispatch (OpenMP 5.1 `device(ancestor:)`)**:  The `ancestor` device selector, allowing target regions to fall back to the host or a parent device, requires new `omp.device_clause` extensions in the MLIR dialect and multi-device scheduling logic in `liboffload`; this is targeted for LLVM 25–26 according to the OpenMP WG roadmap.
+- **MLIR `acc.*` to SPIR-V path for Intel GPUs**: Intel's oneAPI deployment of Fortran via SYCL/SPIR-V requires an `acc.*` → `spirv.*` lowering path analogous to the existing NVPTX/ROCDL paths; early prototypes are appearing in Intel's LLVM fork (`intel/llvm`) and are expected to be upstreamed into MLIR by 2027–2028.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **Fortran 202X `PARALLEL` coarray extensions and OpenMP interoperability**: The ongoing Fortran standardization (WG5/J3 for Fortran 202X) is considering `PARALLEL DO` as a native language construct superseding `DO CONCURRENT`, with direct coarray and `TEAMS`/`CRITICAL` interoperability; Flang would need new parse-tree nodes, semantic checkers, and `omp.*`/`caf.*` dialect interoperability.
+- **Whole-program GPU optimization across `omp.target` boundaries**: Current Flang GPU offload outlines each `!$omp target` region independently; future toolchain directions include interprocedural analysis across target regions (e.g., fusing adjacent kernels, hoisting invariant map operations), enabled by `omp.target` being a first-class op in an MLIR module-level analysis pass.
+- **Verified OpenMP lowering via Alive2/Vellvm techniques**: Ongoing research (e.g., the OMPVerif and Deductive Verification of Parallel Programs projects) aims to formally verify that `omp.*`-to-`__kmpc_*` lowering preserves sequential consistency for reduction and atomic operations; integration with the LLVM verification infrastructure (see [Chapter 149](../part-24-verified-compilation/ch149-alive2-and-peephole-verification.md)) would enable certified OpenMP lowering for safety-critical HPC applications.
+
+---
+
 ## Chapter Summary
 
 - Flang's OpenMP support runs through semantic validation (`check-omp-structure.cpp`), lowering to `omp.*` MLIR dialect ops (`flang/lib/Lower/OpenMP/OpenMP.cpp`), and conversion to `__kmpc_*`/`__tgt_*` runtime calls via `OpenMPToLLVM`

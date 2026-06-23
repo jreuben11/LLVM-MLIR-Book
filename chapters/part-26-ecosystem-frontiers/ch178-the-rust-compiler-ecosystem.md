@@ -1172,6 +1172,33 @@ The comptime-conditional in the kernel IR is distinct from Rust's `if cfg!(...)`
 
 ---
 
+## Research and Development Roadmap
+
+> *Horizon dates are relative to April 2026.*
+
+### 6-Month Horizon (Near-Term, by ~October 2026)
+
+- **inkwell 0.6 and LLVM 22 full coverage**: The inkwell maintainers are tracking LLVM 22's opaque-pointer unification and the removal of the legacy `PointerType`-with-element-type API; the next release is expected to expose `PointerValue<'ctx>` exclusively as opaque, aligning the Rust API with LLVM's own deprecation of typed pointer operations ([inkwell GitHub milestones](https://github.com/TheDan64/inkwell/milestones)).
+- **melior `ods-dialects` expansion**: The melior project is progressively auto-generating typed builder functions from MLIR's ODS tablegen definitions; near-term work targets complete coverage of the `linalg`, `tensor`, and `vector` dialects, which are critical for ML model lowering pipelines that currently fall back to raw `OperationBuilder`.
+- **CubeCL MLIR-based compilation backend**: The Burn project roadmap (v0.16–0.17 cycle) includes replacing CubeCL's hand-written WGSL/MSL emitters with a path through MLIR's `gpu` dialect and `gpu-to-spirv` / `gpu-to-rocdl` lowerings, enabling hardware-specific optimizations unavailable in the current string-emission approach ([Burn roadmap, GitHub discussions](https://github.com/tracel-ai/burn/discussions)).
+- **`rustc_codegen_nvvm` stabilization**: The `rust-cuda` ecosystem's NVVM backend (`rustc_codegen_nvvm`) is being ported to the current rustc plugin API following the 2024 stable codegen-backend ABI; near-term patches target compatibility with CUDA 13 and NVVM IR 2.0, resolving breakage caused by NVVM's removal of several LLVM 14-era intrinsics.
+
+### 2.5-Year Horizon (Mid-Term, by ~October 2028)
+
+- **Rust-native MLIR dialect definition (pliron + StableHLO bridge)**: The pliron project is evaluating a compatibility bridge that would allow pliron-defined dialects to serialize to MLIR's bytecode format (`.mlirbc`), enabling pliron-generated IR to be consumed by stock `mlir-opt` pipelines and closing the portability gap with melior; this requires implementing pliron's textual IR printer against MLIR's Generic Assembly Format spec.
+- **`#[unsafe(extern "C")]` Edition 2027 implications for llvm-sys**: The Rust unsafe-extern RFC process is continuing toward a more ergonomic syntax for declaring FFI blocks; llvm-sys will need a full regeneration pass when the RFC lands in a stable edition (tentatively Edition 2027), impacting the ~3,000 generated declarations and requiring coordinated updates across the inkwell, melior, and any crate that re-exports `LLVMValueRef`-family types.
+- **Burn distributed training and NCCL/RCCL integration**: The Burn project's distributed-training work aims to add multi-GPU and multi-node training through a backend-agnostic collective-communication abstraction; the CUDA backend path requires Rust bindings to NCCL (currently hand-written unsafe FFI), and the team is evaluating autogenerating them via `bindgen` from the NCCL 2.x headers, similar to the llvm-sys approach.
+- **gimli DWARF 6 readiness**: DWARF 6 is expected to be finalized circa 2027; gimli's write-side API will need extensions for new `.debug_names` accelerator table formats, the revised `.debug_rnglists` encoding for split-DWARF units, and the new `DW_FORM_implicit_const` expansions proposed in the working draft, which affect how rustc emits type unit references in split-DWARF mode.
+- **ena next-generation trait solver integration**: The `rustc_trait_selection` next-generation solver (formerly Chalk-based, now being rewritten directly in rustc as the "new solver") is migrating from ena's `InPlace` strategy to a custom snapshot-log design that amortizes the undo-log traversal cost across the parallel query evaluation paths introduced by Rayon-based query parallelism; ena's API may be extended with a new `ParallelSnapshot` strategy to accommodate this use case.
+
+### 5-Year Horizon (Long-Term, by ~2031)
+
+- **First-class Rust MLIR dialect authoring**: A long-term goal in the MLIR community is tooling that allows dialect definitions — op definitions, type constraints, interfaces, and ODS attributes — to be written natively in Rust (targeting either pliron's trait-dispatch model or a new tablegen-to-Rust transpiler), replacing the C++ tablegen/ODS authorship requirement and enabling pure-Rust compiler stacks to define and consume MLIR dialects with full verifier and canonicalization support without a C++ toolchain at any stage.
+- **Calyx → CIRCT → Burn closed-loop ML-to-FPGA**: The longer-term Calyx/CIRCT research trajectory (Cornell, EPFL, Google TRC) targets a fully automated pipeline from Burn model definition through `torch-mlir` → `linalg` → Calyx → CIRCT → synthesizable RTL, with automated pipelining and memory banking decisions driven by polyhedral scheduling; the primary research challenge is automating the loop-to-FSM lowering for non-affine control patterns that arise in attention mechanisms.
+- **Rust GPU (rust-gpu project) replacing rust-cuda**: The `rust-gpu` project (Embark Studios, now community-maintained) aims to make Rust a first-class GPU shading and compute language by targeting SPIR-V directly from `rustc_codegen_spirv`, bypassing PTX and NVVM entirely; if SPIR-V gains broad adoption across Vulkan Compute, CUDA (via vendor extensions), and Metal (via metal-spirv), rust-cuda's PTX-centric model may be superseded by a unified SPIR-V path that works across NVIDIA, AMD, Intel, and Apple GPUs.
+
+---
+
 ## Chapter Summary
 
 - **llvm-sys** provides mechanical `bindgen`-generated bindings to the LLVM C API. Edition 2024 requires `unsafe extern "C" { ... }` for FFI declarations, making unsafety visible at declaration sites. Version selection uses matching crate version (`"220"`) and feature flag (`"llvm22-0"`); `LLVM_SYS_220_PREFIX` overrides automatic `llvm-config` discovery.
